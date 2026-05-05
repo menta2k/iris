@@ -1,5 +1,0 @@
-logger:
-  type: zap
-  level: info
-  development: false
-  encoding: json
