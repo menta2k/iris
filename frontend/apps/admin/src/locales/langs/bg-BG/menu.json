@@ -1,0 +1,56 @@
+{
+  "dashboard": {
+    "index": "Център за данни",
+    "dashboard": "Табло",
+    "analysis": "Анализ",
+    "workbench": "Работна среда",
+    "about": "За приложението"
+  },
+  "profile": {
+    "moduleName": "Личен център",
+    "profile": "Лична информация",
+    "settings": "Лични настройки",
+    "security": "Сигурност",
+    "customize": "Персонализация на интерфейса",
+    "notification": "Известия",
+    "internalMessage": "Вътрешни съобщения"
+  },
+  "permission": {
+    "moduleName": "Управление на права",
+    "role": "Роли",
+    "permission": "Права"
+  },
+  "opm": {
+    "moduleName": "Организация и персонал",
+    "orgUnit": "Организация",
+    "position": "Длъжности",
+    "user": "Потребители",
+    "userDetail": "Детайли за потребителя"
+  },
+  "tenant": {
+    "moduleName": "Управление на наематели",
+    "member": "Списък с наематели"
+  },
+  "system": {
+    "moduleName": "Системно управление",
+    "dict": "Речник на данните",
+    "task": "Задачи",
+    "file": "Файлове",
+    "loginPolicy": "Политика за вход",
+    "menu": "Менюта",
+    "api": "API"
+  },
+  "log": {
+    "moduleName": "Одитни журнали",
+    "loginAuditLog": "Журнал на влизанията",
+    "apiAuditLog": "API журнал",
+    "dataAccessAuditLog": "Журнал на достъпа до данни",
+    "operationAuditLog": "Журнал на операциите",
+    "permissionAuditLog": "Журнал на правата"
+  },
+  "internalMessage": {
+    "moduleName": "Вътрешни съобщения",
+    "internalMessage": "Управление на съобщения",
+    "internalMessageCategory": "Категории съобщения"
+  }
+}

@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package identity.service.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "pagination/v1/pagination.proto";
+import "validate/validate.proto";
+
+// RoleService manages roles and the permissions assigned to them.
+// Permissions are referenced by canonical strings such as
+// "kumo.policy:write" or "audit.log:read".
+service RoleService {
+  rpc List   (pagination.PagingRequest)  returns (ListRoleResponse) {}
+  rpc Get    (GetRoleRequest)            returns (Role)             {}
+  rpc Create (CreateRoleRequest)         returns (Role)             {}
+  rpc Update (UpdateRoleRequest)         returns (Role)             {}
+  rpc Delete (DeleteRoleRequest)         returns (google.protobuf.Empty) {}
+}
+
+message Role {
+  uint32 id = 1;
+  string code = 2;          // stable identifier, e.g., "admin"
+  string name = 3;          // display name
+  string description = 4;
+  // Permissions in canonical format "<resource>:<action>".
+  repeated string permissions = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message GetRoleRequest        { uint32 id = 1 [(validate.rules).uint32.gt = 0]; }
+message DeleteRoleRequest     { uint32 id = 1 [(validate.rules).uint32.gt = 0]; }
+message ListRoleResponse      { repeated Role items = 1; uint32 total = 2; }
+
+message CreateRoleRequest {
+  string code = 1 [(validate.rules).string = {pattern: "^[a-z][a-z0-9_]{1,63}$"}];
+  string name = 2 [(validate.rules).string.max_len = 128];
+  string description = 3 [(validate.rules).string.max_len = 512];
+  repeated string permissions = 4;
+}
+
+message UpdateRoleRequest {
+  uint32 id = 1 [(validate.rules).uint32.gt = 0];
+  string name = 2;
+  string description = 3;
+  repeated string permissions = 4;
+}

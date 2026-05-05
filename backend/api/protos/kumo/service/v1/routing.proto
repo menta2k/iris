@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package kumo.service.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "pagination/v1/pagination.proto";
+import "validate/validate.proto";
+
+// RoutingService describes routing rules — match-conditions on inbound mail
+// that route to a target VMTA / mail class / queue. Stored declaratively;
+// translated to Lua during policy render.
+service RoutingService {
+  rpc List   (pagination.PagingRequest) returns (ListRoutingRuleResponse) {}
+  rpc Get    (GetRoutingRuleRequest)    returns (RoutingRule)             {}
+  rpc Create (CreateRoutingRuleRequest) returns (RoutingRule)             {}
+  rpc Update (UpdateRoutingRuleRequest) returns (RoutingRule)             {}
+  rpc Delete (DeleteRoutingRuleRequest) returns (google.protobuf.Empty)   {}
+  rpc Reorder(ReorderRoutingRulesRequest) returns (google.protobuf.Empty) {}
+}
+
+message RoutingRule {
+  uint32 id = 1;
+  string name = 2;
+  // Lower priority runs first. Stable sort within priority by id.
+  int32  priority = 3;
+  bool   enabled = 4;
+  repeated RuleCondition conditions = 5;
+  RuleTarget target = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message RuleCondition {
+  // Field to match. Allow-list: "from", "to", "to_domain", "from_domain",
+  // "header.subject", "source_ip".
+  string field = 1;
+  // Operator. Allow-list: "equals", "contains", "startswith", "endswith", "regex".
+  string op = 2;
+  string value = 3;
+}
+
+message RuleTarget {
+  // Allow-list: "vmta", "mail_class", "queue", "reject", "discard".
+  string kind = 1;
+  string ref = 2;
+  // Reject SMTP code (used when kind == "reject").
+  uint32 reject_code = 3;
+  string reject_text = 4;
+}
+
+message GetRoutingRuleRequest    { uint32 id = 1 [(validate.rules).uint32.gt = 0]; }
+message DeleteRoutingRuleRequest { uint32 id = 1 [(validate.rules).uint32.gt = 0]; }
+message ListRoutingRuleResponse  { repeated RoutingRule items = 1; uint32 total = 2; }
+
+message CreateRoutingRuleRequest {
+  string name = 1;
+  int32  priority = 2;
+  bool   enabled = 3;
+  repeated RuleCondition conditions = 4;
+  RuleTarget target = 5;
+}
+
+message UpdateRoutingRuleRequest {
+  uint32 id = 1 [(validate.rules).uint32.gt = 0];
+  string name = 2;
+  int32  priority = 3;
+  bool   enabled = 4;
+  repeated RuleCondition conditions = 5;
+  RuleTarget target = 6;
+}
+
+message ReorderRoutingRulesRequest {
+  repeated uint32 ordered_ids = 1;
+}

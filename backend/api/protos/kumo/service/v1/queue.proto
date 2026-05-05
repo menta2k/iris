@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package kumo.service.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
+
+// QueueService surfaces live queue state from kumomta and provides controls
+// (suspend, resume, drain, bounce). State is fetched from kumomta's HTTP API;
+// the service caches snapshots in TimescaleDB hypertables for trend views.
+service QueueService {
+  rpc List      (ListQueuesRequest)    returns (ListQueuesResponse)    {}
+  rpc Inspect   (InspectQueueRequest)  returns (QueueInspection)       {}
+  rpc Suspend   (QueueActionRequest)   returns (google.protobuf.Empty) {}
+  rpc Resume    (QueueActionRequest)   returns (google.protobuf.Empty) {}
+  rpc Bounce    (BounceQueueRequest)   returns (google.protobuf.Empty) {}
+}
+
+message ListQueuesRequest {
+  string filter = 1;            // substring filter on queue name
+  uint32 limit = 2;
+}
+
+message ListQueuesResponse {
+  repeated QueueSummary items = 1;
+}
+
+message QueueSummary {
+  string name = 1;
+  uint64 queue_size = 2;
+  uint64 delivered_total = 3;
+  uint64 failed_total = 4;
+  google.protobuf.Timestamp sampled_at = 5;
+  bool   suspended = 6;
+}
+
+message InspectQueueRequest {
+  string name = 1 [(validate.rules).string.min_len = 1];
+}
+
+message QueueInspection {
+  QueueSummary summary = 1;
+  repeated MessageRef recent_messages = 2;
+}
+
+message MessageRef {
+  string message_id = 1;
+  string recipient = 2;
+  string status = 3;             // "queued" | "delivered" | "bounced" | "deferred"
+  google.protobuf.Timestamp at = 4;
+}
+
+message QueueActionRequest {
+  string name = 1 [(validate.rules).string.min_len = 1];
+  string note = 2;
+}
+
+message BounceQueueRequest {
+  string name = 1 [(validate.rules).string.min_len = 1];
+  string reason = 2 [(validate.rules).string.max_len = 256];
+}

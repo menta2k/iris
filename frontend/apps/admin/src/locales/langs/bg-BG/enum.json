@@ -1,0 +1,243 @@
+{
+  "status": {
+    "ON": "Активен",
+    "OFF": "Деактивиран"
+  },
+  "enable": {
+    "true": "Активиран",
+    "false": "Деактивиран"
+  },
+  "gender": {
+    "SECRET": "Скрит",
+    "MALE": "Мъжки",
+    "FEMALE": "Женски"
+  },
+  "successStatus": {
+    "success": "Успех",
+    "failed": "Неуспех"
+  },
+  "user": {
+    "status": {
+      "DISABLED": "Деактивиран",
+      "NORMAL": "Активен",
+      "PENDING": "Очаква активиране",
+      "LOCKED": "Заключен",
+      "EXPIRED": "Изтекъл",
+      "CLOSED": "Затворен"
+    }
+  },
+  "menu": {
+    "type": {
+      "CATALOG": "Каталог",
+      "MENU": "Меню",
+      "BUTTON": "Бутон",
+      "EMBEDDED": "Вграден",
+      "LINK": "Външна връзка"
+    }
+  },
+  "task": {
+    "type": {
+      "Periodic": "Периодична",
+      "Delay": "Със закъснение",
+      "WaitResult": "Изчаква резултат"
+    }
+  },
+  "loginPolicy": {
+    "type": {
+      "BLACKLIST": "Черен списък",
+      "WHITELIST": "Бял списък"
+    },
+    "method": {
+      "IP": "Ограничение по IP",
+      "MAC": "Ограничение по MAC",
+      "REGION": "Ограничение по регион",
+      "TIME": "Времево ограничение",
+      "DEVICE": "Ограничение по устройство"
+    }
+  },
+  "orgUnit": {
+    "type": {
+      "DEPARTMENT": "Отдел",
+      "TEAM": "Екип",
+      "COMPANY": "Компания",
+      "DIVISION": "Дирекция",
+      "PROJECT": "Проект",
+      "COMMITTEE": "Комитет",
+      "REGION": "Регионален център",
+      "SUBSIDIARY": "Дъщерна компания",
+      "BRANCH": "Клон",
+      "OTHER": "Друго"
+    },
+    "status": {
+      "ON": "Активен",
+      "OFF": "Деактивиран"
+    }
+  },
+  "tenant": {
+    "status": {
+      "ON": "Активен",
+      "OFF": "Деактивиран",
+      "EXPIRED": "Изтекъл",
+      "FREEZE": "Замразен"
+    },
+    "type": {
+      "TRIAL": "Пробен",
+      "PAID": "Платен",
+      "INTERNAL": "Вътрешен",
+      "PARTNER": "Партньор",
+      "CUSTOM": "По избор"
+    },
+    "auditStatus": {
+      "PENDING": "Очаква преглед",
+      "APPROVED": "Одобрен",
+      "REJECTED": "Отхвърлен"
+    }
+  },
+  "role": {
+    "type": {
+      "SYSTEM": "Вградена роля",
+      "CUSTOM": "Потребителска роля"
+    },
+    "dataScope": {
+      "ALL": "Всички",
+      "SELECTED_UNITS": "По избор",
+      "UNIT_AND_CHILD": "Отдел и подчинени",
+      "UNIT_ONLY": "Само отдел",
+      "SELF": "Само себе си"
+    }
+  },
+  "membershipPosition": {
+    "status": {
+      "PROBATION": "Изпитателен срок",
+      "ACTIVE": "Активен",
+      "LEAVE": "Напуснал",
+      "RESIGNED": "Подал оставка",
+      "TERMINATED": "Прекратен",
+      "EXPIRED": "Изтекъл"
+    }
+  },
+  "position": {
+    "type": {
+      "REGULAR": "Стандартна",
+      "LEADER": "Ръководна",
+      "MANAGER": "Мениджър",
+      "INTERN": "Стажант",
+      "CONTRACT": "Договор",
+      "OTHER": "Друго"
+    }
+  },
+  "permission": {
+    "type": {
+      "CATALOG": "Право над каталог",
+      "MENU": "Право над меню",
+      "PAGE": "Право над страница",
+      "BUTTON": "Право над бутон",
+      "API": "API право",
+      "DATA": "Право над данни"
+    }
+  },
+  "loginAuditLog": {
+    "status": {
+      "SUCCESS": "Успешен",
+      "FAILED": "Неуспешен",
+      "PARTIAL": "Частично успешен"
+    },
+    "actionType": {
+      "LOGIN": "Вход",
+      "LOGOUT": "Изход",
+      "SESSION_EXPIRED": "Сесията изтече"
+    },
+    "riskLevel": {
+      "LOW": "Нисък",
+      "MEDIUM": "Среден",
+      "HIGH": "Висок"
+    }
+  },
+  "operationAuditLog": {
+    "action": {
+      "CREATE": "СЪЗДАВАНЕ",
+      "UPDATE": "ОБНОВЯВАНЕ",
+      "DELETE": "ИЗТРИВАНЕ",
+      "READ": "ЧЕТЕНЕ",
+      "ASSIGN": "ПРИСВОЯВАНЕ",
+      "UNASSIGN": "ОТНЕМАНЕ",
+      "EXPORT": "ЕКСПОРТ",
+      "IMPORT": "ИМПОРТ",
+      "OTHER": "ДРУГО"
+    }
+  },
+  "dataAccessAuditLog": {
+    "accessType": {
+      "SELECT": "SELECT",
+      "INSERT": "INSERT",
+      "UPDATE": "UPDATE",
+      "DELETE": "DELETE",
+      "VIEW": "ПРЕГЛЕД",
+      "BULK_READ": "МАСОВО ЧЕТЕНЕ",
+      "EXPORT": "ЕКСПОРТ",
+      "IMPORT": "ИМПОРТ",
+      "DDL_CREATE": "CREATE TABLE",
+      "DDL_ALTER": "ALTER TABLE",
+      "DDL_DROP": "DROP TABLE",
+      "METADATA_READ": "ЧЕТЕНЕ НА МЕТАДАННИ",
+      "SCAN": "СКАН",
+      "ADMIN_OPERATION": "АДМИНИСТРАТИВНА ОПЕРАЦИЯ",
+      "OTHER": "ДРУГО"
+    }
+  },
+  "permissionAuditLog": {
+    "action": {
+      "GRANT": "Предоставяне на право",
+      "REVOKE": "Отнемане на право",
+      "UPDATE": "Обновяване на право",
+      "RESET": "Нулиране на право",
+      "CREATE": "Създаване на право",
+      "DELETE": "Изтриване на право",
+      "ASSIGN": "Присвояване",
+      "UNASSIGN": "Отнемане",
+      "BULK_GRANT": "Масово предоставяне",
+      "BULK_REVOKE": "Масово отнемане",
+      "EXPIRE": "Изтекло право",
+      "SUSPEND": "Спряно право",
+      "RESUME": "Възстановено право",
+      "ROLLBACK": "Връщане на промяна",
+      "OTHER": "Друго"
+    }
+  },
+  "internalMessage": {
+    "status": {
+      "DRAFT": "Чернова",
+      "PUBLISHED": "Публикувано",
+      "SCHEDULED": "Планирано",
+      "REVOKED": "Оттеглено",
+      "ARCHIVED": "Архивирано",
+      "DELETED": "Изтрито"
+    },
+    "type": {
+      "NOTIFICATION": "Известие",
+      "PRIVATE": "Лично съобщение",
+      "GROUP": "Група"
+    }
+  },
+  "internalMessageRecipient": {
+    "status": {
+      "SENT": "Изпратено",
+      "RECEIVED": "Получено",
+      "READ": "Прочетено",
+      "REVOKED": "Оттеглено",
+      "DELETED": "Изтрито"
+    }
+  },
+  "ossProvider": {
+    "LOCAL": "Локално хранилище",
+    "MINIO": "MinIO",
+    "ALIYUN": "Alibaba Cloud OSS",
+    "QINIU": "Qiniu Cloud Storage",
+    "TENCENT": "Tencent COS",
+    "BAIDU": "Baidu BOS",
+    "HUAWEI": "Huawei OBS",
+    "AWS": "Amazon S3",
+    "AZURE": "Azure Blob Storage",
+    "GOOGLE": "Google Cloud Storage"
+  }
+}

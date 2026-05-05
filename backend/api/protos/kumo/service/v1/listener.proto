@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package kumo.service.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "pagination/v1/pagination.proto";
+import "validate/validate.proto";
+
+// ListenerService configures kumomta SMTP listeners and the domain rules each
+// listener applies. Mutations rebuild the Lua policy and (optionally) signal
+// kumomta to reload.
+service ListenerService {
+  rpc List   (pagination.PagingRequest)  returns (ListListenerResponse)        {}
+  rpc Get    (GetListenerRequest)        returns (ListenerConfig)              {}
+  rpc Create (CreateListenerRequest)     returns (ListenerConfig)              {}
+  rpc Update (UpdateListenerRequest)     returns (ListenerConfig)              {}
+  rpc Delete (DeleteListenerRequest)     returns (google.protobuf.Empty)       {}
+}
+
+// ListenerConfig describes one inbound SMTP listener (addr/port + TLS).
+message ListenerConfig {
+  uint32 id = 1;
+  string name = 2;             // unique label, e.g. "mx-public"
+  string listen_addr = 3;      // "0.0.0.0:25"
+  string hostname = 4;         // banner hostname
+  bool   tls_enabled = 5;
+  string tls_cert_pem_path = 6;
+  string tls_key_pem_path = 7;
+  // If true, this listener requires authentication for relay (submission).
+  bool   require_auth = 8;
+  // Maximum message size in bytes (0 = no override).
+  uint64 max_message_size = 9;
+  google.protobuf.Timestamp created_at = 20;
+  google.protobuf.Timestamp updated_at = 21;
+}
+
+message GetListenerRequest    { uint32 id = 1 [(validate.rules).uint32.gt = 0]; }
+message DeleteListenerRequest { uint32 id = 1 [(validate.rules).uint32.gt = 0]; }
+message ListListenerResponse  { repeated ListenerConfig items = 1; uint32 total = 2; }
+
+message CreateListenerRequest {
+  string name = 1 [(validate.rules).string = {pattern: "^[a-z0-9][a-z0-9_-]{0,63}$"}];
+  string listen_addr = 2 [(validate.rules).string.min_len = 3];
+  string hostname = 3    [(validate.rules).string.min_len = 1];
+  bool   tls_enabled = 4;
+  string tls_cert_pem_path = 5;
+  string tls_key_pem_path = 6;
+  bool   require_auth = 7;
+  uint64 max_message_size = 8;
+}
+
+message UpdateListenerRequest {
+  uint32 id = 1 [(validate.rules).uint32.gt = 0];
+  string listen_addr = 2;
+  string hostname = 3;
+  bool   tls_enabled = 4;
+  string tls_cert_pem_path = 5;
+  string tls_key_pem_path = 6;
+  bool   require_auth = 7;
+  uint64 max_message_size = 8;
+}

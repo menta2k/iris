@@ -1,0 +1,107 @@
+# CI — runs on every push to main and on every pull request.
+#
+# Two parallel jobs (backend + frontend) keep feedback under ~3 minutes
+# on a warm cache. We deliberately don't push images here — that's the
+# release workflow's job. Anything CI catches must be a bug in *this*
+# patch, not infrastructure drift, so we pin Go + Node + pnpm to the
+# versions the project develops against.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-flight runs for the same branch when a new commit lands.
+# CI is idempotent and the most recent commit is the one that matters.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (Go ${{ matrix.go }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ['1.25.x']
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: go mod download
+        run: go mod download
+
+      # vet runs first because it's near-instant and catches the
+      # easiest class of bugs before we spend time compiling tests.
+      - name: go vet
+        run: go vet ./...
+
+      - name: go build
+        run: go build ./...
+
+      - name: go test (race + cover)
+        # Race + count=1 is the gate the project documents in README's
+        # "Testing" section. We DO NOT enforce a coverage threshold in
+        # CI — that's a security-package concern checked on demand.
+        run: go test -race -count=1 -cover ./...
+
+  frontend:
+    name: Frontend (Node 20, pnpm)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          # Match `packageManager` in frontend/package.json so the
+          # lockfile resolves the same way every run.
+          version: 10.19.0
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # Match frontend/.node-version. setup-node's pnpm cache reads
+          # frontend/pnpm-lock.yaml automatically.
+          node-version: '20.14.0'
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: pnpm install
+        # --frozen-lockfile is the right strict mode for CI: any
+        # mismatch between package.json + pnpm-lock.yaml fails the run
+        # rather than silently regenerating the lockfile.
+        run: pnpm install --frozen-lockfile
+
+      - name: typecheck
+        run: pnpm --filter @vben/web-antd typecheck
+
+      - name: build
+        # Full bundle build. Catches Vite/rollup-level issues that
+        # tsc misses (e.g. dynamic import paths that resolve at build
+        # time only). Also produces apps/admin/dist/ — handy if a
+        # follow-up CI step wants to embed it.
+        run: pnpm build:antd
+        env:
+          NODE_OPTIONS: '--max-old-space-size=8192'

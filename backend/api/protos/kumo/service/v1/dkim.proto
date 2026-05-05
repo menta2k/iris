@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package kumo.service.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "pagination/v1/pagination.proto";
+import "validate/validate.proto";
+
+// DkimService manages signing identities (domain + selector). Private keys are
+// stored on disk under a service-controlled directory; this service tracks
+// metadata and validates submitted PEMs.
+service DkimService {
+  rpc List   (pagination.PagingRequest) returns (ListDkimIdentityResponse) {}
+  rpc Get    (GetDkimIdentityRequest)   returns (DkimIdentity)             {}
+  rpc Create (CreateDkimIdentityRequest)returns (DkimIdentity)             {}
+  rpc Rotate (RotateDkimIdentityRequest)returns (DkimIdentity)             {}
+  rpc Delete (DeleteDkimIdentityRequest)returns (google.protobuf.Empty)    {}
+}
+
+message DkimIdentity {
+  uint32 id = 1;
+  string domain = 2;
+  string selector = 3;
+  string algorithm = 4;        // "ed25519" | "rsa-2048" | "rsa-4096"
+  string public_key_pem = 5;   // public part only — private key is on disk
+  string key_path = 6;         // server-side path
+  bool   active = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message GetDkimIdentityRequest    { uint32 id = 1 [(validate.rules).uint32.gt = 0]; }
+message DeleteDkimIdentityRequest { uint32 id = 1 [(validate.rules).uint32.gt = 0]; }
+message ListDkimIdentityResponse  { repeated DkimIdentity items = 1; uint32 total = 2; }
+
+message CreateDkimIdentityRequest {
+  string domain = 1 [(validate.rules).string = {pattern: "^[a-zA-Z0-9.-]{1,253}$"}];
+  string selector = 2 [(validate.rules).string = {pattern: "^[a-zA-Z0-9._-]{1,63}$"}];
+  string algorithm = 3 [(validate.rules).string = {in: ["ed25519", "rsa-2048", "rsa-4096"]}];
+}
+
+message RotateDkimIdentityRequest {
+  uint32 id = 1 [(validate.rules).uint32.gt = 0];
+}

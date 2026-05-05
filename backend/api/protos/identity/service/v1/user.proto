@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package identity.service.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/field_mask.proto";
+import "pagination/v1/pagination.proto";
+import "validate/validate.proto";
+
+// UserService manages local users (this build is single-tenant; users are
+// global). Passwords are hashed with bcrypt at the data layer.
+service UserService {
+  rpc List   (pagination.PagingRequest)            returns (ListUserResponse) {}
+  rpc Get    (GetUserRequest)                      returns (User)             {}
+  rpc Create (CreateUserRequest)                   returns (User)             {}
+  rpc Update (UpdateUserRequest)                   returns (User)             {}
+  rpc Delete (DeleteUserRequest)                   returns (google.protobuf.Empty) {}
+  rpc ChangePassword (ChangePasswordRequest)       returns (google.protobuf.Empty) {}
+}
+
+message User {
+  uint32 id = 1;
+  string username = 2;
+  string email = 3;
+  string display_name = 4;
+  bool   active = 5;
+  repeated string roles = 6;
+  google.protobuf.Timestamp last_login_at = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message GetUserRequest {
+  uint32 id = 1 [(validate.rules).uint32.gt = 0];
+}
+
+message ListUserResponse {
+  repeated User items = 1;
+  uint32 total = 2;
+}
+
+message CreateUserRequest {
+  string username = 1 [(validate.rules).string = {pattern: "^[a-zA-Z0-9_.-]{3,64}$"}];
+  string email = 2 [(validate.rules).string.email = true];
+  string display_name = 3 [(validate.rules).string.max_len = 128];
+  string password = 4 [(validate.rules).string = {min_len: 12, max_len: 256}];
+  repeated string roles = 5;
+}
+
+message UpdateUserRequest {
+  uint32 id = 1 [(validate.rules).uint32.gt = 0];
+  string email = 2;
+  string display_name = 3;
+  bool   active = 4;
+  repeated string roles = 5;
+  google.protobuf.FieldMask update_mask = 6;
+}
+
+message DeleteUserRequest {
+  uint32 id = 1 [(validate.rules).uint32.gt = 0];
+}
+
+message ChangePasswordRequest {
+  // The user whose password will change. If 0, defaults to the caller.
+  uint32 id = 1;
+  // Required when changing your own password.
+  string old_password = 2;
+  string new_password = 3 [(validate.rules).string = {min_len: 12, max_len: 256}];
+}

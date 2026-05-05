@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package authentication.service.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
+
+// AuthenticationService handles login, logout, refresh, and access-token
+// validation. All operations except Login + RefreshToken require a valid
+// bearer token.
+service AuthenticationService {
+  // Login exchanges credentials for an access + refresh token pair.
+  rpc Login (LoginRequest) returns (LoginResponse) {}
+
+  // Logout revokes the current refresh token (and access token via blocklist).
+  rpc Logout (google.protobuf.Empty) returns (google.protobuf.Empty) {}
+
+  // RefreshToken exchanges a valid refresh token for a new token pair.
+  rpc RefreshToken (RefreshTokenRequest) returns (LoginResponse) {}
+
+  // Whoami returns the caller identity derived from the bearer token.
+  rpc Whoami (google.protobuf.Empty) returns (UserTokenPayload) {}
+}
+
+message LoginRequest {
+  string username = 1 [(validate.rules).string = {min_len: 1, max_len: 128}];
+  // Plaintext password. NEVER log this field.
+  string password = 2 [(validate.rules).string = {min_len: 8, max_len: 256}];
+  // Optional captcha or MFA code.
+  string mfa_code = 3 [(validate.rules).string = {max_len: 16}];
+}
+
+message LoginResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  // Seconds until access_token expires.
+  int64 expires_in = 3;
+  // The token-bearing user.
+  UserTokenPayload user = 4;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1 [(validate.rules).string = {min_len: 1}];
+}
+
+// UserTokenPayload is the canonical claims body embedded in JWTs.
+// Kept slim to minimize payload size.
+message UserTokenPayload {
+  uint32 user_id = 1;
+  string username = 2;
+  // Stable role list (e.g., "admin", "operator", "viewer"). Permission resolution
+  // happens server-side; this is only a hint.
+  repeated string roles = 3;
+  google.protobuf.Timestamp issued_at = 4;
+  google.protobuf.Timestamp expires_at = 5;
+}

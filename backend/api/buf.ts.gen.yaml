@@ -1,0 +1,20 @@
+version: v2
+
+clean: true
+
+managed:
+  enabled: true
+
+  disable:
+    - module: buf.build/googleapis/googleapis
+    - module: 'buf.build/envoyproxy/protoc-gen-validate'
+    - module: 'buf.build/kratos/apis'
+    - module: 'buf.build/gnostic/gnostic'
+    - module: 'buf.build/tx7do/pagination'
+
+inputs:
+  - directory: protos
+
+plugins:
+  - local: protoc-gen-typescript-http
+    out: ../../frontend/src/generated/api

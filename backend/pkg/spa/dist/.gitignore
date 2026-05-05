@@ -1,0 +1,7 @@
+# Everything in this directory is build output from `pnpm build` —
+# tracked through the docker build, not through git. The PLACEHOLDER
+# file keeps the directory present so `//go:embed dist` always has
+# something to match.
+*
+!.gitignore
+!PLACEHOLDER
