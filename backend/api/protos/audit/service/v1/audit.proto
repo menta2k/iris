@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package audit.service.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "pagination/v1/pagination.proto";
+import "validate/validate.proto";
+
+// AuditService is read-only for callers — entries are written by the audit
+// middleware on the gRPC/HTTP path. This service exposes search and detail
+// retrieval, and a sentinel "Tail" stream for live tail.
+service AuditService {
+  rpc List (pagination.PagingRequest) returns (ListAuditEntryResponse) {}
+  rpc Get  (GetAuditEntryRequest)     returns (AuditEntry) {}
+}
+
+// AuditEntry records one mutating operation performed against the admin API.
+// The middleware writes a row regardless of success/failure to allow forensic
+// reconstruction. Sensitive fields (passwords, secrets) MUST be redacted by
+// the producing layer before assignment.
+message AuditEntry {
+  uint64 id = 1;
+  google.protobuf.Timestamp at = 2;
+  // Canonical operation, e.g. "/identity.service.v1.UserService/Create".
+  string operation = 3;
+  // Resource type touched, e.g. "user", "role", "policy".
+  string resource_type = 4;
+  // Optional resource identifier (string for cross-type uniformity).
+  string resource_id = 5;
+  // Caller identity: 0 if unauthenticated.
+  uint32 actor_user_id = 6;
+  string actor_username = 7;
+  string client_ip = 8;
+  string user_agent = 9;
+  string request_id = 10;
+  // gRPC code (0 = OK).
+  int32  status_code = 11;
+  string status_message = 12;
+  // Redacted JSON snapshot of the request payload.
+  string request_json = 13;
+  // Redacted JSON snapshot of the response payload (or before/after diff).
+  string response_json = 14;
+  // Round-trip duration in milliseconds.
+  int64 duration_ms = 15;
+}
+
+message GetAuditEntryRequest {
+  uint64 id = 1 [(validate.rules).uint64.gt = 0];
+}
+
+message ListAuditEntryResponse {
+  repeated AuditEntry items = 1;
+  uint32 total = 2;
+}

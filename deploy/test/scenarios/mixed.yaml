@@ -1,0 +1,58 @@
+# mixed.yaml — the canonical e2e scenario.
+#
+# Verifies all five mock-MTA behaviors plus the mail-class header path:
+#   accept → Reception + Delivery
+#   bounce → Reception + Bounce
+#   defer  → Reception + TransientFailure (kumomta retries; we just check at-least-one)
+#   slow   → Reception (delivery may still be in-flight at assert time — we don't assert on it)
+#   fbl    → Reception + Delivery + synthetic Feedback (consumer + auto-suppress)
+#
+# Numbers are deliberately conservative so a slow CI machine still passes.
+
+setup:
+  vmtas:
+    # source_ips intentionally empty: the kumomta container only has its
+    # docker-network IP, so binding a synthetic 203.x address would fail
+    # with "Cannot assign requested address". Letting kumomta pick the
+    # default outgoing interface is the right shape for the test.
+    - { name: vmta-test, ehlo: mta-loadgen.example.com, source_ips: [], max_connections: 50 }
+
+  groups:
+    - name: pool-test
+      members:
+        - { vmta: vmta-test, weight: 1 }
+
+  classes:
+    - { name: tx-test, target_kind: vmta_group, target_ref: pool-test }
+
+  rules:
+    # to_domain == "<X>.test" → vmta-test. Each mock domain gets its own rule
+    # so a mistake in one route doesn't poison the others.
+    - { name: route-accept, priority: 10, when: { to_domain: accept.test }, target_kind: vmta, target_ref: vmta-test }
+    - { name: route-bounce, priority: 11, when: { to_domain: bounce.test }, target_kind: vmta, target_ref: vmta-test }
+    - { name: route-defer,  priority: 12, when: { to_domain: defer.test  }, target_kind: vmta, target_ref: vmta-test }
+    - { name: route-slow,   priority: 13, when: { to_domain: slow.test   }, target_kind: vmta, target_ref: vmta-test }
+    - { name: route-fbl,    priority: 14, when: { to_domain: fbl.test    }, target_kind: vmta, target_ref: vmta-test }
+
+scenarios:
+  - { name: accept-burst, total: 50, from: a@example.org, to: a@accept.test }
+  - { name: bounce-burst, total: 20, from: a@example.org, to: nx@bounce.test }
+  - { name: defer-burst,  total: 10, from: a@example.org, to: a@defer.test }
+  - { name: fbl-burst,    total: 25, from: a@example.org, to: a@fbl.test,
+      headers: { X-Kumo-Mail-Class: tx-test } }
+
+assert:
+  log_event:
+    Reception:        ">= 100"   # 50 + 20 + 10 + 25 = 105 expected; allow 5 slack
+    Delivery:         ">= 50"    # accept.test + fbl.test should all deliver
+    Bounce:           ">= 15"    # bounce.test all 550
+    # TransientFailure varies with retry timing; defer.test produces ≥ 1 immediately
+    TransientFailure: ">= 1"
+    Feedback:         ">= 20"    # fbl.test injects synthetic FBL via mock
+  feedback_reports:    ">= 20"
+  # Suppressions are upserted by (address, scope) — all 25 FBL records target
+  # the same a@fbl.test, so they collapse to a single row. ">= 1" verifies
+  # AutoSuppress fired without claiming wrong dedup semantics.
+  suppression_entries:
+    complaint:         ">= 1"
+  redis_stream_drained_within_sec: 30

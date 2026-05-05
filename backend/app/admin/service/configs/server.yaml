@@ -1,0 +1,23 @@
+# Server configuration for the kumo-ui admin service.
+#
+# `kratos-bootstrap` reads this file via the -conf flag passed to the binary.
+# Endpoints are bound to localhost in development; in production, override via
+# environment variables or an alternate config file passed at startup.
+
+server:
+  rest:
+    network: tcp
+    addr: 0.0.0.0:8000
+    timeout: 10s
+    cors:
+      headers:
+        - "Authorization"
+        - "Content-Type"
+        - "X-Requested-With"
+      origins:
+        - "http://localhost:5173"
+        - "http://localhost:3000"
+  grpc:
+    network: tcp
+    addr: 0.0.0.0:9000
+    timeout: 10s

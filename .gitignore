@@ -1,0 +1,86 @@
+# ── OS noise ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+
+# ── Editors / IDEs ──────────────────────────────────────────────────
+.idea/
+.vscode/
+!.vscode/extensions.json
+*.code-workspace
+.history/
+*.suo
+*.ntvs*
+*.njsproj
+
+# ── Claude Code local state ─────────────────────────────────────────
+# Per-user settings + session memory; should never enter the shared repo.
+.claude/
+
+# ── Environment files (keep *.example committed) ────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Logs ────────────────────────────────────────────────────────────
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# ── Go (backend/) ───────────────────────────────────────────────────
+# Build outputs from `go build`. The Docker pipeline builds inside the
+# image; local `make host-build` writes into deploy/out/ (covered below).
+backend/admin-service
+backend/iris
+backend/seed
+backend/loadgen
+backend/bin/
+
+# Stray binaries from `go build ./...` runs that drop ELF outputs into
+# their source dir. Each cmd/ entrypoint that someone might `go build`
+# in-place gets ignored here.
+backend/scripts/loadgen/loadgen
+backend/app/admin/service/cmd/server/server
+backend/app/admin/service/cmd/seed/seed
+
+*.test
+*.out
+*.prof
+coverage.html
+coverage.txt
+
+# Go workspace files (used by IDEs; per-developer)
+go.work
+go.work.sum
+
+# ── Frontend (frontend/) ────────────────────────────────────────────
+# frontend/ has its own .gitignore (node_modules, dist, .turbo, …).
+# Keep this top-level file from shadowing it.
+
+# ── Deploy / build artefacts ────────────────────────────────────────
+# `make host-build` and `make host-package` write here:
+#   deploy/out/iris               static binary
+#   deploy/out/iris-host.tar.gz   shippable tarball
+deploy/out/
+
+# ── kumomta runtime data ────────────────────────────────────────────
+# DKIM PRIVATE KEYS must never enter git. The directory is bind-mounted
+# into the kumomta container; we keep the dir present via .gitkeep.
+kumomta/etc/dkim/*.pem
+kumomta/etc/dkim/*.key
+
+# Generated logs and spool from the kumomta container, when bind-mounted
+# locally for debugging.
+kumomta/logs/
+kumomta/spool/
+
+# ── Embedded SPA (managed by its own .gitignore) ────────────────────
+# backend/pkg/spa/dist/ has a per-dir .gitignore that excludes the
+# pnpm build output but keeps PLACEHOLDER + .gitignore tracked. Don't
+# duplicate the rule here — it would shadow the per-dir one.

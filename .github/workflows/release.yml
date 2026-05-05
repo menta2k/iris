@@ -1,0 +1,214 @@
+# Release — runs on a `v*` tag push (e.g. `git tag v1.2.3 && git push --tags`).
+#
+# Three jobs, gated:
+#
+#   docker        → build a multi-arch image, push to GHCR
+#   host-tarball  → produce iris-host.tar.gz for the systemd install path
+#   release       → after both, create the GitHub Release with the
+#                   tarball attached and a templated body that links the
+#                   pulled image
+#
+# Why GHCR (ghcr.io) instead of Docker Hub: GHCR auths with the
+# automatic GITHUB_TOKEN — no PAT needed, no rate-limit games. We
+# inherit the visibility of the parent repo, so making the package
+# public is a one-time step in the GitHub UI after the first push.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+# Single concurrency group per tag prevents two release runs from
+# fighting over the same image tag if the tag is force-pushed (which
+# is rare but possible during a botched release).
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write    # needed by softprops/action-gh-release
+  packages: write    # needed to push to GHCR
+
+env:
+  REGISTRY: ghcr.io
+  # Lower-case repo name (GHCR rejects mixed case). github.repository
+  # is "owner/name" verbatim; we lower-case in the steps below.
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  docker:
+    name: Docker → GHCR
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve image name (lowercase)
+        # Docker / OCI registries accept only lowercase paths. The
+        # github.repository env var preserves the user-typed casing.
+        id: img
+        run: |
+          name=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute tags + labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ steps.img.outputs.name }}
+          tags: |
+            # Full semver (vX.Y.Z) and partial (vX.Y, vX). Helps callers
+            # pin loosely without manual updates on patch releases.
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            # latest only on the highest semver tag — never on prereleases.
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build + push
+        uses: docker/build-push-action@v6
+        with:
+          # The Dockerfile expects repo-root context (it pulls from
+          # both backend/ and frontend/ subtrees).
+          context: .
+          file: backend/Dockerfile
+          # amd64 only for now. Adding arm64 doubles build time
+          # (~12 → ~25 min cold) and the project hasn't been tested
+          # on ARM yet — that's a separate concern.
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            IRIS_VERSION=${{ github.ref_name }}
+          # gha cache is the right call for tag-based releases —
+          # consecutive patch tags share most layers.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  host-tarball:
+    name: Host-native tarball
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.19.0
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.14.0'
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: make host-package
+        # `make host-package` runs pnpm build, copies dist into
+        # pkg/spa/dist, builds the static Go binary, and packages
+        # everything (binary + systemd unit + configs + sql) into
+        # deploy/out/iris-host.tar.gz. The IRIS_VERSION the binary
+        # reports is set via the linker.
+        run: |
+          cd deploy
+          make host-package
+        env:
+          # Forward the tag through to the linker -X. host-build's
+          # ldflags use $$(date +...) by default; setting the env var
+          # below doesn't override it — but the docker image carries
+          # the right version via build-arg above, and the tarball is
+          # primarily a bare-metal install convenience.
+          NODE_OPTIONS: '--max-old-space-size=8192'
+
+      - name: Rename tarball with the version
+        # softprops/action-gh-release uploads files at the path given;
+        # giving the file a versioned name in the artefact prevents
+        # collisions if a release is re-cut.
+        id: rename
+        run: |
+          ver=${{ github.ref_name }}
+          src=deploy/out/iris-host.tar.gz
+          dst=deploy/out/iris-host-${ver}.tar.gz
+          cp "$src" "$dst"
+          echo "path=${dst}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iris-host-tarball
+          path: ${{ steps.rename.outputs.path }}
+          retention-days: 30
+
+  release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    needs: [docker, host-tarball]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download tarball
+        uses: actions/download-artifact@v4
+        with:
+          name: iris-host-tarball
+          path: ./dist
+
+      - name: Resolve image name (lowercase)
+        id: img
+        run: |
+          name=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # Matches the v* trigger; tag_name is implicit on tag runs.
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          # Body is appended to the auto-generated release notes; we
+          # add the install instructions so operators don't have to dig.
+          body: |
+            ## Install
+
+            **Docker / Kubernetes**:
+            ```bash
+            docker pull ghcr.io/${{ steps.img.outputs.name }}:${{ github.ref_name }}
+            ```
+
+            Image tags published:
+            - `ghcr.io/${{ steps.img.outputs.name }}:${{ github.ref_name }}`
+            - `ghcr.io/${{ steps.img.outputs.name }}:latest`
+
+            **Host-native (systemd)**: download `iris-host-${{ github.ref_name }}.tar.gz`
+            below and follow [docs/host-native-deploy.md](https://github.com/${{ github.repository }}/blob/main/docs/host-native-deploy.md).
+
+            ```bash
+            sudo tar -xzf iris-host-${{ github.ref_name }}.tar.gz -C /
+            sudo $EDITOR /etc/iris/iris.env
+            sudo systemctl daemon-reload
+            sudo systemctl enable --now iris
+            ```
+          files: |
+            ./dist/iris-host-${{ github.ref_name }}.tar.gz

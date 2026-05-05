@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package kumo.service.v1;
+
+import "google/protobuf/timestamp.proto";
+import "pagination/v1/pagination.proto";
+
+// LogService exposes the ingested kumomta log stream. Events live in a
+// TimescaleDB hypertable and are retention-pruned by background job.
+service LogService {
+  rpc List   (pagination.PagingRequest)   returns (ListLogEventResponse) {}
+  rpc Search (SearchLogsRequest)          returns (ListLogEventResponse) {}
+}
+
+message LogEvent {
+  uint64 id = 1;
+  google.protobuf.Timestamp at = 2;
+  string event_type = 3;        // "Reception" | "Delivery" | "Bounce" | "Feedback" ...
+  string queue = 4;
+  string sender = 5;
+  string recipient = 6;
+  string message_id = 7;
+  int32  response_code = 8;
+  string response_text = 9;
+  string source_ip = 10;
+  string vmta = 11;
+  // Raw JSON tail for fields not promoted to columns. Stored compressed.
+  string extra_json = 12;
+}
+
+message SearchLogsRequest {
+  google.protobuf.Timestamp from = 1;
+  google.protobuf.Timestamp to = 2;
+  string event_type = 3;
+  string queue = 4;
+  string recipient_like = 5;     // SQL LIKE (escaped server-side)
+  string message_id = 6;
+  uint32 limit = 7;
+  uint32 offset = 8;
+}
+
+message ListLogEventResponse {
+  repeated LogEvent items = 1;
+  uint32 total = 2;
+}

@@ -1,0 +1,32 @@
+# Prometheus scrape config — for the docker-compose stack.
+#
+# In compose the iris admin-service publishes /metrics on the
+# `iris` network at admin-service:9090 (see IRIS_METRICS_LISTEN
+# in docker-compose.yaml). The host port-forward 9090:9090 is
+# NOT used by Prometheus — we go direct over the docker network.
+#
+# Scrape interval: 15s strikes a balance between resolution and
+# storage. The log-stream consumer's pendingGaugeLoop refreshes
+# its gauge every 5s upstream, so 15s gives us 3 samples per
+# update window.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    env: dev
+    stack: iris-compose
+
+scrape_configs:
+  # Iris itself — the only target that matters for this stack.
+  - job_name: iris
+    static_configs:
+      - targets: ['admin-service:9090']
+        labels:
+          service: admin-service
+
+  # Prometheus self-scrape so the local UI shows liveness for
+  # the scraper itself.
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']

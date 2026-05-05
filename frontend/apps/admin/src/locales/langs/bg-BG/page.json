@@ -1,0 +1,452 @@
+{
+  "auth": {
+    "login": "Вход",
+    "register": "Регистрация",
+    "codeLogin": "Вход с код",
+    "qrcodeLogin": "Вход с QR код",
+    "forgetPassword": "Забравена парола"
+  },
+  "dashboard": {
+    "title": "Преглед",
+    "analytics": "Анализ",
+    "workspace": "Работна среда"
+  },
+  "analytics": {
+    "currentUserCount": "Брой потребители",
+    "totalUserCount": "Общ брой потребители",
+    "currentTenantCount": "Брой наематели",
+    "totalTenantCount": "Общ брой наематели",
+    "currentOrgUnitCount": "Брой организации",
+    "totalOrgUnitCount": "Общ брой организации",
+    "currentPositionCount": "Брой длъжности",
+    "totalPositionCount": "Общ брой длъжности",
+    "currentDownloadCount": "Брой изтегляния",
+    "totalDownloadCount": "Общ брой изтегляния",
+    "currentUsageCount": "Брой употреби",
+    "totalUsageCount": "Общ брой употреби",
+    "currentAccessCount": "Брой достъпи",
+    "totalAccessCount": "Общ брой достъпи",
+    "accessCount": "Брой достъпи",
+    "monthAccessCount": "Месечен достъп",
+    "accessSource": "Източник на достъп",
+    "trafficTrend": "Тенденция на трафика",
+    "month": "М"
+  },
+  "user": {
+    "moduleName": "Потребител",
+    "form": {
+      "username": "Потребителско име",
+      "nickname": "Псевдоним",
+      "realname": "Истинско име",
+      "email": "Имейл",
+      "mobile": "Мобилен телефон",
+      "tenant": "Наемател",
+      "role": "Роля",
+      "orgUnit": "Организация",
+      "position": "Длъжност",
+      "oldPassword": "Текуща парола",
+      "newPassword": "Нова парола",
+      "confirmPassword": "Потвърди парола",
+      "status": "Статус"
+    },
+    "table": {
+      "seq": "№",
+      "username": "Потребителско име",
+      "nickname": "Псевдоним",
+      "realname": "Име",
+      "password": "Парола",
+      "avatar": "Аватар",
+      "email": "Имейл",
+      "mobile": "Мобилен",
+      "telephone": "Телефон",
+      "gender": "Пол",
+      "address": "Адрес",
+      "region": "Регион",
+      "description": "Описание",
+      "lastLoginAt": "Последен вход",
+      "lastLoginIp": "Последен IP при вход",
+      "roleId": "Роля",
+      "tenantId": "Наемател",
+      "orgUnitId": "Организация",
+      "positionId": "Длъжност",
+      "workId": "Служебен номер",
+      "status": "Статус"
+    },
+    "button": {
+      "create": "Създай акаунт",
+      "editPassword": "Промени парола",
+      "banAccount": "Деактивирай акаунт",
+      "updateUserInfo": "Обнови профил",
+      "updatePassword": "Промени парола"
+    },
+    "profile": {
+      "tab": {
+        "basicSettings": "Основни настройки",
+        "securitySettings": "Сигурност",
+        "editPassword": "Промяна на парола",
+        "accountBind": "Свързани акаунти",
+        "notification": "Известия"
+      }
+    },
+    "detail": {
+      "title": "Профил на потребител {userId}",
+      "tab": {
+        "basicInfo": "Основна информация",
+        "permission": "Права",
+        "apiAuditLog": "API журнал",
+        "internalMessage": "Входящи"
+      },
+      "desc": {
+        "username": "Потребителско име",
+        "realname": "Истинско име",
+        "nickname": "Псевдоним",
+        "gender": "Пол",
+        "mobile": "Мобилен",
+        "email": "Имейл",
+        "region": "Регион",
+        "address": "Адрес",
+        "roleNames": "Списък с роли",
+        "tenantName": "Наемател",
+        "orgUnitName": "Организация",
+        "positionName": "Длъжност",
+        "lastLoginAt": "Последен вход",
+        "lastLoginIp": "Последен IP при вход"
+      }
+    }
+  },
+  "role": {
+    "moduleName": "Роля",
+    "name": "Име на ролята",
+    "code": "Код на ролята",
+    "description": "Описание на ролята",
+    "isProtected": "Вградена роля",
+    "apis": "Присвоени API",
+    "permissions": "Присвоени права",
+    "tenantName": "Наемател",
+    "button": {
+      "create": "Създай роля"
+    }
+  },
+  "permission": {
+    "moduleName": "Право",
+    "name": "Име на правото",
+    "code": "Код на правото",
+    "path": "Йерархичен път",
+    "groupId": "Група",
+    "groupName": "Име на групата",
+    "menuIds": "Присвоени менюта",
+    "apiIds": "Присвоени API",
+    "description": "Описание",
+    "button": {
+      "create": "Създай право",
+      "syncPermissions": "Синхронизирай права"
+    }
+  },
+  "permissionGroup": {
+    "moduleName": "Групи права",
+    "name": "Име на групата",
+    "module": "Модул",
+    "parentId": "Родителска група",
+    "button": {
+      "create": "Създай група"
+    }
+  },
+  "dict": {
+    "moduleName": "Речник",
+    "dictType": "Тип в речника",
+    "dictEntry": "Запис в речника",
+    "dictTypeList": "Типове в речника",
+    "dictEntryList": "Записи в речника",
+    "typeCode": "Код",
+    "typeName": "Име на тип",
+    "entryLabel": "Етикет",
+    "entryValue": "Стойност",
+    "numericValue": "Числова стойност",
+    "typeId": "Тип",
+    "languageCode": "Код на език",
+    "languageName": "Име на език",
+    "button": {
+      "create": "Създай"
+    }
+  },
+  "menu": {
+    "moduleName": "Меню",
+    "name": "Заглавие",
+    "type": "Тип",
+    "icon": "Икона",
+    "path": "Маршрут",
+    "component": "Път до компонента",
+    "show": "Показвай",
+    "isExt": "Външна връзка",
+    "keepAlive": "Запази в кеш",
+    "affixTab": "Закрепи таб",
+    "hideInMenu": "Скрий в менюто",
+    "hideChildrenInMenu": "Скрий подменютата",
+    "hideInTab": "Скрий в табовете",
+    "hideInBreadcrumb": "Скрий в трохите",
+    "parentId": "Родителско меню",
+    "authority": "Идентификатор на правото",
+    "order": "Подредба",
+    "title": "Заглавие на менюто",
+    "advancedSettings": "Разширени настройки",
+    "tips": {
+      "authority": "Множество права се разделят със запетайка, например: sys:user:add,sys:user:edit"
+    },
+    "button": {
+      "create": "Създай меню"
+    }
+  },
+  "orgUnit": {
+    "moduleName": "Списък с организации",
+    "name": "Име на организацията",
+    "code": "Уникален код",
+    "parentId": "Родителска организация",
+    "type": "Тип организация",
+    "isLegalEntity": "Юридическо лице",
+    "businessScope": "Сфера на дейност",
+    "registrationNumber": "Регистрационен номер",
+    "taxId": "ДДС/Данъчен номер",
+    "address": "Адрес",
+    "phone": "Телефон",
+    "email": "Имейл за контакт",
+    "timezone": "Часова зона",
+    "country": "Код на държавата",
+    "leaderId": "ID на ръководителя",
+    "leaderName": "Име на ръководителя",
+    "contactUserId": "ID на лицето за контакт",
+    "contactUserName": "Лице за контакт",
+    "description": "Описание",
+    "button": {
+      "create": "Създай организация"
+    }
+  },
+  "position": {
+    "moduleName": "Длъжност",
+    "name": "Име на длъжността",
+    "parentId": "Родителска длъжност",
+    "orgUnit": "Организация",
+    "orgUnitId": "ID на организацията",
+    "orgUnitName": "Име на организацията",
+    "description": "Описание",
+    "type": "Тип длъжност",
+    "code": "Уникален код",
+    "headcount": "Брой позиции",
+    "button": {
+      "create": "Създай длъжност"
+    }
+  },
+  "tenant": {
+    "moduleName": "Наемател",
+    "name": "Име на наемателя",
+    "code": "Код на наемателя",
+    "type": "Тип наемател",
+    "auditStatus": "Статус на одита",
+    "adminSetting": "Настройки на админ акаунта",
+    "lastLoginAt": "Последен вход",
+    "lastLoginIp": "Последен IP при вход",
+    "logoUrl": "URL на логото",
+    "industry": "Индустрия",
+    "subscriptionPlan": "План за абонамент",
+    "expiredAt": "Изтича на",
+    "memberCount": "Брой членове",
+    "subscriptionAt": "Абонамент от",
+    "unsubscribeAt": "Отписване на",
+    "adminUserName": "Админ потребителско име",
+    "adminPassword": "Първоначална парола",
+    "adminPasswordConfirm": "Потвърди парола",
+    "adminMobile": "Админ мобилен",
+    "adminEmail": "Админ имейл",
+    "button": {
+      "create": "Създай наемател"
+    },
+    "notification": {
+      "tenant_code_exists": "Кодът на наемателя вече съществува, моля променете го!",
+      "user_username_exists": "Админ потребителското име вече съществува, моля променете го!"
+    }
+  },
+  "file": {
+    "moduleName": "Файл",
+    "fileName": "Оригинално име",
+    "saveFileName": "Записано име",
+    "bucketName": "Кошница (bucket)",
+    "fileDirectory": "Директория",
+    "provider": "OSS доставчик",
+    "fileGuid": "GUID",
+    "extension": "Разширение",
+    "size": "Размер",
+    "createdBy": "Качено от",
+    "createdAt": "Качено на",
+    "button": {
+      "create": "Създай файл",
+      "upload": "Качи файл",
+      "download": "Изтегли файл"
+    }
+  },
+  "task": {
+    "moduleName": "Задача",
+    "type": "Тип график",
+    "typeName": "Метод на планиране",
+    "taskPayload": "Данни за задачата",
+    "taskOptions": "Опции",
+    "taskOptionsMaxRetry": "Макс. опити",
+    "taskOptionsTimeout": "Таймаут",
+    "taskOptionsDeadline": "Краен срок",
+    "taskOptionsProcessIn": "Закъснение",
+    "taskOptionsProcessAt": "Изпълнение в",
+    "cronSpec": "Cron израз",
+    "enable": "Активиран",
+    "button": {
+      "create": "Създай задача",
+      "start": "Стартирай",
+      "restart": "Рестартирай",
+      "stop": "Спри",
+      "startAll": "Стартирай всички",
+      "restartAll": "Рестартирай всички",
+      "stopAll": "Спри всички"
+    },
+    "text": {
+      "do_you_want_start_all_task": "Сигурни ли сте, че искате да стартирате всички задачи?",
+      "do_you_want_restart_all_task": "Сигурни ли сте, че искате да рестартирате всички задачи?",
+      "do_you_want_stop_all_task": "Сигурни ли сте, че искате да спрете всички задачи?",
+      "do_you_want_start_task": "Сигурни ли сте, че искате да стартирате тази задача?",
+      "do_you_want_restart_task": "Сигурни ли сте, че искате да рестартирате тази задача?",
+      "do_you_want_stop_task": "Сигурни ли сте, че искате да спрете тази задача?"
+    }
+  },
+  "internalMessage": {
+    "moduleName": "Управление на съобщения",
+    "title": "Тема на съобщението",
+    "content": "Съдържание",
+    "type": "Тип",
+    "status": "Статус",
+    "categoryName": "Категория",
+    "senderName": "Изпращач",
+    "categoryId": "Категория",
+    "readAt": "Прочетено на",
+    "button": {
+      "create": "Публикувай съобщение"
+    },
+    "drawer": {
+      "create": "Публикувай съобщение",
+      "update": "Обнови съобщение"
+    }
+  },
+  "internalMessageCategory": {
+    "moduleName": "Категории съобщения",
+    "name": "Име на категорията",
+    "code": "Код",
+    "parentId": "Родителска категория",
+    "button": {
+      "create": "Създай категория"
+    }
+  },
+  "privateMessage": {
+    "moduleName": "Лични съобщения",
+    "subject": "Тема",
+    "button": {
+      "create": "Създай лично съобщение"
+    }
+  },
+  "loginAuditLog": {
+    "moduleName": "Журнал на влизанията",
+    "username": "Потребител",
+    "status": "Статус",
+    "actionType": "Тип действие",
+    "geoLocation": "Геолокация",
+    "platform": "Платформа",
+    "ipAddress": "IP адрес",
+    "failureReason": "Причина за неуспех",
+    "riskScore": "Риск точки",
+    "riskLevel": "Ниво на риск",
+    "riskFactors": "Фактори на риск",
+    "createdAt": "Записано на"
+  },
+  "apiAuditLog": {
+    "moduleName": "API журнал",
+    "username": "Оператор",
+    "success": "Статус",
+    "geoLocation": "Геолокация",
+    "platform": "Платформа",
+    "ipAddress": "IP адрес",
+    "createdAt": "Записано на",
+    "path": "Път на заявката",
+    "httpMethod": "HTTP метод",
+    "latencyMs": "API забавяне (ms)"
+  },
+  "dataAccessAuditLog": {
+    "moduleName": "Журнал на достъпа до данни",
+    "createdAt": "Записано на",
+    "username": "Оператор",
+    "requestId": "ID на заявката",
+    "ipAddress": "IP адрес",
+    "geoLocation": "Геолокация",
+    "latencyMs": "Забавяне (ms)",
+    "success": "Статус",
+    "sensitiveLevel": "Ниво на чувствителност",
+    "dataSource": "Тип източник на данни",
+    "tableName": "Име на таблица",
+    "dataId": "Първичен ключ",
+    "accessType": "Тип достъп",
+    "sqlDigest": "SQL хеш",
+    "sqlText": "SQL текст",
+    "affectedRows": "Засегнати редове",
+    "dataMasked": "Данните са маскирани",
+    "maskingRules": "Правила за маскиране",
+    "businessPurpose": "Бизнес цел",
+    "dataCategory": "Категория данни",
+    "dbUser": "Потребител на БД"
+  },
+  "operationAuditLog": {
+    "moduleName": "Журнал на операциите",
+    "createdAt": "Записано на",
+    "username": "Оператор",
+    "resourceType": "Тип ресурс",
+    "resourceId": "ID на ресурса",
+    "action": "Действие",
+    "beforeData": "Данни преди",
+    "afterData": "Данни след",
+    "sensitiveLevel": "Ниво на чувствителност",
+    "requestId": "ID на заявката",
+    "success": "Статус",
+    "ipAddress": "IP адрес",
+    "geoLocation": "Геолокация"
+  },
+  "permissionAuditLog": {
+    "moduleName": "Журнал на правата",
+    "createdAt": "Записано на",
+    "username": "Оператор",
+    "requestId": "ID на заявката",
+    "ipAddress": "IP адрес",
+    "geoLocation": "Геолокация",
+    "operatorId": "ID на оператора",
+    "operatorName": "Име на оператора",
+    "targetType": "Тип цел",
+    "targetId": "ID на целта",
+    "targetName": "Име на целта",
+    "action": "Действие",
+    "reason": "Причина за промяната"
+  },
+  "api": {
+    "moduleName": "API ресурси",
+    "path": "Път",
+    "method": "Метод",
+    "module": "Модул",
+    "moduleDescription": "Описание на модула",
+    "operation": "Операция",
+    "button": {
+      "create": "Създай API",
+      "sync": "Синхронизирай API"
+    }
+  },
+  "loginPolicy": {
+    "moduleName": "Политика за вход",
+    "targetId": "ID на целевия потребител",
+    "type": "Тип ограничение",
+    "method": "Метод на ограничение",
+    "value": "Стойност",
+    "reason": "Причина",
+    "button": {
+      "create": "Създай политика"
+    }
+  }
+}

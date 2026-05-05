@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package kumo.service.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+// PolicyService renders the kumomta Lua policy from the current configuration
+// snapshot in the database, validates it, and (on Apply) writes it to the
+// configured policy directory and signals kumomta to reload.
+service PolicyService {
+  rpc Render  (RenderPolicyRequest)  returns (RenderPolicyResponse)   {}
+  rpc Validate(RenderPolicyRequest)  returns (ValidatePolicyResponse) {}
+  rpc Apply   (ApplyPolicyRequest)   returns (ApplyPolicyResponse)    {}
+  rpc History (google.protobuf.Empty)returns (PolicyHistoryResponse)  {}
+}
+
+message RenderPolicyRequest {
+  // If true, render with a "dry-run" header that prefixes log lines with
+  // [DRY-RUN] inside the Lua hooks.
+  bool dry_run = 1;
+}
+
+message RenderPolicyResponse {
+  string lua = 1;
+  string sha256 = 2;
+}
+
+message ValidatePolicyResponse {
+  bool   valid = 1;
+  // Empty if valid; one issue per line otherwise.
+  repeated string issues = 2;
+}
+
+message ApplyPolicyRequest {
+  // Optional human-readable note recorded in the audit log + history table.
+  string note = 1;
+}
+
+message ApplyPolicyResponse {
+  string sha256 = 1;
+  google.protobuf.Timestamp applied_at = 2;
+}
+
+message PolicyHistoryResponse {
+  repeated PolicyHistoryEntry items = 1;
+}
+
+message PolicyHistoryEntry {
+  uint64 id = 1;
+  string sha256 = 2;
+  string note = 3;
+  uint32 actor_user_id = 4;
+  google.protobuf.Timestamp applied_at = 5;
+}

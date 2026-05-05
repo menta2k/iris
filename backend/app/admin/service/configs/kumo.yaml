@@ -1,0 +1,11 @@
+# Kumomta integration settings.
+#
+# api_endpoint: kumomta HTTP API (used to push reload signals + read metrics)
+# policy_dir:   filesystem path where generated Lua policy files are written
+# log_endpoint: TCP/Unix-socket endpoint that emits the kumomta JSON log stream
+
+kumo:
+  api_endpoint: "http://127.0.0.1:8000"
+  policy_dir: "/opt/kumomta/etc/policy"
+  log_endpoint: "tcp://127.0.0.1:4242"
+  reload_token_env: "KUMO_RELOAD_TOKEN"

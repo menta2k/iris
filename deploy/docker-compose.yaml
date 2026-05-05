@@ -1,0 +1,154 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: iris-timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-iris}
+      POSTGRES_USER: ${POSTGRES_USER:-iris}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iris}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-iris} -d ${POSTGRES_DB:-iris}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [iris]
+
+  redis:
+    image: redis:7-alpine
+    container_name: iris-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [iris]
+
+  admin-service:
+    image: iris/admin-service:dev
+    container_name: iris-admin-service
+    build:
+      # Repo root context: the Dockerfile pulls in BOTH backend/ and
+      # frontend/ so the Vue bundle can be embedded into the Go binary
+      # at compile time. See backend/Dockerfile for stage layout.
+      context: ..
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Override the placeholder secrets in configs/auth.yaml so the
+      # binary will start. In production these MUST come from a secret
+      # manager, not a docker-compose `.env`.
+      IRIS_AUTH_ACCESS_SECRET: ${IRIS_AUTH_ACCESS_SECRET:-dev-only-access-secret-please-change-32+}
+      IRIS_AUTH_REFRESH_SECRET: ${IRIS_AUTH_REFRESH_SECRET:-dev-only-refresh-secret-please-change-32+}
+      IRIS_DATA_DATABASE_SOURCE: postgres://${POSTGRES_USER:-iris}:${POSTGRES_PASSWORD:-iris}@timescaledb:5432/${POSTGRES_DB:-iris}?sslmode=disable
+      IRIS_DATA_CACHE_SOURCE: redis://redis:6379/0
+      IRIS_KUMO_API_ENDPOINT: http://kumomta:8000
+      IRIS_KUMO_POLICY_DIR: /opt/kumomta/etc/policy
+      IRIS_DKIM_KEYS_DIR: /opt/kumomta/etc/dkim
+      # Redis-stream consumer: kumomta XADDs log records here, admin-service
+      # XREADGROUPs them and persists into log_event + feedback_report.
+      # The renderer also picks this URL up via GlobalSettings to emit the
+      # corresponding kumomta-side log_hook.
+      IRIS_LOGSTREAM_REDIS_URL: redis://redis:6379/0
+      IRIS_LOGSTREAM_NAME: kumo.events
+      IRIS_LOGSTREAM_GROUP: kumo-ui-tracker
+      IRIS_LOGSTREAM_WORKERS: "4"
+      # Expose /metrics on 0.0.0.0 inside the container so the host
+      # port-forward below works. In bare-metal / k8s the default
+      # 127.0.0.1:9090 keeps it loopback-only — no public exposure.
+      IRIS_METRICS_LISTEN: 0.0.0.0:9090
+      # The dashboard endpoints (/v1/dashboard/*) read from this
+      # Prometheus. Same network, so we can talk to the container
+      # by service name. Unset = endpoints return 503 cleanly.
+      IRIS_PROMETHEUS_URL: http://prometheus:9090
+    volumes:
+      # Shared with the kumomta container so generated/imported keys and
+      # rendered Lua are readable by the MTA. Pre-created as 0777 on the
+      # host because the admin-service image runs as nonroot (UID 65532)
+      # under distroless.
+      - ../kumomta/etc/dkim:/opt/kumomta/etc/dkim
+      - ../kumomta/etc/policy:/opt/kumomta/etc/policy
+    ports:
+      - "8000:8000"
+      - "9000:9000"
+      - "9090:9090"   # Prometheus scrape target — /metrics + /healthz
+    networks: [iris]
+
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    container_name: iris-prometheus
+    restart: unless-stopped
+    depends_on:
+      - admin-service
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=14d'
+      - '--web.enable-lifecycle'   # POST /-/reload to apply config without restart
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      # host:9091 → container:9090. Host :9090 is already taken by
+      # the admin-service metrics listener; remapping keeps the
+      # Prometheus UI reachable at http://localhost:9091/.
+      - "9091:9090"
+    networks: [iris]
+
+  frontend:
+    image: iris/frontend:dev
+    container_name: iris-frontend
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - admin-service
+    ports:
+      - "5173:80"
+    networks: [iris]
+
+  kumomta:
+    image: ghcr.io/kumocorp/kumomta:latest
+    container_name: iris-kumomta
+    restart: unless-stopped
+    volumes:
+      # Shared with admin-service: keys + generated Lua land here. The
+      # bootstrap init.lua is committed in the repo and overwritten by
+      # /v1/policy/apply. kumomta only needs read access.
+      - ../kumomta/etc/policy:/opt/kumomta/etc/policy:ro
+      - ../kumomta/etc/dkim:/opt/kumomta/etc/dkim:ro
+      - kumomta_logs:/var/log/kumomta
+      - kumomta_spool:/var/spool/kumomta
+    ports:
+      - "2025:2025"
+      - "8025:8000"
+    networks: [iris]
+
+networks:
+  iris:
+    name: iris
+
+volumes:
+  timescaledb_data: {}
+  redis_data: {}
+  kumomta_logs: {}
+  kumomta_spool: {}
+  prometheus_data: {}

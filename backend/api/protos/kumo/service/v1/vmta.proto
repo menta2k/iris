@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package kumo.service.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "pagination/v1/pagination.proto";
+import "validate/validate.proto";
+
+// VirtualMtaService configures egress paths (a.k.a. VMTAs) — outbound IP
+// pools, helo names, and queue policies.
+service VirtualMtaService {
+  rpc List   (pagination.PagingRequest)  returns (ListVirtualMtaResponse) {}
+  rpc Get    (GetVirtualMtaRequest)      returns (VirtualMta)             {}
+  rpc Create (CreateVirtualMtaRequest)   returns (VirtualMta)             {}
+  rpc Update (UpdateVirtualMtaRequest)   returns (VirtualMta)             {}
+  rpc Delete (DeleteVirtualMtaRequest)   returns (google.protobuf.Empty)  {}
+}
+
+message VirtualMta {
+  uint32 id = 1;
+  string name = 2;
+  // Comma-separated source IPv4/IPv6 list, validated.
+  string source_ips = 3;
+  string helo_name = 4;
+  // Maximum simultaneous connections.
+  uint32 max_connections = 5;
+  // Maximum messages per connection.
+  uint32 max_messages_per_connection = 6;
+  // Connection timeout in seconds.
+  uint32 connect_timeout = 7;
+  // Provider hint, e.g. "gmail", "outlook", "default".
+  string provider_profile = 8;
+  google.protobuf.Timestamp created_at = 20;
+  google.protobuf.Timestamp updated_at = 21;
+}
+
+message GetVirtualMtaRequest    { uint32 id = 1 [(validate.rules).uint32.gt = 0]; }
+message DeleteVirtualMtaRequest { uint32 id = 1 [(validate.rules).uint32.gt = 0]; }
+message ListVirtualMtaResponse  { repeated VirtualMta items = 1; uint32 total = 2; }
+
+message CreateVirtualMtaRequest {
+  string name = 1 [(validate.rules).string = {pattern: "^[a-z0-9][a-z0-9_-]{0,63}$"}];
+  string source_ips = 2;
+  string helo_name = 3;
+  uint32 max_connections = 4;
+  uint32 max_messages_per_connection = 5;
+  uint32 connect_timeout = 6;
+  string provider_profile = 7;
+}
+
+message UpdateVirtualMtaRequest {
+  uint32 id = 1 [(validate.rules).uint32.gt = 0];
+  string source_ips = 2;
+  string helo_name = 3;
+  uint32 max_connections = 4;
+  uint32 max_messages_per_connection = 5;
+  uint32 connect_timeout = 6;
+  string provider_profile = 7;
+}

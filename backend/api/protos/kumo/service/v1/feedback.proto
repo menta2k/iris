@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package kumo.service.v1;
+
+import "google/protobuf/timestamp.proto";
+import "pagination/v1/pagination.proto";
+
+// FeedbackService exposes ingested ARF (RFC 5965) feedback reports — i.e.
+// abuse complaints from receivers. Reports auto-populate the suppression list
+// on ingest.
+service FeedbackService {
+  rpc List (pagination.PagingRequest) returns (ListFeedbackReportResponse) {}
+  rpc Get  (GetFeedbackReportRequest) returns (FeedbackReport) {}
+}
+
+message FeedbackReport {
+  uint64 id = 1;
+  google.protobuf.Timestamp received_at = 2;
+  string feedback_type = 3;     // "abuse" | "fraud" | "auth-failure" | "virus"
+  string user_agent = 4;
+  string source_ip = 5;
+  string original_recipient = 6;
+  string original_sender = 7;
+  string original_message_id = 8;
+  string reporting_mta = 9;
+  google.protobuf.Timestamp arrival_date = 10;
+  string redacted_body = 11;     // redacted body excerpt (PII-aware)
+}
+
+message GetFeedbackReportRequest {
+  uint64 id = 1;
+}
+
+message ListFeedbackReportResponse {
+  repeated FeedbackReport items = 1;
+  uint32 total = 2;
+}

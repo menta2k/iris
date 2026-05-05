@@ -1,0 +1,115 @@
+# docker-compose.test.yaml — e2e harness for iris.
+#
+# Layered on top of the base compose: docker compose ships an implicit merge
+# when multiple -f files are passed. Run the harness with:
+#
+#   docker compose \
+#     -f docker-compose.yaml \
+#     -f docker-compose.test.yaml \
+#     --profile test \
+#     up --build --abort-on-container-exit loadgen
+#
+# The five mock-mta-* containers stay running across `up` invocations (no
+# profile guard) so an operator can poke at them by hand. The loadgen only
+# runs when the `test` profile is requested, exits with the assertion
+# verdict, and brings the rest of the stack down via --abort-on-container-exit.
+
+services:
+  mock-mta-accept:
+    image: iris/mockmta:dev
+    build:
+      context: ./test/mocks
+    environment:
+      MOCK_BEHAVIOR: accept
+    networks: [iris]
+
+  mock-mta-bounce:
+    image: iris/mockmta:dev
+    build:
+      context: ./test/mocks
+    environment:
+      MOCK_BEHAVIOR: bounce
+    networks: [iris]
+
+  mock-mta-defer:
+    image: iris/mockmta:dev
+    build:
+      context: ./test/mocks
+    environment:
+      MOCK_BEHAVIOR: defer
+    networks: [iris]
+
+  mock-mta-slow:
+    image: iris/mockmta:dev
+    build:
+      context: ./test/mocks
+    environment:
+      MOCK_BEHAVIOR: slow
+      MOCK_DELAY_SEC: "30"
+    networks: [iris]
+
+  mock-mta-fbl:
+    image: iris/mockmta:dev
+    build:
+      context: ./test/mocks
+    environment:
+      MOCK_BEHAVIOR: fbl
+      FBL_REDIS_URL: redis://redis:6379/0
+      FBL_STREAM: kumo.events
+      FBL_REPORTING_MTA: fbl.test
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks: [iris]
+
+  # Pin recipient domains at the mocks via kumomta's get_queue_config
+  # mx_list override (see kumopolicy.GlobalSettings.TestDomainRoutes).
+  # When this file is layered onto the base compose, the merge replaces the
+  # base admin-service.environment block, so we re-declare every var the
+  # base used and tack the test-routes JSON on top.
+  admin-service:
+    environment:
+      IRIS_AUTH_ACCESS_SECRET: ${IRIS_AUTH_ACCESS_SECRET:-dev-only-access-secret-please-change-32+}
+      IRIS_AUTH_REFRESH_SECRET: ${IRIS_AUTH_REFRESH_SECRET:-dev-only-refresh-secret-please-change-32+}
+      IRIS_DATA_DATABASE_SOURCE: postgres://${POSTGRES_USER:-iris}:${POSTGRES_PASSWORD:-iris}@timescaledb:5432/${POSTGRES_DB:-iris}?sslmode=disable
+      IRIS_DATA_CACHE_SOURCE: redis://redis:6379/0
+      IRIS_KUMO_API_ENDPOINT: http://kumomta:8000
+      IRIS_KUMO_POLICY_DIR: /opt/kumomta/etc/policy
+      IRIS_DKIM_KEYS_DIR: /opt/kumomta/etc/dkim
+      IRIS_LOGSTREAM_REDIS_URL: redis://redis:6379/0
+      IRIS_LOGSTREAM_NAME: kumo.events
+      IRIS_LOGSTREAM_GROUP: kumo-ui-tracker
+      IRIS_LOGSTREAM_WORKERS: "4"
+      IRIS_TEST_DOMAIN_ROUTES: |
+        {"accept.test":"mock-mta-accept:25",
+         "bounce.test":"mock-mta-bounce:25",
+         "defer.test":"mock-mta-defer:25",
+         "slow.test":"mock-mta-slow:25",
+         "fbl.test":"mock-mta-fbl:25"}
+
+  loadgen:
+    image: iris/loadgen:dev
+    build:
+      context: ../backend
+      dockerfile: scripts/loadgen/Dockerfile
+    depends_on:
+      admin-service:
+        condition: service_started
+      kumomta:
+        condition: service_started
+      mock-mta-accept:
+        condition: service_started
+      mock-mta-bounce:
+        condition: service_started
+      mock-mta-defer:
+        condition: service_started
+      mock-mta-fbl:
+        condition: service_started
+    command:
+      - "-scenario=/scenarios/mixed.yaml"
+      - "-admin=http://admin-service:8000"
+      - "-smtp=kumomta:2525"
+    volumes:
+      - ./test/scenarios:/scenarios:ro
+    networks: [iris]
+    profiles: [test]

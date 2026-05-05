@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package kumo.service.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "pagination/v1/pagination.proto";
+import "validate/validate.proto";
+
+// SuppressionService manages the suppression list (recipients/domains that
+// must not be delivered to). Sources include manual entries, FBL reports, and
+// hard bounce auto-population.
+service SuppressionService {
+  rpc List   (pagination.PagingRequest)  returns (ListSuppressionResponse) {}
+  rpc Get    (GetSuppressionRequest)     returns (SuppressionEntry)        {}
+  rpc Create (CreateSuppressionRequest)  returns (SuppressionEntry)        {}
+  rpc Delete (DeleteSuppressionRequest)  returns (google.protobuf.Empty)   {}
+  rpc Import (ImportSuppressionRequest)  returns (ImportSuppressionResponse) {}
+}
+
+message SuppressionEntry {
+  uint64 id = 1;
+  string address = 2;          // recipient or domain
+  string scope = 3;             // "address" | "domain"
+  string reason = 4;            // "manual" | "fbl" | "hard_bounce" | "complaint"
+  string note = 5;
+  google.protobuf.Timestamp created_at = 6;
+  // Optional expiry; zero == permanent.
+  google.protobuf.Timestamp expires_at = 7;
+}
+
+message GetSuppressionRequest    { uint64 id = 1 [(validate.rules).uint64.gt = 0]; }
+message DeleteSuppressionRequest { uint64 id = 1 [(validate.rules).uint64.gt = 0]; }
+message ListSuppressionResponse  { repeated SuppressionEntry items = 1; uint32 total = 2; }
+
+message CreateSuppressionRequest {
+  string address = 1 [(validate.rules).string = {min_len: 3, max_len: 320}];
+  string scope = 2 [(validate.rules).string = {in: ["address", "domain"]}];
+  string reason = 3 [(validate.rules).string = {in: ["manual", "fbl", "hard_bounce", "complaint"]}];
+  string note = 4 [(validate.rules).string.max_len = 512];
+  google.protobuf.Timestamp expires_at = 5;
+}
+
+message ImportSuppressionRequest {
+  // Newline-delimited "address[,scope[,reason]]" rows.
+  string csv = 1;
+  string default_reason = 2;
+}
+
+message ImportSuppressionResponse {
+  uint32 imported = 1;
+  uint32 skipped = 2;
+  repeated string errors = 3;
+}
