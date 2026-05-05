@@ -28,7 +28,9 @@ package-lock.json
 .env.*.local
 .eslintcache
 
-logs
+# Anchored: a top-level `logs/` dir at the frontend root. Without
+# the leading `/` this would match `views/kumo/logs/` etc.
+/logs
 *.log
 npm-debug.log*
 yarn-debug.log*
