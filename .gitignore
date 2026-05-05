@@ -76,6 +76,12 @@ go.work.sum
 #   deploy/out/iris-host.tar.gz   shippable tarball
 deploy/out/
 
+# nfpm sanity builds populate these locally; CI runs in pristine
+# workspaces so it only matters here. The recipe + scripts under
+# deploy/nfpm/{nfpm.yaml,scripts/} are tracked.
+deploy/nfpm/out/
+deploy/nfpm/pkg-staging/
+
 # ── kumomta runtime data ────────────────────────────────────────────
 # DKIM PRIVATE KEYS must never enter git. The directory is bind-mounted
 # into the kumomta container; we keep the dir present via .gitkeep.
