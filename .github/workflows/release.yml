@@ -169,13 +169,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup nfpm
-        # Pinning the nfpm version keeps package layouts stable across
-        # releases — postinst conventions occasionally drift between
-        # major nfpm versions.
-        uses: nFPM/setup-nfpm@v1
-        with:
-          version: '2.41.3'
+      - name: Install nfpm
+        # No first-party setup-nfpm action exists; the goreleaser team
+        # ship the binary on releases. Installing directly avoids
+        # depending on a third-party action that may bit-rot. Version
+        # is pinned so package layouts stay stable across releases —
+        # postinst conventions occasionally drift between nfpm majors.
+        env:
+          NFPM_VERSION: '2.41.3'
+        run: |
+          set -eux
+          curl -fsSL -o /tmp/nfpm.tar.gz \
+            "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_Linux_x86_64.tar.gz"
+          tar -xzf /tmp/nfpm.tar.gz -C /tmp nfpm
+          sudo install -m 0755 /tmp/nfpm /usr/local/bin/nfpm
+          nfpm --version
 
       - name: Download host-tarball artefact
         uses: actions/download-artifact@v4
