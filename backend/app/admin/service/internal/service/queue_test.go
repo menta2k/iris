@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -24,10 +25,54 @@ func (f *fakeMetrics) WriteSnapshots(ctx context.Context, snaps []QueueSnapshot)
 	return nil
 }
 
-func newFakeKumo(t *testing.T, body string) (*kumomta.Client, *httptest.Server) {
+// newFakeKumo accepts a list of queue specs and synthesises the two
+// upstream-kumomta admin responses that QueueService.List needs:
+//
+//   GET /api/admin/ready-q-states/v1  → {"states_by_ready_queue": {...}}
+//   GET /api/admin/suspend/v1         → []
+//
+// The 2025+ kumomta admin API returns a map keyed by queue name with
+// per-queue counter sub-objects; the older flat-array shape this
+// test used to feed is no longer accepted by the client. Tests
+// hand us the bare per-queue specs and we wrap them in the right
+// envelope.
+type fakeQueue struct {
+	Name      string `json:"-"`
+	QueueSize uint64 `json:"queue_size"`
+	Delivered uint64 `json:"delivered"`
+	Failed    uint64 `json:"failed"`
+	Deferred  uint64 `json:"deferred"`
+}
+
+func newFakeKumo(t *testing.T, queues ...fakeQueue) (*kumomta.Client, *httptest.Server) {
 	t.Helper()
+
+	// Build the ready-q-states JSON. Using encoding/json keeps the
+	// quoting honest if a future test passes a queue name with
+	// special characters.
+	type body struct {
+		StatesByReadyQueue map[string]fakeQueue `json:"states_by_ready_queue"`
+	}
+	b := body{StatesByReadyQueue: make(map[string]fakeQueue, len(queues))}
+	for _, q := range queues {
+		b.StatesByReadyQueue[q.Name] = q
+	}
+	statesJSON, err := json.Marshal(b)
+	require.NoError(t, err)
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(body))
+		switch r.URL.Path {
+		case "/api/admin/ready-q-states/v1":
+			_, _ = w.Write(statesJSON)
+		case "/api/admin/suspend/v1":
+			// No suspensions in the test fakes — empty array is the
+			// right "nothing suspended" signal.
+			_, _ = w.Write([]byte(`[]`))
+		default:
+			// Anything else (Suspend / Resume / Bounce) just acks
+			// with no content; tests that care assert on calls.
+			w.WriteHeader(http.StatusNoContent)
+		}
 	}))
 	c, err := kumomta.NewClient(kumomta.Config{BaseURL: srv.URL})
 	require.NoError(t, err)
@@ -35,20 +80,31 @@ func newFakeKumo(t *testing.T, body string) (*kumomta.Client, *httptest.Server) 
 }
 
 func TestQueueListPersistsSnapshots(t *testing.T) {
-	c, srv := newFakeKumo(t, `[{"name":"q1","queue_size":3,"delivered_total":10,"failed_total":1},{"name":"q2","queue_size":0}]`)
+	c, srv := newFakeKumo(t,
+		fakeQueue{Name: "q1", QueueSize: 3, Delivered: 10, Failed: 1},
+		fakeQueue{Name: "q2"},
+	)
 	defer srv.Close()
 	m := &fakeMetrics{}
 	svc := NewQueueService(c, m)
 	out, err := svc.List(context.Background(), "", 0)
 	require.NoError(t, err)
 	require.Len(t, out, 2)
-	require.Equal(t, "q1", out[0].Name)
-	require.Equal(t, uint64(3), out[0].QueueSize)
+	// ListQueues iterates a map under the hood, so the result order
+	// isn't stable. Assert by name instead of by index.
+	byName := map[string]QueueListItem{}
+	for _, q := range out {
+		byName[q.Name] = q
+	}
+	require.Equal(t, uint64(3), byName["q1"].QueueSize)
 	require.Len(t, m.rows, 2)
 }
 
 func TestQueueListFilters(t *testing.T) {
-	c, srv := newFakeKumo(t, `[{"name":"marketing"},{"name":"transactional"}]`)
+	c, srv := newFakeKumo(t,
+		fakeQueue{Name: "marketing"},
+		fakeQueue{Name: "transactional"},
+	)
 	defer srv.Close()
 	svc := NewQueueService(c, nil)
 	out, err := svc.List(context.Background(), "trans", 0)
@@ -58,7 +114,11 @@ func TestQueueListFilters(t *testing.T) {
 }
 
 func TestQueueListLimits(t *testing.T) {
-	c, srv := newFakeKumo(t, `[{"name":"a"},{"name":"b"},{"name":"c"}]`)
+	c, srv := newFakeKumo(t,
+		fakeQueue{Name: "a"},
+		fakeQueue{Name: "b"},
+		fakeQueue{Name: "c"},
+	)
 	defer srv.Close()
 	svc := NewQueueService(c, nil)
 	out, err := svc.List(context.Background(), "", 2)
@@ -74,9 +134,15 @@ func TestQueueSuspendRequiresName(t *testing.T) {
 }
 
 func TestQueueActionsHitClient(t *testing.T) {
-	calls := []string{}
+	// Record method+path pairs. Suspend and Resume both hit
+	// `/api/admin/suspend-ready-q/v1` — one POST, one DELETE — so
+	// recording the path alone would lose the distinction. The
+	// upstream kumomta API consolidated the two endpoints in 2025;
+	// this test pins the expectation to the new shape.
+	type call struct{ method, path string }
+	calls := []call{}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		calls = append(calls, r.URL.Path)
+		calls = append(calls, call{method: r.Method, path: r.URL.Path})
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
@@ -87,9 +153,9 @@ func TestQueueActionsHitClient(t *testing.T) {
 	require.NoError(t, svc.Suspend(context.Background(), "q1"))
 	require.NoError(t, svc.Resume(context.Background(), "q1"))
 	require.NoError(t, svc.Bounce(context.Background(), "q1", ""))
-	require.Equal(t, []string{
-		"/api/admin/queue/suspend/v1",
-		"/api/admin/queue/resume/v1",
-		"/api/admin/bounce/v1",
+	require.Equal(t, []call{
+		{method: http.MethodPost, path: "/api/admin/suspend-ready-q/v1"},
+		{method: http.MethodDelete, path: "/api/admin/suspend-ready-q/v1"},
+		{method: http.MethodPost, path: "/api/admin/bounce/v1"},
 	}, calls)
 }
