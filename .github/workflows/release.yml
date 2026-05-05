@@ -161,18 +161,82 @@ jobs:
           path: ${{ steps.rename.outputs.path }}
           retention-days: 30
 
-  release:
-    name: GitHub Release
+  packages:
+    name: deb + rpm (nfpm)
     runs-on: ubuntu-latest
-    needs: [docker, host-tarball]
+    needs: [host-tarball]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download tarball
+      - name: Setup nfpm
+        # Pinning the nfpm version keeps package layouts stable across
+        # releases — postinst conventions occasionally drift between
+        # major nfpm versions.
+        uses: nFPM/setup-nfpm@v1
+        with:
+          version: '2.41.3'
+
+      - name: Download host-tarball artefact
         uses: actions/download-artifact@v4
         with:
           name: iris-host-tarball
+          path: ./dist
+
+      - name: Stage tarball into the layout nfpm expects
+        # The host-tarball already has the right /usr, /etc shape:
+        #   pkg-staging/usr/local/bin/iris
+        #   pkg-staging/etc/iris/{iris.env.example, configs/, sql/}
+        #   pkg-staging/etc/systemd/system/iris.service
+        # See deploy/Makefile host-package target. nfpm.yaml's
+        # `src:` paths resolve directly against this layout.
+        run: |
+          mkdir -p pkg-staging
+          tar -xzf ./dist/iris-host-${{ github.ref_name }}.tar.gz -C pkg-staging
+          ls -la pkg-staging/etc/iris/
+
+      - name: Build deb + rpm
+        # nfpm runs in deploy/nfpm/ so the relative `src:` paths in
+        # nfpm.yaml resolve against pkg-staging/ at the repo root.
+        # We need to pass the symlinked layout the right way.
+        run: |
+          export VERSION="${GITHUB_REF_NAME#v}"     # v1.2.3 → 1.2.3
+          mkdir -p deploy/nfpm/pkg-staging
+          # nfpm resolves relative paths from the YAML location, so
+          # link the staging dir into deploy/nfpm/ rather than
+          # rewriting paths in nfpm.yaml.
+          ln -sfn "$PWD/pkg-staging" deploy/nfpm/pkg-staging
+          mkdir -p deploy/nfpm/out
+          cd deploy/nfpm
+          nfpm package -p deb -t out/
+          nfpm package -p rpm -t out/
+          ls -lh out/
+
+      - name: Upload artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iris-packages
+          path: deploy/nfpm/out/*
+          retention-days: 30
+
+  release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    needs: [docker, host-tarball, packages]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download host tarball
+        uses: actions/download-artifact@v4
+        with:
+          name: iris-host-tarball
+          path: ./dist
+
+      - name: Download deb + rpm
+        uses: actions/download-artifact@v4
+        with:
+          name: iris-packages
           path: ./dist
 
       - name: Resolve image name (lowercase)
@@ -201,8 +265,23 @@ jobs:
             - `ghcr.io/${{ steps.img.outputs.name }}:${{ github.ref_name }}`
             - `ghcr.io/${{ steps.img.outputs.name }}:latest`
 
-            **Host-native (systemd)**: download `iris-host-${{ github.ref_name }}.tar.gz`
-            below and follow [docs/host-native-deploy.md](https://github.com/${{ github.repository }}/blob/main/docs/host-native-deploy.md).
+            **Debian / Ubuntu** (`iris_<version>_amd64.deb`):
+            ```bash
+            sudo dpkg -i iris_*.deb
+            # Edit /etc/iris/iris.env to set JWT secrets + kumomta paths
+            sudo systemctl enable --now iris
+            ```
+
+            **RHEL / Fedora / openSUSE** (`iris-<version>-1.x86_64.rpm`):
+            ```bash
+            sudo rpm -i iris-*.rpm
+            # Edit /etc/iris/iris.env to set JWT secrets + kumomta paths
+            sudo systemctl enable --now iris
+            ```
+
+            **Host-native tarball** (`iris-host-${{ github.ref_name }}.tar.gz`)
+            — same content as the deb/rpm, just unpacked. Follow
+            [docs/host-native-deploy.md](https://github.com/${{ github.repository }}/blob/main/docs/host-native-deploy.md).
 
             ```bash
             sudo tar -xzf iris-host-${{ github.ref_name }}.tar.gz -C /
@@ -212,3 +291,5 @@ jobs:
             ```
           files: |
             ./dist/iris-host-${{ github.ref_name }}.tar.gz
+            ./dist/*.deb
+            ./dist/*.rpm

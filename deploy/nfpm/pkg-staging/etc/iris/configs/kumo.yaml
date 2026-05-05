@@ -1,0 +1,12 @@
+# Kumomta integration — HOST-NATIVE deployment.
+#
+# kumomta and admin-service share a host. The HTTP listener kumomta
+# binds (kumo.start_http_listener in the rendered init.lua) is on
+# 127.0.0.1:8025 to avoid colliding with admin-service on :8000 — see
+# IRIS_KUMO_HTTP_LISTEN in deploy/systemd/admin-service.env.example.
+
+kumo:
+  api_endpoint: "http://127.0.0.1:8025"
+  policy_dir: "/opt/kumomta/etc/policy"
+  log_endpoint: "tcp://127.0.0.1:4242"
+  reload_token_env: "KUMO_RELOAD_TOKEN"

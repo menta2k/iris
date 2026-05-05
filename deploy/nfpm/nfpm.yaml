@@ -1,0 +1,113 @@
+# nfpm — packaging recipe for the iris admin-service.
+#
+# Used by the release workflow (.github/workflows/release.yml) to
+# build deb + rpm packages out of the same static binary the docker
+# image embeds. The CI job exports VERSION=${GITHUB_REF_NAME#v} (so
+# v1.2.3 → 1.2.3) and points nfpm at a staging directory populated
+# from the host-tarball.
+#
+# Run locally for sanity:
+#   VERSION=0.0.0-dev nfpm package -p deb -f deploy/nfpm/nfpm.yaml
+#   VERSION=0.0.0-dev nfpm package -p rpm -f deploy/nfpm/nfpm.yaml
+
+name: iris
+arch: amd64
+platform: linux
+version: ${VERSION}
+section: net
+priority: optional
+maintainer: "menta2k <noreply@github.com>"
+description: |
+  Iris — operator console for KumoMTA.
+  Single static binary that serves the operator UI and the admin API
+  on one port; manages DKIM, VMTAs, mail classes, routing rules, and
+  suppressions; renders kumomta init.lua from PostgreSQL/TimescaleDB.
+vendor: menta2k
+homepage: https://github.com/menta2k/iris
+license: TBD
+
+# We don't pin OS deps:
+#   - kumomta is installed from kumocorp's apt/yum repo, not a standard
+#     distro package — declaring it here would block install on hosts
+#     that already have it via the upstream channel.
+#   - postgres/redis can be local services, remote, or Docker — operator's
+#     choice. Documented in docs/host-native-deploy.md instead.
+# Declared deps stay empty deliberately.
+
+# Files mapped from staging into the package layout. The release-workflow
+# packages job extracts the host-tarball into ./pkg-staging which already
+# has the right /usr/, /etc/ shape; we just remap the systemd unit to a
+# distro-friendly path.
+contents:
+  # The static binary.
+  - src: ./pkg-staging/usr/local/bin/iris
+    dst: /usr/local/bin/iris
+    file_info:
+      mode: 0o755
+
+  # Configs — marked "config" so packagers don't overwrite operator
+  # edits on upgrade. Kratos layered YAML.
+  - src: ./pkg-staging/etc/iris/configs/server.yaml
+    dst: /etc/iris/configs/server.yaml
+    type: config|noreplace
+  - src: ./pkg-staging/etc/iris/configs/data.yaml
+    dst: /etc/iris/configs/data.yaml
+    type: config|noreplace
+  - src: ./pkg-staging/etc/iris/configs/auth.yaml
+    dst: /etc/iris/configs/auth.yaml
+    type: config|noreplace
+  - src: ./pkg-staging/etc/iris/configs/kumo.yaml
+    dst: /etc/iris/configs/kumo.yaml
+    type: config|noreplace
+  - src: ./pkg-staging/etc/iris/configs/logger.yaml
+    dst: /etc/iris/configs/logger.yaml
+    type: config|noreplace
+
+  # Env file — shipped as a *template* under iris.env.example.
+  # postinstall copies it to iris.env on first install only, and
+  # never overwrites an existing one. This is the standard way to
+  # distribute "fill in your secrets" without clobbering rotations.
+  - src: ./pkg-staging/etc/iris/iris.env.example
+    dst: /etc/iris/iris.env.example
+    type: config|noreplace
+
+  # Bootstrap SQL — applied automatically by admin-service on boot.
+  # Read-only at runtime; not config.
+  - src: ./pkg-staging/etc/iris/sql
+    dst: /etc/iris/sql
+
+  # systemd unit. /usr/lib/systemd/system/ works on both Debian
+  # (which symlinks /lib → /usr/lib) and RHEL families. nfpm marks
+  # it as a unit file so postinst can systemctl daemon-reload.
+  - src: ./pkg-staging/etc/systemd/system/iris.service
+    dst: /usr/lib/systemd/system/iris.service
+
+  # Stateful directory — empty, owned by the package, populated by
+  # admin-service at runtime if/when needed. Reserved for future
+  # local state.
+  - dst: /var/lib/iris
+    type: dir
+    file_info:
+      mode: 0o755
+      owner: iris
+      group: iris
+
+# Lifecycle scripts. Same scripts for both formats; nfpm wraps them
+# into the right rpm/deb conventions (preinst/postinst vs %pre/%post).
+scripts:
+  postinstall: ./scripts/postinstall.sh
+  preremove: ./scripts/preremove.sh
+  postremove: ./scripts/postremove.sh
+
+# RPM-specific tweaks. The %config directive comes from the
+# `config|noreplace` content type above; this block fills in the
+# bits that don't translate.
+rpm:
+  group: Applications/Internet
+  compression: zstd
+
+deb:
+  # Keep config files across upgrades unless they were not modified
+  # locally. Standard Debian behaviour for `conffiles`.
+  fields:
+    Origin: menta2k
