@@ -19,14 +19,21 @@ desktop.ini
 # Per-user settings + session memory; should never enter the shared repo.
 .claude/
 
-# ── Environment files (keep *.example committed) ────────────────────
-.env
+# ── Environment files ───────────────────────────────────────────────
+# Per-developer overrides: ignored everywhere. `.env` itself is NOT
+# globbed — frontend apps under Vite ship a tracked `.env` with
+# build-time constants (VITE_APP_TITLE etc.). Anchor secret-style
+# .env files to the repo root only.
+/.env
 .env.local
 .env.*.local
 
 # ── Logs ────────────────────────────────────────────────────────────
 *.log
-logs/
+# Anchored to the repo root — bare `logs/` would match any directory
+# named logs at any depth, including the frontend view at
+# frontend/apps/admin/src/views/kumo/logs/.
+/logs/
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
