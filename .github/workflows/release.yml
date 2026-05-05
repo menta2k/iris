@@ -191,29 +191,27 @@ jobs:
           name: iris-host-tarball
           path: ./dist
 
-      - name: Stage tarball into the layout nfpm expects
-        # The host-tarball already has the right /usr, /etc shape:
-        #   pkg-staging/usr/local/bin/iris
-        #   pkg-staging/etc/iris/{iris.env.example, configs/, sql/}
-        #   pkg-staging/etc/systemd/system/iris.service
-        # See deploy/Makefile host-package target. nfpm.yaml's
-        # `src:` paths resolve directly against this layout.
+      - name: Stage tarball into deploy/nfpm/pkg-staging
+        # nfpm resolves `src:` paths in nfpm.yaml relative to the YAML
+        # file's directory (deploy/nfpm/), so we extract the tarball
+        # directly into deploy/nfpm/pkg-staging/. The tarball already
+        # has the right shape:
+        #   usr/local/bin/iris
+        #   etc/iris/{iris.env.example, configs/, sql/}
+        #   etc/systemd/system/iris.service
+        # See deploy/Makefile host-package target.
         run: |
-          mkdir -p pkg-staging
-          tar -xzf ./dist/iris-host-${{ github.ref_name }}.tar.gz -C pkg-staging
-          ls -la pkg-staging/etc/iris/
+          set -eux
+          mkdir -p deploy/nfpm/pkg-staging
+          tar -xzf "./dist/iris-host-${{ github.ref_name }}.tar.gz" -C deploy/nfpm/pkg-staging
+          # Sanity-check the binary made it through; nfpm's "file does
+          # not exist" error is otherwise opaque.
+          test -x deploy/nfpm/pkg-staging/usr/local/bin/iris
 
       - name: Build deb + rpm
-        # nfpm runs in deploy/nfpm/ so the relative `src:` paths in
-        # nfpm.yaml resolve against pkg-staging/ at the repo root.
-        # We need to pass the symlinked layout the right way.
         run: |
+          set -eux
           export VERSION="${GITHUB_REF_NAME#v}"     # v1.2.3 → 1.2.3
-          mkdir -p deploy/nfpm/pkg-staging
-          # nfpm resolves relative paths from the YAML location, so
-          # link the staging dir into deploy/nfpm/ rather than
-          # rewriting paths in nfpm.yaml.
-          ln -sfn "$PWD/pkg-staging" deploy/nfpm/pkg-staging
           mkdir -p deploy/nfpm/out
           cd deploy/nfpm
           nfpm package -p deb -t out/
