@@ -72,6 +72,13 @@ const columns = [
     width: 130,
   },
   {
+    title: 'VMTA',
+    dataIndex: 'vmta',
+    key: 'vmta',
+    width: 160,
+    ellipsis: true,
+  },
+  {
     title: 'Message ID',
     dataIndex: 'message_id',
     key: 'message_id',
@@ -329,6 +336,12 @@ onUnmounted(pause);
           <template v-else-if="column.key === 'mail_class'">
             <Tag v-if="record.mail_class" color="purple">
               {{ record.mail_class }}
+            </Tag>
+            <span v-else style="color: var(--ant-color-text-quaternary)">—</span>
+          </template>
+          <template v-else-if="column.key === 'vmta'">
+            <Tag v-if="record.vmta" color="geekblue">
+              {{ record.vmta }}
             </Tag>
             <span v-else style="color: var(--ant-color-text-quaternary)">—</span>
           </template>

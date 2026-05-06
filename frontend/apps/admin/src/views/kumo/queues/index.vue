@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { QueueItem } from '#/api/kumo';
+import type { QueueItem, ScheduledMessage } from '#/api/kumo';
 
 import { onMounted, ref } from 'vue';
 
@@ -10,6 +10,7 @@ import {
   Card,
   Input,
   message,
+  Modal,
   Popconfirm,
   Space,
   Table,
@@ -23,6 +24,27 @@ defineOptions({ name: 'Queues' });
 const items = ref<QueueItem[]>([]);
 const loading = ref(false);
 const filter = ref('');
+
+const inspect = ref({
+  open: false,
+  loading: false,
+  queue: '',
+  rows: [] as ScheduledMessage[],
+});
+
+const messageColumns = [
+  { title: 'ID', dataIndex: 'id', key: 'id', width: 240, ellipsis: true },
+  { title: 'Recipient', dataIndex: 'recipient', key: 'recipient' },
+  { title: 'Sender', dataIndex: 'sender', key: 'sender' },
+  {
+    title: 'Attempts',
+    dataIndex: 'num_attempts',
+    key: 'num_attempts',
+    width: 100,
+    align: 'right' as const,
+  },
+  { title: 'Due', dataIndex: 'due_at', key: 'due_at', width: 200 },
+];
 
 const columns = [
   { title: 'Queue', dataIndex: 'name', key: 'name' },
@@ -49,6 +71,15 @@ const columns = [
     width: 110,
     align: 'right' as const,
     sorter: (a: QueueItem, b: QueueItem) => a.failed - b.failed,
+  },
+  {
+    title: 'Deferred',
+    dataIndex: 'deferred',
+    key: 'deferred',
+    width: 120,
+    align: 'right' as const,
+    sorter: (a: QueueItem, b: QueueItem) =>
+      (a.deferred ?? 0) - (b.deferred ?? 0),
   },
   { title: 'Status', dataIndex: 'suspended', key: 'suspended', width: 130 },
   { title: 'Actions', key: 'actions', width: 260 },
@@ -80,6 +111,19 @@ async function bounceQueue(name: string) {
   await queuesApi.bounce(name);
   message.success(`Bounced ${name}`);
   await load();
+}
+
+async function openMessages(name: string) {
+  inspect.value = { open: true, loading: true, queue: name, rows: [] };
+  try {
+    const r = await queuesApi.inspect(name, 100);
+    inspect.value.rows = r.items ?? [];
+  } catch {
+    // Service-level errors already surface via the global request
+    // interceptor; just clear the loading state so the modal isn't stuck.
+  } finally {
+    inspect.value.loading = false;
+  }
 }
 
 onMounted(load);
@@ -117,6 +161,13 @@ onMounted(load);
           <template v-else-if="column.key === 'actions'">
             <Space>
               <Button
+                v-if="(record.deferred ?? 0) > 0"
+                size="small"
+                @click="openMessages(record.name)"
+              >
+                Messages
+              </Button>
+              <Button
                 v-if="!record.suspended"
                 size="small"
                 @click="suspendQueue(record.name)"
@@ -145,5 +196,22 @@ onMounted(load);
         </template>
       </Table>
     </Card>
+
+    <Modal
+      v-model:open="inspect.open"
+      :title="`Deferred messages — ${inspect.queue}`"
+      :footer="null"
+      width="960px"
+      destroy-on-close
+    >
+      <Table
+        :columns="messageColumns"
+        :data-source="inspect.rows"
+        :loading="inspect.loading"
+        :pagination="{ pageSize: 20 }"
+        row-key="id"
+        size="small"
+      />
+    </Modal>
   </Page>
 </template>

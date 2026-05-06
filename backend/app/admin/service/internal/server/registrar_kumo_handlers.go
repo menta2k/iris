@@ -481,6 +481,7 @@ type httpLogItem struct {
 	ResponseCode int32     `json:"response_code"`
 	ResponseText string    `json:"response_text,omitempty"`
 	SourceIP     string    `json:"source_ip,omitempty"`
+	Vmta         string    `json:"vmta,omitempty"`
 	MailClass    string    `json:"mail_class,omitempty"`
 }
 
@@ -534,6 +535,7 @@ func registerLogs(hs *kratoshttp.Server, s *service.LogService) {
 				Queue: e.Queue, Sender: e.Sender, Recipient: e.Recipient,
 				MessageID: e.MessageID, ResponseCode: e.ResponseCode,
 				ResponseText: e.ResponseText, SourceIP: e.SourceIP,
+				Vmta:      e.Vmta,
 				MailClass: e.MailClass,
 			})
 		}

@@ -18,6 +18,7 @@ type LogRow struct {
 	ResponseCode int32
 	ResponseText string
 	SourceIP     string
+	Vmta         string
 	MailClass    string
 }
 

@@ -53,8 +53,9 @@ func RegisterKumoHTTP(
 type httpQueueItem struct {
 	Name      string    `json:"name"`
 	QueueSize uint64    `json:"queue_size"`
-	Delivered uint64    `json:"delivered_total"`
-	Failed    uint64    `json:"failed_total"`
+	Delivered uint64    `json:"delivered"`
+	Failed    uint64    `json:"failed"`
+	Deferred  uint64    `json:"deferred"`
 	Suspended bool      `json:"suspended"`
 	SampledAt time.Time `json:"sampled_at"`
 }
@@ -96,14 +97,69 @@ func registerQueuesHTTP(hs *kratoshttp.Server, q *service.QueueService, write au
 				QueueSize: qr.QueueSize,
 				Delivered: qr.Delivered,
 				Failed:    qr.Failed,
+				Deferred:  qr.Deferred,
 				Suspended: qr.Suspended,
 				SampledAt: qr.SampledAt,
 			})
 		}
 		writeJSON(w, http.StatusOK, httpQueueListResp{Items: items})
 	}))
+	hs.HandleFunc("/v1/queues/{name}/messages", listAudit(queueInspectHandler(q)))
 	hs.HandleFunc("/v1/queues/{name}/{action:suspend|resume|bounce}",
 		actionAudit(queueActionHandler(q)))
+}
+
+type httpScheduledMessage struct {
+	ID          string         `json:"id"`
+	Sender      string         `json:"sender,omitempty"`
+	Recipient   string         `json:"recipient,omitempty"`
+	DueAt       time.Time      `json:"due_at,omitempty"`
+	NumAttempts uint32         `json:"num_attempts"`
+	Tenant      string         `json:"tenant,omitempty"`
+	Campaign    string         `json:"campaign,omitempty"`
+	Meta        map[string]any `json:"meta,omitempty"`
+}
+
+type httpScheduledMessagesResp struct {
+	QueueName string                 `json:"queue_name"`
+	Items     []httpScheduledMessage `json:"items"`
+}
+
+// queueInspectHandler returns a sample of messages held in the named
+// scheduled queue. Backed by kumomta's /api/admin/inspect-sched-q/v1.
+func queueInspectHandler(q *service.QueueService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			writeErr(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "use GET")
+			return
+		}
+		name := mux.Vars(r)["name"]
+		if name == "" {
+			writeErr(w, http.StatusBadRequest, "BAD_REQUEST", "queue name required")
+			return
+		}
+		// Cap at 500 to match the service-side ceiling — anything larger
+		// would risk exhausting the upstream's inspection budget.
+		limit, _ := paginationParams(r, 50, 500)
+		ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
+		defer cancel()
+		msgs, err := q.InspectScheduledQueue(ctx, name, limit)
+		if err != nil {
+			writeErr(w, http.StatusBadGateway, "KUMOMTA_UNREACHABLE", err.Error())
+			return
+		}
+		items := make([]httpScheduledMessage, 0, len(msgs))
+		for _, m := range msgs {
+			items = append(items, httpScheduledMessage{
+				ID: m.ID, Sender: m.Sender, Recipient: m.Recipient,
+				DueAt: m.DueAt, NumAttempts: m.NumAttempts,
+				Tenant: m.Tenant, Campaign: m.Campaign, Meta: m.Meta,
+			})
+		}
+		writeJSON(w, http.StatusOK, httpScheduledMessagesResp{
+			QueueName: name, Items: items,
+		})
+	}
 }
 
 type httpBounceReq struct {

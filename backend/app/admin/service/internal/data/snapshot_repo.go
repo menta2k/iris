@@ -196,8 +196,19 @@ func (r *SnapshotRepo) CurrentSnapshot(ctx context.Context) (*kumopolicy.Snapsho
 		// set to '127.0.0.1:8025' (or similar) and align IRIS_KUMO_API_ENDPOINT.
 		KumoHTTPListen:   strings.TrimSpace(os.Getenv("IRIS_KUMO_HTTP_LISTEN")),
 		TestDomainRoutes: parseTestDomainRoutes(),
+		QueuePerVmta:     parseBoolEnv("IRIS_QUEUE_PER_VMTA"),
 	}
 	return snap, nil
+}
+
+// parseBoolEnv reads a truthy/falsy env var. Accepts 1/true/yes/on
+// (case-insensitive) as true; everything else (including unset) is false.
+func parseBoolEnv(name string) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(name))) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return false
 }
 
 // parseTestDomainRoutes reads IRIS_TEST_DOMAIN_ROUTES — a JSON object

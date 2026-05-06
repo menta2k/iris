@@ -34,6 +34,7 @@ const sha = ref('');
 const loading = ref(false);
 const validating = ref(false);
 const applying = ref(false);
+const regenerating = ref(false);
 const validation = ref<{ valid: boolean; issues?: string[] } | null>(null);
 
 const shaShort = computed(() => (sha.value ? sha.value.slice(0, 12) : ''));
@@ -76,6 +77,22 @@ async function validate() {
   }
 }
 
+async function regenerate() {
+  // Forces a fresh render of init.lua from the current DB snapshot and
+  // shows it in the Preview pane so operators can review before Apply.
+  regenerating.value = true;
+  try {
+    view.value = 'preview';
+    const r = await policyApi.render();
+    source.value = r.lua ?? '';
+    sha.value = r.sha256 ?? '';
+    validation.value = null;
+    message.success(`Regenerated — ${(r.sha256 ?? '').slice(0, 12)}…`);
+  } finally {
+    regenerating.value = false;
+  }
+}
+
 async function apply() {
   applying.value = true;
   try {
@@ -115,6 +132,7 @@ onMounted(load);
         <Tag v-if="shaShort" color="blue">sha256:{{ shaShort }}</Tag>
 
         <Button :loading="loading" @click="load">Reload</Button>
+        <Button :loading="regenerating" @click="regenerate">Regenerate</Button>
         <Button :loading="validating" @click="validate">Validate</Button>
         <Popconfirm
           title="Apply the current DB snapshot to all kumomta nodes?"
