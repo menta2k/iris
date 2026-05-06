@@ -74,6 +74,7 @@ func (r *LogRepo) List(ctx context.Context, f service.LogFilter, limit, offset i
 			ResponseCode: e.ResponseCode,
 			ResponseText: e.ResponseText,
 			SourceIP:     e.SourceIP,
+			Vmta:         e.Vmta,
 			MailClass:    e.MailClass,
 		})
 	}

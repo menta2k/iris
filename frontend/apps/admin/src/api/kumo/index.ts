@@ -17,12 +17,34 @@ export interface QueueItem {
   queue_size: number;
   delivered: number;
   failed: number;
+  deferred?: number;
   suspended: boolean;
+}
+
+export interface ScheduledMessage {
+  id: string;
+  sender?: string;
+  recipient?: string;
+  due_at?: string;
+  num_attempts: number;
+  tenant?: string;
+  campaign?: string;
+  meta?: Record<string, unknown>;
+}
+
+export interface ScheduledMessagesResponse {
+  queue_name: string;
+  items: ScheduledMessage[];
 }
 
 export const queuesApi = {
   list: (params?: ListParams) =>
     requestClient.get<ListResponse<QueueItem>>('/v1/queues', { params }),
+  inspect: (name: string, limit = 50) =>
+    requestClient.get<ScheduledMessagesResponse>(
+      `/v1/queues/${encodeURIComponent(name)}/messages`,
+      { params: { limit } },
+    ),
   suspend: (name: string) =>
     requestClient.post(`/v1/queues/${encodeURIComponent(name)}/suspend`),
   resume: (name: string) =>
@@ -110,6 +132,7 @@ export interface LogEntry {
   queue?: string;
   message_id?: string;
   source_ip?: string;
+  vmta?: string;
 }
 
 export interface LogsListParams extends ListParams {

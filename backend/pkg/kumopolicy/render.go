@@ -434,16 +434,27 @@ func writeQueueConfig(b *strings.Builder, gs GlobalSettings) {
   end
 `)
 	}
-	// Tenant is the queue's bucket name (mail class, or 'default'). The
-	// egress pool is *resolved* from it: a class lookup wins, otherwise we
-	// treat tenant as a literal pool name (so legacy routing rules that set
-	// tenant=<vmta_group> still work), otherwise 'default'.
-	b.WriteString(`  local pool = CLASS_TO_POOL[tenant]
-  if not pool or pool == '' then pool = tenant end
-  if not pool or pool == '' then pool = 'default' end
+	// Pool resolution. In the legacy `tenant@domain` queue mode, the tenant
+	// is a class name → pool lookup, falling back to tenant-as-literal-pool,
+	// then 'default'. In one-queue-per-vmta mode the queue meta is set
+	// upstream to the pool name itself, so kumomta calls us with a
+	// single-segment queue (tenant nil) and `domain` IS the pool.
+	b.WriteString(`  local pool
+  if not tenant or tenant == '' then
+    -- Single-segment queue (one-queue-per-vmta mode). The queue name is
+    -- the pool; no class indirection.
+    pool = domain
+  else
+    pool = CLASS_TO_POOL[tenant]
+    if not pool or pool == '' then pool = tenant end
+    if not pool or pool == '' then pool = 'default' end
+  end
   -- Test-mode override: pin the destination MX for matching domains.
-  -- Skips DNS resolution entirely, points at a fixed host:port.
-  local mx = TEST_DOMAIN_ROUTES[domain]
+  -- Skips DNS resolution entirely, points at a fixed host:port. In
+  -- one-queue-per-vmta mode the domain arg is the pool name, so the
+  -- recipient's domain arrives via routing_domain instead -- try both.
+  local mx_lookup = (routing_domain ~= nil and routing_domain ~= '') and routing_domain or domain
+  local mx = TEST_DOMAIN_ROUTES[mx_lookup]
   if mx then
     return kumo.make_queue_config {
       egress_pool = pool,
@@ -721,6 +732,22 @@ func writeRoutingChain(b *strings.Builder, mcs []MailClass, rs []RoutingRule, gs
     msg:set_meta('tenant', 'default')
   end
 `)
+
+	// One-queue-per-VMTA: collapse the queue key to the resolved egress pool
+	// name. Resolution mirrors get_queue_config so the two stay in sync —
+	// tenant → CLASS_TO_POOL → tenant-as-pool → 'default'. Kumomta sees a
+	// single-segment queue and calls get_queue_config with tenant=nil, which
+	// the renderer's queue-config block already handles.
+	if gs.QueuePerVmta {
+		b.WriteString(`  do
+    local t = msg:get_meta('tenant') or ''
+    local p = CLASS_TO_POOL[t]
+    if not p or p == '' then p = t end
+    if not p or p == '' then p = 'default' end
+    msg:set_meta('queue', p)
+  end
+`)
+	}
 
 	b.WriteString("end\n\n")
 

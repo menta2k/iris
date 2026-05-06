@@ -165,6 +165,85 @@ func (c *Client) ListQueues(ctx context.Context) ([]QueueSummary, error) {
 	return out, nil
 }
 
+// metricsScheduled mirrors the slice of /metrics.json we care about.
+// Scheduled-queue counts (where deferred / retrying messages live) aren't
+// exposed by /api/admin/ready-q-states/v1, so we lift them from the metrics
+// endpoint. We decode only the gauges we need; everything else is ignored.
+type metricsScheduled struct {
+	ScheduledCount struct {
+		Value struct {
+			Queue map[string]uint64 `json:"queue"`
+		} `json:"value"`
+	} `json:"scheduled_count"`
+}
+
+// ListScheduledQueues returns the per-queue count of messages currently
+// sitting in the scheduled queue (deferred / waiting for retry). The
+// response shape mirrors the `scheduled_count` gauge in /metrics.json.
+func (c *Client) ListScheduledQueues(ctx context.Context) (map[string]uint64, error) {
+	var m metricsScheduled
+	if err := c.do(ctx, http.MethodGet, "/metrics.json", nil, &m); err != nil {
+		return nil, err
+	}
+	if m.ScheduledCount.Value.Queue == nil {
+		return map[string]uint64{}, nil
+	}
+	return m.ScheduledCount.Value.Queue, nil
+}
+
+// ScheduledMessage is one entry in an inspect-sched-q response. We only
+// decode the fields the UI surfaces; anything else is ignored.
+type ScheduledMessage struct {
+	ID      string                 `json:"id"`
+	Message ScheduledMessageDetail `json:"message"`
+}
+
+// ScheduledMessageDetail is the per-message payload kumomta returns under
+// the `message` key. `Data` is a base64 RFC822 blob when want_body=true,
+// otherwise null.
+type ScheduledMessageDetail struct {
+	Sender      string         `json:"sender"`
+	Recipient   string         `json:"recipient"`
+	Meta        map[string]any `json:"meta"`
+	Data        *string        `json:"data"`
+	Due         string         `json:"due"`
+	NumAttempts uint32         `json:"num_attempts"`
+}
+
+// ScheduledQueueInspection is the full inspect-sched-q response.
+type ScheduledQueueInspection struct {
+	QueueName string             `json:"queue_name"`
+	Messages  []ScheduledMessage `json:"messages"`
+}
+
+// InspectScheduledQueue fetches a sample of messages currently held in the
+// named scheduled queue. Queue strategy must be SingletonTimerWheel (the
+// kumomta default) for the message list to be populated; otherwise the
+// response carries an empty `messages` array. limit <= 0 sends no limit
+// (kumomta's --no-limit equivalent), which can be expensive — callers should
+// always pass a finite limit unless they truly need the full list.
+func (c *Client) InspectScheduledQueue(ctx context.Context, name string, limit int, wantBody bool) (*ScheduledQueueInspection, error) {
+	if name == "" {
+		return nil, errors.New("kumomta: inspect-sched-q: queue name required")
+	}
+	q := url.Values{}
+	q.Set("queue_name", name)
+	if limit > 0 {
+		q.Set("limit", fmt.Sprintf("%d", limit))
+	} else {
+		q.Set("no_limit", "true")
+	}
+	if wantBody {
+		q.Set("want_body", "true")
+	}
+	var out ScheduledQueueInspection
+	path := "/api/admin/inspect-sched-q/v1?" + q.Encode()
+	if err := c.do(ctx, http.MethodGet, path, nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // suspendReadyQReq is the shape kumomta expects for suspend-ready-q.
 type suspendReadyQReq struct {
 	Name     string `json:"name"`
@@ -238,7 +317,14 @@ func (c *Client) do(ctx context.Context, method, path string, in, out any) (retE
 	}
 
 	u := *c.base
-	u.Path = strings.TrimRight(u.Path, "/") + path
+	// Split optional query off the path so url.URL keeps Path and RawQuery
+	// distinct — assigning a path with `?` would percent-encode it.
+	pathOnly, rawQuery := path, ""
+	if i := strings.IndexByte(path, '?'); i >= 0 {
+		pathOnly, rawQuery = path[:i], path[i+1:]
+	}
+	u.Path = strings.TrimRight(u.Path, "/") + pathOnly
+	u.RawQuery = rawQuery
 
 	var body io.Reader
 	if in != nil {

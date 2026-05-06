@@ -74,6 +74,15 @@ type GlobalSettings struct {
 	// SMTP receivers without standing up a real DNS server. Empty in prod.
 	// Format: domain → "host:port" (e.g. "accept.test" → "mock-mta-accept:25").
 	TestDomainRoutes map[string]string
+
+	// QueuePerVmta collapses the scheduled-queue keying from `tenant@domain`
+	// down to a single-segment queue named after the resolved egress pool
+	// (i.e. the VMTA / VMTA-group). One VMTA → one scheduled queue,
+	// independent of how many destination domains it sends to.
+	//
+	// Trade-off: retries for unrelated domains share a queue, so a misbehaving
+	// destination can hold up another's retry slot. Off by default.
+	QueuePerVmta bool
 }
 
 // LogStreamNameDefault is the canonical Redis-stream name. Kept aligned with
