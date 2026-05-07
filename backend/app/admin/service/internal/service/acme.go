@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-acme/lego/v4/registration"
@@ -105,6 +107,11 @@ type AcmeService struct {
 	// CertBaseDir is where issued PEMs are mirrored. Default
 	// "/opt/kumomta/etc/tls"; override via env if iris is host-native.
 	CertBaseDir string
+
+	// inFlight gates concurrent Issue calls per domain. Using sync.Map
+	// so begin/end are lock-free on the hot path. The map carries
+	// struct{} values — only the keys matter.
+	inFlight sync.Map
 }
 
 // NewAcmeService constructs the service.
@@ -295,10 +302,24 @@ func (s *AcmeService) DeleteCertificate(ctx context.Context, id uint32) error {
 	return s.certs.Delete(ctx, id)
 }
 
-// IssueCertificate runs the full ACME flow: ensure account
-// registered, build a challenge.Provider (HTTP-01 token store or DNS
-// provider from registry+saved config), call Issue, persist PEMs +
-// mirror to disk, update the row.
+// IssueCertificate validates the request, persists a `pending` row,
+// and kicks the actual ACME flow off in a goroutine. The HTTP caller
+// returns in <100ms; the operator polls the row (or just hits Refresh
+// on the Certificates page) to see status flip to `issued` / `failed`.
+//
+// Why async: lego's HTTP client doesn't honour the inbound request
+// context, and DNS-01 propagation routinely takes 15–90 seconds — far
+// longer than the kratos rest.timeout (10s by default). Running the
+// flow synchronously meant the cert WAS issued at the CA but our row
+// got stuck in `pending` because ent refused writes through a
+// cancelled context. Decoupling the request lifetime from the issuance
+// lifetime fixes that and gives operators a "submit + walk away"
+// workflow.
+//
+// Concurrency: an in-flight map keyed by domain prevents two parallel
+// Issue calls for the same domain from racing on the row. A duplicate
+// call returns the existing pending row instead of starting a second
+// goroutine.
 func (s *AcmeService) IssueCertificate(ctx context.Context, req AcmeIssueRequest) (*AcmeCertificateRow, error) {
 	req.Domain = strings.TrimSpace(req.Domain)
 	if req.Domain == "" {
@@ -307,64 +328,126 @@ func (s *AcmeService) IssueCertificate(ctx context.Context, req AcmeIssueRequest
 	if req.ChallengeType != "http-01" && req.ChallengeType != "dns-01" {
 		return nil, errors.New("acme: challenge_type must be http-01 or dns-01")
 	}
+
+	// Synchronous validation pass — we want config errors (no account,
+	// no DNS provider) to surface in the HTTP response, not silently in
+	// a goroutine. After this point we know the issue *can* run.
 	state, err := s.loadAccountState(ctx)
 	if err != nil {
 		return nil, err
 	}
+	if _, err := acmeissuer.New(state); err != nil {
+		return nil, err
+	}
+	if req.ChallengeType == "http-01" && s.HttpTokens == nil {
+		return nil, errors.New("acme: http-01 challenge requires the :80 challenge listener (set IRIS_ACME_HTTP_BIND)")
+	}
+	if req.ChallengeType == "dns-01" {
+		if _, err := s.buildDnsProvider(ctx, req.DnsProvider); err != nil {
+			return nil, err
+		}
+	}
+
+	// Reject overlapping issuances for the same domain. The first one
+	// is still in flight — return its pending row instead of stomping
+	// it.
+	if !s.beginIssue(req.Domain) {
+		log.Printf("acme: issue already in flight for %s — returning existing row", req.Domain)
+		if existing, lerr := s.certs.GetByDomain(ctx, req.Domain); lerr == nil && existing != nil {
+			return existing, nil
+		}
+		return nil, errors.New("acme: an issue for this domain is already in progress")
+	}
+
+	// Persist the pending row synchronously so the HTTP caller sees an
+	// id immediately and can poll.
+	pending, err := s.certs.Upsert(ctx, AcmeCertificateRow{
+		Domain:        req.Domain,
+		AltNames:      req.AltNames,
+		ChallengeType: req.ChallengeType,
+		DnsProvider:   req.DnsProvider,
+		Status:        "pending",
+	})
+	if err != nil {
+		s.endIssue(req.Domain)
+		return nil, fmt.Errorf("acme: persist pending row: %w", err)
+	}
+
+	// Kick off the actual issuance in the background. Background
+	// context with a 10-minute ceiling — DNS-01 propagation worst case
+	// is in the 5-minute neighbourhood; anything past that is almost
+	// certainly stuck and should be marked failed so the operator gets
+	// a clear signal.
+	go func(req AcmeIssueRequest) {
+		defer s.endIssue(req.Domain)
+		bg, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		defer cancel()
+		s.runIssue(bg, req, state)
+	}(req)
+
+	return pending, nil
+}
+
+// runIssue executes the synchronous ACME flow on a background context.
+// All errors are logged AND persisted onto the cert row's last_error
+// so operators see them in the UI.
+func (s *AcmeService) runIssue(ctx context.Context, req AcmeIssueRequest, state *acmeissuer.AccountState) {
+	log.Printf("acme: starting issue domain=%s challenge=%s provider=%s",
+		req.Domain, req.ChallengeType, req.DnsProvider)
+
 	issuer, err := acmeissuer.New(state)
 	if err != nil {
-		return nil, err
+		log.Printf("acme: issuer construct failed for %s: %v", req.Domain, err)
+		s.markFailed(ctx, req.Domain, err)
+		return
 	}
 	if state.NeedsRegister {
 		if _, err := issuer.Register(); err != nil {
+			log.Printf("acme: register failed for %s: %v", req.Domain, err)
 			s.markFailed(ctx, req.Domain, err)
-			return nil, err
+			return
 		}
 		if err := s.persistRegistration(ctx, state); err != nil {
-			// Non-fatal: we just won't have the registration cached on
-			// disk for next boot. The next Issue will re-register.
+			log.Printf("acme: persistRegistration failed (non-fatal): %v", err)
 		}
 	}
+
 	opts := acmeissuer.IssueOptions{
 		PrimaryDomain: req.Domain,
 		AltNames:      req.AltNames,
 		UseHTTP01:     req.ChallengeType == "http-01",
 	}
 	if req.ChallengeType == "http-01" {
-		if s.HttpTokens == nil {
-			return nil, errors.New("acme: http-01 challenge requires the :80 challenge listener (set IRIS_ACME_HTTP_BIND)")
-		}
 		opts.Provider = s.HttpTokens
 	} else {
 		dns, err := s.buildDnsProvider(ctx, req.DnsProvider)
 		if err != nil {
+			log.Printf("acme: build dns provider failed for %s: %v", req.Domain, err)
 			s.markFailed(ctx, req.Domain, err)
-			return nil, err
+			return
 		}
 		opts.Provider = dns
 	}
 
-	// Mark renewing/pending so the UI can show a spinner. Best-effort.
-	_, _ = s.certs.Upsert(ctx, AcmeCertificateRow{
-		Domain: req.Domain, AltNames: req.AltNames, ChallengeType: req.ChallengeType,
-		DnsProvider: req.DnsProvider, Status: "pending",
-	})
-
 	res, err := issuer.Issue(opts)
 	if err != nil {
+		log.Printf("acme: issue failed for %s: %v", req.Domain, err)
 		s.markFailed(ctx, req.Domain, err)
-		return nil, err
+		return
 	}
+	log.Printf("acme: cert obtained for %s — writing to %s", req.Domain, s.CertBaseDir)
 
 	certPath, keyPath, err := acmeissuer.WriteCertFiles(s.CertBaseDir, req.Domain, res)
 	if err != nil {
+		log.Printf("acme: WriteCertFiles failed for %s: %v", req.Domain, err)
 		s.markFailed(ctx, req.Domain, err)
-		return nil, err
+		return
 	}
+	log.Printf("acme: wrote PEMs cert=%s key=%s", certPath, keyPath)
 
 	now := time.Now().UTC()
 	expires := now.AddDate(0, 0, 90) // Let's Encrypt default; refined later by parsing the cert
-	row := AcmeCertificateRow{
+	if _, err := s.certs.Upsert(ctx, AcmeCertificateRow{
 		Domain:        req.Domain,
 		AltNames:      req.AltNames,
 		ChallengeType: req.ChallengeType,
@@ -376,9 +459,23 @@ func (s *AcmeService) IssueCertificate(ctx context.Context, req AcmeIssueRequest
 		ExpiresAt:     &expires,
 		LastRenewedAt: &now,
 		Status:        "issued",
+	}); err != nil {
+		log.Printf("acme: persist row failed for %s: %v (cert IS on disk at %s)",
+			req.Domain, err, certPath)
+		return
 	}
-	return s.certs.Upsert(ctx, row)
+	log.Printf("acme: issued domain=%s expires_at=%s", req.Domain, expires.Format(time.RFC3339))
 }
+
+// beginIssue marks the domain as in-flight. Returns false when another
+// issuance for the same domain is already running, so the caller can
+// short-circuit instead of racing.
+func (s *AcmeService) beginIssue(domain string) bool {
+	_, loaded := s.inFlight.LoadOrStore(domain, struct{}{})
+	return !loaded
+}
+
+func (s *AcmeService) endIssue(domain string) { s.inFlight.Delete(domain) }
 
 // RenewCertificate re-runs Issue on an existing row, preserving its
 // challenge configuration.
