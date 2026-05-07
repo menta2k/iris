@@ -196,6 +196,9 @@ export interface GlobalSettings {
   bounce_sender_domains: string[];
   bounce_prefix: string;
   mail_class_header: string;
+  https_listen: string;
+  https_cert_pem_path: string;
+  https_key_pem_path: string;
   updated_at?: string;
   updated_by?: string;
 }
@@ -204,6 +207,89 @@ export const globalSettingsApi = {
   get: () => requestClient.get<GlobalSettings>('/v1/global-settings'),
   update: (input: GlobalSettings) =>
     requestClient.put<GlobalSettings>('/v1/global-settings', input),
+};
+
+// ─── ACME ────────────────────────────────────────────────────────────────────
+export interface AcmeAccount {
+  email: string;
+  server_url: string;
+  has_registration: boolean;
+  updated_at?: string;
+}
+
+export interface AcmeProviderInfo {
+  name: string;
+  description: string;
+  required_fields: string[];
+  optional_fields: string[];
+}
+
+export interface AcmeDnsProviderConfig {
+  provider: string;
+  config: Record<string, string>;
+  updated_at?: string;
+  updated_by?: string;
+}
+
+export interface AcmeCertificate {
+  id: number;
+  domain: string;
+  alt_names: string[];
+  challenge_type: 'dns-01' | 'http-01';
+  dns_provider?: string;
+  cert_pem_path?: string;
+  key_pem_path?: string;
+  expires_at?: string;
+  last_renewed_at?: string;
+  status: 'failed' | 'issued' | 'pending' | 'renewing';
+  last_error?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AcmeIssueRequest {
+  domain: string;
+  alt_names?: string[];
+  challenge_type: 'dns-01' | 'http-01';
+  dns_provider?: string;
+}
+
+export const acmeApi = {
+  // Account is a singleton — GET always returns one row (possibly with
+  // empty fields when never configured).
+  getAccount: () => requestClient.get<AcmeAccount>('/v1/acme/account'),
+  saveAccount: (in_: { email: string; server_url: string }) =>
+    requestClient.put<AcmeAccount>('/v1/acme/account', in_),
+
+  // Registry: read-only metadata for every supported DNS provider; the
+  // DNS Providers page uses this to render a dynamic credentials form
+  // keyed by required_fields + optional_fields.
+  listRegistry: () =>
+    requestClient.get<{ items: AcmeProviderInfo[] }>(
+      '/v1/acme/dns-providers/registry',
+    ),
+
+  listDnsProviderConfigs: () =>
+    requestClient.get<{ items: AcmeDnsProviderConfig[] }>(
+      '/v1/acme/dns-providers',
+    ),
+  saveDnsProviderConfig: (in_: AcmeDnsProviderConfig) =>
+    requestClient.put<AcmeDnsProviderConfig>('/v1/acme/dns-providers', in_),
+  removeDnsProviderConfig: (provider: string) =>
+    requestClient.delete(
+      `/v1/acme/dns-providers/${encodeURIComponent(provider)}`,
+    ),
+
+  listCertificates: () =>
+    requestClient.get<{ items: AcmeCertificate[] }>('/v1/acme/certificates'),
+  getCertificate: (id: number) =>
+    requestClient.get<AcmeCertificate>(`/v1/acme/certificates/${id}`),
+  issueCertificate: (in_: AcmeIssueRequest) =>
+    requestClient.post<AcmeCertificate>('/v1/acme/certificates', in_),
+  renewCertificate: (id: number) =>
+    requestClient.post<AcmeCertificate>(`/v1/acme/certificates/${id}/renew`),
+  removeCertificate: (id: number) =>
+    requestClient.delete(`/v1/acme/certificates/${id}`),
 };
 
 // ─── Feedback ────────────────────────────────────────────────────────────────
@@ -388,16 +474,28 @@ export const policyApi = {
     requestClient.post<PolicyApplyResp>('/v1/policy/apply', { note: note ?? '' }),
 };
 
-// ─── Listener (single-record) ────────────────────────────────────────────────
-export interface ListenerConfig {
-  trusted_hosts: string[];
-  relay_hosts: string[];
+// ─── ESMTP listeners (multi) ─────────────────────────────────────────────────
+export interface Listener {
+  id?: number;
+  name: string;
+  listen_addr: string;
+  hostname: string;
+  tls_enabled: boolean;
+  tls_cert_pem_path?: string;
+  tls_key_pem_path?: string;
+  require_auth: boolean;
+  max_message_size?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export const listenerApi = {
-  get: () => requestClient.get<ListenerConfig>('/v1/listener'),
-  update: (cfg: ListenerConfig) =>
-    requestClient.put<ListenerConfig>('/v1/listener', cfg),
+export const listenersApi = {
+  list: () => requestClient.get<ListResponse<Listener>>('/v1/listeners'),
+  create: (input: Listener) =>
+    requestClient.post<Listener>('/v1/listeners', input),
+  update: (id: number, input: Listener) =>
+    requestClient.put<Listener>(`/v1/listeners/${id}`, input),
+  remove: (id: number) => requestClient.delete(`/v1/listeners/${id}`),
 };
 
 // ─── Listener Domains ───────────────────────────────────────────────────────

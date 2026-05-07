@@ -66,6 +66,9 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in service.GlobalSettin
 		SetBounceSenderDomains(append([]string(nil), in.BounceSenderDomains...)).
 		SetBouncePrefix(in.BouncePrefix).
 		SetMailClassHeader(in.MailClassHeader).
+		SetHTTPSListen(in.HTTPSListen).
+		SetHTTPSCertPemPath(in.HTTPSCertPemPath).
+		SetHTTPSKeyPemPath(in.HTTPSKeyPemPath).
 		SetUpdatedBy(actor)
 	saved, err := upd.Save(ctx)
 	if err != nil {
@@ -86,6 +89,9 @@ func entToRow(g *ent.GlobalSettings) *service.GlobalSettingsRow {
 		BounceSenderDomains: append([]string(nil), g.BounceSenderDomains...),
 		BouncePrefix:        g.BouncePrefix,
 		MailClassHeader:     g.MailClassHeader,
+		HTTPSListen:         g.HTTPSListen,
+		HTTPSCertPemPath:    g.HTTPSCertPemPath,
+		HTTPSKeyPemPath:     g.HTTPSKeyPemPath,
 		UpdatedAt:           g.UpdatedAt,
 		UpdatedBy:           g.UpdatedBy,
 	}

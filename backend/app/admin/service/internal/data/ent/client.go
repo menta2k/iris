@@ -15,6 +15,9 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/acmeaccount"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/acmecertificate"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/acmednsproviderconfig"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/auditentry"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/dkimidentity"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/dsnevent"
@@ -42,6 +45,12 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// AcmeAccount is the client for interacting with the AcmeAccount builders.
+	AcmeAccount *AcmeAccountClient
+	// AcmeCertificate is the client for interacting with the AcmeCertificate builders.
+	AcmeCertificate *AcmeCertificateClient
+	// AcmeDnsProviderConfig is the client for interacting with the AcmeDnsProviderConfig builders.
+	AcmeDnsProviderConfig *AcmeDnsProviderConfigClient
 	// AuditEntry is the client for interacting with the AuditEntry builders.
 	AuditEntry *AuditEntryClient
 	// DkimIdentity is the client for interacting with the DkimIdentity builders.
@@ -93,6 +102,9 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.AcmeAccount = NewAcmeAccountClient(c.config)
+	c.AcmeCertificate = NewAcmeCertificateClient(c.config)
+	c.AcmeDnsProviderConfig = NewAcmeDnsProviderConfigClient(c.config)
 	c.AuditEntry = NewAuditEntryClient(c.config)
 	c.DkimIdentity = NewDkimIdentityClient(c.config)
 	c.DsnEvent = NewDsnEventClient(c.config)
@@ -205,6 +217,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:                   ctx,
 		config:                cfg,
+		AcmeAccount:           NewAcmeAccountClient(cfg),
+		AcmeCertificate:       NewAcmeCertificateClient(cfg),
+		AcmeDnsProviderConfig: NewAcmeDnsProviderConfigClient(cfg),
 		AuditEntry:            NewAuditEntryClient(cfg),
 		DkimIdentity:          NewDkimIdentityClient(cfg),
 		DsnEvent:              NewDsnEventClient(cfg),
@@ -244,6 +259,9 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:                   ctx,
 		config:                cfg,
+		AcmeAccount:           NewAcmeAccountClient(cfg),
+		AcmeCertificate:       NewAcmeCertificateClient(cfg),
+		AcmeDnsProviderConfig: NewAcmeDnsProviderConfigClient(cfg),
 		AuditEntry:            NewAuditEntryClient(cfg),
 		DkimIdentity:          NewDkimIdentityClient(cfg),
 		DsnEvent:              NewDsnEventClient(cfg),
@@ -270,7 +288,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		AuditEntry.
+//		AcmeAccount.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -293,7 +311,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.AuditEntry, c.DkimIdentity, c.DsnEvent, c.FeedbackReport, c.GlobalSettings,
+		c.AcmeAccount, c.AcmeCertificate, c.AcmeDnsProviderConfig, c.AuditEntry,
+		c.DkimIdentity, c.DsnEvent, c.FeedbackReport, c.GlobalSettings,
 		c.ListenerConfig, c.ListenerDomain, c.LogEvent, c.MailClass, c.MetricSnapshot,
 		c.PolicyHistory, c.Role, c.RoutingRule, c.RuleCondition, c.RuleTarget,
 		c.SuppressionEntry, c.User, c.VirtualMta, c.VirtualMtaGroup,
@@ -307,7 +326,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.AuditEntry, c.DkimIdentity, c.DsnEvent, c.FeedbackReport, c.GlobalSettings,
+		c.AcmeAccount, c.AcmeCertificate, c.AcmeDnsProviderConfig, c.AuditEntry,
+		c.DkimIdentity, c.DsnEvent, c.FeedbackReport, c.GlobalSettings,
 		c.ListenerConfig, c.ListenerDomain, c.LogEvent, c.MailClass, c.MetricSnapshot,
 		c.PolicyHistory, c.Role, c.RoutingRule, c.RuleCondition, c.RuleTarget,
 		c.SuppressionEntry, c.User, c.VirtualMta, c.VirtualMtaGroup,
@@ -320,6 +340,12 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *AcmeAccountMutation:
+		return c.AcmeAccount.mutate(ctx, m)
+	case *AcmeCertificateMutation:
+		return c.AcmeCertificate.mutate(ctx, m)
+	case *AcmeDnsProviderConfigMutation:
+		return c.AcmeDnsProviderConfig.mutate(ctx, m)
 	case *AuditEntryMutation:
 		return c.AuditEntry.mutate(ctx, m)
 	case *DkimIdentityMutation:
@@ -362,6 +388,405 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.VirtualMtaGroupMember.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// AcmeAccountClient is a client for the AcmeAccount schema.
+type AcmeAccountClient struct {
+	config
+}
+
+// NewAcmeAccountClient returns a client for the AcmeAccount from the given config.
+func NewAcmeAccountClient(c config) *AcmeAccountClient {
+	return &AcmeAccountClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `acmeaccount.Hooks(f(g(h())))`.
+func (c *AcmeAccountClient) Use(hooks ...Hook) {
+	c.hooks.AcmeAccount = append(c.hooks.AcmeAccount, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `acmeaccount.Intercept(f(g(h())))`.
+func (c *AcmeAccountClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AcmeAccount = append(c.inters.AcmeAccount, interceptors...)
+}
+
+// Create returns a builder for creating a AcmeAccount entity.
+func (c *AcmeAccountClient) Create() *AcmeAccountCreate {
+	mutation := newAcmeAccountMutation(c.config, OpCreate)
+	return &AcmeAccountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AcmeAccount entities.
+func (c *AcmeAccountClient) CreateBulk(builders ...*AcmeAccountCreate) *AcmeAccountCreateBulk {
+	return &AcmeAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AcmeAccountClient) MapCreateBulk(slice any, setFunc func(*AcmeAccountCreate, int)) *AcmeAccountCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AcmeAccountCreateBulk{err: fmt.Errorf("calling to AcmeAccountClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AcmeAccountCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AcmeAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AcmeAccount.
+func (c *AcmeAccountClient) Update() *AcmeAccountUpdate {
+	mutation := newAcmeAccountMutation(c.config, OpUpdate)
+	return &AcmeAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AcmeAccountClient) UpdateOne(_m *AcmeAccount) *AcmeAccountUpdateOne {
+	mutation := newAcmeAccountMutation(c.config, OpUpdateOne, withAcmeAccount(_m))
+	return &AcmeAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AcmeAccountClient) UpdateOneID(id int) *AcmeAccountUpdateOne {
+	mutation := newAcmeAccountMutation(c.config, OpUpdateOne, withAcmeAccountID(id))
+	return &AcmeAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AcmeAccount.
+func (c *AcmeAccountClient) Delete() *AcmeAccountDelete {
+	mutation := newAcmeAccountMutation(c.config, OpDelete)
+	return &AcmeAccountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AcmeAccountClient) DeleteOne(_m *AcmeAccount) *AcmeAccountDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AcmeAccountClient) DeleteOneID(id int) *AcmeAccountDeleteOne {
+	builder := c.Delete().Where(acmeaccount.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AcmeAccountDeleteOne{builder}
+}
+
+// Query returns a query builder for AcmeAccount.
+func (c *AcmeAccountClient) Query() *AcmeAccountQuery {
+	return &AcmeAccountQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAcmeAccount},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AcmeAccount entity by its id.
+func (c *AcmeAccountClient) Get(ctx context.Context, id int) (*AcmeAccount, error) {
+	return c.Query().Where(acmeaccount.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AcmeAccountClient) GetX(ctx context.Context, id int) *AcmeAccount {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AcmeAccountClient) Hooks() []Hook {
+	return c.hooks.AcmeAccount
+}
+
+// Interceptors returns the client interceptors.
+func (c *AcmeAccountClient) Interceptors() []Interceptor {
+	return c.inters.AcmeAccount
+}
+
+func (c *AcmeAccountClient) mutate(ctx context.Context, m *AcmeAccountMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AcmeAccountCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AcmeAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AcmeAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AcmeAccountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AcmeAccount mutation op: %q", m.Op())
+	}
+}
+
+// AcmeCertificateClient is a client for the AcmeCertificate schema.
+type AcmeCertificateClient struct {
+	config
+}
+
+// NewAcmeCertificateClient returns a client for the AcmeCertificate from the given config.
+func NewAcmeCertificateClient(c config) *AcmeCertificateClient {
+	return &AcmeCertificateClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `acmecertificate.Hooks(f(g(h())))`.
+func (c *AcmeCertificateClient) Use(hooks ...Hook) {
+	c.hooks.AcmeCertificate = append(c.hooks.AcmeCertificate, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `acmecertificate.Intercept(f(g(h())))`.
+func (c *AcmeCertificateClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AcmeCertificate = append(c.inters.AcmeCertificate, interceptors...)
+}
+
+// Create returns a builder for creating a AcmeCertificate entity.
+func (c *AcmeCertificateClient) Create() *AcmeCertificateCreate {
+	mutation := newAcmeCertificateMutation(c.config, OpCreate)
+	return &AcmeCertificateCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AcmeCertificate entities.
+func (c *AcmeCertificateClient) CreateBulk(builders ...*AcmeCertificateCreate) *AcmeCertificateCreateBulk {
+	return &AcmeCertificateCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AcmeCertificateClient) MapCreateBulk(slice any, setFunc func(*AcmeCertificateCreate, int)) *AcmeCertificateCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AcmeCertificateCreateBulk{err: fmt.Errorf("calling to AcmeCertificateClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AcmeCertificateCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AcmeCertificateCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AcmeCertificate.
+func (c *AcmeCertificateClient) Update() *AcmeCertificateUpdate {
+	mutation := newAcmeCertificateMutation(c.config, OpUpdate)
+	return &AcmeCertificateUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AcmeCertificateClient) UpdateOne(_m *AcmeCertificate) *AcmeCertificateUpdateOne {
+	mutation := newAcmeCertificateMutation(c.config, OpUpdateOne, withAcmeCertificate(_m))
+	return &AcmeCertificateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AcmeCertificateClient) UpdateOneID(id int) *AcmeCertificateUpdateOne {
+	mutation := newAcmeCertificateMutation(c.config, OpUpdateOne, withAcmeCertificateID(id))
+	return &AcmeCertificateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AcmeCertificate.
+func (c *AcmeCertificateClient) Delete() *AcmeCertificateDelete {
+	mutation := newAcmeCertificateMutation(c.config, OpDelete)
+	return &AcmeCertificateDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AcmeCertificateClient) DeleteOne(_m *AcmeCertificate) *AcmeCertificateDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AcmeCertificateClient) DeleteOneID(id int) *AcmeCertificateDeleteOne {
+	builder := c.Delete().Where(acmecertificate.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AcmeCertificateDeleteOne{builder}
+}
+
+// Query returns a query builder for AcmeCertificate.
+func (c *AcmeCertificateClient) Query() *AcmeCertificateQuery {
+	return &AcmeCertificateQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAcmeCertificate},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AcmeCertificate entity by its id.
+func (c *AcmeCertificateClient) Get(ctx context.Context, id int) (*AcmeCertificate, error) {
+	return c.Query().Where(acmecertificate.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AcmeCertificateClient) GetX(ctx context.Context, id int) *AcmeCertificate {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AcmeCertificateClient) Hooks() []Hook {
+	return c.hooks.AcmeCertificate
+}
+
+// Interceptors returns the client interceptors.
+func (c *AcmeCertificateClient) Interceptors() []Interceptor {
+	return c.inters.AcmeCertificate
+}
+
+func (c *AcmeCertificateClient) mutate(ctx context.Context, m *AcmeCertificateMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AcmeCertificateCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AcmeCertificateUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AcmeCertificateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AcmeCertificateDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AcmeCertificate mutation op: %q", m.Op())
+	}
+}
+
+// AcmeDnsProviderConfigClient is a client for the AcmeDnsProviderConfig schema.
+type AcmeDnsProviderConfigClient struct {
+	config
+}
+
+// NewAcmeDnsProviderConfigClient returns a client for the AcmeDnsProviderConfig from the given config.
+func NewAcmeDnsProviderConfigClient(c config) *AcmeDnsProviderConfigClient {
+	return &AcmeDnsProviderConfigClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `acmednsproviderconfig.Hooks(f(g(h())))`.
+func (c *AcmeDnsProviderConfigClient) Use(hooks ...Hook) {
+	c.hooks.AcmeDnsProviderConfig = append(c.hooks.AcmeDnsProviderConfig, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `acmednsproviderconfig.Intercept(f(g(h())))`.
+func (c *AcmeDnsProviderConfigClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AcmeDnsProviderConfig = append(c.inters.AcmeDnsProviderConfig, interceptors...)
+}
+
+// Create returns a builder for creating a AcmeDnsProviderConfig entity.
+func (c *AcmeDnsProviderConfigClient) Create() *AcmeDnsProviderConfigCreate {
+	mutation := newAcmeDnsProviderConfigMutation(c.config, OpCreate)
+	return &AcmeDnsProviderConfigCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AcmeDnsProviderConfig entities.
+func (c *AcmeDnsProviderConfigClient) CreateBulk(builders ...*AcmeDnsProviderConfigCreate) *AcmeDnsProviderConfigCreateBulk {
+	return &AcmeDnsProviderConfigCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AcmeDnsProviderConfigClient) MapCreateBulk(slice any, setFunc func(*AcmeDnsProviderConfigCreate, int)) *AcmeDnsProviderConfigCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AcmeDnsProviderConfigCreateBulk{err: fmt.Errorf("calling to AcmeDnsProviderConfigClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AcmeDnsProviderConfigCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AcmeDnsProviderConfigCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AcmeDnsProviderConfig.
+func (c *AcmeDnsProviderConfigClient) Update() *AcmeDnsProviderConfigUpdate {
+	mutation := newAcmeDnsProviderConfigMutation(c.config, OpUpdate)
+	return &AcmeDnsProviderConfigUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AcmeDnsProviderConfigClient) UpdateOne(_m *AcmeDnsProviderConfig) *AcmeDnsProviderConfigUpdateOne {
+	mutation := newAcmeDnsProviderConfigMutation(c.config, OpUpdateOne, withAcmeDnsProviderConfig(_m))
+	return &AcmeDnsProviderConfigUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AcmeDnsProviderConfigClient) UpdateOneID(id int) *AcmeDnsProviderConfigUpdateOne {
+	mutation := newAcmeDnsProviderConfigMutation(c.config, OpUpdateOne, withAcmeDnsProviderConfigID(id))
+	return &AcmeDnsProviderConfigUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AcmeDnsProviderConfig.
+func (c *AcmeDnsProviderConfigClient) Delete() *AcmeDnsProviderConfigDelete {
+	mutation := newAcmeDnsProviderConfigMutation(c.config, OpDelete)
+	return &AcmeDnsProviderConfigDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AcmeDnsProviderConfigClient) DeleteOne(_m *AcmeDnsProviderConfig) *AcmeDnsProviderConfigDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AcmeDnsProviderConfigClient) DeleteOneID(id int) *AcmeDnsProviderConfigDeleteOne {
+	builder := c.Delete().Where(acmednsproviderconfig.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AcmeDnsProviderConfigDeleteOne{builder}
+}
+
+// Query returns a query builder for AcmeDnsProviderConfig.
+func (c *AcmeDnsProviderConfigClient) Query() *AcmeDnsProviderConfigQuery {
+	return &AcmeDnsProviderConfigQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAcmeDnsProviderConfig},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AcmeDnsProviderConfig entity by its id.
+func (c *AcmeDnsProviderConfigClient) Get(ctx context.Context, id int) (*AcmeDnsProviderConfig, error) {
+	return c.Query().Where(acmednsproviderconfig.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AcmeDnsProviderConfigClient) GetX(ctx context.Context, id int) *AcmeDnsProviderConfig {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AcmeDnsProviderConfigClient) Hooks() []Hook {
+	return c.hooks.AcmeDnsProviderConfig
+}
+
+// Interceptors returns the client interceptors.
+func (c *AcmeDnsProviderConfigClient) Interceptors() []Interceptor {
+	return c.inters.AcmeDnsProviderConfig
+}
+
+func (c *AcmeDnsProviderConfigClient) mutate(ctx context.Context, m *AcmeDnsProviderConfigMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AcmeDnsProviderConfigCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AcmeDnsProviderConfigUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AcmeDnsProviderConfigUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AcmeDnsProviderConfigDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AcmeDnsProviderConfig mutation op: %q", m.Op())
 	}
 }
 
@@ -3204,15 +3629,17 @@ func (c *VirtualMtaGroupMemberClient) mutate(ctx context.Context, m *VirtualMtaG
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		AuditEntry, DkimIdentity, DsnEvent, FeedbackReport, GlobalSettings,
-		ListenerConfig, ListenerDomain, LogEvent, MailClass, MetricSnapshot,
-		PolicyHistory, Role, RoutingRule, RuleCondition, RuleTarget, SuppressionEntry,
-		User, VirtualMta, VirtualMtaGroup, VirtualMtaGroupMember []ent.Hook
+		AcmeAccount, AcmeCertificate, AcmeDnsProviderConfig, AuditEntry, DkimIdentity,
+		DsnEvent, FeedbackReport, GlobalSettings, ListenerConfig, ListenerDomain,
+		LogEvent, MailClass, MetricSnapshot, PolicyHistory, Role, RoutingRule,
+		RuleCondition, RuleTarget, SuppressionEntry, User, VirtualMta, VirtualMtaGroup,
+		VirtualMtaGroupMember []ent.Hook
 	}
 	inters struct {
-		AuditEntry, DkimIdentity, DsnEvent, FeedbackReport, GlobalSettings,
-		ListenerConfig, ListenerDomain, LogEvent, MailClass, MetricSnapshot,
-		PolicyHistory, Role, RoutingRule, RuleCondition, RuleTarget, SuppressionEntry,
-		User, VirtualMta, VirtualMtaGroup, VirtualMtaGroupMember []ent.Interceptor
+		AcmeAccount, AcmeCertificate, AcmeDnsProviderConfig, AuditEntry, DkimIdentity,
+		DsnEvent, FeedbackReport, GlobalSettings, ListenerConfig, ListenerDomain,
+		LogEvent, MailClass, MetricSnapshot, PolicyHistory, Role, RoutingRule,
+		RuleCondition, RuleTarget, SuppressionEntry, User, VirtualMta, VirtualMtaGroup,
+		VirtualMtaGroupMember []ent.Interceptor
 	}
 )

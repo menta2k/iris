@@ -57,6 +57,17 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 		cleanup()
 		return nil, nil, err
 	}
+	tokenStore := providers3.NewAcmeTokenStore()
+	acmeChallengeServer, err := server.NewAcmeChallengeServer(tokenStore)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	globalSettingsRepo := data.NewGlobalSettingsRepo(client)
+	globalSettingsStore := providers3.GlobalSettingsStoreFromRepo(globalSettingsRepo)
+	globalSettingsService := service.NewGlobalSettingsService(globalSettingsStore)
+	httpsServer := server.NewHTTPSServer(globalSettingsService)
 	suppressionRepo := data.NewSuppressionRepo(client)
 	index := providers3.NewSuppressionIndex(metrics)
 	suppressionResyncServer := server.NewSuppressionResyncServer(suppressionRepo, index)
@@ -132,11 +143,19 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	dsnRepo := data.NewDsnRepo(client)
 	dsnStore := providers3.DsnStoreFromRepo(dsnRepo)
 	dsnService := service.NewDsnService(dsnStore)
-	globalSettingsRepo := data.NewGlobalSettingsRepo(client)
-	globalSettingsStore := providers3.GlobalSettingsStoreFromRepo(globalSettingsRepo)
-	globalSettingsService := service.NewGlobalSettingsService(globalSettingsStore)
-	registered := providers2.RegisterServers(grpcServer, httpServer, authenticationGRPC, userService, auditService, queueService, suppressionService, virtualMtaService, routingService, dkimService, feedbackService, logService, policyService, mailClassService, vmtaGroupService, dashboardService, dsnService, globalSettingsService, auditWriter)
-	app := newApp(context, httpServer, grpcServer, logstreamServer, dsnstreamServer, suppressionResyncServer, metricsServer, registered)
+	listenerRepo := data.NewListenerRepo(client)
+	listenerStore := providers3.ListenerStoreFromRepo(listenerRepo)
+	listenerService := service.NewListenerService(listenerStore)
+	acmeAccountRepo := data.NewAcmeAccountRepo(client)
+	acmeAccountStore := providers3.AcmeAccountStoreFromRepo(acmeAccountRepo)
+	acmeCertificateRepo := data.NewAcmeCertificateRepo(client)
+	acmeCertificateStore := providers3.AcmeCertificateStoreFromRepo(acmeCertificateRepo)
+	acmeDnsProviderConfigRepo := data.NewAcmeDnsProviderConfigRepo(client)
+	acmeDnsProviderConfigStore := providers3.AcmeDnsProviderConfigStoreFromRepo(acmeDnsProviderConfigRepo)
+	acmeCertBaseDir := providers3.NewAcmeCertBaseDir()
+	acmeService := providers3.NewAcmeServiceProvider(acmeAccountStore, acmeCertificateStore, acmeDnsProviderConfigStore, tokenStore, acmeCertBaseDir)
+	registered := providers2.RegisterServers(grpcServer, httpServer, authenticationGRPC, userService, auditService, queueService, suppressionService, virtualMtaService, routingService, dkimService, feedbackService, logService, policyService, mailClassService, vmtaGroupService, dashboardService, dsnService, globalSettingsService, listenerService, acmeService, auditWriter)
+	app := newApp(context, httpServer, grpcServer, logstreamServer, dsnstreamServer, acmeChallengeServer, httpsServer, suppressionResyncServer, metricsServer, registered)
 	return app, func() {
 		cleanup2()
 		cleanup()

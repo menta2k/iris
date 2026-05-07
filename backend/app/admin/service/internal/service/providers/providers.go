@@ -4,6 +4,7 @@ package providers
 import (
 	"errors"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/service"
+	"github.com/menta2k/iris/backend/pkg/acmeissuer"
 	appjwt "github.com/menta2k/iris/backend/pkg/jwt"
 	"github.com/menta2k/iris/backend/pkg/kumomta"
 	"github.com/menta2k/iris/backend/pkg/metrics"
@@ -68,6 +70,14 @@ var ProviderSet = wire.NewSet(
 	service.NewGlobalSettingsService,
 	service.NewMailClassService,
 	service.NewVmtaGroupService,
+	service.NewListenerService,
+	ListenerStoreFromRepo,
+	NewAcmeTokenStore,
+	NewAcmeCertBaseDir,
+	NewAcmeServiceProvider,
+	AcmeAccountStoreFromRepo,
+	AcmeCertificateStoreFromRepo,
+	AcmeDnsProviderConfigStoreFromRepo,
 )
 
 // AuthStoreFromUserRepo binds *data.UserRepo to the service.UserStore
@@ -108,6 +118,50 @@ func DsnStoreFromRepo(r *data.DsnRepo) service.DsnStore { return r }
 // service iface.
 func GlobalSettingsStoreFromRepo(r *data.GlobalSettingsRepo) service.GlobalSettingsStore {
 	return r
+}
+
+// ListenerStoreFromRepo binds the listener repo to the service iface.
+func ListenerStoreFromRepo(r *data.ListenerRepo) service.ListenerStore { return r }
+
+// AcmeAccountStoreFromRepo / AcmeCertificateStoreFromRepo /
+// AcmeDnsProviderConfigStoreFromRepo bind the ACME repos to their
+// service-layer interfaces.
+func AcmeAccountStoreFromRepo(r *data.AcmeAccountRepo) service.AcmeAccountStore { return r }
+func AcmeCertificateStoreFromRepo(r *data.AcmeCertificateRepo) service.AcmeCertificateStore {
+	return r
+}
+func AcmeDnsProviderConfigStoreFromRepo(r *data.AcmeDnsProviderConfigRepo) service.AcmeDnsProviderConfigStore {
+	return r
+}
+
+// NewAcmeTokenStore is wire's hook for the singleton in-process HTTP-01
+// token store. The same instance is shared between the issuer (writer)
+// and the public :80 challenge listener (reader).
+func NewAcmeTokenStore() *acmeissuer.TokenStore { return acmeissuer.NewTokenStore() }
+
+// AcmeCertBaseDir is a typed alias so wire can disambiguate between
+// arbitrary string deps. Default "/opt/kumomta/etc/tls"; override via
+// IRIS_ACME_CERT_DIR for host-native installs.
+type AcmeCertBaseDir string
+
+func NewAcmeCertBaseDir() AcmeCertBaseDir {
+	if v := strings.TrimSpace(os.Getenv("IRIS_ACME_CERT_DIR")); v != "" {
+		return AcmeCertBaseDir(v)
+	}
+	return AcmeCertBaseDir("/opt/kumomta/etc/tls")
+}
+
+// NewAcmeServiceProvider stitches the ACME service together — wire
+// can't construct it directly because it needs the typed cert-dir
+// alias to disambiguate from other string parameters.
+func NewAcmeServiceProvider(
+	accounts service.AcmeAccountStore,
+	certs service.AcmeCertificateStore,
+	dnsCfg service.AcmeDnsProviderConfigStore,
+	tokens *acmeissuer.TokenStore,
+	dir AcmeCertBaseDir,
+) *service.AcmeService {
+	return service.NewAcmeService(accounts, certs, dnsCfg, tokens, string(dir))
 }
 
 // SnapshotProviderFromRepo binds the snapshot repo to the service iface.

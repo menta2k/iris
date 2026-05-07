@@ -74,6 +74,21 @@ func MailClassHeader(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldEQ(FieldMailClassHeader, v))
 }
 
+// HTTPSListen applies equality check predicate on the "https_listen" field. It's identical to HTTPSListenEQ.
+func HTTPSListen(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldHTTPSListen, v))
+}
+
+// HTTPSCertPemPath applies equality check predicate on the "https_cert_pem_path" field. It's identical to HTTPSCertPemPathEQ.
+func HTTPSCertPemPath(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldHTTPSCertPemPath, v))
+}
+
+// HTTPSKeyPemPath applies equality check predicate on the "https_key_pem_path" field. It's identical to HTTPSKeyPemPathEQ.
+func HTTPSKeyPemPath(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldHTTPSKeyPemPath, v))
+}
+
 // UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
 func UpdatedAt(v time.Time) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldEQ(FieldUpdatedAt, v))
@@ -412,6 +427,231 @@ func MailClassHeaderEqualFold(v string) predicate.GlobalSettings {
 // MailClassHeaderContainsFold applies the ContainsFold predicate on the "mail_class_header" field.
 func MailClassHeaderContainsFold(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldContainsFold(FieldMailClassHeader, v))
+}
+
+// HTTPSListenEQ applies the EQ predicate on the "https_listen" field.
+func HTTPSListenEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldHTTPSListen, v))
+}
+
+// HTTPSListenNEQ applies the NEQ predicate on the "https_listen" field.
+func HTTPSListenNEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNEQ(FieldHTTPSListen, v))
+}
+
+// HTTPSListenIn applies the In predicate on the "https_listen" field.
+func HTTPSListenIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIn(FieldHTTPSListen, vs...))
+}
+
+// HTTPSListenNotIn applies the NotIn predicate on the "https_listen" field.
+func HTTPSListenNotIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotIn(FieldHTTPSListen, vs...))
+}
+
+// HTTPSListenGT applies the GT predicate on the "https_listen" field.
+func HTTPSListenGT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGT(FieldHTTPSListen, v))
+}
+
+// HTTPSListenGTE applies the GTE predicate on the "https_listen" field.
+func HTTPSListenGTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGTE(FieldHTTPSListen, v))
+}
+
+// HTTPSListenLT applies the LT predicate on the "https_listen" field.
+func HTTPSListenLT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLT(FieldHTTPSListen, v))
+}
+
+// HTTPSListenLTE applies the LTE predicate on the "https_listen" field.
+func HTTPSListenLTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLTE(FieldHTTPSListen, v))
+}
+
+// HTTPSListenContains applies the Contains predicate on the "https_listen" field.
+func HTTPSListenContains(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContains(FieldHTTPSListen, v))
+}
+
+// HTTPSListenHasPrefix applies the HasPrefix predicate on the "https_listen" field.
+func HTTPSListenHasPrefix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasPrefix(FieldHTTPSListen, v))
+}
+
+// HTTPSListenHasSuffix applies the HasSuffix predicate on the "https_listen" field.
+func HTTPSListenHasSuffix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasSuffix(FieldHTTPSListen, v))
+}
+
+// HTTPSListenIsNil applies the IsNil predicate on the "https_listen" field.
+func HTTPSListenIsNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIsNull(FieldHTTPSListen))
+}
+
+// HTTPSListenNotNil applies the NotNil predicate on the "https_listen" field.
+func HTTPSListenNotNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotNull(FieldHTTPSListen))
+}
+
+// HTTPSListenEqualFold applies the EqualFold predicate on the "https_listen" field.
+func HTTPSListenEqualFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEqualFold(FieldHTTPSListen, v))
+}
+
+// HTTPSListenContainsFold applies the ContainsFold predicate on the "https_listen" field.
+func HTTPSListenContainsFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContainsFold(FieldHTTPSListen, v))
+}
+
+// HTTPSCertPemPathEQ applies the EQ predicate on the "https_cert_pem_path" field.
+func HTTPSCertPemPathEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldHTTPSCertPemPath, v))
+}
+
+// HTTPSCertPemPathNEQ applies the NEQ predicate on the "https_cert_pem_path" field.
+func HTTPSCertPemPathNEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNEQ(FieldHTTPSCertPemPath, v))
+}
+
+// HTTPSCertPemPathIn applies the In predicate on the "https_cert_pem_path" field.
+func HTTPSCertPemPathIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIn(FieldHTTPSCertPemPath, vs...))
+}
+
+// HTTPSCertPemPathNotIn applies the NotIn predicate on the "https_cert_pem_path" field.
+func HTTPSCertPemPathNotIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotIn(FieldHTTPSCertPemPath, vs...))
+}
+
+// HTTPSCertPemPathGT applies the GT predicate on the "https_cert_pem_path" field.
+func HTTPSCertPemPathGT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGT(FieldHTTPSCertPemPath, v))
+}
+
+// HTTPSCertPemPathGTE applies the GTE predicate on the "https_cert_pem_path" field.
+func HTTPSCertPemPathGTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGTE(FieldHTTPSCertPemPath, v))
+}
+
+// HTTPSCertPemPathLT applies the LT predicate on the "https_cert_pem_path" field.
+func HTTPSCertPemPathLT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLT(FieldHTTPSCertPemPath, v))
+}
+
+// HTTPSCertPemPathLTE applies the LTE predicate on the "https_cert_pem_path" field.
+func HTTPSCertPemPathLTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLTE(FieldHTTPSCertPemPath, v))
+}
+
+// HTTPSCertPemPathContains applies the Contains predicate on the "https_cert_pem_path" field.
+func HTTPSCertPemPathContains(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContains(FieldHTTPSCertPemPath, v))
+}
+
+// HTTPSCertPemPathHasPrefix applies the HasPrefix predicate on the "https_cert_pem_path" field.
+func HTTPSCertPemPathHasPrefix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasPrefix(FieldHTTPSCertPemPath, v))
+}
+
+// HTTPSCertPemPathHasSuffix applies the HasSuffix predicate on the "https_cert_pem_path" field.
+func HTTPSCertPemPathHasSuffix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasSuffix(FieldHTTPSCertPemPath, v))
+}
+
+// HTTPSCertPemPathIsNil applies the IsNil predicate on the "https_cert_pem_path" field.
+func HTTPSCertPemPathIsNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIsNull(FieldHTTPSCertPemPath))
+}
+
+// HTTPSCertPemPathNotNil applies the NotNil predicate on the "https_cert_pem_path" field.
+func HTTPSCertPemPathNotNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotNull(FieldHTTPSCertPemPath))
+}
+
+// HTTPSCertPemPathEqualFold applies the EqualFold predicate on the "https_cert_pem_path" field.
+func HTTPSCertPemPathEqualFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEqualFold(FieldHTTPSCertPemPath, v))
+}
+
+// HTTPSCertPemPathContainsFold applies the ContainsFold predicate on the "https_cert_pem_path" field.
+func HTTPSCertPemPathContainsFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContainsFold(FieldHTTPSCertPemPath, v))
+}
+
+// HTTPSKeyPemPathEQ applies the EQ predicate on the "https_key_pem_path" field.
+func HTTPSKeyPemPathEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldHTTPSKeyPemPath, v))
+}
+
+// HTTPSKeyPemPathNEQ applies the NEQ predicate on the "https_key_pem_path" field.
+func HTTPSKeyPemPathNEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNEQ(FieldHTTPSKeyPemPath, v))
+}
+
+// HTTPSKeyPemPathIn applies the In predicate on the "https_key_pem_path" field.
+func HTTPSKeyPemPathIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIn(FieldHTTPSKeyPemPath, vs...))
+}
+
+// HTTPSKeyPemPathNotIn applies the NotIn predicate on the "https_key_pem_path" field.
+func HTTPSKeyPemPathNotIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotIn(FieldHTTPSKeyPemPath, vs...))
+}
+
+// HTTPSKeyPemPathGT applies the GT predicate on the "https_key_pem_path" field.
+func HTTPSKeyPemPathGT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGT(FieldHTTPSKeyPemPath, v))
+}
+
+// HTTPSKeyPemPathGTE applies the GTE predicate on the "https_key_pem_path" field.
+func HTTPSKeyPemPathGTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGTE(FieldHTTPSKeyPemPath, v))
+}
+
+// HTTPSKeyPemPathLT applies the LT predicate on the "https_key_pem_path" field.
+func HTTPSKeyPemPathLT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLT(FieldHTTPSKeyPemPath, v))
+}
+
+// HTTPSKeyPemPathLTE applies the LTE predicate on the "https_key_pem_path" field.
+func HTTPSKeyPemPathLTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLTE(FieldHTTPSKeyPemPath, v))
+}
+
+// HTTPSKeyPemPathContains applies the Contains predicate on the "https_key_pem_path" field.
+func HTTPSKeyPemPathContains(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContains(FieldHTTPSKeyPemPath, v))
+}
+
+// HTTPSKeyPemPathHasPrefix applies the HasPrefix predicate on the "https_key_pem_path" field.
+func HTTPSKeyPemPathHasPrefix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasPrefix(FieldHTTPSKeyPemPath, v))
+}
+
+// HTTPSKeyPemPathHasSuffix applies the HasSuffix predicate on the "https_key_pem_path" field.
+func HTTPSKeyPemPathHasSuffix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasSuffix(FieldHTTPSKeyPemPath, v))
+}
+
+// HTTPSKeyPemPathIsNil applies the IsNil predicate on the "https_key_pem_path" field.
+func HTTPSKeyPemPathIsNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIsNull(FieldHTTPSKeyPemPath))
+}
+
+// HTTPSKeyPemPathNotNil applies the NotNil predicate on the "https_key_pem_path" field.
+func HTTPSKeyPemPathNotNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotNull(FieldHTTPSKeyPemPath))
+}
+
+// HTTPSKeyPemPathEqualFold applies the EqualFold predicate on the "https_key_pem_path" field.
+func HTTPSKeyPemPathEqualFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEqualFold(FieldHTTPSKeyPemPath, v))
+}
+
+// HTTPSKeyPemPathContainsFold applies the ContainsFold predicate on the "https_key_pem_path" field.
+func HTTPSKeyPemPathContainsFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContainsFold(FieldHTTPSKeyPemPath, v))
 }
 
 // UpdatedAtEQ applies the EQ predicate on the "updated_at" field.

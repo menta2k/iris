@@ -36,16 +36,17 @@ func newApp(
 	gs *grpc.Server,
 	ls *server.LogstreamServer,
 	ds *server.DsnstreamServer,
+	acs *server.AcmeChallengeServer,
+	hss *server.HTTPSServer,
 	srs *server.SuppressionResyncServer,
 	ms *server.MetricsServer,
 	_ serverProviders.Registered,
 ) *kratos.App {
-	// LogstreamServer / DsnstreamServer / SuppressionResyncServer /
-	// MetricsServer are no-ops when their dependencies (Redis /
-	// BounceDomain / metrics) aren't configured; either way they join the
-	// kratos lifecycle so clean shutdown waits on in-flight work (stream
-	// drain / PG scan / scrape connection).
-	return bootstrap.NewApp(ctx, hs, gs, ls, ds, srs, ms)
+	// All these servers are no-ops when their respective configuration
+	// is unset (Redis / BounceDomain / IRIS_ACME_HTTP_BIND /
+	// global_settings.https_listen / metrics). Either way they join
+	// the kratos lifecycle so clean shutdown waits on in-flight work.
+	return bootstrap.NewApp(ctx, hs, gs, ls, ds, acs, hss, srs, ms)
 }
 
 func runApp() error {

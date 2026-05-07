@@ -66,15 +66,13 @@ const routes: RouteRecordRaw[] = [
       title: 'Inbound',
     },
     children: [
-      // TODO(backend): /v1/listener endpoint not yet implemented — hidden from menu.
       {
-        name: 'Listener',
-        path: '/inbound/listener',
+        name: 'Listeners',
+        path: '/inbound/listeners',
         component: () => import('#/views/kumo/listener/index.vue'),
         meta: {
           icon: 'lucide:radio-tower',
-          title: 'Listener',
-          hideInMenu: true,
+          title: 'Listeners',
         },
       },
       // TODO(backend): /v1/listener/domains endpoint not yet implemented — hidden from menu.
@@ -163,12 +161,42 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    name: 'Security',
+    path: '/security',
+    component: BasicLayout,
+    meta: {
+      icon: 'mdi:shield-lock-outline',
+      order: 5,
+      title: 'Security',
+    },
+    children: [
+      {
+        name: 'AcmeSettings',
+        path: '/security/acme-settings',
+        component: () => import('#/views/kumo/acme-settings/index.vue'),
+        meta: { icon: 'lucide:settings', title: 'ACME Settings' },
+      },
+      {
+        name: 'AcmeDnsProviders',
+        path: '/security/dns-providers',
+        component: () => import('#/views/kumo/acme-dns-providers/index.vue'),
+        meta: { icon: 'lucide:server', title: 'DNS Providers' },
+      },
+      {
+        name: 'AcmeCertificates',
+        path: '/security/certificates',
+        component: () => import('#/views/kumo/acme-certificates/index.vue'),
+        meta: { icon: 'lucide:badge-check', title: 'Certificates' },
+      },
+    ],
+  },
+  {
     name: 'Identity',
     path: '/identity',
     component: BasicLayout,
     meta: {
       icon: 'mdi:account-multiple-outline',
-      order: 5,
+      order: 6,
       title: 'Identity',
       authority: ['admin'],
     },

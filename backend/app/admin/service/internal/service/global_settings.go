@@ -20,6 +20,12 @@ type GlobalSettingsRow struct {
 	BouncePrefix        string
 	MailClassHeader     string
 
+	// Iris admin HTTPS — a TLS-terminating reverse proxy that fronts
+	// the plain :8000 server. Empty Listen disables.
+	HTTPSListen      string
+	HTTPSCertPemPath string
+	HTTPSKeyPemPath  string
+
 	UpdatedAt time.Time
 	UpdatedBy string
 }
@@ -84,6 +90,14 @@ func validateGlobalSettings(in *GlobalSettingsRow) error {
 	if in.KumoHTTPListen != "" && !strings.Contains(in.KumoHTTPListen, ":") {
 		return errors.New("kumo_http_listen must be host:port (e.g. 0.0.0.0:8000)")
 	}
+	if in.HTTPSListen != "" {
+		if !strings.Contains(in.HTTPSListen, ":") {
+			return errors.New("https_listen must be host:port (e.g. :443)")
+		}
+		if in.HTTPSCertPemPath == "" || in.HTTPSKeyPemPath == "" {
+			return errors.New("https_cert_pem_path and https_key_pem_path are required when https_listen is set")
+		}
+	}
 	// Multi-domain mode requires at least one entry; setting an empty
 	// list with a non-empty single domain is fine (legacy mode).
 	for _, d := range in.BounceSenderDomains {
@@ -108,6 +122,9 @@ func normaliseRow(r *GlobalSettingsRow) {
 	r.BounceSenderDomains = dedupTrim(r.BounceSenderDomains, true)
 	r.BouncePrefix = strings.Trim(strings.ToLower(strings.TrimSpace(r.BouncePrefix)), ".")
 	r.MailClassHeader = strings.TrimSpace(r.MailClassHeader)
+	r.HTTPSListen = strings.TrimSpace(r.HTTPSListen)
+	r.HTTPSCertPemPath = strings.TrimSpace(r.HTTPSCertPemPath)
+	r.HTTPSKeyPemPath = strings.TrimSpace(r.HTTPSKeyPemPath)
 }
 
 // dedupTrim trims whitespace, optionally lowercases (domain-style

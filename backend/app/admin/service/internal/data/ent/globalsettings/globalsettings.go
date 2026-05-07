@@ -27,6 +27,12 @@ const (
 	FieldBouncePrefix = "bounce_prefix"
 	// FieldMailClassHeader holds the string denoting the mail_class_header field in the database.
 	FieldMailClassHeader = "mail_class_header"
+	// FieldHTTPSListen holds the string denoting the https_listen field in the database.
+	FieldHTTPSListen = "https_listen"
+	// FieldHTTPSCertPemPath holds the string denoting the https_cert_pem_path field in the database.
+	FieldHTTPSCertPemPath = "https_cert_pem_path"
+	// FieldHTTPSKeyPemPath holds the string denoting the https_key_pem_path field in the database.
+	FieldHTTPSKeyPemPath = "https_key_pem_path"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
 	// FieldUpdatedBy holds the string denoting the updated_by field in the database.
@@ -45,6 +51,9 @@ var Columns = []string{
 	FieldBounceSenderDomains,
 	FieldBouncePrefix,
 	FieldMailClassHeader,
+	FieldHTTPSListen,
+	FieldHTTPSCertPemPath,
+	FieldHTTPSKeyPemPath,
 	FieldUpdatedAt,
 	FieldUpdatedBy,
 }
@@ -68,6 +77,12 @@ var (
 	BouncePrefixValidator func(string) error
 	// MailClassHeaderValidator is a validator for the "mail_class_header" field. It is called by the builders before save.
 	MailClassHeaderValidator func(string) error
+	// HTTPSListenValidator is a validator for the "https_listen" field. It is called by the builders before save.
+	HTTPSListenValidator func(string) error
+	// HTTPSCertPemPathValidator is a validator for the "https_cert_pem_path" field. It is called by the builders before save.
+	HTTPSCertPemPathValidator func(string) error
+	// HTTPSKeyPemPathValidator is a validator for the "https_key_pem_path" field. It is called by the builders before save.
+	HTTPSKeyPemPathValidator func(string) error
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
@@ -104,6 +119,21 @@ func ByBouncePrefix(opts ...sql.OrderTermOption) OrderOption {
 // ByMailClassHeader orders the results by the mail_class_header field.
 func ByMailClassHeader(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMailClassHeader, opts...).ToFunc()
+}
+
+// ByHTTPSListen orders the results by the https_listen field.
+func ByHTTPSListen(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHTTPSListen, opts...).ToFunc()
+}
+
+// ByHTTPSCertPemPath orders the results by the https_cert_pem_path field.
+func ByHTTPSCertPemPath(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHTTPSCertPemPath, opts...).ToFunc()
+}
+
+// ByHTTPSKeyPemPath orders the results by the https_key_pem_path field.
+func ByHTTPSKeyPemPath(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHTTPSKeyPemPath, opts...).ToFunc()
 }
 
 // ByUpdatedAt orders the results by the updated_at field.
