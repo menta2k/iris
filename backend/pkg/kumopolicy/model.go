@@ -61,6 +61,17 @@ type GlobalSettings struct {
 	// and admin-service share a host and would otherwise collide on :8000.
 	KumoHTTPListen string
 
+	// EsmtpRelayHosts is the relay-allowed CIDR list emitted into the
+	// default kumo.start_esmtp_listener block. Only consulted when no
+	// Listener rows exist (per-listener configs override). Empty falls
+	// back to the RFC1918 + loopback set so dev compose still works.
+	EsmtpRelayHosts []string
+
+	// HTTPTrustedHosts is the trusted-host CIDR list emitted into
+	// kumo.start_http_listener. Same semantic as EsmtpRelayHosts: empty
+	// = RFC1918 + loopback default.
+	HTTPTrustedHosts []string
+
 	// Redis log-hook configuration. When LogStreamRedisURL is non-empty the
 	// renderer emits a kumomta log_hook that streams every interesting log
 	// record (Reception/Delivery/Bounce/TransientFailure/Feedback) into the
@@ -83,6 +94,55 @@ type GlobalSettings struct {
 	// Trade-off: retries for unrelated domains share a queue, so a misbehaving
 	// destination can hold up another's retry slot. Off by default.
 	QueuePerVmta bool
+
+	// BounceDomain is the receive-side domain (e.g. "bounces.example.com")
+	// for **single-domain mode** — every outbound regardless of From: gets
+	// rewritten to "b+<token>@<BounceDomain>". Use this when all your
+	// sending domains share an organizational domain so DMARC's relaxed
+	// alignment treats one bounce subdomain as aligned with all of them.
+	//
+	// For multi-org sending (e.g. test-1.com AND test2.com from the same
+	// instance), use BounceSenderDomains instead — that mode derives a
+	// per-sender bounce subdomain by convention so DMARC alignment holds
+	// for every From: domain. When BounceSenderDomains is non-empty,
+	// BounceDomain is ignored.
+	//
+	// Empty (and BounceSenderDomains also empty) disables the entire
+	// DSN pipeline.
+	BounceDomain string
+
+	// BounceSenderDomains lists the From: domains this kumomta hosts
+	// outbound for. The renderer emits one bounce subdomain per entry by
+	// the convention "<BouncePrefix>.<sender-domain>", so test-1.com
+	// becomes bounces.test-1.com (etc.). Outbound mail's MAIL FROM is
+	// rewritten to the bounce subdomain matching its From: domain;
+	// inbound DSNs are accepted at all of them.
+	//
+	// Operator must publish DNS MX + SPF for each derived bounce subdomain
+	// (see deploy docs).
+	BounceSenderDomains []string
+
+	// BouncePrefix is the leading label prepended to each
+	// BounceSenderDomains entry to form the bounce subdomain. Default:
+	// "bounces" (constant BouncePrefixDefault). Lowercased on use; trailing
+	// or leading dots stripped.
+	BouncePrefix string
+
+	// VerpSecret is the HMAC key used to sign and verify VERP tokens. Must
+	// be at least 16 bytes when BounceDomain is set; otherwise the renderer
+	// refuses to emit the VERP rewrite. Never log this value.
+	VerpSecret string
+
+	// DsnStreamName is the Redis stream where the kumomta DSN catcher
+	// XADDs raw bounce messages. Default: DsnStreamNameDefault. Mirrors
+	// the LogStreamName / consumer pattern used for log events.
+	DsnStreamName string
+
+	// BounceTokenTTL is the maximum age (since the original send) at which
+	// a VERP token is still considered valid. Bounces arriving with older
+	// tokens are dropped silently — almost always misdirected mail or
+	// backscatter. Empty falls back to BounceTokenTTLDefault.
+	BounceTokenTTL string
 }
 
 // LogStreamNameDefault is the canonical Redis-stream name. Kept aligned with
@@ -91,6 +151,16 @@ const (
 	LogStreamNameDefault   = "kumo.events"
 	LogStreamMaxLenDefault = "100000"
 	logStreamTrackerName   = "iris_logger" // Lua-side log_hook + queue name
+
+	// DSN catcher defaults. Stream name is the Redis stream the kumomta
+	// listener XADDs into; the iris consumer (pkg/dsnstream) reads it.
+	// Token TTL caps how stale a VERP token can be before the consumer
+	// treats it as backscatter.
+	DsnStreamNameDefault   = "kumo.dsns"
+	dsnTrackerName         = "iris_dsn_catcher" // Lua-side queue + custom_lua name
+	BounceTokenTTLDefault  = "720h"             // 30 days
+	VerpSecretMinBytes     = 16
+	BouncePrefixDefault    = "bounces"
 )
 
 // Listener mirrors ListenerConfig but holds only what render needs.

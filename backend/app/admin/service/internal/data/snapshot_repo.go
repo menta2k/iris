@@ -197,8 +197,62 @@ func (r *SnapshotRepo) CurrentSnapshot(ctx context.Context) (*kumopolicy.Snapsho
 		KumoHTTPListen:   strings.TrimSpace(os.Getenv("IRIS_KUMO_HTTP_LISTEN")),
 		TestDomainRoutes: parseTestDomainRoutes(),
 		QueuePerVmta:     parseBoolEnv("IRIS_QUEUE_PER_VMTA"),
+		// Async DSN ingestion. Empty BounceDomain disables the whole
+		// pipeline (no VERP rewrite, no inbound catcher). Operators must
+		// also publish DNS MX + SPF for the bounce domain — see deploy
+		// docs.
+		BounceDomain:        strings.TrimSpace(os.Getenv("IRIS_BOUNCE_DOMAIN")),
+		BounceSenderDomains: parseDomainList(os.Getenv("IRIS_BOUNCE_SENDER_DOMAINS")),
+		BouncePrefix:        strings.TrimSpace(os.Getenv("IRIS_BOUNCE_DOMAIN_PREFIX")),
+		VerpSecret:          strings.TrimSpace(os.Getenv("IRIS_VERP_SECRET")),
+		DsnStreamName:       strings.TrimSpace(os.Getenv("IRIS_DSNSTREAM_NAME")),
+		BounceTokenTTL:      strings.TrimSpace(os.Getenv("IRIS_BOUNCE_TOKEN_TTL")),
 	}
+	// Merge UI-managed Global Settings on top of the env-derived shell.
+	// The DB row wins for any field the operator has explicitly set; an
+	// untouched (zero-value) field falls back to the env value above.
+	// Failure to read the row is not fatal — we log and proceed with the
+	// env-only view so a corrupt singleton can never brick policy renders.
+	r.applyGlobalSettings(ctx, snap)
 	return snap, nil
+}
+
+// applyGlobalSettings overlays the singleton settings row on top of the
+// env-derived GlobalSettings. List fields completely replace the env
+// list when non-empty (operator intent: "this is the full set"); string
+// fields replace the env value when non-empty.
+func (r *SnapshotRepo) applyGlobalSettings(ctx context.Context, snap *kumopolicy.Snapshot) {
+	row, err := r.client.GlobalSettings.Get(ctx, 1)
+	if err != nil {
+		// On miss / corrupt row, log and keep the env-only view. The DB
+		// migration seeds id=1 so a real miss is rare; tests that don't
+		// run the SQL phase will hit this path and that's fine.
+		if !ent.IsNotFound(err) {
+			log.Printf("snapshot: global_settings read failed (%v) — using env defaults", err)
+		}
+		return
+	}
+	if v := strings.TrimSpace(row.KumoHTTPListen); v != "" {
+		snap.GlobalSettings.KumoHTTPListen = v
+	}
+	if len(row.EsmtpRelayHosts) > 0 {
+		snap.GlobalSettings.EsmtpRelayHosts = append([]string(nil), row.EsmtpRelayHosts...)
+	}
+	if len(row.HTTPTrustedHosts) > 0 {
+		snap.GlobalSettings.HTTPTrustedHosts = append([]string(nil), row.HTTPTrustedHosts...)
+	}
+	if v := strings.TrimSpace(row.BounceDomain); v != "" {
+		snap.GlobalSettings.BounceDomain = v
+	}
+	if len(row.BounceSenderDomains) > 0 {
+		snap.GlobalSettings.BounceSenderDomains = append([]string(nil), row.BounceSenderDomains...)
+	}
+	if v := strings.TrimSpace(row.BouncePrefix); v != "" {
+		snap.GlobalSettings.BouncePrefix = v
+	}
+	if v := strings.TrimSpace(row.MailClassHeader); v != "" {
+		snap.GlobalSettings.MailClassHeader = v
+	}
 }
 
 // parseBoolEnv reads a truthy/falsy env var. Accepts 1/true/yes/on
@@ -209,6 +263,36 @@ func parseBoolEnv(name string) bool {
 		return true
 	}
 	return false
+}
+
+// parseDomainList splits a comma-separated env value into a normalised
+// list of lowercased, trimmed, non-empty domains. Suitable for
+// IRIS_BOUNCE_SENDER_DOMAINS — operators write things like
+// "Test-1.com, test2.com," and expect us to clean it up.
+func parseDomainList(raw string) []string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	seen := make(map[string]struct{}, len(parts))
+	for _, p := range parts {
+		d := strings.TrimSpace(strings.ToLower(p))
+		// Strip stray leading/trailing dots — operators sometimes paste a
+		// FQDN with the trailing dot and we don't want it leaking into
+		// the rendered Lua.
+		d = strings.Trim(d, ".")
+		if d == "" {
+			continue
+		}
+		if _, dup := seen[d]; dup {
+			continue
+		}
+		seen[d] = struct{}{}
+		out = append(out, d)
+	}
+	return out
 }
 
 // parseTestDomainRoutes reads IRIS_TEST_DOMAIN_ROUTES — a JSON object

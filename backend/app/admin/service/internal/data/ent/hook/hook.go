@@ -33,6 +33,18 @@ func (f DkimIdentityFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DkimIdentityMutation", m)
 }
 
+// The DsnEventFunc type is an adapter to allow the use of ordinary
+// function as DsnEvent mutator.
+type DsnEventFunc func(context.Context, *ent.DsnEventMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f DsnEventFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.DsnEventMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DsnEventMutation", m)
+}
+
 // The FeedbackReportFunc type is an adapter to allow the use of ordinary
 // function as FeedbackReport mutator.
 type FeedbackReportFunc func(context.Context, *ent.FeedbackReportMutation) (ent.Value, error)
@@ -43,6 +55,18 @@ func (f FeedbackReportFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Val
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FeedbackReportMutation", m)
+}
+
+// The GlobalSettingsFunc type is an adapter to allow the use of ordinary
+// function as GlobalSettings mutator.
+type GlobalSettingsFunc func(context.Context, *ent.GlobalSettingsMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GlobalSettingsFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GlobalSettingsMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GlobalSettingsMutation", m)
 }
 
 // The ListenerConfigFunc type is an adapter to allow the use of ordinary

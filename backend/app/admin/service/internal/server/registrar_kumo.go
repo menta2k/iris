@@ -33,6 +33,8 @@ func RegisterKumoHTTP(
 	mailClasses *service.MailClassService,
 	vmtaGroups *service.VmtaGroupService,
 	dashboard *service.DashboardService,
+	dsns *service.DsnService,
+	gsvc *service.GlobalSettingsService,
 	write auditmw.WriteFunc,
 ) {
 	registerQueuesHTTP(hs, queues, write)
@@ -42,10 +44,12 @@ func RegisterKumoHTTP(
 	registerDkimHTTP(hs, dkim, write)
 	registerFeedbackHTTP(hs, feedback)
 	registerLogsHTTP(hs, logs)
+	registerDsnsHTTP(hs, dsns)
 	registerPolicyHTTP(hs, policy, write)
 	registerMailClassesHTTP(hs, mailClasses, write)
 	registerVmtaGroupsHTTP(hs, vmtaGroups, write)
 	RegisterDashboardHTTP(hs, dashboard)
+	registerGlobalSettingsHTTP(hs, gsvc, write)
 }
 
 // --- /v1/queues -----------------------------------------------------------
@@ -219,6 +223,9 @@ func registerFeedbackHTTP(hs *kratoshttp.Server, s *service.FeedbackService) {
 }
 func registerLogsHTTP(hs *kratoshttp.Server, s *service.LogService) {
 	registerLogs(hs, s)
+}
+func registerDsnsHTTP(hs *kratoshttp.Server, s *service.DsnService) {
+	registerDsns(hs, s)
 }
 func registerPolicyHTTP(hs *kratoshttp.Server, s *service.PolicyService, write auditmw.WriteFunc) {
 	registerPolicy(hs, s, write)

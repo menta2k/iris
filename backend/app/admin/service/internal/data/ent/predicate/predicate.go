@@ -12,8 +12,14 @@ type AuditEntry func(*sql.Selector)
 // DkimIdentity is the predicate function for dkimidentity builders.
 type DkimIdentity func(*sql.Selector)
 
+// DsnEvent is the predicate function for dsnevent builders.
+type DsnEvent func(*sql.Selector)
+
 // FeedbackReport is the predicate function for feedbackreport builders.
 type FeedbackReport func(*sql.Selector)
+
+// GlobalSettings is the predicate function for globalsettings builders.
+type GlobalSettings func(*sql.Selector)
 
 // ListenerConfig is the predicate function for listenerconfig builders.
 type ListenerConfig func(*sql.Selector)

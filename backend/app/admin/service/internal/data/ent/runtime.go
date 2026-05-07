@@ -7,7 +7,9 @@ import (
 
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/auditentry"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/dkimidentity"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/dsnevent"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/feedbackreport"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/globalsettings"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/listenerconfig"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/listenerdomain"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/logevent"
@@ -182,6 +184,68 @@ func init() {
 	dkimidentity.DefaultUpdatedAt = dkimidentityDescUpdatedAt.Default.(func() time.Time)
 	// dkimidentity.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	dkimidentity.UpdateDefaultUpdatedAt = dkimidentityDescUpdatedAt.UpdateDefault.(func() time.Time)
+	dsneventFields := schema.DsnEvent{}.Fields()
+	_ = dsneventFields
+	// dsneventDescReceivedAt is the schema descriptor for received_at field.
+	dsneventDescReceivedAt := dsneventFields[1].Descriptor()
+	// dsnevent.DefaultReceivedAt holds the default value on creation for the received_at field.
+	dsnevent.DefaultReceivedAt = dsneventDescReceivedAt.Default.(func() time.Time)
+	// dsneventDescVerpToken is the schema descriptor for verp_token field.
+	dsneventDescVerpToken := dsneventFields[2].Descriptor()
+	// dsnevent.VerpTokenValidator is a validator for the "verp_token" field. It is called by the builders before save.
+	dsnevent.VerpTokenValidator = dsneventDescVerpToken.Validators[0].(func(string) error)
+	// dsneventDescMessageIDRef is the schema descriptor for message_id_ref field.
+	dsneventDescMessageIDRef := dsneventFields[3].Descriptor()
+	// dsnevent.MessageIDRefValidator is a validator for the "message_id_ref" field. It is called by the builders before save.
+	dsnevent.MessageIDRefValidator = dsneventDescMessageIDRef.Validators[0].(func(string) error)
+	// dsneventDescOriginalRecipient is the schema descriptor for original_recipient field.
+	dsneventDescOriginalRecipient := dsneventFields[4].Descriptor()
+	// dsnevent.OriginalRecipientValidator is a validator for the "original_recipient" field. It is called by the builders before save.
+	dsnevent.OriginalRecipientValidator = dsneventDescOriginalRecipient.Validators[0].(func(string) error)
+	// dsneventDescFinalRecipient is the schema descriptor for final_recipient field.
+	dsneventDescFinalRecipient := dsneventFields[5].Descriptor()
+	// dsnevent.FinalRecipientValidator is a validator for the "final_recipient" field. It is called by the builders before save.
+	dsnevent.FinalRecipientValidator = dsneventDescFinalRecipient.Validators[0].(func(string) error)
+	// dsneventDescAction is the schema descriptor for action field.
+	dsneventDescAction := dsneventFields[6].Descriptor()
+	// dsnevent.ActionValidator is a validator for the "action" field. It is called by the builders before save.
+	dsnevent.ActionValidator = dsneventDescAction.Validators[0].(func(string) error)
+	// dsneventDescStatus is the schema descriptor for status field.
+	dsneventDescStatus := dsneventFields[7].Descriptor()
+	// dsnevent.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	dsnevent.StatusValidator = dsneventDescStatus.Validators[0].(func(string) error)
+	// dsneventDescStatusClass is the schema descriptor for status_class field.
+	dsneventDescStatusClass := dsneventFields[8].Descriptor()
+	// dsnevent.StatusClassValidator is a validator for the "status_class" field. It is called by the builders before save.
+	dsnevent.StatusClassValidator = dsneventDescStatusClass.Validators[0].(func(string) error)
+	// dsneventDescDiagnosticCode is the schema descriptor for diagnostic_code field.
+	dsneventDescDiagnosticCode := dsneventFields[9].Descriptor()
+	// dsnevent.DiagnosticCodeValidator is a validator for the "diagnostic_code" field. It is called by the builders before save.
+	dsnevent.DiagnosticCodeValidator = dsneventDescDiagnosticCode.Validators[0].(func(string) error)
+	// dsneventDescRemoteMta is the schema descriptor for remote_mta field.
+	dsneventDescRemoteMta := dsneventFields[10].Descriptor()
+	// dsnevent.RemoteMtaValidator is a validator for the "remote_mta" field. It is called by the builders before save.
+	dsnevent.RemoteMtaValidator = dsneventDescRemoteMta.Validators[0].(func(string) error)
+	// dsneventDescCategory is the schema descriptor for category field.
+	dsneventDescCategory := dsneventFields[11].Descriptor()
+	// dsnevent.CategoryValidator is a validator for the "category" field. It is called by the builders before save.
+	dsnevent.CategoryValidator = dsneventDescCategory.Validators[0].(func(string) error)
+	// dsneventDescMailClass is the schema descriptor for mail_class field.
+	dsneventDescMailClass := dsneventFields[12].Descriptor()
+	// dsnevent.MailClassValidator is a validator for the "mail_class" field. It is called by the builders before save.
+	dsnevent.MailClassValidator = dsneventDescMailClass.Validators[0].(func(string) error)
+	// dsneventDescTenant is the schema descriptor for tenant field.
+	dsneventDescTenant := dsneventFields[13].Descriptor()
+	// dsnevent.TenantValidator is a validator for the "tenant" field. It is called by the builders before save.
+	dsnevent.TenantValidator = dsneventDescTenant.Validators[0].(func(string) error)
+	// dsneventDescCampaign is the schema descriptor for campaign field.
+	dsneventDescCampaign := dsneventFields[14].Descriptor()
+	// dsnevent.CampaignValidator is a validator for the "campaign" field. It is called by the builders before save.
+	dsnevent.CampaignValidator = dsneventDescCampaign.Validators[0].(func(string) error)
+	// dsneventDescRawSize is the schema descriptor for raw_size field.
+	dsneventDescRawSize := dsneventFields[15].Descriptor()
+	// dsnevent.DefaultRawSize holds the default value on creation for the raw_size field.
+	dsnevent.DefaultRawSize = dsneventDescRawSize.Default.(int32)
 	feedbackreportFields := schema.FeedbackReport{}.Fields()
 	_ = feedbackreportFields
 	// feedbackreportDescReceivedAt is the schema descriptor for received_at field.
@@ -230,6 +294,38 @@ func init() {
 	feedbackreportDescReportingMta := feedbackreportFields[8].Descriptor()
 	// feedbackreport.ReportingMtaValidator is a validator for the "reporting_mta" field. It is called by the builders before save.
 	feedbackreport.ReportingMtaValidator = feedbackreportDescReportingMta.Validators[0].(func(string) error)
+	globalsettingsFields := schema.GlobalSettings{}.Fields()
+	_ = globalsettingsFields
+	// globalsettingsDescKumoHTTPListen is the schema descriptor for kumo_http_listen field.
+	globalsettingsDescKumoHTTPListen := globalsettingsFields[1].Descriptor()
+	// globalsettings.KumoHTTPListenValidator is a validator for the "kumo_http_listen" field. It is called by the builders before save.
+	globalsettings.KumoHTTPListenValidator = globalsettingsDescKumoHTTPListen.Validators[0].(func(string) error)
+	// globalsettingsDescBounceDomain is the schema descriptor for bounce_domain field.
+	globalsettingsDescBounceDomain := globalsettingsFields[4].Descriptor()
+	// globalsettings.BounceDomainValidator is a validator for the "bounce_domain" field. It is called by the builders before save.
+	globalsettings.BounceDomainValidator = globalsettingsDescBounceDomain.Validators[0].(func(string) error)
+	// globalsettingsDescBouncePrefix is the schema descriptor for bounce_prefix field.
+	globalsettingsDescBouncePrefix := globalsettingsFields[6].Descriptor()
+	// globalsettings.BouncePrefixValidator is a validator for the "bounce_prefix" field. It is called by the builders before save.
+	globalsettings.BouncePrefixValidator = globalsettingsDescBouncePrefix.Validators[0].(func(string) error)
+	// globalsettingsDescMailClassHeader is the schema descriptor for mail_class_header field.
+	globalsettingsDescMailClassHeader := globalsettingsFields[7].Descriptor()
+	// globalsettings.MailClassHeaderValidator is a validator for the "mail_class_header" field. It is called by the builders before save.
+	globalsettings.MailClassHeaderValidator = globalsettingsDescMailClassHeader.Validators[0].(func(string) error)
+	// globalsettingsDescUpdatedAt is the schema descriptor for updated_at field.
+	globalsettingsDescUpdatedAt := globalsettingsFields[8].Descriptor()
+	// globalsettings.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	globalsettings.DefaultUpdatedAt = globalsettingsDescUpdatedAt.Default.(func() time.Time)
+	// globalsettings.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	globalsettings.UpdateDefaultUpdatedAt = globalsettingsDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// globalsettingsDescUpdatedBy is the schema descriptor for updated_by field.
+	globalsettingsDescUpdatedBy := globalsettingsFields[9].Descriptor()
+	// globalsettings.UpdatedByValidator is a validator for the "updated_by" field. It is called by the builders before save.
+	globalsettings.UpdatedByValidator = globalsettingsDescUpdatedBy.Validators[0].(func(string) error)
+	// globalsettingsDescID is the schema descriptor for id field.
+	globalsettingsDescID := globalsettingsFields[0].Descriptor()
+	// globalsettings.DefaultID holds the default value on creation for the id field.
+	globalsettings.DefaultID = globalsettingsDescID.Default.(int)
 	listenerconfigFields := schema.ListenerConfig{}.Fields()
 	_ = listenerconfigFields
 	// listenerconfigDescName is the schema descriptor for name field.

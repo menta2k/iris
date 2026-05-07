@@ -17,7 +17,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/auditentry"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/dkimidentity"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/dsnevent"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/feedbackreport"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/globalsettings"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/listenerconfig"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/listenerdomain"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/logevent"
@@ -44,8 +46,12 @@ type Client struct {
 	AuditEntry *AuditEntryClient
 	// DkimIdentity is the client for interacting with the DkimIdentity builders.
 	DkimIdentity *DkimIdentityClient
+	// DsnEvent is the client for interacting with the DsnEvent builders.
+	DsnEvent *DsnEventClient
 	// FeedbackReport is the client for interacting with the FeedbackReport builders.
 	FeedbackReport *FeedbackReportClient
+	// GlobalSettings is the client for interacting with the GlobalSettings builders.
+	GlobalSettings *GlobalSettingsClient
 	// ListenerConfig is the client for interacting with the ListenerConfig builders.
 	ListenerConfig *ListenerConfigClient
 	// ListenerDomain is the client for interacting with the ListenerDomain builders.
@@ -89,7 +95,9 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.AuditEntry = NewAuditEntryClient(c.config)
 	c.DkimIdentity = NewDkimIdentityClient(c.config)
+	c.DsnEvent = NewDsnEventClient(c.config)
 	c.FeedbackReport = NewFeedbackReportClient(c.config)
+	c.GlobalSettings = NewGlobalSettingsClient(c.config)
 	c.ListenerConfig = NewListenerConfigClient(c.config)
 	c.ListenerDomain = NewListenerDomainClient(c.config)
 	c.LogEvent = NewLogEventClient(c.config)
@@ -199,7 +207,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		config:                cfg,
 		AuditEntry:            NewAuditEntryClient(cfg),
 		DkimIdentity:          NewDkimIdentityClient(cfg),
+		DsnEvent:              NewDsnEventClient(cfg),
 		FeedbackReport:        NewFeedbackReportClient(cfg),
+		GlobalSettings:        NewGlobalSettingsClient(cfg),
 		ListenerConfig:        NewListenerConfigClient(cfg),
 		ListenerDomain:        NewListenerDomainClient(cfg),
 		LogEvent:              NewLogEventClient(cfg),
@@ -236,7 +246,9 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		config:                cfg,
 		AuditEntry:            NewAuditEntryClient(cfg),
 		DkimIdentity:          NewDkimIdentityClient(cfg),
+		DsnEvent:              NewDsnEventClient(cfg),
 		FeedbackReport:        NewFeedbackReportClient(cfg),
+		GlobalSettings:        NewGlobalSettingsClient(cfg),
 		ListenerConfig:        NewListenerConfigClient(cfg),
 		ListenerDomain:        NewListenerDomainClient(cfg),
 		LogEvent:              NewLogEventClient(cfg),
@@ -281,10 +293,11 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.AuditEntry, c.DkimIdentity, c.FeedbackReport, c.ListenerConfig,
-		c.ListenerDomain, c.LogEvent, c.MailClass, c.MetricSnapshot, c.PolicyHistory,
-		c.Role, c.RoutingRule, c.RuleCondition, c.RuleTarget, c.SuppressionEntry,
-		c.User, c.VirtualMta, c.VirtualMtaGroup, c.VirtualMtaGroupMember,
+		c.AuditEntry, c.DkimIdentity, c.DsnEvent, c.FeedbackReport, c.GlobalSettings,
+		c.ListenerConfig, c.ListenerDomain, c.LogEvent, c.MailClass, c.MetricSnapshot,
+		c.PolicyHistory, c.Role, c.RoutingRule, c.RuleCondition, c.RuleTarget,
+		c.SuppressionEntry, c.User, c.VirtualMta, c.VirtualMtaGroup,
+		c.VirtualMtaGroupMember,
 	} {
 		n.Use(hooks...)
 	}
@@ -294,10 +307,11 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.AuditEntry, c.DkimIdentity, c.FeedbackReport, c.ListenerConfig,
-		c.ListenerDomain, c.LogEvent, c.MailClass, c.MetricSnapshot, c.PolicyHistory,
-		c.Role, c.RoutingRule, c.RuleCondition, c.RuleTarget, c.SuppressionEntry,
-		c.User, c.VirtualMta, c.VirtualMtaGroup, c.VirtualMtaGroupMember,
+		c.AuditEntry, c.DkimIdentity, c.DsnEvent, c.FeedbackReport, c.GlobalSettings,
+		c.ListenerConfig, c.ListenerDomain, c.LogEvent, c.MailClass, c.MetricSnapshot,
+		c.PolicyHistory, c.Role, c.RoutingRule, c.RuleCondition, c.RuleTarget,
+		c.SuppressionEntry, c.User, c.VirtualMta, c.VirtualMtaGroup,
+		c.VirtualMtaGroupMember,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -310,8 +324,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.AuditEntry.mutate(ctx, m)
 	case *DkimIdentityMutation:
 		return c.DkimIdentity.mutate(ctx, m)
+	case *DsnEventMutation:
+		return c.DsnEvent.mutate(ctx, m)
 	case *FeedbackReportMutation:
 		return c.FeedbackReport.mutate(ctx, m)
+	case *GlobalSettingsMutation:
+		return c.GlobalSettings.mutate(ctx, m)
 	case *ListenerConfigMutation:
 		return c.ListenerConfig.mutate(ctx, m)
 	case *ListenerDomainMutation:
@@ -613,6 +631,139 @@ func (c *DkimIdentityClient) mutate(ctx context.Context, m *DkimIdentityMutation
 	}
 }
 
+// DsnEventClient is a client for the DsnEvent schema.
+type DsnEventClient struct {
+	config
+}
+
+// NewDsnEventClient returns a client for the DsnEvent from the given config.
+func NewDsnEventClient(c config) *DsnEventClient {
+	return &DsnEventClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `dsnevent.Hooks(f(g(h())))`.
+func (c *DsnEventClient) Use(hooks ...Hook) {
+	c.hooks.DsnEvent = append(c.hooks.DsnEvent, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `dsnevent.Intercept(f(g(h())))`.
+func (c *DsnEventClient) Intercept(interceptors ...Interceptor) {
+	c.inters.DsnEvent = append(c.inters.DsnEvent, interceptors...)
+}
+
+// Create returns a builder for creating a DsnEvent entity.
+func (c *DsnEventClient) Create() *DsnEventCreate {
+	mutation := newDsnEventMutation(c.config, OpCreate)
+	return &DsnEventCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of DsnEvent entities.
+func (c *DsnEventClient) CreateBulk(builders ...*DsnEventCreate) *DsnEventCreateBulk {
+	return &DsnEventCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *DsnEventClient) MapCreateBulk(slice any, setFunc func(*DsnEventCreate, int)) *DsnEventCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &DsnEventCreateBulk{err: fmt.Errorf("calling to DsnEventClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*DsnEventCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &DsnEventCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for DsnEvent.
+func (c *DsnEventClient) Update() *DsnEventUpdate {
+	mutation := newDsnEventMutation(c.config, OpUpdate)
+	return &DsnEventUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *DsnEventClient) UpdateOne(_m *DsnEvent) *DsnEventUpdateOne {
+	mutation := newDsnEventMutation(c.config, OpUpdateOne, withDsnEvent(_m))
+	return &DsnEventUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *DsnEventClient) UpdateOneID(id int64) *DsnEventUpdateOne {
+	mutation := newDsnEventMutation(c.config, OpUpdateOne, withDsnEventID(id))
+	return &DsnEventUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for DsnEvent.
+func (c *DsnEventClient) Delete() *DsnEventDelete {
+	mutation := newDsnEventMutation(c.config, OpDelete)
+	return &DsnEventDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *DsnEventClient) DeleteOne(_m *DsnEvent) *DsnEventDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *DsnEventClient) DeleteOneID(id int64) *DsnEventDeleteOne {
+	builder := c.Delete().Where(dsnevent.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &DsnEventDeleteOne{builder}
+}
+
+// Query returns a query builder for DsnEvent.
+func (c *DsnEventClient) Query() *DsnEventQuery {
+	return &DsnEventQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeDsnEvent},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a DsnEvent entity by its id.
+func (c *DsnEventClient) Get(ctx context.Context, id int64) (*DsnEvent, error) {
+	return c.Query().Where(dsnevent.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *DsnEventClient) GetX(ctx context.Context, id int64) *DsnEvent {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *DsnEventClient) Hooks() []Hook {
+	return c.hooks.DsnEvent
+}
+
+// Interceptors returns the client interceptors.
+func (c *DsnEventClient) Interceptors() []Interceptor {
+	return c.inters.DsnEvent
+}
+
+func (c *DsnEventClient) mutate(ctx context.Context, m *DsnEventMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&DsnEventCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&DsnEventUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&DsnEventUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&DsnEventDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown DsnEvent mutation op: %q", m.Op())
+	}
+}
+
 // FeedbackReportClient is a client for the FeedbackReport schema.
 type FeedbackReportClient struct {
 	config
@@ -743,6 +894,139 @@ func (c *FeedbackReportClient) mutate(ctx context.Context, m *FeedbackReportMuta
 		return (&FeedbackReportDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown FeedbackReport mutation op: %q", m.Op())
+	}
+}
+
+// GlobalSettingsClient is a client for the GlobalSettings schema.
+type GlobalSettingsClient struct {
+	config
+}
+
+// NewGlobalSettingsClient returns a client for the GlobalSettings from the given config.
+func NewGlobalSettingsClient(c config) *GlobalSettingsClient {
+	return &GlobalSettingsClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `globalsettings.Hooks(f(g(h())))`.
+func (c *GlobalSettingsClient) Use(hooks ...Hook) {
+	c.hooks.GlobalSettings = append(c.hooks.GlobalSettings, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `globalsettings.Intercept(f(g(h())))`.
+func (c *GlobalSettingsClient) Intercept(interceptors ...Interceptor) {
+	c.inters.GlobalSettings = append(c.inters.GlobalSettings, interceptors...)
+}
+
+// Create returns a builder for creating a GlobalSettings entity.
+func (c *GlobalSettingsClient) Create() *GlobalSettingsCreate {
+	mutation := newGlobalSettingsMutation(c.config, OpCreate)
+	return &GlobalSettingsCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of GlobalSettings entities.
+func (c *GlobalSettingsClient) CreateBulk(builders ...*GlobalSettingsCreate) *GlobalSettingsCreateBulk {
+	return &GlobalSettingsCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *GlobalSettingsClient) MapCreateBulk(slice any, setFunc func(*GlobalSettingsCreate, int)) *GlobalSettingsCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &GlobalSettingsCreateBulk{err: fmt.Errorf("calling to GlobalSettingsClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*GlobalSettingsCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &GlobalSettingsCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for GlobalSettings.
+func (c *GlobalSettingsClient) Update() *GlobalSettingsUpdate {
+	mutation := newGlobalSettingsMutation(c.config, OpUpdate)
+	return &GlobalSettingsUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *GlobalSettingsClient) UpdateOne(_m *GlobalSettings) *GlobalSettingsUpdateOne {
+	mutation := newGlobalSettingsMutation(c.config, OpUpdateOne, withGlobalSettings(_m))
+	return &GlobalSettingsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *GlobalSettingsClient) UpdateOneID(id int) *GlobalSettingsUpdateOne {
+	mutation := newGlobalSettingsMutation(c.config, OpUpdateOne, withGlobalSettingsID(id))
+	return &GlobalSettingsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for GlobalSettings.
+func (c *GlobalSettingsClient) Delete() *GlobalSettingsDelete {
+	mutation := newGlobalSettingsMutation(c.config, OpDelete)
+	return &GlobalSettingsDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *GlobalSettingsClient) DeleteOne(_m *GlobalSettings) *GlobalSettingsDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *GlobalSettingsClient) DeleteOneID(id int) *GlobalSettingsDeleteOne {
+	builder := c.Delete().Where(globalsettings.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &GlobalSettingsDeleteOne{builder}
+}
+
+// Query returns a query builder for GlobalSettings.
+func (c *GlobalSettingsClient) Query() *GlobalSettingsQuery {
+	return &GlobalSettingsQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeGlobalSettings},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a GlobalSettings entity by its id.
+func (c *GlobalSettingsClient) Get(ctx context.Context, id int) (*GlobalSettings, error) {
+	return c.Query().Where(globalsettings.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *GlobalSettingsClient) GetX(ctx context.Context, id int) *GlobalSettings {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *GlobalSettingsClient) Hooks() []Hook {
+	return c.hooks.GlobalSettings
+}
+
+// Interceptors returns the client interceptors.
+func (c *GlobalSettingsClient) Interceptors() []Interceptor {
+	return c.inters.GlobalSettings
+}
+
+func (c *GlobalSettingsClient) mutate(ctx context.Context, m *GlobalSettingsMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&GlobalSettingsCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&GlobalSettingsUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&GlobalSettingsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&GlobalSettingsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown GlobalSettings mutation op: %q", m.Op())
 	}
 }
 
@@ -2920,15 +3204,15 @@ func (c *VirtualMtaGroupMemberClient) mutate(ctx context.Context, m *VirtualMtaG
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		AuditEntry, DkimIdentity, FeedbackReport, ListenerConfig, ListenerDomain,
-		LogEvent, MailClass, MetricSnapshot, PolicyHistory, Role, RoutingRule,
-		RuleCondition, RuleTarget, SuppressionEntry, User, VirtualMta, VirtualMtaGroup,
-		VirtualMtaGroupMember []ent.Hook
+		AuditEntry, DkimIdentity, DsnEvent, FeedbackReport, GlobalSettings,
+		ListenerConfig, ListenerDomain, LogEvent, MailClass, MetricSnapshot,
+		PolicyHistory, Role, RoutingRule, RuleCondition, RuleTarget, SuppressionEntry,
+		User, VirtualMta, VirtualMtaGroup, VirtualMtaGroupMember []ent.Hook
 	}
 	inters struct {
-		AuditEntry, DkimIdentity, FeedbackReport, ListenerConfig, ListenerDomain,
-		LogEvent, MailClass, MetricSnapshot, PolicyHistory, Role, RoutingRule,
-		RuleCondition, RuleTarget, SuppressionEntry, User, VirtualMta, VirtualMtaGroup,
-		VirtualMtaGroupMember []ent.Interceptor
+		AuditEntry, DkimIdentity, DsnEvent, FeedbackReport, GlobalSettings,
+		ListenerConfig, ListenerDomain, LogEvent, MailClass, MetricSnapshot,
+		PolicyHistory, Role, RoutingRule, RuleCondition, RuleTarget, SuppressionEntry,
+		User, VirtualMta, VirtualMtaGroup, VirtualMtaGroupMember []ent.Interceptor
 	}
 )

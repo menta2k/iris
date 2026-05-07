@@ -65,6 +65,26 @@ services:
       # Trade-off: a misbehaving destination can hold up retries for unrelated
       # domains routed through the same VMTA.
       IRIS_QUEUE_PER_VMTA: ${IRIS_QUEUE_PER_VMTA:-true}
+      # Async DSN ingestion.
+      #
+      # Two modes:
+      #   - Multi-domain (preferred for cross-org senders): list every
+      #     From: domain you send from in IRIS_BOUNCE_SENDER_DOMAINS. The
+      #     renderer derives "<prefix>.<sender>" per entry — each one
+      #     needs its own DNS MX + SPF (see deploy docs).
+      #   - Legacy single-domain: set IRIS_BOUNCE_DOMAIN to one bounce
+      #     hostname; every outbound funnels through it. Suitable when
+      #     all your senders share an organizational domain.
+      #
+      # Setting both at once: multi mode wins; legacy fallback is ignored.
+      # Setting neither: pipeline disabled (no rewrite, no catcher).
+      IRIS_BOUNCE_SENDER_DOMAINS: ${IRIS_BOUNCE_SENDER_DOMAINS:-}
+      IRIS_BOUNCE_DOMAIN_PREFIX:  ${IRIS_BOUNCE_DOMAIN_PREFIX:-bounces}
+      IRIS_BOUNCE_DOMAIN:         ${IRIS_BOUNCE_DOMAIN:-bounces.iris.test}
+      # Secret-prefix HMAC key for VERP token validation. NEVER use the
+      # dev default in production — operators must inject from a secret
+      # manager.
+      IRIS_VERP_SECRET: ${IRIS_VERP_SECRET:-dev-only-verp-secret-please-change-32+}
       # Redis-stream consumer: kumomta XADDs log records here, admin-service
       # XREADGROUPs them and persists into log_event + feedback_report.
       # The renderer also picks this URL up via GlobalSettings to emit the

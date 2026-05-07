@@ -150,6 +150,62 @@ export const logsApi = {
     requestClient.get<ListResponse<LogEntry>>('/v1/logs', { params }),
 };
 
+// ─── DSNs (async bounces) ────────────────────────────────────────────────────
+export interface DsnEntry {
+  id: string;
+  received_at: string;
+  verp_token?: string;
+  message_id_ref?: string;
+  original_recipient?: string;
+  final_recipient?: string;
+  action?: string;
+  status?: string;
+  status_class?: string;
+  diagnostic_code?: string;
+  remote_mta?: string;
+  category?: string;
+  mail_class?: string;
+  tenant?: string;
+  campaign?: string;
+  raw_size?: number;
+  extra_json?: string;
+}
+
+export interface DsnsListParams extends ListParams {
+  category?: string;
+  status_class?: string;
+  status?: string;
+  recipient?: string;
+  mail_class?: string;
+  message_id?: string;
+  since?: string;
+  until?: string;
+}
+
+export const dsnsApi = {
+  list: (params?: DsnsListParams) =>
+    requestClient.get<ListResponse<DsnEntry>>('/v1/dsns', { params }),
+};
+
+// ─── Global Settings ─────────────────────────────────────────────────────────
+export interface GlobalSettings {
+  kumo_http_listen: string;
+  esmtp_relay_hosts: string[];
+  http_trusted_hosts: string[];
+  bounce_domain: string;
+  bounce_sender_domains: string[];
+  bounce_prefix: string;
+  mail_class_header: string;
+  updated_at?: string;
+  updated_by?: string;
+}
+
+export const globalSettingsApi = {
+  get: () => requestClient.get<GlobalSettings>('/v1/global-settings'),
+  update: (input: GlobalSettings) =>
+    requestClient.put<GlobalSettings>('/v1/global-settings', input),
+};
+
 // ─── Feedback ────────────────────────────────────────────────────────────────
 export interface FeedbackReport {
   id: string;

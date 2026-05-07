@@ -543,6 +543,86 @@ func registerLogs(hs *kratoshttp.Server, s *service.LogService) {
 	})
 }
 
+// --- /v1/dsns --------------------------------------------------------------
+
+type httpDsnItem struct {
+	ID                int64     `json:"id,string"`
+	ReceivedAt        time.Time `json:"received_at"`
+	VerpToken         string    `json:"verp_token,omitempty"`
+	MessageIDRef      string    `json:"message_id_ref,omitempty"`
+	OriginalRecipient string    `json:"original_recipient,omitempty"`
+	FinalRecipient    string    `json:"final_recipient,omitempty"`
+	Action            string    `json:"action,omitempty"`
+	Status            string    `json:"status,omitempty"`
+	StatusClass       string    `json:"status_class,omitempty"`
+	DiagnosticCode    string    `json:"diagnostic_code,omitempty"`
+	RemoteMTA         string    `json:"remote_mta,omitempty"`
+	Category          string    `json:"category,omitempty"`
+	MailClass         string    `json:"mail_class,omitempty"`
+	Tenant            string    `json:"tenant,omitempty"`
+	Campaign          string    `json:"campaign,omitempty"`
+	RawSize           int32     `json:"raw_size,omitempty"`
+	ExtraJSON         string    `json:"extra_json,omitempty"`
+}
+
+type httpDsnListResp struct {
+	Items []httpDsnItem `json:"items"`
+	Total uint32        `json:"total"`
+}
+
+func registerDsns(hs *kratoshttp.Server, s *service.DsnService) {
+	hs.HandleFunc("/v1/dsns", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			writeErr(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "use GET")
+			return
+		}
+		q := r.URL.Query()
+		limit, offset := paginationParams(r, 200, 1000)
+		f := service.DsnFilter{
+			Category:    strings.TrimSpace(q.Get("category")),
+			StatusClass: strings.TrimSpace(q.Get("status_class")),
+			Status:      strings.TrimSpace(q.Get("status")),
+			Recipient:   strings.TrimSpace(q.Get("recipient")),
+			MailClass:   strings.TrimSpace(q.Get("mail_class")),
+			MessageID:   strings.TrimSpace(q.Get("message_id")),
+		}
+		// Time-range parsing matches /v1/logs: RFC3339, malformed values
+		// silently ignored so a busted URL doesn't 400 the page.
+		if v := strings.TrimSpace(q.Get("since")); v != "" {
+			if t, err := time.Parse(time.RFC3339, v); err == nil {
+				f.Since = t
+			}
+		}
+		if v := strings.TrimSpace(q.Get("until")); v != "" {
+			if t, err := time.Parse(time.RFC3339, v); err == nil {
+				f.Until = t
+			}
+		}
+		rows, total, err := s.List(r.Context(), f, limit, offset)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, "LIST_FAILED", err.Error())
+			return
+		}
+		items := make([]httpDsnItem, 0, len(rows))
+		for _, e := range rows {
+			items = append(items, httpDsnItem{
+				ID: e.ID, ReceivedAt: e.ReceivedAt,
+				VerpToken: e.VerpToken, MessageIDRef: e.MessageIDRef,
+				OriginalRecipient: e.OriginalRecipient,
+				FinalRecipient:    e.FinalRecipient,
+				Action:            e.Action, Status: e.Status,
+				StatusClass:    e.StatusClass,
+				DiagnosticCode: e.DiagnosticCode, RemoteMTA: e.RemoteMTA,
+				Category:  e.Category,
+				MailClass: e.MailClass, Tenant: e.Tenant, Campaign: e.Campaign,
+				RawSize:   e.RawSize,
+				ExtraJSON: e.ExtraJSON,
+			})
+		}
+		writeJSON(w, http.StatusOK, httpDsnListResp{Items: items, Total: total})
+	})
+}
+
 // --- /v1/policy ------------------------------------------------------------
 
 type httpPolicyRenderResp struct {

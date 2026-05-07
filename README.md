@@ -32,6 +32,7 @@ instead of doing all three.**
 | **DKIM** | Generate (Ed25519 / RSA-2048 / RSA-4096) **or import** existing PEM keys. Rotation is one click. |
 | **Suppression list at scale** | Redis-backed hot-path lookup with a `kumo.memoize` cache. Adding the 8 millionth entry doesn't slow down policy renders or messages. |
 | **Inbound feedback loop (ARF)** | Parses [RFC 5965] complaint reports, auto-suppresses the complainant. Nothing for you to do. |
+| **Async bounce handling (DSN)** | Inbound [RFC 3464] DSNs are accepted at one or more configurable bounce subdomains (multi-domain mode handles cross-org senders), parsed, classified into 14 stable categories, and correlated to the originating send via VERP. Hard bounces auto-suppress; soft bounces suppress after a configurable threshold. Browse them at `/observability/dsns`. |
 | **Audit trail** | Every admin operation gets a row: actor, IP, status, duration. Compliance auditors stop bothering you. |
 | **Prometheus metrics** | `/metrics` on a dedicated listener (default `127.0.0.1:9090`). Per-event-type counters, processing-time histogram, stream-pending gauge, suppression-index size, kumomta-admin-call latency, build info. |
 | **Live dashboard** | `/analytics` page reads from a Prometheus-backed admin API: 6 summary cards (delivery rate, bounce rate, stream backlog, suppressions, policy applies), a 1h/6h/24h/7d event-rate chart, and per-mail-class volume table. Auto-refreshes every 15s. |
@@ -39,6 +40,7 @@ instead of doing all three.**
 | **One static binary** | `go:embed` puts the Vue SPA inside the binary. One process, one port, one container. |
 
 [RFC 5965]: https://datatracker.ietf.org/doc/html/rfc5965
+[RFC 3464]: https://datatracker.ietf.org/doc/html/rfc3464
 
 ---
 
@@ -64,6 +66,23 @@ submission's timeline**:
 So Gmail throttled you for ~3 minutes, then your retry succeeded.
 Now you know it's a Gmail-side issue, not yours, and you can go
 back to sleep.
+
+### "Are we sending to dead addresses?"
+
+Open the **Bounces** page (`/observability/dsns`). Filter `category =
+unknown_user`, `time = last 7 days`. You're looking at the recipients
+that bounced with a 5.1.1 — mailbox doesn't exist. Each one's already
+been auto-added to the suppression list, so you're not bouncing them
+again; the question is whether your acquisition pipeline is producing
+junk addresses.
+
+Click the `message_id` on any row to pivot to **Logs** filtered to that
+single submission's timeline (Reception → final Bounce). Click *Details*
+for the raw RFC 3464 fields and the bounce sender's diagnostic.
+
+The same workflow with `category = reputation_block` tells you when
+some receiver is starting to flag your IP/domain as spam — a signal
+worth catching before it becomes a delivery cliff.
 
 ### "We need a dedicated IP pool for the new transactional class"
 
@@ -242,6 +261,431 @@ Add the proxy's public hostname to `server.cors.origins` in
 
 ---
 
+## Bounce / DSN setup
+
+Async bounce ingestion + auto-suppression is **opt-in**. Without
+`IRIS_BOUNCE_DOMAIN`, the renderer doesn't emit the inbound catcher or
+the outbound VERP rewrite, the dsn-stream consumer logs `disabled` at
+boot, and the `/observability/dsns` page renders empty.
+
+> Synchronous bounces (5xx during the SMTP transaction) already work
+> without any of this — they flow through the existing log-stream
+> consumer as `Bounce` events on `/observability/logs`. This setup is
+> purely for the *async* case: receiver accepted at SMTP, then later
+> sent a [multipart/report][rfc3464] back as inbound mail.
+
+### Prerequisites
+
+Before you start you'll need:
+
+- A **DNS zone** you control for the parent sending domain (you'll
+  add records to a subdomain).
+- **Inbound :25 connectivity** to the host running kumomta. If your
+  cloud provider blocks inbound :25 (rare for outbound-blocked, but
+  some firewalls do both), DSNs will simply never reach you. Confirm
+  with `nc -vz <kumomta-host> 25` from off-network.
+- A **VMTA + sender domain that's already DKIM-signed** by iris. The
+  renderer's hook order guarantees DKIM runs against the *original*
+  sender domain *before* VERP rewrites the envelope, but the DKIM key
+  has to exist — generate or import on the **DKIM** page first.
+- The **log-stream Redis** (`IRIS_LOGSTREAM_REDIS_URL`) and the
+  **TimescaleDB** instance the rest of iris uses. The DSN pipeline
+  reuses both — there's no separate Redis or new schema beyond the
+  `dsn_event` hypertable that ent + the migration in
+  `sql/0005_dsn_event_hypertable.sql` create on first boot.
+
+### 1. Pick a mode and a bounce subdomain shape
+
+The bounce pipeline has two modes. Pick the one that matches your
+sending topology:
+
+#### Single-domain mode — one organizational domain
+
+You send from `news@example.com`, `alerts@app.example.com`,
+`team@docs.example.com`. All of them share `example.com` as the
+organizational domain, so one bounce subdomain at the org level
+satisfies DMARC-relaxed alignment for everyone.
+
+```bash
+IRIS_BOUNCE_DOMAIN=bounces.example.com
+# IRIS_BOUNCE_SENDER_DOMAINS unset
+```
+
+The renderer rewrites MAIL FROM to `b+TOKEN@bounces.example.com` on
+every outbound, regardless of which subdomain the From: came from.
+Cheapest setup: one MX record, one SPF record.
+
+#### Multi-domain mode — cross-organizational sending
+
+You send from `news@test-1.com` *and* `sender@test2.com`. These are
+different organizational domains, so a single bounce subdomain
+can't align with both — Gmail would tag one of them with "via". The
+fix is one bounce subdomain *per* sender, derived by convention:
+
+```bash
+IRIS_BOUNCE_SENDER_DOMAINS=test-1.com,test2.com
+IRIS_BOUNCE_DOMAIN_PREFIX=bounces   # default; override only if your DNS already uses a different label
+# IRIS_BOUNCE_DOMAIN may be left set as a single-domain fallback,
+# but multi-mode wins when both are configured.
+```
+
+The renderer derives:
+
+| From: domain | Rewritten MAIL FROM |
+|---|---|
+| `news@test-1.com` | `b+TOKEN@bounces.test-1.com` |
+| `sender@test2.com` | `b+TOKEN@bounces.test2.com` |
+| anything else (sender not in the list) | left unrewritten — better than producing an unaligned MAIL FROM for an unmanaged domain |
+
+DKIM still signs with the From-domain key (configured on the **DKIM**
+page). Hook order in the rendered Lua guarantees DKIM runs *before*
+VERP rewrites the envelope.
+
+> Quick decision rule: if `dig +short SOA` for any two of your sending
+> domains returns different SOAs, you're cross-org → use multi-domain
+> mode.
+
+**Don't** use a completely unrelated bounce domain (`bounces-randomname.io`)
+in single-domain mode — every Gmail message will carry a "via
+bounces-randomname.io" tag, because DMARC's relaxed-alignment rule
+treats only same-organization domains as aligned.
+
+### 2. DNS records
+
+Each bounce subdomain (one in single-domain mode, N in multi-domain
+mode) needs an MX and an SPF record. Examples in BIND zone syntax;
+adapt verbatim to your DNS provider's UI.
+
+#### Single-domain mode
+
+```dns
+;; Where receivers should send DSNs. Point at the host running kumomta.
+;; If your kumomta runs behind NAT, use the publicly-resolvable name.
+bounces.example.com.   IN MX   10 mx.your-kumomta-host.example.com.
+
+;; SPF on the *bounce subdomain* — this is what makes DMARC-relaxed
+;; alignment pass for outbound mail. List the IPs your kumomta sends
+;; from. Use -all (hard fail) once you've verified everything works;
+;; ~all (soft fail) is fine while you're testing.
+bounces.example.com.   IN TXT  "v=spf1 ip4:203.0.113.10 ip4:203.0.113.11 -all"
+
+;; Optional but recommended: explicit MX hostname A/AAAA so receivers
+;; don't fall back to the bounce subdomain's address record.
+mx.your-kumomta-host.example.com.   IN A    203.0.113.10
+mx.your-kumomta-host.example.com.   IN AAAA 2001:db8::10
+```
+
+#### Multi-domain mode
+
+Repeat the MX + SPF pair for **every** sender domain. They all point
+at the same kumomta host — receivers route DSNs to the right MX
+based on the bounce subdomain in the recipient address.
+
+```dns
+;; First sending domain
+bounces.test-1.com.   IN MX   10 mx.your-kumomta-host.example.com.
+bounces.test-1.com.   IN TXT  "v=spf1 ip4:203.0.113.10 ip4:203.0.113.11 -all"
+
+;; Second sending domain — same MX target, separate SPF copy on its own zone
+bounces.test2.com.    IN MX   10 mx.your-kumomta-host.example.com.
+bounces.test2.com.    IN TXT  "v=spf1 ip4:203.0.113.10 ip4:203.0.113.11 -all"
+
+;; Shared MX hostname (one A/AAAA pair, served from your operator zone)
+mx.your-kumomta-host.example.com.   IN A    203.0.113.10
+mx.your-kumomta-host.example.com.   IN AAAA 2001:db8::10
+```
+
+Each sender's parent zone (`test-1.com`, `test2.com`) needs the
+records added — usually a different DNS provider per zone if the
+domains belong to different teams. Iris doesn't manage DNS; this is
+a one-time per-domain setup that mirrors what any ESP does for
+their customers.
+
+**Verification** (from anywhere). In multi-domain mode, run the
+first three checks for **every** bounce subdomain you configured.
+
+```bash
+# 1. MX resolves
+dig +short MX bounces.example.com         # single-domain
+dig +short MX bounces.test-1.com          # multi-domain — repeat per sender
+dig +short MX bounces.test2.com
+#   each → 10 mx.your-kumomta-host.example.com.
+
+# 2. SPF is in place and correct (runs against EACH bounce subdomain
+#    because that's where receivers do the SPF lookup).
+dig +short TXT bounces.test-1.com
+dig +short TXT bounces.test2.com
+#   each → "v=spf1 ip4:203.0.113.10 ip4:203.0.113.11 -all"
+
+# 3. The MX target has reverse DNS that matches its forward record
+#    (most receivers refuse SMTP from hosts without consistent rDNS).
+dig +short -x 203.0.113.10
+#   → mx.your-kumomta-host.example.com.
+
+# 4. :25 is reachable (run from off-network, NOT from the host itself)
+nc -vz mx.your-kumomta-host.example.com 25
+```
+
+**On parent-domain records:** you don't need to change anything on
+`example.com` itself. DKIM continues to sign with the parent-domain
+selector (operators set this on the **DKIM** page); the renderer's
+outbound hook signs with that key *before* rewriting MAIL FROM, so
+receivers see DKIM-passing mail with `d=example.com` and
+SPF-passing mail authenticated against `bounces.example.com`. Both
+align with the From domain under DMARC's relaxed mode.
+
+**On DMARC:** if you publish a DMARC record on the parent
+(`_dmarc.example.com`), make sure its `aspf=` is `r` (relaxed,
+default) not `s` (strict). With strict alignment, DMARC requires the
+SPF domain to *exactly* match the From domain, which a bounce
+subdomain by definition won't satisfy.
+
+### 3. Generate a VERP secret and configure iris
+
+The VERP secret is what makes the inbound catcher able to verify that
+a DSN's local-part really came from your outbound. Generate something
+strong, store it in your secret manager, and inject it as an env var
+on the admin-service binary.
+
+```bash
+# 32 random bytes (64 hex chars) is plenty.
+IRIS_VERP_SECRET=$(openssl rand -hex 32)
+echo "$IRIS_VERP_SECRET"   # save this to your secret manager NOW
+```
+
+> **Don't commit the secret.** It's not a "is this token real" key
+> like JWT — it's the only thing standing between you and forged
+> bounces that auto-suppress arbitrary recipients. Treat it like
+> a database password.
+
+#### Docker Compose
+
+The compose file already declares the env vars with dev-friendly
+defaults; for local testing you can leave them as-is. For staging /
+prod, override via a `.env` file in the same directory as
+`docker-compose.yaml`:
+
+```bash
+# deploy/.env  (gitignored)
+IRIS_VERP_SECRET=<paste the openssl output here>
+
+# --- Pick ONE mode below ---
+
+# Single-domain mode (one organizational domain):
+IRIS_BOUNCE_DOMAIN=bounces.example.com
+
+# OR multi-domain mode (cross-org senders) — wins when both are set:
+# IRIS_BOUNCE_SENDER_DOMAINS=test-1.com,test2.com
+# IRIS_BOUNCE_DOMAIN_PREFIX=bounces        # optional, defaults to "bounces"
+
+# Optional — auto-suppression knobs (defaults are conservative)
+IRIS_BOUNCE_AUTO_SUPPRESS=true
+IRIS_SOFT_BOUNCE_THRESHOLD=3
+IRIS_SOFT_BOUNCE_WINDOW_HOURS=168
+```
+
+Then bring up the stack:
+
+```bash
+cd deploy
+make rebuild s=admin-service
+docker compose logs admin-service | grep -i dsn
+#   → dsnstream: starting consumer stream=kumo.dsns group=iris-dsn ...
+```
+
+#### Host-native systemd
+
+Add to your service unit's `EnvironmentFile=` target (typically
+`/etc/iris/iris.env`):
+
+```ini
+IRIS_VERP_SECRET=<paste from secret manager>
+
+# Single-domain mode:
+IRIS_BOUNCE_DOMAIN=bounces.example.com
+# OR multi-domain mode (cross-org senders):
+# IRIS_BOUNCE_SENDER_DOMAINS=test-1.com,test2.com
+# IRIS_BOUNCE_DOMAIN_PREFIX=bounces
+
+IRIS_BOUNCE_AUTO_SUPPRESS=true
+IRIS_SOFT_BOUNCE_THRESHOLD=3
+IRIS_SOFT_BOUNCE_WINDOW_HOURS=168
+```
+
+Then `systemctl restart iris-admin` and confirm:
+
+```bash
+journalctl -u iris-admin -n 50 | grep -i dsn
+```
+
+#### Kubernetes / scratch
+
+Wire `IRIS_VERP_SECRET` from a `Secret`, the rest from a `ConfigMap`.
+A minimal manifest fragment:
+
+```yaml
+env:
+  - name: IRIS_BOUNCE_DOMAIN
+    value: bounces.example.com
+  - name: IRIS_VERP_SECRET
+    valueFrom:
+      secretKeyRef: { name: iris-verp, key: secret }
+  - name: IRIS_BOUNCE_AUTO_SUPPRESS
+    value: "true"
+```
+
+### 4. Apply the rendered policy
+
+The new env vars only take effect when iris regenerates `init.lua` and
+kumomta reloads it. Two ways:
+
+**Via the UI** (recommended for first-timers — you can see what
+changed before pushing it live):
+
+1. Open `/policy/editor`.
+2. Click **Regenerate** — the Preview pane now shows the new
+   `init.lua`. Confirm these markers are present:
+   - `-- ===== bounce / DSN pipeline (mode: single-domain (legacy)) =====`
+     **or** `(mode: multi-domain) =====` — should match what you
+     configured.
+   - `local BOUNCE_DOMAINS = { ["bounces.example.com"] = true, … }`
+     — the catcher's accept-list. In multi mode you should see one
+     entry per sender domain.
+   - In multi mode only, `local BOUNCE_SENDER_TO_BOUNCE = { ["test-1.com"]
+     = "bounces.test-1.com", … }` — the per-sender lookup the outbound
+     hook uses.
+   - `kumo.on('make.dsn_xadd', function(...)` — the inbound catcher.
+   - `kumo.on('get_listener_domain', ...)` with `relay_to = true` for
+     every bounce subdomain.
+   - Inside the `smtp_client_message_sending` hook,
+     `msg:set_sender(string.format('b+%s.%s@%s', prefix, mid, bounce_dom))`
+     — the VERP rewrite, with `bounce_dom` looked up via
+     `BOUNCE_SENDER_TO_BOUNCE[from_dom]`.
+3. Click **Apply**. The SHA-256 of the active policy should change.
+
+**Via the API** (for automation):
+
+```bash
+# Render and inspect (no side effects)
+curl -sS http://localhost:8000/v1/policy/render | jq -r .lua | \
+  grep -E "BOUNCE_DOMAIN|make\.dsn_xadd|set_sender"
+
+# Apply
+curl -sS -X POST http://localhost:8000/v1/policy/apply \
+  -H 'Content-Type: application/json' \
+  -d '{"note":"enable bounce pipeline"}'
+#   → {"sha256":"...","applied_at":"..."}
+```
+
+KumoMTA hot-reloads on its 10-second epoch poll — give it ~10 seconds
+to pick up the change, or restart the kumomta process for instant
+effect.
+
+### 5. End-to-end verification
+
+#### Outbound — confirm MAIL FROM is being VERP'd
+
+Send any test message through your kumomta and watch the SMTP
+transaction. The clearest signal is the kumomta log:
+
+```bash
+# Send a test
+swaks --to test@your-other-mailbox.example.com \
+      --from sender@example.com \
+      --server localhost:2525 \
+      --header "Subject: verp test"
+
+# Watch the kumomta dispatch log for the rewritten envelope
+docker logs iris-kumomta 2>&1 | grep -E "MAIL FROM" | tail -5
+#   → MAIL FROM:<b+a3f8b9d2c1e7f4a6.cd7b9a40e3@bounces.example.com>
+```
+
+Confirm the receiver's `Return-Path:` header in the delivered message
+matches what you sent. View source on the message:
+
+```
+Return-Path: <b+a3f8b9d2c1e7f4a6.cd7b9a40e3@bounces.example.com>
+```
+
+If you see your unrewritten `From:` address as the Return-Path, the
+hook didn't fire — re-check that you applied the policy and that
+`IRIS_BOUNCE_DOMAIN` was set when the admin-service started.
+
+#### Inbound — confirm DSNs land in `dsn_event`
+
+The cleanest test is to send a real bounce: address a message to
+something that doesn't exist on a receiver you control (e.g.
+`nobody-real@your-other-domain.example`), wait for the DSN to come
+back. Or synthesise one — a complete RFC 3464 sample is in
+`backend/pkg/dsnstream/parse_test.go` (`sampleDSNGmail`).
+
+```bash
+# Using the sample as a starting point — generate a VERP token for a
+# fake message_id, then deliver as a DSN to your kumomta. The format
+# is "<hex16>.<message_id>" where hex16 is the first 8 bytes of
+# HMAC-SHA256(secret, message_id), lowercase hex.
+MSGID="abc12345deadbeef"
+HMAC16=$(printf '%s' "$MSGID" \
+  | openssl dgst -sha256 -mac HMAC -macopt key:"$IRIS_VERP_SECRET" -hex \
+  | awk '{print $NF}' \
+  | cut -c1-16)
+ENV_RCPT="b+${HMAC16}.${MSGID}@bounces.example.com"
+echo "Envelope recipient: $ENV_RCPT"
+
+# Deliver via swaks. Use --data with a multipart/report body.
+swaks --to "$ENV_RCPT" --from "<>" \
+      --server localhost:2525 \
+      --data path/to/sample-dsn.eml
+
+# Confirm the row landed
+psql -d iris -c "
+  SELECT received_at, action, status, category, mail_class, final_recipient
+  FROM dsn_event
+  ORDER BY received_at DESC
+  LIMIT 5;"
+#   → action=failed, status=5.1.1, category=unknown_user, mail_class=marketing
+```
+
+#### Auto-suppression — confirm hard bounces become suppressions
+
+```bash
+psql -d iris -c "
+  SELECT address, reason, note, created_at
+  FROM suppression_entries
+  WHERE reason IN ('hard_bounce','soft_bounce','expired')
+  ORDER BY created_at DESC
+  LIMIT 10;"
+#   → address=alice@external.test, reason=hard_bounce,
+#     note='status=5.1.1 | category=unknown_user | diag=smtp; 550 ...'
+```
+
+Then load `/observability/dsns` in the UI. The row you just inserted
+should appear with the right colour-coded category, the message_id
+should be a clickable link to the Logs page, and **Details** should
+open a modal showing the parsed structure plus the embedded headers.
+
+### 6. Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| `dsnstream: disabled` at boot | Both `IRIS_BOUNCE_DOMAIN` *and* `IRIS_BOUNCE_SENDER_DOMAINS` are empty, or `IRIS_LOGSTREAM_REDIS_URL` is unset | Set one of the bounce-config vars plus the Redis URL. The DSN pipeline shares Redis with the log-stream consumer. |
+| Render fails with a VERP-secret error | `IRIS_VERP_SECRET` is empty or under 16 bytes | Generate a new one with `openssl rand -hex 32`. |
+| KumoMTA rejects the rendered policy with `unknown field 'require_tls'` | You're running an older renderer — this was removed when the bounce-domain listener-domain rule was added | Pull latest, redeploy admin-service. |
+| Outbound mail still has the original From: as Return-Path | Policy hasn't been re-applied since you set the bounce vars, OR the From: domain isn't in `IRIS_BOUNCE_SENDER_DOMAINS` (multi mode) | UI → Policy Editor → Apply, or POST `/v1/policy/apply`. Wait 10s for kumomta to hot-reload. In multi mode, only senders explicitly listed get rewritten; everything else passes through unchanged. |
+| One sender's outbound rewrites correctly, another doesn't | (Multi mode) The "broken" sender domain isn't in `IRIS_BOUNCE_SENDER_DOMAINS`, OR the lookup failed because of casing in operator config (env reader lowercases; if you set the value programmatically, do too) | Add the missing domain to the list, re-apply policy. Inspect the rendered Lua's `BOUNCE_SENDER_TO_BOUNCE` table — it should contain a lowercase key for every From: domain. |
+| DSNs reach the bounce domain but `dsn_event` stays empty | `XADD` to `kumo.dsns` is failing — usually a Redis connectivity issue | `docker exec iris-kumomta redis-cli -h redis ping` (or whatever your topology is). Check kumomta logs for `dsn: xadd failed`. |
+| KumoMTA rejects DSNs at the bounce subdomain with 5xx | (Multi mode) That subdomain isn't in the rendered listener-domain map | Confirm the sender domain appears in `IRIS_BOUNCE_SENDER_DOMAINS`; re-apply policy; inspect `BOUNCE_DOMAINS` in the active Lua. |
+| Rows appear in `dsn_event` but `message_id_ref` is empty | VERP token didn't validate. Either the secret rotated since the message was sent, or a receiver mangled MAIL FROM | The fallback (embedded `Message-ID` from the original) usually still populates it. If both are empty, the DSN was probably backscatter — verify by inspecting `extra_json.envelope_recipient`. |
+| Hard bounces aren't auto-suppressing | `IRIS_BOUNCE_AUTO_SUPPRESS=false`, or an existing higher-severity row already exists for that address | Check the existing suppression's reason: operator-set (`manual`, `complaint`) wins over auto. |
+| Gmail shows "via bounces.something" on every message | Bounce domain isn't a subdomain of the From: domain (single-domain mode used for cross-org senders), OR DMARC has `aspf=s` (strict) | Switch to multi-domain mode (`IRIS_BOUNCE_SENDER_DOMAINS`); switch DMARC to `aspf=r` (relaxed, the default). |
+| Receivers reject outbound mail at MAIL FROM with SPF failure | SPF on one of the bounce subdomains isn't published or doesn't include your sending IP | (Multi mode) Run the SPF `dig` for *each* sender domain — easy to miss one. Verify the sending IP is listed in every record. |
+
+If something else breaks: the consumer logs verbosely under
+`dsnstream: …` and parse failures land in the `kumo.dsns.dlq` Redis
+stream (`XRANGE kumo.dsns.dlq - +` to inspect).
+
+---
+
 ## Architecture
 
 ```
@@ -312,6 +756,17 @@ Every knob is an env var on the admin-service binary:
 | `IRIS_LOGSTREAM_GROUP` | `kumo-ui-tracker` | consumer group |
 | `IRIS_LOGSTREAM_WORKERS` | `4` | parallel consumers |
 | `IRIS_MAIL_CLASS_HEADER` | `X-Kumo-Mail-Class` | header inspected for the mail-class router |
+| `IRIS_BOUNCE_DOMAIN` | *(unset → legacy single-domain mode disabled)* | **Single-domain mode**: one bounce hostname (e.g. `bounces.example.com`) every outbound funnels through. Use only when all your sending domains share an organizational domain so DMARC's relaxed alignment treats one bounce subdomain as aligned with all of them. Ignored when `IRIS_BOUNCE_SENDER_DOMAINS` is set. |
+| `IRIS_BOUNCE_SENDER_DOMAINS` | *(unset)* | **Multi-domain mode**: comma-separated list of From: domains this kumomta hosts (`test-1.com,test2.com,…`). The renderer derives one bounce subdomain per entry by the convention `<prefix>.<sender>` and rewrites MAIL FROM per-message to the aligned subdomain. Required when sending from cross-org domains. Operator must publish DNS MX + SPF for *each* derived bounce subdomain — see *Bounce / DSN setup* below. Multi-mode wins when both this and `IRIS_BOUNCE_DOMAIN` are set. |
+| `IRIS_BOUNCE_DOMAIN_PREFIX` | `bounces` | Leading label prepended to each `IRIS_BOUNCE_SENDER_DOMAINS` entry. Override only if your DNS scheme already uses a different prefix (e.g. `rcpt`, `mailer`). Lower-cased on use. |
+| `IRIS_VERP_SECRET` | *(required when bounce domain is set)* | HMAC-SHA256 key used to sign and verify VERP tokens. Must be ≥16 bytes; the renderer refuses to emit the rewrite hook with a shorter key. **Never log this value.** |
+| `IRIS_DSNSTREAM_NAME` | `kumo.dsns` | Redis Streams key the DSN catcher XADDs to and the iris consumer reads from |
+| `IRIS_DSNSTREAM_GROUP` | `iris-dsn` | consumer group |
+| `IRIS_DSNSTREAM_WORKERS` | `2` | parallel DSN consumers (lower than logstream — bounces are far less bursty) |
+| `IRIS_BOUNCE_AUTO_SUPPRESS` | `true` | set `false` to stop adding bounces to the suppression list automatically; the dsn_event table still populates so the Bounces UI is unaffected |
+| `IRIS_SOFT_BOUNCE_THRESHOLD` | `3` | how many soft (4.x.x) bounces a recipient can accumulate within the window before iris suppresses them |
+| `IRIS_SOFT_BOUNCE_WINDOW_HOURS` | `168` (7d) | sliding window for the soft-bounce threshold |
+| `IRIS_BOUNCE_TOKEN_TTL` | `720h` (30d) | reserved — DSNs older than this should be treated as backscatter (not yet enforced; see roadmap) |
 | `IRIS_METRICS_LISTEN` | `127.0.0.1:9090` | bind for the Prometheus `/metrics` listener; set to `off` to disable, or to `0.0.0.0:9090` when behind a reverse proxy / Docker port-forward |
 | `IRIS_PROMETHEUS_URL` | *(unset → /v1/dashboard/* return 503)* | base URL of a Prometheus instance the admin-service queries on the operator UI's behalf for the `/analytics` dashboard. In compose: `http://prometheus:9090`. |
 | `IRIS_AUTH_ACCESS_SECRET` / `_REFRESH_SECRET` | *(refused if placeholder)* | JWT HS512 secrets — the binary refuses to start with the shipped placeholder values |
@@ -353,6 +808,64 @@ The Redis-indexed approach is what makes a 10M+ list practical:
 When to upgrade to a bloom filter (interface is already factored
 to allow it): Redis SISMEMBER p99 > 5 ms, sustained > 5K msg/s, or
 list crosses ~50M entries.
+
+### Async bounce pipeline (DSN handling)
+
+Synchronous bounces — receiver returns a 5xx during the SMTP transaction —
+already flow through the existing log-stream consumer as `Bounce` events.
+The DSN pipeline handles the asynchronous case: receiver accepted the
+message at the SMTP layer, then *later* could not deliver and sent a
+[multipart/report][rfc3464] back as inbound mail.
+
+Three things have to be true for the loop to close cleanly:
+
+1. **The bounce reaches us.** `IRIS_BOUNCE_DOMAIN` (single-domain) or
+   `IRIS_BOUNCE_SENDER_DOMAINS` (multi-domain) configures one or more
+   bounce subdomains. The renderer emits a `get_listener_domain` rule
+   that accepts mail for each one, and a `make.dsn_xadd` custom_lua
+   queue constructor that XADDs the raw RFC 822 onto a Redis stream.
+   Multi-domain mode is what makes cross-org sending work — each
+   sender's bounces flow back to a DMARC-aligned subdomain
+   (`bounces.<sender>`), all funnel into the same Redis stream and
+   `dsn_event` table downstream.
+2. **We can match the bounce to the original send.** The renderer also
+   emits an outbound `smtp_client_message_sending` hook that rewrites
+   `MAIL FROM` to a VERP token: `b+<hex16>.<message_id>@<bounce_domain>`,
+   where `hex16` is the first 8 bytes of `HMAC-SHA256(IRIS_VERP_SECRET,
+   message_id)`. When the DSN comes back, the catcher writes the
+   envelope-recipient to Redis and the consumer parses out the token,
+   validates the HMAC, and recovers the `message_id` for correlation.
+   The Lua emitter and the Go verifier (`pkg/verp`) share a pinned test
+   vector so a future drift is caught at build time.
+3. **We do something useful with it.** The consumer (`pkg/dsnstream`)
+   parses the multipart/report per RFC 3464, classifies the
+   enhanced-status code into one of 14 stable buckets via
+   `pkg/bounceclass` (e.g. `unknown_user`, `mailbox_full`,
+   `policy_block`, `reputation_block`, `auth_failed`, …), denormalises
+   `mail_class` / `tenant` / `campaign` from the originating LogEvent,
+   and persists into the `dsn_event` TimescaleDB hypertable.
+   Auto-suppression then runs: hard bounce (5.x.x) → suppress with
+   reason `hard_bounce`; soft bounce (4.x.x) → suppress only after
+   `IRIS_SOFT_BOUNCE_THRESHOLD` accumulate within
+   `IRIS_SOFT_BOUNCE_WINDOW_HOURS`; `Action: expired` (kumomta gave up
+   after retry exhaustion) → suppress as `expired`. Operator-set
+   suppressions (`manual`, `complaint`) are protected by a severity
+   ladder so automation never silently overrides them.
+
+If a DSN arrives without a valid VERP token (older sends, shared
+bounce mailbox, intermediary stripped MAIL FROM), the parser falls
+back to the embedded `Message-ID` from the `message/rfc822`
+sub-part — and from there to the `X-Kumo-Mail-Class` header on the
+embedded original — so even partially-formed bounces still get
+classified.
+
+DKIM signing happens in the same `smtp_client_message_sending` hook,
+ordered *before* the VERP rewrite so the signature is computed against
+the original sender domain. SPF on the bounce subdomain plus DMARC's
+relaxed alignment is what keeps Gmail from showing the
+"via bounces.example.com" indicator on every message.
+
+[rfc3464]: https://datatracker.ietf.org/doc/html/rfc3464
 
 ### Single-binary build
 
@@ -604,6 +1117,16 @@ flip to public in the GitHub UI if you want world-readable pulls.
   `add_retention_policy`).
 - IP warm-up workflows (declarative ramp curves, automated
   daily-volume checks against actuals).
+- Bounce-pipeline TTL enforcement (`IRIS_BOUNCE_TOKEN_TTL`) — drop
+  DSNs whose VERP token is older than the configured horizon.
+- Per-mail-class auto-suppression overrides — let operators pick
+  tighter thresholds for transactional vs marketing classes from
+  the UI rather than env.
+- Bounce dashboard tile on `/analytics`: bounce rate stratified
+  by mail class (and, in multi-domain mode, by sender domain) with
+  a sparkline.
+- Move `IRIS_BOUNCE_SENDER_DOMAINS` from env to a UI-managed table
+  so adding a new sending domain is a click rather than a redeploy.
 
 ---
 

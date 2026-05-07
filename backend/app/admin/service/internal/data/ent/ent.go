@@ -14,7 +14,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/auditentry"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/dkimidentity"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/dsnevent"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/feedbackreport"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/globalsettings"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/listenerconfig"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/listenerdomain"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/logevent"
@@ -92,7 +94,9 @@ func checkColumn(t, c string) error {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			auditentry.Table:            auditentry.ValidColumn,
 			dkimidentity.Table:          dkimidentity.ValidColumn,
+			dsnevent.Table:              dsnevent.ValidColumn,
 			feedbackreport.Table:        feedbackreport.ValidColumn,
+			globalsettings.Table:        globalsettings.ValidColumn,
 			listenerconfig.Table:        listenerconfig.ValidColumn,
 			listenerdomain.Table:        listenerdomain.ValidColumn,
 			logevent.Table:              logevent.ValidColumn,

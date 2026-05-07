@@ -16,8 +16,12 @@ type Tx struct {
 	AuditEntry *AuditEntryClient
 	// DkimIdentity is the client for interacting with the DkimIdentity builders.
 	DkimIdentity *DkimIdentityClient
+	// DsnEvent is the client for interacting with the DsnEvent builders.
+	DsnEvent *DsnEventClient
 	// FeedbackReport is the client for interacting with the FeedbackReport builders.
 	FeedbackReport *FeedbackReportClient
+	// GlobalSettings is the client for interacting with the GlobalSettings builders.
+	GlobalSettings *GlobalSettingsClient
 	// ListenerConfig is the client for interacting with the ListenerConfig builders.
 	ListenerConfig *ListenerConfigClient
 	// ListenerDomain is the client for interacting with the ListenerDomain builders.
@@ -181,7 +185,9 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.AuditEntry = NewAuditEntryClient(tx.config)
 	tx.DkimIdentity = NewDkimIdentityClient(tx.config)
+	tx.DsnEvent = NewDsnEventClient(tx.config)
 	tx.FeedbackReport = NewFeedbackReportClient(tx.config)
+	tx.GlobalSettings = NewGlobalSettingsClient(tx.config)
 	tx.ListenerConfig = NewListenerConfigClient(tx.config)
 	tx.ListenerDomain = NewListenerDomainClient(tx.config)
 	tx.LogEvent = NewLogEventClient(tx.config)

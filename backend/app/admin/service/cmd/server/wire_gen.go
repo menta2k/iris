@@ -42,14 +42,25 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	}
 	logstreamPersister := data.NewLogstreamPersister(client)
 	persister := providers.LogstreamPersisterIface(logstreamPersister)
-	metricsCollectors := providers3.NewMetrics()
-	logstreamServer, err := server.NewLogstreamServer(persister, metricsCollectors)
+	metrics := providers3.NewMetrics()
+	logstreamServer, err := server.NewLogstreamServer(persister, metrics)
 	if err != nil {
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	metricsServer := server.NewMetricsServer(metricsCollectors)
+	dsnstreamPersister := data.NewDsnstreamPersister(client)
+	persister2 := providers.DsnstreamPersisterIface(dsnstreamPersister)
+	dsnstreamServer, err := server.NewDsnstreamServer(persister2)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	suppressionRepo := data.NewSuppressionRepo(client)
+	index := providers3.NewSuppressionIndex(metrics)
+	suppressionResyncServer := server.NewSuppressionResyncServer(suppressionRepo, index)
+	metricsServer := server.NewMetricsServer(metrics)
 	userRepo := data.NewUserRepo(client)
 	userStore := providers3.AuthStoreFromUserRepo(userRepo)
 	issuer, err := providers3.NewJWTIssuer(context)
@@ -66,7 +77,7 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	auditReader := data.NewAuditReader(client)
 	auditStore := providers3.AuditStoreFromAuditReader(auditReader)
 	auditService := service.NewAuditService(auditStore)
-	kumomtaClient, err := providers3.NewKumomtaClient(context, metricsCollectors)
+	kumomtaClient, err := providers3.NewKumomtaClient(context, metrics)
 	if err != nil {
 		cleanup2()
 		cleanup()
@@ -74,11 +85,8 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	}
 	metricSnapshotWriter := providers3.NewMetricSnapshotWriter()
 	queueService := service.NewQueueService(kumomtaClient, metricSnapshotWriter)
-	suppressionRepo := data.NewSuppressionRepo(client)
 	suppressionStore := providers3.SuppressionStoreFromRepo(suppressionRepo)
-	suppressionIndex := providers3.NewSuppressionIndex(metricsCollectors)
-	suppressionService := service.NewSuppressionService(suppressionStore, suppressionIndex)
-	suppressionResyncServer := server.NewSuppressionResyncServer(suppressionRepo, suppressionIndex)
+	suppressionService := service.NewSuppressionService(suppressionStore, index)
 	vmtaRepo := data.NewVmtaRepo(client)
 	virtualMtaStore := providers3.VmtaStoreFromRepo(vmtaRepo)
 	virtualMtaService := service.NewVirtualMtaService(virtualMtaStore)
@@ -107,7 +115,7 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	policyHistoryWriter := providers3.PolicyHistoryFromRepo(policyHistoryRepo)
 	kumoReloader := providers3.KumoReloaderFromClient(kumomtaClient)
 	policyDir := providers3.NewPolicyDir()
-	policyService, err := providers3.NewPolicyServiceProvider(snapshotProvider, policyHistoryWriter, kumoReloader, policyDir, metricsCollectors)
+	policyService, err := providers3.NewPolicyServiceProvider(snapshotProvider, policyHistoryWriter, kumoReloader, policyDir, metrics)
 	if err != nil {
 		cleanup2()
 		cleanup()
@@ -119,10 +127,16 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	vmtaGroupRepo := data.NewVmtaGroupRepo(client)
 	vmtaGroupStore := providers3.VmtaGroupStoreFromRepo(vmtaGroupRepo)
 	vmtaGroupService := service.NewVmtaGroupService(vmtaGroupStore)
-	promQueryAPI := providers3.NewPromQueryAPI()
-	dashboardService := providers3.NewDashboardServiceProvider(promQueryAPI)
-	registered := providers2.RegisterServers(grpcServer, httpServer, authenticationGRPC, userService, auditService, queueService, suppressionService, virtualMtaService, routingService, dkimService, feedbackService, logService, policyService, mailClassService, vmtaGroupService, dashboardService, auditWriter)
-	app := newApp(context, httpServer, grpcServer, logstreamServer, suppressionResyncServer, metricsServer, registered)
+	api := providers3.NewPromQueryAPI()
+	dashboardService := providers3.NewDashboardServiceProvider(api)
+	dsnRepo := data.NewDsnRepo(client)
+	dsnStore := providers3.DsnStoreFromRepo(dsnRepo)
+	dsnService := service.NewDsnService(dsnStore)
+	globalSettingsRepo := data.NewGlobalSettingsRepo(client)
+	globalSettingsStore := providers3.GlobalSettingsStoreFromRepo(globalSettingsRepo)
+	globalSettingsService := service.NewGlobalSettingsService(globalSettingsStore)
+	registered := providers2.RegisterServers(grpcServer, httpServer, authenticationGRPC, userService, auditService, queueService, suppressionService, virtualMtaService, routingService, dkimService, feedbackService, logService, policyService, mailClassService, vmtaGroupService, dashboardService, dsnService, globalSettingsService, auditWriter)
+	app := newApp(context, httpServer, grpcServer, logstreamServer, dsnstreamServer, suppressionResyncServer, metricsServer, registered)
 	return app, func() {
 		cleanup2()
 		cleanup()

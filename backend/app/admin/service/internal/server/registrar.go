@@ -45,12 +45,14 @@ func RegisterServices(
 	mailClasses *service.MailClassService,
 	vmtaGroups *service.VmtaGroupService,
 	dashboard *service.DashboardService,
+	dsns *service.DsnService,
+	gsvc *service.GlobalSettingsService,
 	auditWrite auditmw.WriteFunc,
 ) {
 	registerAuthGRPC(gs, auth)
 	registerAuthHTTP(hs, auth, auditWrite)
 	RegisterAdminHTTP(hs, users, audit, auditWrite)
-	RegisterKumoHTTP(hs, queues, suppressions, vmtas, routing, dkim, feedback, logs, policy, mailClasses, vmtaGroups, dashboard, auditWrite)
+	RegisterKumoHTTP(hs, queues, suppressions, vmtas, routing, dkim, feedback, logs, policy, mailClasses, vmtaGroups, dashboard, dsns, gsvc, auditWrite)
 	// SPA: must be registered LAST so /v1/* and /api/v1/* matchers above
 	// take precedence. The fallback handler covers /, /assets/*, and
 	// every client-side route the Vue router resolves at runtime.
