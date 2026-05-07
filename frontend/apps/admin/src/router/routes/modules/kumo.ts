@@ -107,6 +107,12 @@ const routes: RouteRecordRaw[] = [
     },
     children: [
       {
+        name: 'GlobalSettings',
+        path: '/policy/global-settings',
+        component: () => import('#/views/kumo/global-settings/index.vue'),
+        meta: { icon: 'lucide:settings-2', title: 'Global Settings' },
+      },
+      {
         name: 'PolicyEditor',
         path: '/policy/editor',
         component: () => import('#/views/kumo/policy/index.vue'),
@@ -141,6 +147,12 @@ const routes: RouteRecordRaw[] = [
         path: '/observability/logs',
         component: () => import('#/views/kumo/logs/index.vue'),
         meta: { icon: 'lucide:scroll-text', title: 'Log Stream' },
+      },
+      {
+        name: 'Dsns',
+        path: '/observability/dsns',
+        component: () => import('#/views/kumo/dsns/index.vue'),
+        meta: { icon: 'lucide:mail-x', title: 'Bounces' },
       },
       {
         name: 'AuditLog',

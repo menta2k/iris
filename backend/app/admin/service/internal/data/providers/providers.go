@@ -5,6 +5,7 @@ import (
 	"github.com/google/wire"
 
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data"
+	"github.com/menta2k/iris/backend/pkg/dsnstream"
 	"github.com/menta2k/iris/backend/pkg/logstream"
 )
 
@@ -24,18 +25,26 @@ var ProviderSet = wire.NewSet(
 	data.NewDkimRepo,
 	data.NewFeedbackRepo,
 	data.NewLogRepo,
+	data.NewDsnRepo,
+	data.NewGlobalSettingsRepo,
 	data.NewSnapshotRepo,
 	data.NewPolicyHistoryRepo,
 	data.NewMailClassRepo,
 	data.NewVmtaGroupRepo,
 	data.NewLogstreamPersister,
+	data.NewDsnstreamPersister,
 	AuditPersisterFromEnt,
 	LogstreamPersisterIface,
+	DsnstreamPersisterIface,
 )
 
 // LogstreamPersisterIface binds *data.LogstreamPersister to the
 // logstream.Persister interface so wire can satisfy NewLogstreamServer.
 func LogstreamPersisterIface(p *data.LogstreamPersister) logstream.Persister { return p }
+
+// DsnstreamPersisterIface binds *data.DsnstreamPersister to the
+// dsnstream.Persister interface so wire can satisfy NewDsnstreamServer.
+func DsnstreamPersisterIface(p *data.DsnstreamPersister) dsnstream.Persister { return p }
 
 // AuditPersisterFromEnt binds *data.AuditEntPersister to the data.AuditPersister
 // interface so wire can satisfy NewAuditWriterDefault's dependency without a

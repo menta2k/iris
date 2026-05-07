@@ -80,6 +80,64 @@ var (
 			},
 		},
 	}
+	// DsnEventColumns holds the columns for the "dsn_event" table.
+	DsnEventColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "received_at", Type: field.TypeTime},
+		{Name: "verp_token", Type: field.TypeString, Nullable: true, Size: 128},
+		{Name: "message_id_ref", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "original_recipient", Type: field.TypeString, Nullable: true, Size: 320},
+		{Name: "final_recipient", Type: field.TypeString, Nullable: true, Size: 320},
+		{Name: "action", Type: field.TypeString, Size: 16},
+		{Name: "status", Type: field.TypeString, Nullable: true, Size: 16},
+		{Name: "status_class", Type: field.TypeString, Nullable: true, Size: 2},
+		{Name: "diagnostic_code", Type: field.TypeString, Nullable: true, Size: 1024},
+		{Name: "remote_mta", Type: field.TypeString, Nullable: true, Size: 253},
+		{Name: "category", Type: field.TypeString, Nullable: true, Size: 64},
+		{Name: "mail_class", Type: field.TypeString, Nullable: true, Size: 64},
+		{Name: "tenant", Type: field.TypeString, Nullable: true, Size: 64},
+		{Name: "campaign", Type: field.TypeString, Nullable: true, Size: 64},
+		{Name: "raw_size", Type: field.TypeInt32, Default: 0},
+		{Name: "extra_json", Type: field.TypeString, Nullable: true, Size: 2147483647},
+	}
+	// DsnEventTable holds the schema information for the "dsn_event" table.
+	DsnEventTable = &schema.Table{
+		Name:       "dsn_event",
+		Columns:    DsnEventColumns,
+		PrimaryKey: []*schema.Column{DsnEventColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "dsnevent_received_at",
+				Unique:  false,
+				Columns: []*schema.Column{DsnEventColumns[1]},
+			},
+			{
+				Name:    "dsnevent_final_recipient_received_at",
+				Unique:  false,
+				Columns: []*schema.Column{DsnEventColumns[5], DsnEventColumns[1]},
+			},
+			{
+				Name:    "dsnevent_category_received_at",
+				Unique:  false,
+				Columns: []*schema.Column{DsnEventColumns[11], DsnEventColumns[1]},
+			},
+			{
+				Name:    "dsnevent_mail_class_received_at",
+				Unique:  false,
+				Columns: []*schema.Column{DsnEventColumns[12], DsnEventColumns[1]},
+			},
+			{
+				Name:    "dsnevent_status_class_received_at",
+				Unique:  false,
+				Columns: []*schema.Column{DsnEventColumns[8], DsnEventColumns[1]},
+			},
+			{
+				Name:    "dsnevent_message_id_ref",
+				Unique:  false,
+				Columns: []*schema.Column{DsnEventColumns[3]},
+			},
+		},
+	}
 	// FeedbackReportsColumns holds the columns for the "feedback_reports" table.
 	FeedbackReportsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -116,6 +174,25 @@ var (
 				Columns: []*schema.Column{FeedbackReportsColumns[5]},
 			},
 		},
+	}
+	// GlobalSettingsColumns holds the columns for the "global_settings" table.
+	GlobalSettingsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "kumo_http_listen", Type: field.TypeString, Nullable: true, Size: 128},
+		{Name: "esmtp_relay_hosts", Type: field.TypeJSON, Nullable: true},
+		{Name: "http_trusted_hosts", Type: field.TypeJSON, Nullable: true},
+		{Name: "bounce_domain", Type: field.TypeString, Nullable: true, Size: 253},
+		{Name: "bounce_sender_domains", Type: field.TypeJSON, Nullable: true},
+		{Name: "bounce_prefix", Type: field.TypeString, Nullable: true, Size: 64},
+		{Name: "mail_class_header", Type: field.TypeString, Nullable: true, Size: 128},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "updated_by", Type: field.TypeString, Nullable: true, Size: 64},
+	}
+	// GlobalSettingsTable holds the schema information for the "global_settings" table.
+	GlobalSettingsTable = &schema.Table{
+		Name:       "global_settings",
+		Columns:    GlobalSettingsColumns,
+		PrimaryKey: []*schema.Column{GlobalSettingsColumns[0]},
 	}
 	// ListenerConfigsColumns holds the columns for the "listener_configs" table.
 	ListenerConfigsColumns = []*schema.Column{
@@ -596,7 +673,9 @@ var (
 	Tables = []*schema.Table{
 		AuditEntryTable,
 		DkimIdentitiesTable,
+		DsnEventTable,
 		FeedbackReportsTable,
+		GlobalSettingsTable,
 		ListenerConfigsTable,
 		ListenerDomainsTable,
 		LogEventTable,
@@ -619,6 +698,12 @@ var (
 func init() {
 	AuditEntryTable.Annotation = &entsql.Annotation{
 		Table: "audit_entry",
+	}
+	DsnEventTable.Annotation = &entsql.Annotation{
+		Table: "dsn_event",
+	}
+	GlobalSettingsTable.Annotation = &entsql.Annotation{
+		Table: "global_settings",
 	}
 	ListenerDomainsTable.ForeignKeys[0].RefTable = ListenerConfigsTable
 	LogEventTable.Annotation = &entsql.Annotation{

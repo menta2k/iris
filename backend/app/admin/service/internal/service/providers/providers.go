@@ -45,6 +45,8 @@ var ProviderSet = wire.NewSet(
 	DkimStoreFromRepo,
 	FeedbackStoreFromRepo,
 	LogStoreFromRepo,
+	DsnStoreFromRepo,
+	GlobalSettingsStoreFromRepo,
 	SnapshotProviderFromRepo,
 	PolicyHistoryFromRepo,
 	MailClassStoreFromRepo,
@@ -62,6 +64,8 @@ var ProviderSet = wire.NewSet(
 	NewPolicyServiceProvider,
 	service.NewFeedbackService,
 	service.NewLogService,
+	service.NewDsnService,
+	service.NewGlobalSettingsService,
 	service.NewMailClassService,
 	service.NewVmtaGroupService,
 )
@@ -96,6 +100,15 @@ func FeedbackStoreFromRepo(r *data.FeedbackRepo) service.FeedbackStore { return 
 
 // LogStoreFromRepo binds the log repo to the service iface.
 func LogStoreFromRepo(r *data.LogRepo) service.LogStore { return r }
+
+// DsnStoreFromRepo binds the dsn repo to the service iface.
+func DsnStoreFromRepo(r *data.DsnRepo) service.DsnStore { return r }
+
+// GlobalSettingsStoreFromRepo binds the global-settings repo to the
+// service iface.
+func GlobalSettingsStoreFromRepo(r *data.GlobalSettingsRepo) service.GlobalSettingsStore {
+	return r
+}
 
 // SnapshotProviderFromRepo binds the snapshot repo to the service iface.
 func SnapshotProviderFromRepo(r *data.SnapshotRepo) service.SnapshotProvider { return r }

@@ -13,7 +13,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/auditentry"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/dkimidentity"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/dsnevent"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/feedbackreport"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/globalsettings"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/listenerconfig"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/listenerdomain"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/logevent"
@@ -43,7 +45,9 @@ const (
 	// Node types.
 	TypeAuditEntry            = "AuditEntry"
 	TypeDkimIdentity          = "DkimIdentity"
+	TypeDsnEvent              = "DsnEvent"
 	TypeFeedbackReport        = "FeedbackReport"
+	TypeGlobalSettings        = "GlobalSettings"
 	TypeListenerConfig        = "ListenerConfig"
 	TypeListenerDomain        = "ListenerDomain"
 	TypeLogEvent              = "LogEvent"
@@ -2056,6 +2060,1434 @@ func (m *DkimIdentityMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown DkimIdentity edge %s", name)
 }
 
+// DsnEventMutation represents an operation that mutates the DsnEvent nodes in the graph.
+type DsnEventMutation struct {
+	config
+	op                 Op
+	typ                string
+	id                 *int64
+	received_at        *time.Time
+	verp_token         *string
+	message_id_ref     *string
+	original_recipient *string
+	final_recipient    *string
+	action             *string
+	status             *string
+	status_class       *string
+	diagnostic_code    *string
+	remote_mta         *string
+	category           *string
+	mail_class         *string
+	tenant             *string
+	campaign           *string
+	raw_size           *int32
+	addraw_size        *int32
+	extra_json         *string
+	clearedFields      map[string]struct{}
+	done               bool
+	oldValue           func(context.Context) (*DsnEvent, error)
+	predicates         []predicate.DsnEvent
+}
+
+var _ ent.Mutation = (*DsnEventMutation)(nil)
+
+// dsneventOption allows management of the mutation configuration using functional options.
+type dsneventOption func(*DsnEventMutation)
+
+// newDsnEventMutation creates new mutation for the DsnEvent entity.
+func newDsnEventMutation(c config, op Op, opts ...dsneventOption) *DsnEventMutation {
+	m := &DsnEventMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeDsnEvent,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withDsnEventID sets the ID field of the mutation.
+func withDsnEventID(id int64) dsneventOption {
+	return func(m *DsnEventMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *DsnEvent
+		)
+		m.oldValue = func(ctx context.Context) (*DsnEvent, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().DsnEvent.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withDsnEvent sets the old DsnEvent of the mutation.
+func withDsnEvent(node *DsnEvent) dsneventOption {
+	return func(m *DsnEventMutation) {
+		m.oldValue = func(context.Context) (*DsnEvent, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m DsnEventMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m DsnEventMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of DsnEvent entities.
+func (m *DsnEventMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *DsnEventMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *DsnEventMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().DsnEvent.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetReceivedAt sets the "received_at" field.
+func (m *DsnEventMutation) SetReceivedAt(t time.Time) {
+	m.received_at = &t
+}
+
+// ReceivedAt returns the value of the "received_at" field in the mutation.
+func (m *DsnEventMutation) ReceivedAt() (r time.Time, exists bool) {
+	v := m.received_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReceivedAt returns the old "received_at" field's value of the DsnEvent entity.
+// If the DsnEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DsnEventMutation) OldReceivedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReceivedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReceivedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReceivedAt: %w", err)
+	}
+	return oldValue.ReceivedAt, nil
+}
+
+// ResetReceivedAt resets all changes to the "received_at" field.
+func (m *DsnEventMutation) ResetReceivedAt() {
+	m.received_at = nil
+}
+
+// SetVerpToken sets the "verp_token" field.
+func (m *DsnEventMutation) SetVerpToken(s string) {
+	m.verp_token = &s
+}
+
+// VerpToken returns the value of the "verp_token" field in the mutation.
+func (m *DsnEventMutation) VerpToken() (r string, exists bool) {
+	v := m.verp_token
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVerpToken returns the old "verp_token" field's value of the DsnEvent entity.
+// If the DsnEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DsnEventMutation) OldVerpToken(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVerpToken is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVerpToken requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVerpToken: %w", err)
+	}
+	return oldValue.VerpToken, nil
+}
+
+// ClearVerpToken clears the value of the "verp_token" field.
+func (m *DsnEventMutation) ClearVerpToken() {
+	m.verp_token = nil
+	m.clearedFields[dsnevent.FieldVerpToken] = struct{}{}
+}
+
+// VerpTokenCleared returns if the "verp_token" field was cleared in this mutation.
+func (m *DsnEventMutation) VerpTokenCleared() bool {
+	_, ok := m.clearedFields[dsnevent.FieldVerpToken]
+	return ok
+}
+
+// ResetVerpToken resets all changes to the "verp_token" field.
+func (m *DsnEventMutation) ResetVerpToken() {
+	m.verp_token = nil
+	delete(m.clearedFields, dsnevent.FieldVerpToken)
+}
+
+// SetMessageIDRef sets the "message_id_ref" field.
+func (m *DsnEventMutation) SetMessageIDRef(s string) {
+	m.message_id_ref = &s
+}
+
+// MessageIDRef returns the value of the "message_id_ref" field in the mutation.
+func (m *DsnEventMutation) MessageIDRef() (r string, exists bool) {
+	v := m.message_id_ref
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMessageIDRef returns the old "message_id_ref" field's value of the DsnEvent entity.
+// If the DsnEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DsnEventMutation) OldMessageIDRef(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMessageIDRef is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMessageIDRef requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMessageIDRef: %w", err)
+	}
+	return oldValue.MessageIDRef, nil
+}
+
+// ClearMessageIDRef clears the value of the "message_id_ref" field.
+func (m *DsnEventMutation) ClearMessageIDRef() {
+	m.message_id_ref = nil
+	m.clearedFields[dsnevent.FieldMessageIDRef] = struct{}{}
+}
+
+// MessageIDRefCleared returns if the "message_id_ref" field was cleared in this mutation.
+func (m *DsnEventMutation) MessageIDRefCleared() bool {
+	_, ok := m.clearedFields[dsnevent.FieldMessageIDRef]
+	return ok
+}
+
+// ResetMessageIDRef resets all changes to the "message_id_ref" field.
+func (m *DsnEventMutation) ResetMessageIDRef() {
+	m.message_id_ref = nil
+	delete(m.clearedFields, dsnevent.FieldMessageIDRef)
+}
+
+// SetOriginalRecipient sets the "original_recipient" field.
+func (m *DsnEventMutation) SetOriginalRecipient(s string) {
+	m.original_recipient = &s
+}
+
+// OriginalRecipient returns the value of the "original_recipient" field in the mutation.
+func (m *DsnEventMutation) OriginalRecipient() (r string, exists bool) {
+	v := m.original_recipient
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOriginalRecipient returns the old "original_recipient" field's value of the DsnEvent entity.
+// If the DsnEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DsnEventMutation) OldOriginalRecipient(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOriginalRecipient is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOriginalRecipient requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOriginalRecipient: %w", err)
+	}
+	return oldValue.OriginalRecipient, nil
+}
+
+// ClearOriginalRecipient clears the value of the "original_recipient" field.
+func (m *DsnEventMutation) ClearOriginalRecipient() {
+	m.original_recipient = nil
+	m.clearedFields[dsnevent.FieldOriginalRecipient] = struct{}{}
+}
+
+// OriginalRecipientCleared returns if the "original_recipient" field was cleared in this mutation.
+func (m *DsnEventMutation) OriginalRecipientCleared() bool {
+	_, ok := m.clearedFields[dsnevent.FieldOriginalRecipient]
+	return ok
+}
+
+// ResetOriginalRecipient resets all changes to the "original_recipient" field.
+func (m *DsnEventMutation) ResetOriginalRecipient() {
+	m.original_recipient = nil
+	delete(m.clearedFields, dsnevent.FieldOriginalRecipient)
+}
+
+// SetFinalRecipient sets the "final_recipient" field.
+func (m *DsnEventMutation) SetFinalRecipient(s string) {
+	m.final_recipient = &s
+}
+
+// FinalRecipient returns the value of the "final_recipient" field in the mutation.
+func (m *DsnEventMutation) FinalRecipient() (r string, exists bool) {
+	v := m.final_recipient
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFinalRecipient returns the old "final_recipient" field's value of the DsnEvent entity.
+// If the DsnEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DsnEventMutation) OldFinalRecipient(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFinalRecipient is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFinalRecipient requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFinalRecipient: %w", err)
+	}
+	return oldValue.FinalRecipient, nil
+}
+
+// ClearFinalRecipient clears the value of the "final_recipient" field.
+func (m *DsnEventMutation) ClearFinalRecipient() {
+	m.final_recipient = nil
+	m.clearedFields[dsnevent.FieldFinalRecipient] = struct{}{}
+}
+
+// FinalRecipientCleared returns if the "final_recipient" field was cleared in this mutation.
+func (m *DsnEventMutation) FinalRecipientCleared() bool {
+	_, ok := m.clearedFields[dsnevent.FieldFinalRecipient]
+	return ok
+}
+
+// ResetFinalRecipient resets all changes to the "final_recipient" field.
+func (m *DsnEventMutation) ResetFinalRecipient() {
+	m.final_recipient = nil
+	delete(m.clearedFields, dsnevent.FieldFinalRecipient)
+}
+
+// SetAction sets the "action" field.
+func (m *DsnEventMutation) SetAction(s string) {
+	m.action = &s
+}
+
+// Action returns the value of the "action" field in the mutation.
+func (m *DsnEventMutation) Action() (r string, exists bool) {
+	v := m.action
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAction returns the old "action" field's value of the DsnEvent entity.
+// If the DsnEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DsnEventMutation) OldAction(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAction is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAction requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAction: %w", err)
+	}
+	return oldValue.Action, nil
+}
+
+// ResetAction resets all changes to the "action" field.
+func (m *DsnEventMutation) ResetAction() {
+	m.action = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *DsnEventMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *DsnEventMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the DsnEvent entity.
+// If the DsnEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DsnEventMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ClearStatus clears the value of the "status" field.
+func (m *DsnEventMutation) ClearStatus() {
+	m.status = nil
+	m.clearedFields[dsnevent.FieldStatus] = struct{}{}
+}
+
+// StatusCleared returns if the "status" field was cleared in this mutation.
+func (m *DsnEventMutation) StatusCleared() bool {
+	_, ok := m.clearedFields[dsnevent.FieldStatus]
+	return ok
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *DsnEventMutation) ResetStatus() {
+	m.status = nil
+	delete(m.clearedFields, dsnevent.FieldStatus)
+}
+
+// SetStatusClass sets the "status_class" field.
+func (m *DsnEventMutation) SetStatusClass(s string) {
+	m.status_class = &s
+}
+
+// StatusClass returns the value of the "status_class" field in the mutation.
+func (m *DsnEventMutation) StatusClass() (r string, exists bool) {
+	v := m.status_class
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatusClass returns the old "status_class" field's value of the DsnEvent entity.
+// If the DsnEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DsnEventMutation) OldStatusClass(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatusClass is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatusClass requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatusClass: %w", err)
+	}
+	return oldValue.StatusClass, nil
+}
+
+// ClearStatusClass clears the value of the "status_class" field.
+func (m *DsnEventMutation) ClearStatusClass() {
+	m.status_class = nil
+	m.clearedFields[dsnevent.FieldStatusClass] = struct{}{}
+}
+
+// StatusClassCleared returns if the "status_class" field was cleared in this mutation.
+func (m *DsnEventMutation) StatusClassCleared() bool {
+	_, ok := m.clearedFields[dsnevent.FieldStatusClass]
+	return ok
+}
+
+// ResetStatusClass resets all changes to the "status_class" field.
+func (m *DsnEventMutation) ResetStatusClass() {
+	m.status_class = nil
+	delete(m.clearedFields, dsnevent.FieldStatusClass)
+}
+
+// SetDiagnosticCode sets the "diagnostic_code" field.
+func (m *DsnEventMutation) SetDiagnosticCode(s string) {
+	m.diagnostic_code = &s
+}
+
+// DiagnosticCode returns the value of the "diagnostic_code" field in the mutation.
+func (m *DsnEventMutation) DiagnosticCode() (r string, exists bool) {
+	v := m.diagnostic_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDiagnosticCode returns the old "diagnostic_code" field's value of the DsnEvent entity.
+// If the DsnEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DsnEventMutation) OldDiagnosticCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDiagnosticCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDiagnosticCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDiagnosticCode: %w", err)
+	}
+	return oldValue.DiagnosticCode, nil
+}
+
+// ClearDiagnosticCode clears the value of the "diagnostic_code" field.
+func (m *DsnEventMutation) ClearDiagnosticCode() {
+	m.diagnostic_code = nil
+	m.clearedFields[dsnevent.FieldDiagnosticCode] = struct{}{}
+}
+
+// DiagnosticCodeCleared returns if the "diagnostic_code" field was cleared in this mutation.
+func (m *DsnEventMutation) DiagnosticCodeCleared() bool {
+	_, ok := m.clearedFields[dsnevent.FieldDiagnosticCode]
+	return ok
+}
+
+// ResetDiagnosticCode resets all changes to the "diagnostic_code" field.
+func (m *DsnEventMutation) ResetDiagnosticCode() {
+	m.diagnostic_code = nil
+	delete(m.clearedFields, dsnevent.FieldDiagnosticCode)
+}
+
+// SetRemoteMta sets the "remote_mta" field.
+func (m *DsnEventMutation) SetRemoteMta(s string) {
+	m.remote_mta = &s
+}
+
+// RemoteMta returns the value of the "remote_mta" field in the mutation.
+func (m *DsnEventMutation) RemoteMta() (r string, exists bool) {
+	v := m.remote_mta
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRemoteMta returns the old "remote_mta" field's value of the DsnEvent entity.
+// If the DsnEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DsnEventMutation) OldRemoteMta(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRemoteMta is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRemoteMta requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRemoteMta: %w", err)
+	}
+	return oldValue.RemoteMta, nil
+}
+
+// ClearRemoteMta clears the value of the "remote_mta" field.
+func (m *DsnEventMutation) ClearRemoteMta() {
+	m.remote_mta = nil
+	m.clearedFields[dsnevent.FieldRemoteMta] = struct{}{}
+}
+
+// RemoteMtaCleared returns if the "remote_mta" field was cleared in this mutation.
+func (m *DsnEventMutation) RemoteMtaCleared() bool {
+	_, ok := m.clearedFields[dsnevent.FieldRemoteMta]
+	return ok
+}
+
+// ResetRemoteMta resets all changes to the "remote_mta" field.
+func (m *DsnEventMutation) ResetRemoteMta() {
+	m.remote_mta = nil
+	delete(m.clearedFields, dsnevent.FieldRemoteMta)
+}
+
+// SetCategory sets the "category" field.
+func (m *DsnEventMutation) SetCategory(s string) {
+	m.category = &s
+}
+
+// Category returns the value of the "category" field in the mutation.
+func (m *DsnEventMutation) Category() (r string, exists bool) {
+	v := m.category
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCategory returns the old "category" field's value of the DsnEvent entity.
+// If the DsnEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DsnEventMutation) OldCategory(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCategory is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCategory requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCategory: %w", err)
+	}
+	return oldValue.Category, nil
+}
+
+// ClearCategory clears the value of the "category" field.
+func (m *DsnEventMutation) ClearCategory() {
+	m.category = nil
+	m.clearedFields[dsnevent.FieldCategory] = struct{}{}
+}
+
+// CategoryCleared returns if the "category" field was cleared in this mutation.
+func (m *DsnEventMutation) CategoryCleared() bool {
+	_, ok := m.clearedFields[dsnevent.FieldCategory]
+	return ok
+}
+
+// ResetCategory resets all changes to the "category" field.
+func (m *DsnEventMutation) ResetCategory() {
+	m.category = nil
+	delete(m.clearedFields, dsnevent.FieldCategory)
+}
+
+// SetMailClass sets the "mail_class" field.
+func (m *DsnEventMutation) SetMailClass(s string) {
+	m.mail_class = &s
+}
+
+// MailClass returns the value of the "mail_class" field in the mutation.
+func (m *DsnEventMutation) MailClass() (r string, exists bool) {
+	v := m.mail_class
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMailClass returns the old "mail_class" field's value of the DsnEvent entity.
+// If the DsnEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DsnEventMutation) OldMailClass(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMailClass is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMailClass requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMailClass: %w", err)
+	}
+	return oldValue.MailClass, nil
+}
+
+// ClearMailClass clears the value of the "mail_class" field.
+func (m *DsnEventMutation) ClearMailClass() {
+	m.mail_class = nil
+	m.clearedFields[dsnevent.FieldMailClass] = struct{}{}
+}
+
+// MailClassCleared returns if the "mail_class" field was cleared in this mutation.
+func (m *DsnEventMutation) MailClassCleared() bool {
+	_, ok := m.clearedFields[dsnevent.FieldMailClass]
+	return ok
+}
+
+// ResetMailClass resets all changes to the "mail_class" field.
+func (m *DsnEventMutation) ResetMailClass() {
+	m.mail_class = nil
+	delete(m.clearedFields, dsnevent.FieldMailClass)
+}
+
+// SetTenant sets the "tenant" field.
+func (m *DsnEventMutation) SetTenant(s string) {
+	m.tenant = &s
+}
+
+// Tenant returns the value of the "tenant" field in the mutation.
+func (m *DsnEventMutation) Tenant() (r string, exists bool) {
+	v := m.tenant
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTenant returns the old "tenant" field's value of the DsnEvent entity.
+// If the DsnEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DsnEventMutation) OldTenant(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTenant is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTenant requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenant: %w", err)
+	}
+	return oldValue.Tenant, nil
+}
+
+// ClearTenant clears the value of the "tenant" field.
+func (m *DsnEventMutation) ClearTenant() {
+	m.tenant = nil
+	m.clearedFields[dsnevent.FieldTenant] = struct{}{}
+}
+
+// TenantCleared returns if the "tenant" field was cleared in this mutation.
+func (m *DsnEventMutation) TenantCleared() bool {
+	_, ok := m.clearedFields[dsnevent.FieldTenant]
+	return ok
+}
+
+// ResetTenant resets all changes to the "tenant" field.
+func (m *DsnEventMutation) ResetTenant() {
+	m.tenant = nil
+	delete(m.clearedFields, dsnevent.FieldTenant)
+}
+
+// SetCampaign sets the "campaign" field.
+func (m *DsnEventMutation) SetCampaign(s string) {
+	m.campaign = &s
+}
+
+// Campaign returns the value of the "campaign" field in the mutation.
+func (m *DsnEventMutation) Campaign() (r string, exists bool) {
+	v := m.campaign
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCampaign returns the old "campaign" field's value of the DsnEvent entity.
+// If the DsnEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DsnEventMutation) OldCampaign(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCampaign is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCampaign requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCampaign: %w", err)
+	}
+	return oldValue.Campaign, nil
+}
+
+// ClearCampaign clears the value of the "campaign" field.
+func (m *DsnEventMutation) ClearCampaign() {
+	m.campaign = nil
+	m.clearedFields[dsnevent.FieldCampaign] = struct{}{}
+}
+
+// CampaignCleared returns if the "campaign" field was cleared in this mutation.
+func (m *DsnEventMutation) CampaignCleared() bool {
+	_, ok := m.clearedFields[dsnevent.FieldCampaign]
+	return ok
+}
+
+// ResetCampaign resets all changes to the "campaign" field.
+func (m *DsnEventMutation) ResetCampaign() {
+	m.campaign = nil
+	delete(m.clearedFields, dsnevent.FieldCampaign)
+}
+
+// SetRawSize sets the "raw_size" field.
+func (m *DsnEventMutation) SetRawSize(i int32) {
+	m.raw_size = &i
+	m.addraw_size = nil
+}
+
+// RawSize returns the value of the "raw_size" field in the mutation.
+func (m *DsnEventMutation) RawSize() (r int32, exists bool) {
+	v := m.raw_size
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRawSize returns the old "raw_size" field's value of the DsnEvent entity.
+// If the DsnEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DsnEventMutation) OldRawSize(ctx context.Context) (v int32, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRawSize is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRawSize requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRawSize: %w", err)
+	}
+	return oldValue.RawSize, nil
+}
+
+// AddRawSize adds i to the "raw_size" field.
+func (m *DsnEventMutation) AddRawSize(i int32) {
+	if m.addraw_size != nil {
+		*m.addraw_size += i
+	} else {
+		m.addraw_size = &i
+	}
+}
+
+// AddedRawSize returns the value that was added to the "raw_size" field in this mutation.
+func (m *DsnEventMutation) AddedRawSize() (r int32, exists bool) {
+	v := m.addraw_size
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRawSize resets all changes to the "raw_size" field.
+func (m *DsnEventMutation) ResetRawSize() {
+	m.raw_size = nil
+	m.addraw_size = nil
+}
+
+// SetExtraJSON sets the "extra_json" field.
+func (m *DsnEventMutation) SetExtraJSON(s string) {
+	m.extra_json = &s
+}
+
+// ExtraJSON returns the value of the "extra_json" field in the mutation.
+func (m *DsnEventMutation) ExtraJSON() (r string, exists bool) {
+	v := m.extra_json
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExtraJSON returns the old "extra_json" field's value of the DsnEvent entity.
+// If the DsnEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DsnEventMutation) OldExtraJSON(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExtraJSON is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExtraJSON requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExtraJSON: %w", err)
+	}
+	return oldValue.ExtraJSON, nil
+}
+
+// ClearExtraJSON clears the value of the "extra_json" field.
+func (m *DsnEventMutation) ClearExtraJSON() {
+	m.extra_json = nil
+	m.clearedFields[dsnevent.FieldExtraJSON] = struct{}{}
+}
+
+// ExtraJSONCleared returns if the "extra_json" field was cleared in this mutation.
+func (m *DsnEventMutation) ExtraJSONCleared() bool {
+	_, ok := m.clearedFields[dsnevent.FieldExtraJSON]
+	return ok
+}
+
+// ResetExtraJSON resets all changes to the "extra_json" field.
+func (m *DsnEventMutation) ResetExtraJSON() {
+	m.extra_json = nil
+	delete(m.clearedFields, dsnevent.FieldExtraJSON)
+}
+
+// Where appends a list predicates to the DsnEventMutation builder.
+func (m *DsnEventMutation) Where(ps ...predicate.DsnEvent) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the DsnEventMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *DsnEventMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.DsnEvent, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *DsnEventMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *DsnEventMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (DsnEvent).
+func (m *DsnEventMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *DsnEventMutation) Fields() []string {
+	fields := make([]string, 0, 16)
+	if m.received_at != nil {
+		fields = append(fields, dsnevent.FieldReceivedAt)
+	}
+	if m.verp_token != nil {
+		fields = append(fields, dsnevent.FieldVerpToken)
+	}
+	if m.message_id_ref != nil {
+		fields = append(fields, dsnevent.FieldMessageIDRef)
+	}
+	if m.original_recipient != nil {
+		fields = append(fields, dsnevent.FieldOriginalRecipient)
+	}
+	if m.final_recipient != nil {
+		fields = append(fields, dsnevent.FieldFinalRecipient)
+	}
+	if m.action != nil {
+		fields = append(fields, dsnevent.FieldAction)
+	}
+	if m.status != nil {
+		fields = append(fields, dsnevent.FieldStatus)
+	}
+	if m.status_class != nil {
+		fields = append(fields, dsnevent.FieldStatusClass)
+	}
+	if m.diagnostic_code != nil {
+		fields = append(fields, dsnevent.FieldDiagnosticCode)
+	}
+	if m.remote_mta != nil {
+		fields = append(fields, dsnevent.FieldRemoteMta)
+	}
+	if m.category != nil {
+		fields = append(fields, dsnevent.FieldCategory)
+	}
+	if m.mail_class != nil {
+		fields = append(fields, dsnevent.FieldMailClass)
+	}
+	if m.tenant != nil {
+		fields = append(fields, dsnevent.FieldTenant)
+	}
+	if m.campaign != nil {
+		fields = append(fields, dsnevent.FieldCampaign)
+	}
+	if m.raw_size != nil {
+		fields = append(fields, dsnevent.FieldRawSize)
+	}
+	if m.extra_json != nil {
+		fields = append(fields, dsnevent.FieldExtraJSON)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *DsnEventMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case dsnevent.FieldReceivedAt:
+		return m.ReceivedAt()
+	case dsnevent.FieldVerpToken:
+		return m.VerpToken()
+	case dsnevent.FieldMessageIDRef:
+		return m.MessageIDRef()
+	case dsnevent.FieldOriginalRecipient:
+		return m.OriginalRecipient()
+	case dsnevent.FieldFinalRecipient:
+		return m.FinalRecipient()
+	case dsnevent.FieldAction:
+		return m.Action()
+	case dsnevent.FieldStatus:
+		return m.Status()
+	case dsnevent.FieldStatusClass:
+		return m.StatusClass()
+	case dsnevent.FieldDiagnosticCode:
+		return m.DiagnosticCode()
+	case dsnevent.FieldRemoteMta:
+		return m.RemoteMta()
+	case dsnevent.FieldCategory:
+		return m.Category()
+	case dsnevent.FieldMailClass:
+		return m.MailClass()
+	case dsnevent.FieldTenant:
+		return m.Tenant()
+	case dsnevent.FieldCampaign:
+		return m.Campaign()
+	case dsnevent.FieldRawSize:
+		return m.RawSize()
+	case dsnevent.FieldExtraJSON:
+		return m.ExtraJSON()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *DsnEventMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case dsnevent.FieldReceivedAt:
+		return m.OldReceivedAt(ctx)
+	case dsnevent.FieldVerpToken:
+		return m.OldVerpToken(ctx)
+	case dsnevent.FieldMessageIDRef:
+		return m.OldMessageIDRef(ctx)
+	case dsnevent.FieldOriginalRecipient:
+		return m.OldOriginalRecipient(ctx)
+	case dsnevent.FieldFinalRecipient:
+		return m.OldFinalRecipient(ctx)
+	case dsnevent.FieldAction:
+		return m.OldAction(ctx)
+	case dsnevent.FieldStatus:
+		return m.OldStatus(ctx)
+	case dsnevent.FieldStatusClass:
+		return m.OldStatusClass(ctx)
+	case dsnevent.FieldDiagnosticCode:
+		return m.OldDiagnosticCode(ctx)
+	case dsnevent.FieldRemoteMta:
+		return m.OldRemoteMta(ctx)
+	case dsnevent.FieldCategory:
+		return m.OldCategory(ctx)
+	case dsnevent.FieldMailClass:
+		return m.OldMailClass(ctx)
+	case dsnevent.FieldTenant:
+		return m.OldTenant(ctx)
+	case dsnevent.FieldCampaign:
+		return m.OldCampaign(ctx)
+	case dsnevent.FieldRawSize:
+		return m.OldRawSize(ctx)
+	case dsnevent.FieldExtraJSON:
+		return m.OldExtraJSON(ctx)
+	}
+	return nil, fmt.Errorf("unknown DsnEvent field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *DsnEventMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case dsnevent.FieldReceivedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReceivedAt(v)
+		return nil
+	case dsnevent.FieldVerpToken:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVerpToken(v)
+		return nil
+	case dsnevent.FieldMessageIDRef:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMessageIDRef(v)
+		return nil
+	case dsnevent.FieldOriginalRecipient:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOriginalRecipient(v)
+		return nil
+	case dsnevent.FieldFinalRecipient:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFinalRecipient(v)
+		return nil
+	case dsnevent.FieldAction:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAction(v)
+		return nil
+	case dsnevent.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case dsnevent.FieldStatusClass:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatusClass(v)
+		return nil
+	case dsnevent.FieldDiagnosticCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDiagnosticCode(v)
+		return nil
+	case dsnevent.FieldRemoteMta:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRemoteMta(v)
+		return nil
+	case dsnevent.FieldCategory:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCategory(v)
+		return nil
+	case dsnevent.FieldMailClass:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMailClass(v)
+		return nil
+	case dsnevent.FieldTenant:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTenant(v)
+		return nil
+	case dsnevent.FieldCampaign:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCampaign(v)
+		return nil
+	case dsnevent.FieldRawSize:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRawSize(v)
+		return nil
+	case dsnevent.FieldExtraJSON:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExtraJSON(v)
+		return nil
+	}
+	return fmt.Errorf("unknown DsnEvent field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *DsnEventMutation) AddedFields() []string {
+	var fields []string
+	if m.addraw_size != nil {
+		fields = append(fields, dsnevent.FieldRawSize)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *DsnEventMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case dsnevent.FieldRawSize:
+		return m.AddedRawSize()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *DsnEventMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case dsnevent.FieldRawSize:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRawSize(v)
+		return nil
+	}
+	return fmt.Errorf("unknown DsnEvent numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *DsnEventMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(dsnevent.FieldVerpToken) {
+		fields = append(fields, dsnevent.FieldVerpToken)
+	}
+	if m.FieldCleared(dsnevent.FieldMessageIDRef) {
+		fields = append(fields, dsnevent.FieldMessageIDRef)
+	}
+	if m.FieldCleared(dsnevent.FieldOriginalRecipient) {
+		fields = append(fields, dsnevent.FieldOriginalRecipient)
+	}
+	if m.FieldCleared(dsnevent.FieldFinalRecipient) {
+		fields = append(fields, dsnevent.FieldFinalRecipient)
+	}
+	if m.FieldCleared(dsnevent.FieldStatus) {
+		fields = append(fields, dsnevent.FieldStatus)
+	}
+	if m.FieldCleared(dsnevent.FieldStatusClass) {
+		fields = append(fields, dsnevent.FieldStatusClass)
+	}
+	if m.FieldCleared(dsnevent.FieldDiagnosticCode) {
+		fields = append(fields, dsnevent.FieldDiagnosticCode)
+	}
+	if m.FieldCleared(dsnevent.FieldRemoteMta) {
+		fields = append(fields, dsnevent.FieldRemoteMta)
+	}
+	if m.FieldCleared(dsnevent.FieldCategory) {
+		fields = append(fields, dsnevent.FieldCategory)
+	}
+	if m.FieldCleared(dsnevent.FieldMailClass) {
+		fields = append(fields, dsnevent.FieldMailClass)
+	}
+	if m.FieldCleared(dsnevent.FieldTenant) {
+		fields = append(fields, dsnevent.FieldTenant)
+	}
+	if m.FieldCleared(dsnevent.FieldCampaign) {
+		fields = append(fields, dsnevent.FieldCampaign)
+	}
+	if m.FieldCleared(dsnevent.FieldExtraJSON) {
+		fields = append(fields, dsnevent.FieldExtraJSON)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *DsnEventMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *DsnEventMutation) ClearField(name string) error {
+	switch name {
+	case dsnevent.FieldVerpToken:
+		m.ClearVerpToken()
+		return nil
+	case dsnevent.FieldMessageIDRef:
+		m.ClearMessageIDRef()
+		return nil
+	case dsnevent.FieldOriginalRecipient:
+		m.ClearOriginalRecipient()
+		return nil
+	case dsnevent.FieldFinalRecipient:
+		m.ClearFinalRecipient()
+		return nil
+	case dsnevent.FieldStatus:
+		m.ClearStatus()
+		return nil
+	case dsnevent.FieldStatusClass:
+		m.ClearStatusClass()
+		return nil
+	case dsnevent.FieldDiagnosticCode:
+		m.ClearDiagnosticCode()
+		return nil
+	case dsnevent.FieldRemoteMta:
+		m.ClearRemoteMta()
+		return nil
+	case dsnevent.FieldCategory:
+		m.ClearCategory()
+		return nil
+	case dsnevent.FieldMailClass:
+		m.ClearMailClass()
+		return nil
+	case dsnevent.FieldTenant:
+		m.ClearTenant()
+		return nil
+	case dsnevent.FieldCampaign:
+		m.ClearCampaign()
+		return nil
+	case dsnevent.FieldExtraJSON:
+		m.ClearExtraJSON()
+		return nil
+	}
+	return fmt.Errorf("unknown DsnEvent nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *DsnEventMutation) ResetField(name string) error {
+	switch name {
+	case dsnevent.FieldReceivedAt:
+		m.ResetReceivedAt()
+		return nil
+	case dsnevent.FieldVerpToken:
+		m.ResetVerpToken()
+		return nil
+	case dsnevent.FieldMessageIDRef:
+		m.ResetMessageIDRef()
+		return nil
+	case dsnevent.FieldOriginalRecipient:
+		m.ResetOriginalRecipient()
+		return nil
+	case dsnevent.FieldFinalRecipient:
+		m.ResetFinalRecipient()
+		return nil
+	case dsnevent.FieldAction:
+		m.ResetAction()
+		return nil
+	case dsnevent.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case dsnevent.FieldStatusClass:
+		m.ResetStatusClass()
+		return nil
+	case dsnevent.FieldDiagnosticCode:
+		m.ResetDiagnosticCode()
+		return nil
+	case dsnevent.FieldRemoteMta:
+		m.ResetRemoteMta()
+		return nil
+	case dsnevent.FieldCategory:
+		m.ResetCategory()
+		return nil
+	case dsnevent.FieldMailClass:
+		m.ResetMailClass()
+		return nil
+	case dsnevent.FieldTenant:
+		m.ResetTenant()
+		return nil
+	case dsnevent.FieldCampaign:
+		m.ResetCampaign()
+		return nil
+	case dsnevent.FieldRawSize:
+		m.ResetRawSize()
+		return nil
+	case dsnevent.FieldExtraJSON:
+		m.ResetExtraJSON()
+		return nil
+	}
+	return fmt.Errorf("unknown DsnEvent field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *DsnEventMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *DsnEventMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *DsnEventMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *DsnEventMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *DsnEventMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *DsnEventMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *DsnEventMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown DsnEvent unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *DsnEventMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown DsnEvent edge %s", name)
+}
+
 // FeedbackReportMutation represents an operation that mutates the FeedbackReport nodes in the graph.
 type FeedbackReportMutation struct {
 	config
@@ -3027,6 +4459,976 @@ func (m *FeedbackReportMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *FeedbackReportMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown FeedbackReport edge %s", name)
+}
+
+// GlobalSettingsMutation represents an operation that mutates the GlobalSettings nodes in the graph.
+type GlobalSettingsMutation struct {
+	config
+	op                          Op
+	typ                         string
+	id                          *int
+	kumo_http_listen            *string
+	esmtp_relay_hosts           *[]string
+	appendesmtp_relay_hosts     []string
+	http_trusted_hosts          *[]string
+	appendhttp_trusted_hosts    []string
+	bounce_domain               *string
+	bounce_sender_domains       *[]string
+	appendbounce_sender_domains []string
+	bounce_prefix               *string
+	mail_class_header           *string
+	updated_at                  *time.Time
+	updated_by                  *string
+	clearedFields               map[string]struct{}
+	done                        bool
+	oldValue                    func(context.Context) (*GlobalSettings, error)
+	predicates                  []predicate.GlobalSettings
+}
+
+var _ ent.Mutation = (*GlobalSettingsMutation)(nil)
+
+// globalsettingsOption allows management of the mutation configuration using functional options.
+type globalsettingsOption func(*GlobalSettingsMutation)
+
+// newGlobalSettingsMutation creates new mutation for the GlobalSettings entity.
+func newGlobalSettingsMutation(c config, op Op, opts ...globalsettingsOption) *GlobalSettingsMutation {
+	m := &GlobalSettingsMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeGlobalSettings,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withGlobalSettingsID sets the ID field of the mutation.
+func withGlobalSettingsID(id int) globalsettingsOption {
+	return func(m *GlobalSettingsMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *GlobalSettings
+		)
+		m.oldValue = func(ctx context.Context) (*GlobalSettings, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().GlobalSettings.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withGlobalSettings sets the old GlobalSettings of the mutation.
+func withGlobalSettings(node *GlobalSettings) globalsettingsOption {
+	return func(m *GlobalSettingsMutation) {
+		m.oldValue = func(context.Context) (*GlobalSettings, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m GlobalSettingsMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m GlobalSettingsMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of GlobalSettings entities.
+func (m *GlobalSettingsMutation) SetID(id int) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *GlobalSettingsMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *GlobalSettingsMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().GlobalSettings.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetKumoHTTPListen sets the "kumo_http_listen" field.
+func (m *GlobalSettingsMutation) SetKumoHTTPListen(s string) {
+	m.kumo_http_listen = &s
+}
+
+// KumoHTTPListen returns the value of the "kumo_http_listen" field in the mutation.
+func (m *GlobalSettingsMutation) KumoHTTPListen() (r string, exists bool) {
+	v := m.kumo_http_listen
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKumoHTTPListen returns the old "kumo_http_listen" field's value of the GlobalSettings entity.
+// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GlobalSettingsMutation) OldKumoHTTPListen(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKumoHTTPListen is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKumoHTTPListen requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKumoHTTPListen: %w", err)
+	}
+	return oldValue.KumoHTTPListen, nil
+}
+
+// ClearKumoHTTPListen clears the value of the "kumo_http_listen" field.
+func (m *GlobalSettingsMutation) ClearKumoHTTPListen() {
+	m.kumo_http_listen = nil
+	m.clearedFields[globalsettings.FieldKumoHTTPListen] = struct{}{}
+}
+
+// KumoHTTPListenCleared returns if the "kumo_http_listen" field was cleared in this mutation.
+func (m *GlobalSettingsMutation) KumoHTTPListenCleared() bool {
+	_, ok := m.clearedFields[globalsettings.FieldKumoHTTPListen]
+	return ok
+}
+
+// ResetKumoHTTPListen resets all changes to the "kumo_http_listen" field.
+func (m *GlobalSettingsMutation) ResetKumoHTTPListen() {
+	m.kumo_http_listen = nil
+	delete(m.clearedFields, globalsettings.FieldKumoHTTPListen)
+}
+
+// SetEsmtpRelayHosts sets the "esmtp_relay_hosts" field.
+func (m *GlobalSettingsMutation) SetEsmtpRelayHosts(s []string) {
+	m.esmtp_relay_hosts = &s
+	m.appendesmtp_relay_hosts = nil
+}
+
+// EsmtpRelayHosts returns the value of the "esmtp_relay_hosts" field in the mutation.
+func (m *GlobalSettingsMutation) EsmtpRelayHosts() (r []string, exists bool) {
+	v := m.esmtp_relay_hosts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEsmtpRelayHosts returns the old "esmtp_relay_hosts" field's value of the GlobalSettings entity.
+// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GlobalSettingsMutation) OldEsmtpRelayHosts(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEsmtpRelayHosts is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEsmtpRelayHosts requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEsmtpRelayHosts: %w", err)
+	}
+	return oldValue.EsmtpRelayHosts, nil
+}
+
+// AppendEsmtpRelayHosts adds s to the "esmtp_relay_hosts" field.
+func (m *GlobalSettingsMutation) AppendEsmtpRelayHosts(s []string) {
+	m.appendesmtp_relay_hosts = append(m.appendesmtp_relay_hosts, s...)
+}
+
+// AppendedEsmtpRelayHosts returns the list of values that were appended to the "esmtp_relay_hosts" field in this mutation.
+func (m *GlobalSettingsMutation) AppendedEsmtpRelayHosts() ([]string, bool) {
+	if len(m.appendesmtp_relay_hosts) == 0 {
+		return nil, false
+	}
+	return m.appendesmtp_relay_hosts, true
+}
+
+// ClearEsmtpRelayHosts clears the value of the "esmtp_relay_hosts" field.
+func (m *GlobalSettingsMutation) ClearEsmtpRelayHosts() {
+	m.esmtp_relay_hosts = nil
+	m.appendesmtp_relay_hosts = nil
+	m.clearedFields[globalsettings.FieldEsmtpRelayHosts] = struct{}{}
+}
+
+// EsmtpRelayHostsCleared returns if the "esmtp_relay_hosts" field was cleared in this mutation.
+func (m *GlobalSettingsMutation) EsmtpRelayHostsCleared() bool {
+	_, ok := m.clearedFields[globalsettings.FieldEsmtpRelayHosts]
+	return ok
+}
+
+// ResetEsmtpRelayHosts resets all changes to the "esmtp_relay_hosts" field.
+func (m *GlobalSettingsMutation) ResetEsmtpRelayHosts() {
+	m.esmtp_relay_hosts = nil
+	m.appendesmtp_relay_hosts = nil
+	delete(m.clearedFields, globalsettings.FieldEsmtpRelayHosts)
+}
+
+// SetHTTPTrustedHosts sets the "http_trusted_hosts" field.
+func (m *GlobalSettingsMutation) SetHTTPTrustedHosts(s []string) {
+	m.http_trusted_hosts = &s
+	m.appendhttp_trusted_hosts = nil
+}
+
+// HTTPTrustedHosts returns the value of the "http_trusted_hosts" field in the mutation.
+func (m *GlobalSettingsMutation) HTTPTrustedHosts() (r []string, exists bool) {
+	v := m.http_trusted_hosts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHTTPTrustedHosts returns the old "http_trusted_hosts" field's value of the GlobalSettings entity.
+// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GlobalSettingsMutation) OldHTTPTrustedHosts(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHTTPTrustedHosts is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHTTPTrustedHosts requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHTTPTrustedHosts: %w", err)
+	}
+	return oldValue.HTTPTrustedHosts, nil
+}
+
+// AppendHTTPTrustedHosts adds s to the "http_trusted_hosts" field.
+func (m *GlobalSettingsMutation) AppendHTTPTrustedHosts(s []string) {
+	m.appendhttp_trusted_hosts = append(m.appendhttp_trusted_hosts, s...)
+}
+
+// AppendedHTTPTrustedHosts returns the list of values that were appended to the "http_trusted_hosts" field in this mutation.
+func (m *GlobalSettingsMutation) AppendedHTTPTrustedHosts() ([]string, bool) {
+	if len(m.appendhttp_trusted_hosts) == 0 {
+		return nil, false
+	}
+	return m.appendhttp_trusted_hosts, true
+}
+
+// ClearHTTPTrustedHosts clears the value of the "http_trusted_hosts" field.
+func (m *GlobalSettingsMutation) ClearHTTPTrustedHosts() {
+	m.http_trusted_hosts = nil
+	m.appendhttp_trusted_hosts = nil
+	m.clearedFields[globalsettings.FieldHTTPTrustedHosts] = struct{}{}
+}
+
+// HTTPTrustedHostsCleared returns if the "http_trusted_hosts" field was cleared in this mutation.
+func (m *GlobalSettingsMutation) HTTPTrustedHostsCleared() bool {
+	_, ok := m.clearedFields[globalsettings.FieldHTTPTrustedHosts]
+	return ok
+}
+
+// ResetHTTPTrustedHosts resets all changes to the "http_trusted_hosts" field.
+func (m *GlobalSettingsMutation) ResetHTTPTrustedHosts() {
+	m.http_trusted_hosts = nil
+	m.appendhttp_trusted_hosts = nil
+	delete(m.clearedFields, globalsettings.FieldHTTPTrustedHosts)
+}
+
+// SetBounceDomain sets the "bounce_domain" field.
+func (m *GlobalSettingsMutation) SetBounceDomain(s string) {
+	m.bounce_domain = &s
+}
+
+// BounceDomain returns the value of the "bounce_domain" field in the mutation.
+func (m *GlobalSettingsMutation) BounceDomain() (r string, exists bool) {
+	v := m.bounce_domain
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBounceDomain returns the old "bounce_domain" field's value of the GlobalSettings entity.
+// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GlobalSettingsMutation) OldBounceDomain(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBounceDomain is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBounceDomain requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBounceDomain: %w", err)
+	}
+	return oldValue.BounceDomain, nil
+}
+
+// ClearBounceDomain clears the value of the "bounce_domain" field.
+func (m *GlobalSettingsMutation) ClearBounceDomain() {
+	m.bounce_domain = nil
+	m.clearedFields[globalsettings.FieldBounceDomain] = struct{}{}
+}
+
+// BounceDomainCleared returns if the "bounce_domain" field was cleared in this mutation.
+func (m *GlobalSettingsMutation) BounceDomainCleared() bool {
+	_, ok := m.clearedFields[globalsettings.FieldBounceDomain]
+	return ok
+}
+
+// ResetBounceDomain resets all changes to the "bounce_domain" field.
+func (m *GlobalSettingsMutation) ResetBounceDomain() {
+	m.bounce_domain = nil
+	delete(m.clearedFields, globalsettings.FieldBounceDomain)
+}
+
+// SetBounceSenderDomains sets the "bounce_sender_domains" field.
+func (m *GlobalSettingsMutation) SetBounceSenderDomains(s []string) {
+	m.bounce_sender_domains = &s
+	m.appendbounce_sender_domains = nil
+}
+
+// BounceSenderDomains returns the value of the "bounce_sender_domains" field in the mutation.
+func (m *GlobalSettingsMutation) BounceSenderDomains() (r []string, exists bool) {
+	v := m.bounce_sender_domains
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBounceSenderDomains returns the old "bounce_sender_domains" field's value of the GlobalSettings entity.
+// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GlobalSettingsMutation) OldBounceSenderDomains(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBounceSenderDomains is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBounceSenderDomains requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBounceSenderDomains: %w", err)
+	}
+	return oldValue.BounceSenderDomains, nil
+}
+
+// AppendBounceSenderDomains adds s to the "bounce_sender_domains" field.
+func (m *GlobalSettingsMutation) AppendBounceSenderDomains(s []string) {
+	m.appendbounce_sender_domains = append(m.appendbounce_sender_domains, s...)
+}
+
+// AppendedBounceSenderDomains returns the list of values that were appended to the "bounce_sender_domains" field in this mutation.
+func (m *GlobalSettingsMutation) AppendedBounceSenderDomains() ([]string, bool) {
+	if len(m.appendbounce_sender_domains) == 0 {
+		return nil, false
+	}
+	return m.appendbounce_sender_domains, true
+}
+
+// ClearBounceSenderDomains clears the value of the "bounce_sender_domains" field.
+func (m *GlobalSettingsMutation) ClearBounceSenderDomains() {
+	m.bounce_sender_domains = nil
+	m.appendbounce_sender_domains = nil
+	m.clearedFields[globalsettings.FieldBounceSenderDomains] = struct{}{}
+}
+
+// BounceSenderDomainsCleared returns if the "bounce_sender_domains" field was cleared in this mutation.
+func (m *GlobalSettingsMutation) BounceSenderDomainsCleared() bool {
+	_, ok := m.clearedFields[globalsettings.FieldBounceSenderDomains]
+	return ok
+}
+
+// ResetBounceSenderDomains resets all changes to the "bounce_sender_domains" field.
+func (m *GlobalSettingsMutation) ResetBounceSenderDomains() {
+	m.bounce_sender_domains = nil
+	m.appendbounce_sender_domains = nil
+	delete(m.clearedFields, globalsettings.FieldBounceSenderDomains)
+}
+
+// SetBouncePrefix sets the "bounce_prefix" field.
+func (m *GlobalSettingsMutation) SetBouncePrefix(s string) {
+	m.bounce_prefix = &s
+}
+
+// BouncePrefix returns the value of the "bounce_prefix" field in the mutation.
+func (m *GlobalSettingsMutation) BouncePrefix() (r string, exists bool) {
+	v := m.bounce_prefix
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBouncePrefix returns the old "bounce_prefix" field's value of the GlobalSettings entity.
+// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GlobalSettingsMutation) OldBouncePrefix(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBouncePrefix is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBouncePrefix requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBouncePrefix: %w", err)
+	}
+	return oldValue.BouncePrefix, nil
+}
+
+// ClearBouncePrefix clears the value of the "bounce_prefix" field.
+func (m *GlobalSettingsMutation) ClearBouncePrefix() {
+	m.bounce_prefix = nil
+	m.clearedFields[globalsettings.FieldBouncePrefix] = struct{}{}
+}
+
+// BouncePrefixCleared returns if the "bounce_prefix" field was cleared in this mutation.
+func (m *GlobalSettingsMutation) BouncePrefixCleared() bool {
+	_, ok := m.clearedFields[globalsettings.FieldBouncePrefix]
+	return ok
+}
+
+// ResetBouncePrefix resets all changes to the "bounce_prefix" field.
+func (m *GlobalSettingsMutation) ResetBouncePrefix() {
+	m.bounce_prefix = nil
+	delete(m.clearedFields, globalsettings.FieldBouncePrefix)
+}
+
+// SetMailClassHeader sets the "mail_class_header" field.
+func (m *GlobalSettingsMutation) SetMailClassHeader(s string) {
+	m.mail_class_header = &s
+}
+
+// MailClassHeader returns the value of the "mail_class_header" field in the mutation.
+func (m *GlobalSettingsMutation) MailClassHeader() (r string, exists bool) {
+	v := m.mail_class_header
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMailClassHeader returns the old "mail_class_header" field's value of the GlobalSettings entity.
+// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GlobalSettingsMutation) OldMailClassHeader(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMailClassHeader is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMailClassHeader requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMailClassHeader: %w", err)
+	}
+	return oldValue.MailClassHeader, nil
+}
+
+// ClearMailClassHeader clears the value of the "mail_class_header" field.
+func (m *GlobalSettingsMutation) ClearMailClassHeader() {
+	m.mail_class_header = nil
+	m.clearedFields[globalsettings.FieldMailClassHeader] = struct{}{}
+}
+
+// MailClassHeaderCleared returns if the "mail_class_header" field was cleared in this mutation.
+func (m *GlobalSettingsMutation) MailClassHeaderCleared() bool {
+	_, ok := m.clearedFields[globalsettings.FieldMailClassHeader]
+	return ok
+}
+
+// ResetMailClassHeader resets all changes to the "mail_class_header" field.
+func (m *GlobalSettingsMutation) ResetMailClassHeader() {
+	m.mail_class_header = nil
+	delete(m.clearedFields, globalsettings.FieldMailClassHeader)
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *GlobalSettingsMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *GlobalSettingsMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the GlobalSettings entity.
+// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GlobalSettingsMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *GlobalSettingsMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (m *GlobalSettingsMutation) SetUpdatedBy(s string) {
+	m.updated_by = &s
+}
+
+// UpdatedBy returns the value of the "updated_by" field in the mutation.
+func (m *GlobalSettingsMutation) UpdatedBy() (r string, exists bool) {
+	v := m.updated_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedBy returns the old "updated_by" field's value of the GlobalSettings entity.
+// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GlobalSettingsMutation) OldUpdatedBy(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedBy: %w", err)
+	}
+	return oldValue.UpdatedBy, nil
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (m *GlobalSettingsMutation) ClearUpdatedBy() {
+	m.updated_by = nil
+	m.clearedFields[globalsettings.FieldUpdatedBy] = struct{}{}
+}
+
+// UpdatedByCleared returns if the "updated_by" field was cleared in this mutation.
+func (m *GlobalSettingsMutation) UpdatedByCleared() bool {
+	_, ok := m.clearedFields[globalsettings.FieldUpdatedBy]
+	return ok
+}
+
+// ResetUpdatedBy resets all changes to the "updated_by" field.
+func (m *GlobalSettingsMutation) ResetUpdatedBy() {
+	m.updated_by = nil
+	delete(m.clearedFields, globalsettings.FieldUpdatedBy)
+}
+
+// Where appends a list predicates to the GlobalSettingsMutation builder.
+func (m *GlobalSettingsMutation) Where(ps ...predicate.GlobalSettings) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the GlobalSettingsMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *GlobalSettingsMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.GlobalSettings, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *GlobalSettingsMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *GlobalSettingsMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (GlobalSettings).
+func (m *GlobalSettingsMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *GlobalSettingsMutation) Fields() []string {
+	fields := make([]string, 0, 9)
+	if m.kumo_http_listen != nil {
+		fields = append(fields, globalsettings.FieldKumoHTTPListen)
+	}
+	if m.esmtp_relay_hosts != nil {
+		fields = append(fields, globalsettings.FieldEsmtpRelayHosts)
+	}
+	if m.http_trusted_hosts != nil {
+		fields = append(fields, globalsettings.FieldHTTPTrustedHosts)
+	}
+	if m.bounce_domain != nil {
+		fields = append(fields, globalsettings.FieldBounceDomain)
+	}
+	if m.bounce_sender_domains != nil {
+		fields = append(fields, globalsettings.FieldBounceSenderDomains)
+	}
+	if m.bounce_prefix != nil {
+		fields = append(fields, globalsettings.FieldBouncePrefix)
+	}
+	if m.mail_class_header != nil {
+		fields = append(fields, globalsettings.FieldMailClassHeader)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, globalsettings.FieldUpdatedAt)
+	}
+	if m.updated_by != nil {
+		fields = append(fields, globalsettings.FieldUpdatedBy)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *GlobalSettingsMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case globalsettings.FieldKumoHTTPListen:
+		return m.KumoHTTPListen()
+	case globalsettings.FieldEsmtpRelayHosts:
+		return m.EsmtpRelayHosts()
+	case globalsettings.FieldHTTPTrustedHosts:
+		return m.HTTPTrustedHosts()
+	case globalsettings.FieldBounceDomain:
+		return m.BounceDomain()
+	case globalsettings.FieldBounceSenderDomains:
+		return m.BounceSenderDomains()
+	case globalsettings.FieldBouncePrefix:
+		return m.BouncePrefix()
+	case globalsettings.FieldMailClassHeader:
+		return m.MailClassHeader()
+	case globalsettings.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case globalsettings.FieldUpdatedBy:
+		return m.UpdatedBy()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *GlobalSettingsMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case globalsettings.FieldKumoHTTPListen:
+		return m.OldKumoHTTPListen(ctx)
+	case globalsettings.FieldEsmtpRelayHosts:
+		return m.OldEsmtpRelayHosts(ctx)
+	case globalsettings.FieldHTTPTrustedHosts:
+		return m.OldHTTPTrustedHosts(ctx)
+	case globalsettings.FieldBounceDomain:
+		return m.OldBounceDomain(ctx)
+	case globalsettings.FieldBounceSenderDomains:
+		return m.OldBounceSenderDomains(ctx)
+	case globalsettings.FieldBouncePrefix:
+		return m.OldBouncePrefix(ctx)
+	case globalsettings.FieldMailClassHeader:
+		return m.OldMailClassHeader(ctx)
+	case globalsettings.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case globalsettings.FieldUpdatedBy:
+		return m.OldUpdatedBy(ctx)
+	}
+	return nil, fmt.Errorf("unknown GlobalSettings field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *GlobalSettingsMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case globalsettings.FieldKumoHTTPListen:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKumoHTTPListen(v)
+		return nil
+	case globalsettings.FieldEsmtpRelayHosts:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEsmtpRelayHosts(v)
+		return nil
+	case globalsettings.FieldHTTPTrustedHosts:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHTTPTrustedHosts(v)
+		return nil
+	case globalsettings.FieldBounceDomain:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBounceDomain(v)
+		return nil
+	case globalsettings.FieldBounceSenderDomains:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBounceSenderDomains(v)
+		return nil
+	case globalsettings.FieldBouncePrefix:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBouncePrefix(v)
+		return nil
+	case globalsettings.FieldMailClassHeader:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMailClassHeader(v)
+		return nil
+	case globalsettings.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case globalsettings.FieldUpdatedBy:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedBy(v)
+		return nil
+	}
+	return fmt.Errorf("unknown GlobalSettings field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *GlobalSettingsMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *GlobalSettingsMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *GlobalSettingsMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown GlobalSettings numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *GlobalSettingsMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(globalsettings.FieldKumoHTTPListen) {
+		fields = append(fields, globalsettings.FieldKumoHTTPListen)
+	}
+	if m.FieldCleared(globalsettings.FieldEsmtpRelayHosts) {
+		fields = append(fields, globalsettings.FieldEsmtpRelayHosts)
+	}
+	if m.FieldCleared(globalsettings.FieldHTTPTrustedHosts) {
+		fields = append(fields, globalsettings.FieldHTTPTrustedHosts)
+	}
+	if m.FieldCleared(globalsettings.FieldBounceDomain) {
+		fields = append(fields, globalsettings.FieldBounceDomain)
+	}
+	if m.FieldCleared(globalsettings.FieldBounceSenderDomains) {
+		fields = append(fields, globalsettings.FieldBounceSenderDomains)
+	}
+	if m.FieldCleared(globalsettings.FieldBouncePrefix) {
+		fields = append(fields, globalsettings.FieldBouncePrefix)
+	}
+	if m.FieldCleared(globalsettings.FieldMailClassHeader) {
+		fields = append(fields, globalsettings.FieldMailClassHeader)
+	}
+	if m.FieldCleared(globalsettings.FieldUpdatedBy) {
+		fields = append(fields, globalsettings.FieldUpdatedBy)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *GlobalSettingsMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *GlobalSettingsMutation) ClearField(name string) error {
+	switch name {
+	case globalsettings.FieldKumoHTTPListen:
+		m.ClearKumoHTTPListen()
+		return nil
+	case globalsettings.FieldEsmtpRelayHosts:
+		m.ClearEsmtpRelayHosts()
+		return nil
+	case globalsettings.FieldHTTPTrustedHosts:
+		m.ClearHTTPTrustedHosts()
+		return nil
+	case globalsettings.FieldBounceDomain:
+		m.ClearBounceDomain()
+		return nil
+	case globalsettings.FieldBounceSenderDomains:
+		m.ClearBounceSenderDomains()
+		return nil
+	case globalsettings.FieldBouncePrefix:
+		m.ClearBouncePrefix()
+		return nil
+	case globalsettings.FieldMailClassHeader:
+		m.ClearMailClassHeader()
+		return nil
+	case globalsettings.FieldUpdatedBy:
+		m.ClearUpdatedBy()
+		return nil
+	}
+	return fmt.Errorf("unknown GlobalSettings nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *GlobalSettingsMutation) ResetField(name string) error {
+	switch name {
+	case globalsettings.FieldKumoHTTPListen:
+		m.ResetKumoHTTPListen()
+		return nil
+	case globalsettings.FieldEsmtpRelayHosts:
+		m.ResetEsmtpRelayHosts()
+		return nil
+	case globalsettings.FieldHTTPTrustedHosts:
+		m.ResetHTTPTrustedHosts()
+		return nil
+	case globalsettings.FieldBounceDomain:
+		m.ResetBounceDomain()
+		return nil
+	case globalsettings.FieldBounceSenderDomains:
+		m.ResetBounceSenderDomains()
+		return nil
+	case globalsettings.FieldBouncePrefix:
+		m.ResetBouncePrefix()
+		return nil
+	case globalsettings.FieldMailClassHeader:
+		m.ResetMailClassHeader()
+		return nil
+	case globalsettings.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case globalsettings.FieldUpdatedBy:
+		m.ResetUpdatedBy()
+		return nil
+	}
+	return fmt.Errorf("unknown GlobalSettings field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *GlobalSettingsMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *GlobalSettingsMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *GlobalSettingsMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *GlobalSettingsMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *GlobalSettingsMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *GlobalSettingsMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *GlobalSettingsMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown GlobalSettings unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *GlobalSettingsMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown GlobalSettings edge %s", name)
 }
 
 // ListenerConfigMutation represents an operation that mutates the ListenerConfig nodes in the graph.

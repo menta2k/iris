@@ -46,8 +46,10 @@ func Render(s *Snapshot, opts RenderOptions) (RenderResult, error) {
 
 	writeHeader(&b, opts, s.GlobalSettings)
 	writeLogStreamConsts(&b, s.GlobalSettings)
+	writeBounceConsts(&b, s.GlobalSettings)
 	writeInit(&b, s.Listeners, s.GlobalSettings)
 	writeRedisLogHook(&b, s.GlobalSettings)
+	writeDsnCatcher(&b, s.GlobalSettings)
 	writeEgressSources(&b, s.VirtualMtas)
 	writeEgressPools(&b, s.VirtualMtas, s.VirtualMtaGroups)
 	// MailClassTable must come BEFORE writeQueueConfig — the queue-config
@@ -57,7 +59,7 @@ func Render(s *Snapshot, opts RenderOptions) (RenderResult, error) {
 	// out.
 	writeMailClassTable(&b, s.MailClasses)
 	writeQueueConfig(&b, s.GlobalSettings)
-	writeListenerDomains(&b, s.Listeners)
+	writeListenerDomains(&b, s.Listeners, s.GlobalSettings)
 	writeDkimTable(&b, s.DkimIdentities)
 	writeSuppressionLookup(&b, s.GlobalSettings)
 	writeRoutingChain(&b, s.MailClasses, s.RoutingRules, s.GlobalSettings, opts)
@@ -189,6 +191,228 @@ end)
 `)
 }
 
+// --- bounce / DSN constants -------------------------------------------------
+//
+// Two operational modes:
+//
+//   - Multi-domain (BounceSenderDomains non-empty): each sender domain gets
+//     its own bounce subdomain via the convention "<prefix>.<sender>". The
+//     outbound hook rewrites MAIL FROM to the per-sender bounce; the catcher
+//     accepts inbound at every derived bounce subdomain.
+//
+//   - Legacy single-domain (BounceDomain non-empty, BounceSenderDomains
+//     empty): every outbound funnels through one BOUNCE_DOMAIN_FALLBACK,
+//     regardless of From: domain. DMARC alignment only holds for senders
+//     that share an organizational domain with that fallback.
+//
+//   - Disabled (both empty): emits stub constants so downstream Lua blocks
+//     can reference them without nil-checks.
+//
+// In all three modes BOUNCE_DOMAINS (Lua set of catcher hostnames) and
+// BOUNCE_SENDER_TO_BOUNCE (Lua map sender→bounce) are emitted; the
+// outbound hook prefers the map and falls back to the constant.
+func writeBounceConsts(b *strings.Builder, gs GlobalSettings) {
+	if !bouncePipelineEnabled(gs) {
+		b.WriteString("-- ===== bounce / DSN pipeline: disabled =====\n")
+		b.WriteString("local BOUNCE_VERP_SECRET      = ''\n")
+		b.WriteString("local DSN_STREAM_NAME         = ''\n")
+		b.WriteString("local DSN_TRACKER             = ''\n")
+		b.WriteString("local BOUNCE_DOMAIN_FALLBACK  = ''\n")
+		b.WriteString("local BOUNCE_DOMAINS          = {}\n")
+		b.WriteString("local BOUNCE_SENDER_TO_BOUNCE = {}\n\n")
+		return
+	}
+	streamName := gs.DsnStreamName
+	if streamName == "" {
+		streamName = DsnStreamNameDefault
+	}
+	prefix := bouncePrefix(gs)
+	multi := len(gs.BounceSenderDomains) > 0
+	mode := "single-domain (legacy)"
+	if multi {
+		mode = "multi-domain"
+	}
+	fmt.Fprintf(b, "-- ===== bounce / DSN pipeline (mode: %s) =====\n", mode)
+	fmt.Fprintf(b, "local BOUNCE_VERP_SECRET      = %s\n", MustLuaString(gs.VerpSecret))
+	fmt.Fprintf(b, "local DSN_STREAM_NAME         = %s\n", MustLuaString(streamName))
+	fmt.Fprintf(b, "local DSN_TRACKER             = %s\n", MustLuaString(dsnTrackerName))
+
+	// Catcher accepts these — set form so the route_message lookup is O(1).
+	domains := effectiveBounceDomains(gs)
+	b.WriteString("local BOUNCE_DOMAINS          = {\n")
+	for _, d := range domains {
+		fmt.Fprintf(b, "  [%s] = true,\n", MustLuaString(d))
+	}
+	b.WriteString("}\n")
+
+	// In multi-domain mode, emit the per-sender mapping so the outbound
+	// hook can rewrite MAIL FROM to the *aligned* bounce subdomain. Empty
+	// in legacy mode (the fallback handles every sender there).
+	//
+	// Domain keys are lowercased so the hook's `from_dom:lower()` lookup
+	// always hits regardless of how the operator typed the env value.
+	// Stable order — Render's SHA-256 must be deterministic.
+	b.WriteString("local BOUNCE_SENDER_TO_BOUNCE = {\n")
+	if multi {
+		seen := make(map[string]struct{}, len(gs.BounceSenderDomains))
+		senders := make([]string, 0, len(gs.BounceSenderDomains))
+		for _, raw := range gs.BounceSenderDomains {
+			s := strings.Trim(strings.ToLower(strings.TrimSpace(raw)), ".")
+			if s == "" {
+				continue
+			}
+			if _, dup := seen[s]; dup {
+				continue
+			}
+			seen[s] = struct{}{}
+			senders = append(senders, s)
+		}
+		sort.Strings(senders)
+		for _, s := range senders {
+			fmt.Fprintf(b, "  [%s] = %s,\n",
+				MustLuaString(s),
+				MustLuaString(prefix+"."+s))
+		}
+	}
+	b.WriteString("}\n")
+
+	// Legacy single-domain fallback. Empty in multi mode, so the outbound
+	// hook leaves MAIL FROM unrewritten for senders not in the map (safer
+	// than producing an unaligned rewrite for an unmanaged domain).
+	fallback := ""
+	if !multi {
+		fallback = strings.ToLower(gs.BounceDomain)
+	}
+	fmt.Fprintf(b, "local BOUNCE_DOMAIN_FALLBACK  = %s\n\n", MustLuaString(fallback))
+}
+
+// defaultRelayHosts is the RFC1918 + loopback CIDR set used when the
+// operator hasn't overridden EsmtpRelayHosts / HTTPTrustedHosts via
+// Global Settings. Same value for both knobs because the threat model
+// is identical: trust what's already on the same private network.
+var defaultRelayHosts = []string{
+	"127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16",
+}
+
+// luaCIDRList renders a CIDR list (or sensible default when empty) as a
+// Lua table literal suitable for relay_hosts / trusted_hosts. Each entry
+// is escaped via MustLuaString so an operator can't smuggle a literal
+// "}" or a Lua-string-closer through the UI form.
+func luaCIDRList(hosts []string) string {
+	clean := make([]string, 0, len(hosts))
+	for _, h := range hosts {
+		h = strings.TrimSpace(h)
+		if h == "" {
+			continue
+		}
+		clean = append(clean, h)
+	}
+	if len(clean) == 0 {
+		clean = defaultRelayHosts
+	}
+	var b strings.Builder
+	b.WriteString("{ ")
+	for i, h := range clean {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteString(MustLuaString(h))
+	}
+	b.WriteString(" }")
+	return b.String()
+}
+
+// bouncePipelineEnabled is the canonical predicate: any of the three
+// configurations turns the pipeline on. Single source of truth so the
+// renderer's writeBounceConsts / writeDsnCatcher / writeListenerDomains /
+// writeQueueConfig / writeRoutingChain stay in sync.
+func bouncePipelineEnabled(gs GlobalSettings) bool {
+	return len(gs.BounceSenderDomains) > 0 || gs.BounceDomain != ""
+}
+
+// bouncePrefix returns the leading label used when deriving bounce
+// subdomains in multi-domain mode. Defaults to BouncePrefixDefault when
+// the operator didn't set IRIS_BOUNCE_DOMAIN_PREFIX. Lower-cases and
+// strips stray dots so a paste-induced "Bounces." doesn't slip through.
+func bouncePrefix(gs GlobalSettings) string {
+	p := strings.Trim(strings.ToLower(strings.TrimSpace(gs.BouncePrefix)), ".")
+	if p == "" {
+		return BouncePrefixDefault
+	}
+	return p
+}
+
+// effectiveBounceDomains returns the catcher-side bounce hostnames in
+// stable sorted order. In multi-domain mode, derived from
+// BounceSenderDomains via the prefix convention; in legacy mode, the
+// single BounceDomain; nil when the pipeline is disabled.
+func effectiveBounceDomains(gs GlobalSettings) []string {
+	if len(gs.BounceSenderDomains) > 0 {
+		prefix := bouncePrefix(gs)
+		out := make([]string, 0, len(gs.BounceSenderDomains))
+		seen := make(map[string]struct{}, len(gs.BounceSenderDomains))
+		for _, sender := range gs.BounceSenderDomains {
+			d := prefix + "." + strings.ToLower(strings.TrimSpace(sender))
+			if _, dup := seen[d]; dup {
+				continue
+			}
+			seen[d] = struct{}{}
+			out = append(out, d)
+		}
+		sort.Strings(out)
+		return out
+	}
+	if gs.BounceDomain != "" {
+		return []string{strings.ToLower(gs.BounceDomain)}
+	}
+	return nil
+}
+
+// writeDsnCatcher emits the custom_lua queue constructor that XADDs raw
+// inbound DSNs into the Redis stream consumed by pkg/dsnstream. Routing
+// into this queue happens in route_message (see writeRoutingChain), which
+// matches messages whose recipient domain equals BOUNCE_DOMAIN.
+//
+// We share LOGSTREAM_REDIS_URL because the dsn pipeline is meaningful only
+// alongside the iris consumer stack — and the dev/prod compose lives on
+// the same Redis. Validation (model.go) refuses BounceDomain != "" without
+// LogStreamRedisURL set, so the reference here is always defined.
+func writeDsnCatcher(b *strings.Builder, gs GlobalSettings) {
+	if !bouncePipelineEnabled(gs) {
+		return
+	}
+	b.WriteString(`-- DSN catcher: routes any mail addressed at BOUNCE_DOMAIN into a custom_lua
+-- queue whose constructor XADDs the raw RFC822 onto a Redis stream. The iris
+-- consumer (pkg/dsnstream) reads, parses, and persists into dsn_event.
+kumo.on('make.dsn_xadd', function(_domain, _tenant, _campaign)
+  local redis = require 'redis'
+  local conn = redis.open { node = LOGSTREAM_REDIS_URL, pool_size = 4 }
+  local connection = {}
+  function connection:send(message)
+    local rcpt = message:recipient()
+    local envelope_rcpt = (rcpt and rcpt.email) or ''
+    local raw = message:get_data()
+    local ok, err = pcall(function()
+      conn:query('XADD', DSN_STREAM_NAME, 'MAXLEN', '~', '50000', '*',
+                 'rcpt', envelope_rcpt,
+                 'raw', raw)
+    end)
+    if not ok then
+      kumo.log_error('dsn: xadd failed err=' .. tostring(err))
+      -- Ack 250 even on failure so the queue drains and the receiver
+      -- doesn't keep retrying. We've already accepted the message at
+      -- SMTP, throwing it away here only hides the bounce from operators
+      -- temporarily — kumomta's local logs will carry the failure.
+      return '250 dsn redis unavailable'
+    end
+    return '250 streamed dsn'
+  end
+  return connection
+end)
+
+`)
+}
+
 // --- kumo.on('init') --------------------------------------------------------
 
 func writeInit(b *strings.Builder, ls []Listener, gs GlobalSettings) {
@@ -211,15 +435,15 @@ func writeInit(b *strings.Builder, ls []Listener, gs GlobalSettings) {
 	fmt.Fprintf(b, "  kumo.configure_local_logs { log_dir = %s }\n", MustLuaString(logDir))
 
 	// Listeners. If none are configured we emit a single default that listens
-	// on :2525 and accepts relay from RFC1918 ranges — enough for dev to be
-	// useful, but tight enough that a misconfigured prod deployment doesn't
-	// turn into an open relay.
+	// on :2525 and accepts relay from a configurable CIDR list (Global
+	// Settings → Listeners). Empty falls back to RFC1918 + loopback so dev
+	// compose still works without any UI configuration.
 	if len(ls) == 0 {
-		b.WriteString(`  kumo.start_esmtp_listener {
+		fmt.Fprintf(b, `  kumo.start_esmtp_listener {
     listen = '0:2525',
-    relay_hosts = { '127.0.0.0/8', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16' },
+    relay_hosts = %s,
   }
-`)
+`, luaCIDRList(gs.EsmtpRelayHosts))
 	} else {
 		for _, l := range ls {
 			writeOneListener(b, l)
@@ -229,8 +453,8 @@ func writeInit(b *strings.Builder, ls []Listener, gs GlobalSettings) {
 	// HTTP admin/management API. The admin-service polls /api/admin/*
 	// (queues, suspensions, bounces, etc.) over this socket. Without it
 	// every /v1/queues request returns 502 KUMOMTA_UNREACHABLE. Trusted
-	// hosts mirror the SMTP relay defaults so the in-cluster admin-service
-	// (RFC1918) can reach it but the listener isn't world-readable.
+	// hosts come from Global Settings → Listeners (UI-editable); fallback
+	// is the same RFC1918 + loopback set as the SMTP relay default.
 	//
 	// Bind spec is configurable: docker-compose uses '0.0.0.0:8000' so the
 	// admin-service container reaches it via the iris Docker network;
@@ -242,9 +466,9 @@ func writeInit(b *strings.Builder, ls []Listener, gs GlobalSettings) {
 	}
 	fmt.Fprintf(b, `  kumo.start_http_listener {
     listen = %s,
-    trusted_hosts = { '127.0.0.0/8', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16' },
+    trusted_hosts = %s,
   }
-`, MustLuaString(httpListen))
+`, MustLuaString(httpListen), luaCIDRList(gs.HTTPTrustedHosts))
 
 	// Log hook: kumomta only allows ONE kumo.on('init', ...) handler — if
 	// the Redis stream is enabled we register the log_hook here rather than
@@ -434,6 +658,19 @@ func writeQueueConfig(b *strings.Builder, gs GlobalSettings) {
   end
 `)
 	}
+	if bouncePipelineEnabled(gs) {
+		// Inbound DSN routing: route_message tags bounce-domain mail with
+		// queue=DSN_TRACKER. Here we hand that queue's protocol over to the
+		// make.dsn_xadd custom_lua constructor.
+		b.WriteString(`  if domain == DSN_TRACKER then
+    return kumo.make_queue_config {
+      protocol = { custom_lua = { constructor = 'make.dsn_xadd' } },
+      retry_interval = '30s',
+      max_retry_interval = '5m',
+    }
+  end
+`)
+	}
 	// Pool resolution. In the legacy `tenant@domain` queue mode, the tenant
 	// is a class name → pool lookup, falling back to tenant-as-literal-pool,
 	// then 'default'. In one-queue-per-vmta mode the queue meta is set
@@ -473,7 +710,7 @@ end)
 
 // --- listener domains -------------------------------------------------------
 
-func writeListenerDomains(b *strings.Builder, ls []Listener) {
+func writeListenerDomains(b *strings.Builder, ls []Listener, gs GlobalSettings) {
 	// Aggregate domain → cfg across all listeners. If the same domain appears
 	// on multiple listeners with different settings the last wins; the admin
 	// service should prevent that upstream.
@@ -486,6 +723,14 @@ func writeListenerDomains(b *strings.Builder, ls []Listener) {
 		for _, d := range l.Domains {
 			domains[d.Domain] = rule{relay: d.RelayAllowed, requireTL: d.RequireTLS}
 		}
+	}
+	// Each bounce domain is a hostname we accept inbound DSNs at. In
+	// multi-domain mode that's one entry per sender (bounces.test-1.com,
+	// bounces.test2.com, …); in legacy mode it's the single fallback.
+	// Operators don't have to add these as Listener rows in the UI —
+	// the env-driven config wires them implicitly.
+	for _, d := range effectiveBounceDomains(gs) {
+		domains[d] = rule{relay: true, requireTL: false}
 	}
 	if len(domains) == 0 {
 		return
@@ -500,8 +745,14 @@ func writeListenerDomains(b *strings.Builder, ls []Listener) {
 	b.WriteString("local LISTENER_DOMAINS = {\n")
 	for _, k := range keys {
 		r := domains[k]
-		fmt.Fprintf(b, "  [%s] = { relay_to = %t, require_tls = %t },\n",
-			MustLuaString(k), r.relay, r.requireTL)
+		// require_tls is enforced via listener-level TLS config in
+		// kumomta, not on make_listener_domain (which doesn't accept
+		// the field). We keep the column on the data model so future
+		// versions of kumomta — or our own admission check — can
+		// surface it; for now it's a no-op in the rendered Lua.
+		_ = r.requireTL
+		fmt.Fprintf(b, "  [%s] = { relay_to = %t },\n",
+			MustLuaString(k), r.relay)
 	}
 	b.WriteString("}\n\n")
 	b.WriteString(`kumo.on('get_listener_domain', function(domain, listener)
@@ -509,7 +760,6 @@ func writeListenerDomains(b *strings.Builder, ls []Listener) {
   if not cfg then return nil end
   return kumo.make_listener_domain {
     relay_to = cfg.relay_to,
-    require_tls = cfg.require_tls,
   }
 end)
 
@@ -665,6 +915,25 @@ func writeRoutingChain(b *strings.Builder, mcs []MailClass, rs []RoutingRule, gs
 		b.WriteString("  print('[DRY-RUN] route_message')\n")
 	}
 
+	// 0) inbound DSN catcher. Mail arriving at any of our configured bounce
+	// domains is funneled straight into the DSN_TRACKER queue (custom_lua →
+	// XADD onto Redis) and skips the rest of the chain. We do this before
+	// suppression because a suppression match would fire kumo.reject(550),
+	// which would itself trigger another DSN — a loop. The lookup is a Lua
+	// set so multi-domain mode (one entry per sender's bounce subdomain)
+	// stays O(1).
+	if bouncePipelineEnabled(gs) {
+		b.WriteString(`  do
+    local rcpt = msg:recipient()
+    local rdom = (rcpt and rcpt.domain or ''):lower()
+    if BOUNCE_DOMAINS[rdom] then
+      msg:set_meta('queue', DSN_TRACKER)
+      return
+    end
+  end
+`)
+	}
+
 	// 1) suppression check via the memoized Redis lookup. is_suppressed is
 	// declared higher in the file (writeSuppressionLookup); it returns
 	// 'addr' / 'dom' on a hit, nil otherwise. No-Redis deployments get a
@@ -757,21 +1026,63 @@ kumo.on('http_message_generated',         function(msg) route_message(msg) end)
 
 `)
 
-	// DKIM signing. Runs at outbound dispatch — every domain we have a key
-	// for gets signed; messages from unrelated domains pass through.
-	b.WriteString(`-- ===== DKIM signing =====
+	// DKIM signing + VERP rewrite. Both run at outbound dispatch and need to
+	// share a hook because (a) kumomta runs handlers in registration order
+	// and we must DKIM-sign with the *original* envelope-sender domain
+	// before VERP rewrites MAIL FROM, and (b) keeping them in one block
+	// makes that ordering self-evident at review time.
+	b.WriteString(`-- ===== DKIM signing + VERP rewrite (outbound) =====
 kumo.on('smtp_client_message_sending', function(msg)
   local s = msg:sender()
   local d = s and s.domain or nil
-  if not d or d == '' then return end
-  local k = DKIM_BY_DOMAIN[d]
-  if not k then return end
-  if k.algo == 'ed25519' then
-    msg:dkim_sign(kumo.dkim.ed25519_signer { domain = d, selector = k.selector, key = k.key })
-  else
-    msg:dkim_sign(kumo.dkim.rsa_sha256_signer { domain = d, selector = k.selector, key = k.key })
+  -- DKIM first: signing depends on the From-domain, which here is read
+  -- from the envelope sender (set at injection from the SMTP MAIL FROM).
+  -- Must finish before any rewrite that changes the envelope sender.
+  if d and d ~= '' then
+    local k = DKIM_BY_DOMAIN[d]
+    if k then
+      if k.algo == 'ed25519' then
+        msg:dkim_sign(kumo.dkim.ed25519_signer { domain = d, selector = k.selector, key = k.key })
+      else
+        msg:dkim_sign(kumo.dkim.rsa_sha256_signer { domain = d, selector = k.selector, key = k.key })
+      end
+    end
   end
-end)
+`)
+	if bouncePipelineEnabled(gs) {
+		// VERP MAIL FROM rewrite. Token format matches pkg/verp.Encode
+		// (hex16 of HMAC-SHA256(secret, msgid), then "." then msgid). The
+		// per-sender bounce domain comes from BOUNCE_SENDER_TO_BOUNCE so
+		// DMARC's relaxed alignment holds against the From: domain;
+		// senders not in the map fall back to BOUNCE_DOMAIN_FALLBACK
+		// (legacy single-domain mode); senders matching neither are left
+		// unrewritten — better than producing an unaligned MAIL FROM for
+		// a domain we don't host.
+		//
+		// Skip when sender is empty (DSN passthrough, per RFC 3464: DSNs
+		// themselves carry MAIL FROM:<>) — VERPing those would create a
+		// self-addressed bounce loop.
+		b.WriteString(`  do
+    local from_addr = (s and s.email) or ''
+    local from_dom = (s and s.domain or ''):lower()
+    if from_addr ~= '' then
+      local bounce_dom = BOUNCE_SENDER_TO_BOUNCE[from_dom]
+      if not bounce_dom or bounce_dom == '' then
+        bounce_dom = BOUNCE_DOMAIN_FALLBACK
+      end
+      if bounce_dom and bounce_dom ~= '' then
+        local mid = msg:id()
+        if mid and mid ~= '' then
+          local mac = kumo.digest.hmac_sha256({ key_data = BOUNCE_VERP_SECRET }, mid)
+          local prefix = string.sub(tostring(mac), 1, 16)
+          msg:set_sender(string.format('b+%s.%s@%s', prefix, mid, bounce_dom))
+        end
+      end
+    end
+  end
+`)
+	}
+	b.WriteString(`end)
 
 `)
 }

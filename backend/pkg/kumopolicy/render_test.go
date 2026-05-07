@@ -174,3 +174,89 @@ func TestRenderEmptySnapshotWorks(t *testing.T) {
 	require.True(t, strings.Contains(out.Lua, "kumo.on('init'"))
 	require.Empty(t, Lint(out.Lua))
 }
+
+// TestRenderBounceSingleDomain pins the legacy single-domain mode shape:
+// every outbound funnels through one bounce domain via the fallback const,
+// the catcher accepts only that one domain.
+func TestRenderBounceSingleDomain(t *testing.T) {
+	snap := &Snapshot{GlobalSettings: GlobalSettings{
+		LogStreamRedisURL: "redis://r:6379/0",
+		VerpSecret:        "supersecret",
+		BounceDomain:      "bounces.example.com",
+	}}
+	out, err := Render(snap, RenderOptions{})
+	require.NoError(t, err)
+	require.Contains(t, out.Lua, `local BOUNCE_DOMAIN_FALLBACK  = "bounces.example.com"`)
+	require.Contains(t, out.Lua, `["bounces.example.com"] = true,`)
+	// Multi-domain map must be empty in legacy mode — the fallback handles
+	// every sender, no per-sender override needed.
+	require.Contains(t, out.Lua, "local BOUNCE_SENDER_TO_BOUNCE = {\n}")
+	require.Contains(t, out.Lua, "kumo.on('make.dsn_xadd'")
+	require.Contains(t, out.Lua, "msg:set_sender(string.format('b+%s.%s@%s'")
+}
+
+// TestRenderBounceMultiDomain pins the multi-domain shape: per-sender
+// bounce subdomains derived from the prefix convention, the catcher
+// accepts every derived bounce domain, the fallback constant is empty so
+// senders not in the configured list go un-rewritten.
+func TestRenderBounceMultiDomain(t *testing.T) {
+	snap := &Snapshot{GlobalSettings: GlobalSettings{
+		LogStreamRedisURL:   "redis://r:6379/0",
+		VerpSecret:          "supersecret",
+		BounceSenderDomains: []string{"test-1.com", "Test2.COM", "test-1.com"}, // dup + casing
+	}}
+	out, err := Render(snap, RenderOptions{})
+	require.NoError(t, err)
+
+	// Sender → bounce map: lowercased + de-duped.
+	require.Contains(t, out.Lua, `["test-1.com"] = "bounces.test-1.com",`)
+	require.Contains(t, out.Lua, `["test2.com"] = "bounces.test2.com",`)
+	require.NotContains(t, out.Lua, `Test-1.com`) // proves casing is normalised
+	require.NotContains(t, out.Lua, `Test2.COM`)
+
+	// Catcher accepts both derived bounce subdomains.
+	require.Contains(t, out.Lua, `["bounces.test-1.com"] = true,`)
+	require.Contains(t, out.Lua, `["bounces.test2.com"] = true,`)
+
+	// Fallback constant must be empty in multi mode so out-of-list
+	// senders aren't accidentally rewritten to an unaligned domain.
+	require.Contains(t, out.Lua, `local BOUNCE_DOMAIN_FALLBACK  = ""`)
+
+	// Listener-domain rule emitted for both bounce subdomains.
+	require.Contains(t, out.Lua, `["bounces.test-1.com"] = { relay_to = true },`)
+	require.Contains(t, out.Lua, `["bounces.test2.com"] = { relay_to = true },`)
+}
+
+// TestRenderBouncePrefixOverride pins the IRIS_BOUNCE_DOMAIN_PREFIX knob.
+// Operators sometimes need a non-default prefix (e.g. "rcpt." instead of
+// "bounces.") to fit an existing DNS scheme.
+func TestRenderBouncePrefixOverride(t *testing.T) {
+	snap := &Snapshot{GlobalSettings: GlobalSettings{
+		LogStreamRedisURL:   "redis://r:6379/0",
+		VerpSecret:          "supersecret",
+		BounceSenderDomains: []string{"test.com"},
+		BouncePrefix:        "rcpt",
+	}}
+	out, err := Render(snap, RenderOptions{})
+	require.NoError(t, err)
+	require.Contains(t, out.Lua, `["test.com"] = "rcpt.test.com",`)
+	require.Contains(t, out.Lua, `["rcpt.test.com"] = true,`)
+}
+
+// TestRenderBounceMultiPrecedence: when both BounceSenderDomains AND the
+// legacy BounceDomain are set, multi mode wins and the legacy fallback is
+// empty (so the operator's stale BounceDomain doesn't silently catch
+// sends from unmanaged domains).
+func TestRenderBounceMultiPrecedence(t *testing.T) {
+	snap := &Snapshot{GlobalSettings: GlobalSettings{
+		LogStreamRedisURL:   "redis://r:6379/0",
+		VerpSecret:          "supersecret",
+		BounceDomain:        "legacy.example.com",
+		BounceSenderDomains: []string{"test.com"},
+	}}
+	out, err := Render(snap, RenderOptions{})
+	require.NoError(t, err)
+	require.Contains(t, out.Lua, `local BOUNCE_DOMAIN_FALLBACK  = ""`)
+	require.NotContains(t, out.Lua, `legacy.example.com`)
+	require.Contains(t, out.Lua, `["test.com"] = "bounces.test.com",`)
+}
