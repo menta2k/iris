@@ -58,6 +58,16 @@ func (GlobalSettings) Fields() []ent.Field {
 		// to "X-Kumo-Mail-Class".
 		field.String("mail_class_header").Optional().MaxLen(128),
 
+		// Iris admin HTTPS termination. When https_listen is set, a
+		// kratos transport.Server starts on that bind, terminates TLS
+		// using the cert+key paths below, and reverse-proxies to the
+		// existing plain HTTP server (default :8000). Both run side by
+		// side so internal/healthcheck callers can keep using plain
+		// HTTP. Empty disables HTTPS.
+		field.String("https_listen").Optional().MaxLen(64),
+		field.String("https_cert_pem_path").Optional().MaxLen(1024),
+		field.String("https_key_pem_path").Optional().MaxLen(1024),
+
 		// Audit metadata. updated_by carries the operator's username so
 		// the audit log can answer "who broke prod" without joining
 		// against audit_entry.

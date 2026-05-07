@@ -5,6 +5,9 @@ package ent
 import (
 	"time"
 
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/acmeaccount"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/acmecertificate"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/acmednsproviderconfig"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/auditentry"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/dkimidentity"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/dsnevent"
@@ -32,6 +35,154 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	acmeaccountFields := schema.AcmeAccount{}.Fields()
+	_ = acmeaccountFields
+	// acmeaccountDescEmail is the schema descriptor for email field.
+	acmeaccountDescEmail := acmeaccountFields[1].Descriptor()
+	// acmeaccount.EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	acmeaccount.EmailValidator = func() func(string) error {
+		validators := acmeaccountDescEmail.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(email string) error {
+			for _, fn := range fns {
+				if err := fn(email); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// acmeaccountDescServerURL is the schema descriptor for server_url field.
+	acmeaccountDescServerURL := acmeaccountFields[2].Descriptor()
+	// acmeaccount.ServerURLValidator is a validator for the "server_url" field. It is called by the builders before save.
+	acmeaccount.ServerURLValidator = func() func(string) error {
+		validators := acmeaccountDescServerURL.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(server_url string) error {
+			for _, fn := range fns {
+				if err := fn(server_url); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// acmeaccountDescCreatedAt is the schema descriptor for created_at field.
+	acmeaccountDescCreatedAt := acmeaccountFields[5].Descriptor()
+	// acmeaccount.DefaultCreatedAt holds the default value on creation for the created_at field.
+	acmeaccount.DefaultCreatedAt = acmeaccountDescCreatedAt.Default.(func() time.Time)
+	// acmeaccountDescUpdatedAt is the schema descriptor for updated_at field.
+	acmeaccountDescUpdatedAt := acmeaccountFields[6].Descriptor()
+	// acmeaccount.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	acmeaccount.DefaultUpdatedAt = acmeaccountDescUpdatedAt.Default.(func() time.Time)
+	// acmeaccount.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	acmeaccount.UpdateDefaultUpdatedAt = acmeaccountDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// acmeaccountDescID is the schema descriptor for id field.
+	acmeaccountDescID := acmeaccountFields[0].Descriptor()
+	// acmeaccount.DefaultID holds the default value on creation for the id field.
+	acmeaccount.DefaultID = acmeaccountDescID.Default.(int)
+	acmecertificateFields := schema.AcmeCertificate{}.Fields()
+	_ = acmecertificateFields
+	// acmecertificateDescDomain is the schema descriptor for domain field.
+	acmecertificateDescDomain := acmecertificateFields[1].Descriptor()
+	// acmecertificate.DomainValidator is a validator for the "domain" field. It is called by the builders before save.
+	acmecertificate.DomainValidator = func() func(string) error {
+		validators := acmecertificateDescDomain.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(domain string) error {
+			for _, fn := range fns {
+				if err := fn(domain); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// acmecertificateDescChallengeType is the schema descriptor for challenge_type field.
+	acmecertificateDescChallengeType := acmecertificateFields[3].Descriptor()
+	// acmecertificate.DefaultChallengeType holds the default value on creation for the challenge_type field.
+	acmecertificate.DefaultChallengeType = acmecertificateDescChallengeType.Default.(string)
+	// acmecertificate.ChallengeTypeValidator is a validator for the "challenge_type" field. It is called by the builders before save.
+	acmecertificate.ChallengeTypeValidator = acmecertificateDescChallengeType.Validators[0].(func(string) error)
+	// acmecertificateDescDNSProvider is the schema descriptor for dns_provider field.
+	acmecertificateDescDNSProvider := acmecertificateFields[4].Descriptor()
+	// acmecertificate.DNSProviderValidator is a validator for the "dns_provider" field. It is called by the builders before save.
+	acmecertificate.DNSProviderValidator = acmecertificateDescDNSProvider.Validators[0].(func(string) error)
+	// acmecertificateDescCertPemPath is the schema descriptor for cert_pem_path field.
+	acmecertificateDescCertPemPath := acmecertificateFields[7].Descriptor()
+	// acmecertificate.CertPemPathValidator is a validator for the "cert_pem_path" field. It is called by the builders before save.
+	acmecertificate.CertPemPathValidator = acmecertificateDescCertPemPath.Validators[0].(func(string) error)
+	// acmecertificateDescKeyPemPath is the schema descriptor for key_pem_path field.
+	acmecertificateDescKeyPemPath := acmecertificateFields[8].Descriptor()
+	// acmecertificate.KeyPemPathValidator is a validator for the "key_pem_path" field. It is called by the builders before save.
+	acmecertificate.KeyPemPathValidator = acmecertificateDescKeyPemPath.Validators[0].(func(string) error)
+	// acmecertificateDescStatus is the schema descriptor for status field.
+	acmecertificateDescStatus := acmecertificateFields[11].Descriptor()
+	// acmecertificate.DefaultStatus holds the default value on creation for the status field.
+	acmecertificate.DefaultStatus = acmecertificateDescStatus.Default.(string)
+	// acmecertificate.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	acmecertificate.StatusValidator = acmecertificateDescStatus.Validators[0].(func(string) error)
+	// acmecertificateDescCreatedAt is the schema descriptor for created_at field.
+	acmecertificateDescCreatedAt := acmecertificateFields[13].Descriptor()
+	// acmecertificate.DefaultCreatedAt holds the default value on creation for the created_at field.
+	acmecertificate.DefaultCreatedAt = acmecertificateDescCreatedAt.Default.(func() time.Time)
+	// acmecertificateDescUpdatedAt is the schema descriptor for updated_at field.
+	acmecertificateDescUpdatedAt := acmecertificateFields[14].Descriptor()
+	// acmecertificate.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	acmecertificate.DefaultUpdatedAt = acmecertificateDescUpdatedAt.Default.(func() time.Time)
+	// acmecertificate.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	acmecertificate.UpdateDefaultUpdatedAt = acmecertificateDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// acmecertificateDescID is the schema descriptor for id field.
+	acmecertificateDescID := acmecertificateFields[0].Descriptor()
+	// acmecertificate.DefaultID holds the default value on creation for the id field.
+	acmecertificate.DefaultID = acmecertificateDescID.Default.(int)
+	acmednsproviderconfigFields := schema.AcmeDnsProviderConfig{}.Fields()
+	_ = acmednsproviderconfigFields
+	// acmednsproviderconfigDescProvider is the schema descriptor for provider field.
+	acmednsproviderconfigDescProvider := acmednsproviderconfigFields[1].Descriptor()
+	// acmednsproviderconfig.ProviderValidator is a validator for the "provider" field. It is called by the builders before save.
+	acmednsproviderconfig.ProviderValidator = func() func(string) error {
+		validators := acmednsproviderconfigDescProvider.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(provider string) error {
+			for _, fn := range fns {
+				if err := fn(provider); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// acmednsproviderconfigDescCreatedAt is the schema descriptor for created_at field.
+	acmednsproviderconfigDescCreatedAt := acmednsproviderconfigFields[3].Descriptor()
+	// acmednsproviderconfig.DefaultCreatedAt holds the default value on creation for the created_at field.
+	acmednsproviderconfig.DefaultCreatedAt = acmednsproviderconfigDescCreatedAt.Default.(func() time.Time)
+	// acmednsproviderconfigDescUpdatedAt is the schema descriptor for updated_at field.
+	acmednsproviderconfigDescUpdatedAt := acmednsproviderconfigFields[4].Descriptor()
+	// acmednsproviderconfig.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	acmednsproviderconfig.DefaultUpdatedAt = acmednsproviderconfigDescUpdatedAt.Default.(func() time.Time)
+	// acmednsproviderconfig.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	acmednsproviderconfig.UpdateDefaultUpdatedAt = acmednsproviderconfigDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// acmednsproviderconfigDescUpdatedBy is the schema descriptor for updated_by field.
+	acmednsproviderconfigDescUpdatedBy := acmednsproviderconfigFields[5].Descriptor()
+	// acmednsproviderconfig.UpdatedByValidator is a validator for the "updated_by" field. It is called by the builders before save.
+	acmednsproviderconfig.UpdatedByValidator = acmednsproviderconfigDescUpdatedBy.Validators[0].(func(string) error)
+	// acmednsproviderconfigDescID is the schema descriptor for id field.
+	acmednsproviderconfigDescID := acmednsproviderconfigFields[0].Descriptor()
+	// acmednsproviderconfig.DefaultID holds the default value on creation for the id field.
+	acmednsproviderconfig.DefaultID = acmednsproviderconfigDescID.Default.(int)
 	auditentryFields := schema.AuditEntry{}.Fields()
 	_ = auditentryFields
 	// auditentryDescAt is the schema descriptor for at field.
@@ -312,14 +463,26 @@ func init() {
 	globalsettingsDescMailClassHeader := globalsettingsFields[7].Descriptor()
 	// globalsettings.MailClassHeaderValidator is a validator for the "mail_class_header" field. It is called by the builders before save.
 	globalsettings.MailClassHeaderValidator = globalsettingsDescMailClassHeader.Validators[0].(func(string) error)
+	// globalsettingsDescHTTPSListen is the schema descriptor for https_listen field.
+	globalsettingsDescHTTPSListen := globalsettingsFields[8].Descriptor()
+	// globalsettings.HTTPSListenValidator is a validator for the "https_listen" field. It is called by the builders before save.
+	globalsettings.HTTPSListenValidator = globalsettingsDescHTTPSListen.Validators[0].(func(string) error)
+	// globalsettingsDescHTTPSCertPemPath is the schema descriptor for https_cert_pem_path field.
+	globalsettingsDescHTTPSCertPemPath := globalsettingsFields[9].Descriptor()
+	// globalsettings.HTTPSCertPemPathValidator is a validator for the "https_cert_pem_path" field. It is called by the builders before save.
+	globalsettings.HTTPSCertPemPathValidator = globalsettingsDescHTTPSCertPemPath.Validators[0].(func(string) error)
+	// globalsettingsDescHTTPSKeyPemPath is the schema descriptor for https_key_pem_path field.
+	globalsettingsDescHTTPSKeyPemPath := globalsettingsFields[10].Descriptor()
+	// globalsettings.HTTPSKeyPemPathValidator is a validator for the "https_key_pem_path" field. It is called by the builders before save.
+	globalsettings.HTTPSKeyPemPathValidator = globalsettingsDescHTTPSKeyPemPath.Validators[0].(func(string) error)
 	// globalsettingsDescUpdatedAt is the schema descriptor for updated_at field.
-	globalsettingsDescUpdatedAt := globalsettingsFields[8].Descriptor()
+	globalsettingsDescUpdatedAt := globalsettingsFields[11].Descriptor()
 	// globalsettings.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	globalsettings.DefaultUpdatedAt = globalsettingsDescUpdatedAt.Default.(func() time.Time)
 	// globalsettings.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	globalsettings.UpdateDefaultUpdatedAt = globalsettingsDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// globalsettingsDescUpdatedBy is the schema descriptor for updated_by field.
-	globalsettingsDescUpdatedBy := globalsettingsFields[9].Descriptor()
+	globalsettingsDescUpdatedBy := globalsettingsFields[12].Descriptor()
 	// globalsettings.UpdatedByValidator is a validator for the "updated_by" field. It is called by the builders before save.
 	globalsettings.UpdatedByValidator = globalsettingsDescUpdatedBy.Validators[0].(func(string) error)
 	// globalsettingsDescID is the schema descriptor for id field.

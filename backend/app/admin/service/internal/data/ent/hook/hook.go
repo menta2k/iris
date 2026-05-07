@@ -9,6 +9,42 @@ import (
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent"
 )
 
+// The AcmeAccountFunc type is an adapter to allow the use of ordinary
+// function as AcmeAccount mutator.
+type AcmeAccountFunc func(context.Context, *ent.AcmeAccountMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AcmeAccountFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AcmeAccountMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AcmeAccountMutation", m)
+}
+
+// The AcmeCertificateFunc type is an adapter to allow the use of ordinary
+// function as AcmeCertificate mutator.
+type AcmeCertificateFunc func(context.Context, *ent.AcmeCertificateMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AcmeCertificateFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AcmeCertificateMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AcmeCertificateMutation", m)
+}
+
+// The AcmeDnsProviderConfigFunc type is an adapter to allow the use of ordinary
+// function as AcmeDnsProviderConfig mutator.
+type AcmeDnsProviderConfigFunc func(context.Context, *ent.AcmeDnsProviderConfigMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AcmeDnsProviderConfigFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AcmeDnsProviderConfigMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AcmeDnsProviderConfigMutation", m)
+}
+
 // The AuditEntryFunc type is an adapter to allow the use of ordinary
 // function as AuditEntry mutator.
 type AuditEntryFunc func(context.Context, *ent.AuditEntryMutation) (ent.Value, error)

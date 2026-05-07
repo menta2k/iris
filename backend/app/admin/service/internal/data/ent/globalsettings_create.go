@@ -94,6 +94,48 @@ func (_c *GlobalSettingsCreate) SetNillableMailClassHeader(v *string) *GlobalSet
 	return _c
 }
 
+// SetHTTPSListen sets the "https_listen" field.
+func (_c *GlobalSettingsCreate) SetHTTPSListen(v string) *GlobalSettingsCreate {
+	_c.mutation.SetHTTPSListen(v)
+	return _c
+}
+
+// SetNillableHTTPSListen sets the "https_listen" field if the given value is not nil.
+func (_c *GlobalSettingsCreate) SetNillableHTTPSListen(v *string) *GlobalSettingsCreate {
+	if v != nil {
+		_c.SetHTTPSListen(*v)
+	}
+	return _c
+}
+
+// SetHTTPSCertPemPath sets the "https_cert_pem_path" field.
+func (_c *GlobalSettingsCreate) SetHTTPSCertPemPath(v string) *GlobalSettingsCreate {
+	_c.mutation.SetHTTPSCertPemPath(v)
+	return _c
+}
+
+// SetNillableHTTPSCertPemPath sets the "https_cert_pem_path" field if the given value is not nil.
+func (_c *GlobalSettingsCreate) SetNillableHTTPSCertPemPath(v *string) *GlobalSettingsCreate {
+	if v != nil {
+		_c.SetHTTPSCertPemPath(*v)
+	}
+	return _c
+}
+
+// SetHTTPSKeyPemPath sets the "https_key_pem_path" field.
+func (_c *GlobalSettingsCreate) SetHTTPSKeyPemPath(v string) *GlobalSettingsCreate {
+	_c.mutation.SetHTTPSKeyPemPath(v)
+	return _c
+}
+
+// SetNillableHTTPSKeyPemPath sets the "https_key_pem_path" field if the given value is not nil.
+func (_c *GlobalSettingsCreate) SetNillableHTTPSKeyPemPath(v *string) *GlobalSettingsCreate {
+	if v != nil {
+		_c.SetHTTPSKeyPemPath(*v)
+	}
+	return _c
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_c *GlobalSettingsCreate) SetUpdatedAt(v time.Time) *GlobalSettingsCreate {
 	_c.mutation.SetUpdatedAt(v)
@@ -203,6 +245,21 @@ func (_c *GlobalSettingsCreate) check() error {
 			return &ValidationError{Name: "mail_class_header", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.mail_class_header": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.HTTPSListen(); ok {
+		if err := globalsettings.HTTPSListenValidator(v); err != nil {
+			return &ValidationError{Name: "https_listen", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.https_listen": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.HTTPSCertPemPath(); ok {
+		if err := globalsettings.HTTPSCertPemPathValidator(v); err != nil {
+			return &ValidationError{Name: "https_cert_pem_path", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.https_cert_pem_path": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.HTTPSKeyPemPath(); ok {
+		if err := globalsettings.HTTPSKeyPemPathValidator(v); err != nil {
+			return &ValidationError{Name: "https_key_pem_path", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.https_key_pem_path": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "GlobalSettings.updated_at"`)}
 	}
@@ -270,6 +327,18 @@ func (_c *GlobalSettingsCreate) createSpec() (*GlobalSettings, *sqlgraph.CreateS
 	if value, ok := _c.mutation.MailClassHeader(); ok {
 		_spec.SetField(globalsettings.FieldMailClassHeader, field.TypeString, value)
 		_node.MailClassHeader = value
+	}
+	if value, ok := _c.mutation.HTTPSListen(); ok {
+		_spec.SetField(globalsettings.FieldHTTPSListen, field.TypeString, value)
+		_node.HTTPSListen = value
+	}
+	if value, ok := _c.mutation.HTTPSCertPemPath(); ok {
+		_spec.SetField(globalsettings.FieldHTTPSCertPemPath, field.TypeString, value)
+		_node.HTTPSCertPemPath = value
+	}
+	if value, ok := _c.mutation.HTTPSKeyPemPath(); ok {
+		_spec.SetField(globalsettings.FieldHTTPSKeyPemPath, field.TypeString, value)
+		_node.HTTPSKeyPemPath = value
 	}
 	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(globalsettings.FieldUpdatedAt, field.TypeTime, value)

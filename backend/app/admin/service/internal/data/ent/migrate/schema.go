@@ -9,6 +9,80 @@ import (
 )
 
 var (
+	// AcmeAccountColumns holds the columns for the "acme_account" table.
+	AcmeAccountColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "email", Type: field.TypeString, Size: 320},
+		{Name: "server_url", Type: field.TypeString, Size: 512},
+		{Name: "registration_json", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "private_key_pem", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// AcmeAccountTable holds the schema information for the "acme_account" table.
+	AcmeAccountTable = &schema.Table{
+		Name:       "acme_account",
+		Columns:    AcmeAccountColumns,
+		PrimaryKey: []*schema.Column{AcmeAccountColumns[0]},
+	}
+	// AcmeCertificateColumns holds the columns for the "acme_certificate" table.
+	AcmeCertificateColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "domain", Type: field.TypeString, Size: 253},
+		{Name: "alt_names", Type: field.TypeJSON, Nullable: true},
+		{Name: "challenge_type", Type: field.TypeString, Size: 16, Default: "http-01"},
+		{Name: "dns_provider", Type: field.TypeString, Nullable: true, Size: 64},
+		{Name: "cert_pem", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "key_pem", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "cert_pem_path", Type: field.TypeString, Nullable: true, Size: 1024},
+		{Name: "key_pem_path", Type: field.TypeString, Nullable: true, Size: 1024},
+		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_renewed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "status", Type: field.TypeString, Size: 16, Default: "pending"},
+		{Name: "last_error", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// AcmeCertificateTable holds the schema information for the "acme_certificate" table.
+	AcmeCertificateTable = &schema.Table{
+		Name:       "acme_certificate",
+		Columns:    AcmeCertificateColumns,
+		PrimaryKey: []*schema.Column{AcmeCertificateColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "acmecertificate_domain",
+				Unique:  true,
+				Columns: []*schema.Column{AcmeCertificateColumns[1]},
+			},
+			{
+				Name:    "acmecertificate_status_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{AcmeCertificateColumns[11], AcmeCertificateColumns[9]},
+			},
+		},
+	}
+	// AcmeDNSProviderConfigColumns holds the columns for the "acme_dns_provider_config" table.
+	AcmeDNSProviderConfigColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "provider", Type: field.TypeString, Size: 64},
+		{Name: "config_json", Type: field.TypeString, Size: 2147483647},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "updated_by", Type: field.TypeString, Nullable: true, Size: 64},
+	}
+	// AcmeDNSProviderConfigTable holds the schema information for the "acme_dns_provider_config" table.
+	AcmeDNSProviderConfigTable = &schema.Table{
+		Name:       "acme_dns_provider_config",
+		Columns:    AcmeDNSProviderConfigColumns,
+		PrimaryKey: []*schema.Column{AcmeDNSProviderConfigColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "acmednsproviderconfig_provider",
+				Unique:  true,
+				Columns: []*schema.Column{AcmeDNSProviderConfigColumns[1]},
+			},
+		},
+	}
 	// AuditEntryColumns holds the columns for the "audit_entry" table.
 	AuditEntryColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -185,6 +259,9 @@ var (
 		{Name: "bounce_sender_domains", Type: field.TypeJSON, Nullable: true},
 		{Name: "bounce_prefix", Type: field.TypeString, Nullable: true, Size: 64},
 		{Name: "mail_class_header", Type: field.TypeString, Nullable: true, Size: 128},
+		{Name: "https_listen", Type: field.TypeString, Nullable: true, Size: 64},
+		{Name: "https_cert_pem_path", Type: field.TypeString, Nullable: true, Size: 1024},
+		{Name: "https_key_pem_path", Type: field.TypeString, Nullable: true, Size: 1024},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "updated_by", Type: field.TypeString, Nullable: true, Size: 64},
 	}
@@ -671,6 +748,9 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AcmeAccountTable,
+		AcmeCertificateTable,
+		AcmeDNSProviderConfigTable,
 		AuditEntryTable,
 		DkimIdentitiesTable,
 		DsnEventTable,
@@ -696,6 +776,15 @@ var (
 )
 
 func init() {
+	AcmeAccountTable.Annotation = &entsql.Annotation{
+		Table: "acme_account",
+	}
+	AcmeCertificateTable.Annotation = &entsql.Annotation{
+		Table: "acme_certificate",
+	}
+	AcmeDNSProviderConfigTable.Annotation = &entsql.Annotation{
+		Table: "acme_dns_provider_config",
+	}
 	AuditEntryTable.Annotation = &entsql.Annotation{
 		Table: "audit_entry",
 	}

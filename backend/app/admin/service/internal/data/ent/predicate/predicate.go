@@ -6,6 +6,15 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// AcmeAccount is the predicate function for acmeaccount builders.
+type AcmeAccount func(*sql.Selector)
+
+// AcmeCertificate is the predicate function for acmecertificate builders.
+type AcmeCertificate func(*sql.Selector)
+
+// AcmeDnsProviderConfig is the predicate function for acmednsproviderconfig builders.
+type AcmeDnsProviderConfig func(*sql.Selector)
+
 // AuditEntry is the predicate function for auditentry builders.
 type AuditEntry func(*sql.Selector)
 

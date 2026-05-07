@@ -12,6 +12,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/acmeaccount"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/acmecertificate"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/acmednsproviderconfig"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/auditentry"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/dkimidentity"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/dsnevent"
@@ -92,6 +95,9 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			acmeaccount.Table:           acmeaccount.ValidColumn,
+			acmecertificate.Table:       acmecertificate.ValidColumn,
+			acmednsproviderconfig.Table: acmednsproviderconfig.ValidColumn,
 			auditentry.Table:            auditentry.ValidColumn,
 			dkimidentity.Table:          dkimidentity.ValidColumn,
 			dsnevent.Table:              dsnevent.ValidColumn,

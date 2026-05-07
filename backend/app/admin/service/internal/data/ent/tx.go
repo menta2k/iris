@@ -12,6 +12,12 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// AcmeAccount is the client for interacting with the AcmeAccount builders.
+	AcmeAccount *AcmeAccountClient
+	// AcmeCertificate is the client for interacting with the AcmeCertificate builders.
+	AcmeCertificate *AcmeCertificateClient
+	// AcmeDnsProviderConfig is the client for interacting with the AcmeDnsProviderConfig builders.
+	AcmeDnsProviderConfig *AcmeDnsProviderConfigClient
 	// AuditEntry is the client for interacting with the AuditEntry builders.
 	AuditEntry *AuditEntryClient
 	// DkimIdentity is the client for interacting with the DkimIdentity builders.
@@ -183,6 +189,9 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.AcmeAccount = NewAcmeAccountClient(tx.config)
+	tx.AcmeCertificate = NewAcmeCertificateClient(tx.config)
+	tx.AcmeDnsProviderConfig = NewAcmeDnsProviderConfigClient(tx.config)
 	tx.AuditEntry = NewAuditEntryClient(tx.config)
 	tx.DkimIdentity = NewDkimIdentityClient(tx.config)
 	tx.DsnEvent = NewDsnEventClient(tx.config)
@@ -212,7 +221,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: AuditEntry.QueryXXX(), the query will be executed
+// applies a query, for example: AcmeAccount.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

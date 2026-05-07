@@ -35,6 +35,8 @@ func RegisterKumoHTTP(
 	dashboard *service.DashboardService,
 	dsns *service.DsnService,
 	gsvc *service.GlobalSettingsService,
+	listeners *service.ListenerService,
+	acme *service.AcmeService,
 	write auditmw.WriteFunc,
 ) {
 	registerQueuesHTTP(hs, queues, write)
@@ -50,6 +52,8 @@ func RegisterKumoHTTP(
 	registerVmtaGroupsHTTP(hs, vmtaGroups, write)
 	RegisterDashboardHTTP(hs, dashboard)
 	registerGlobalSettingsHTTP(hs, gsvc, write)
+	registerListeners(hs, listeners, write)
+	registerAcmeHTTP(hs, acme, write)
 }
 
 // --- /v1/queues -----------------------------------------------------------

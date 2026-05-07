@@ -85,6 +85,13 @@ services:
       # dev default in production — operators must inject from a secret
       # manager.
       IRIS_VERP_SECRET: ${IRIS_VERP_SECRET:-dev-only-verp-secret-please-change-32+}
+      # ACME / Let's Encrypt: where to mirror issued PEMs (kumomta also
+      # mounts this volume for its TLS reads), and the public :80
+      # listener that ACME CAs hit during HTTP-01 validation. Set
+      # IRIS_ACME_HTTP_BIND=off if you front iris with a reverse proxy
+      # that forwards /.well-known/acme-challenge/* to port 8000.
+      IRIS_ACME_CERT_DIR:  ${IRIS_ACME_CERT_DIR:-/opt/kumomta/etc/tls}
+      IRIS_ACME_HTTP_BIND: ${IRIS_ACME_HTTP_BIND:-:80}
       # Redis-stream consumer: kumomta XADDs log records here, admin-service
       # XREADGROUPs them and persists into log_event + feedback_report.
       # The renderer also picks this URL up via GlobalSettings to emit the
@@ -112,6 +119,7 @@ services:
       - "8000:8000"
       - "9000:9000"
       - "9090:9090"   # Prometheus scrape target — /metrics + /healthz
+      - "80:80"       # ACME HTTP-01 challenge listener (set IRIS_ACME_HTTP_BIND=off and remove this line behind a reverse proxy)
     networks: [iris]
 
   prometheus:

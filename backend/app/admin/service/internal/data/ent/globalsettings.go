@@ -32,6 +32,12 @@ type GlobalSettings struct {
 	BouncePrefix string `json:"bounce_prefix,omitempty"`
 	// MailClassHeader holds the value of the "mail_class_header" field.
 	MailClassHeader string `json:"mail_class_header,omitempty"`
+	// HTTPSListen holds the value of the "https_listen" field.
+	HTTPSListen string `json:"https_listen,omitempty"`
+	// HTTPSCertPemPath holds the value of the "https_cert_pem_path" field.
+	HTTPSCertPemPath string `json:"https_cert_pem_path,omitempty"`
+	// HTTPSKeyPemPath holds the value of the "https_key_pem_path" field.
+	HTTPSKeyPemPath string `json:"https_key_pem_path,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// UpdatedBy holds the value of the "updated_by" field.
@@ -48,7 +54,7 @@ func (*GlobalSettings) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case globalsettings.FieldID:
 			values[i] = new(sql.NullInt64)
-		case globalsettings.FieldKumoHTTPListen, globalsettings.FieldBounceDomain, globalsettings.FieldBouncePrefix, globalsettings.FieldMailClassHeader, globalsettings.FieldUpdatedBy:
+		case globalsettings.FieldKumoHTTPListen, globalsettings.FieldBounceDomain, globalsettings.FieldBouncePrefix, globalsettings.FieldMailClassHeader, globalsettings.FieldHTTPSListen, globalsettings.FieldHTTPSCertPemPath, globalsettings.FieldHTTPSKeyPemPath, globalsettings.FieldUpdatedBy:
 			values[i] = new(sql.NullString)
 		case globalsettings.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -121,6 +127,24 @@ func (_m *GlobalSettings) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.MailClassHeader = value.String
 			}
+		case globalsettings.FieldHTTPSListen:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field https_listen", values[i])
+			} else if value.Valid {
+				_m.HTTPSListen = value.String
+			}
+		case globalsettings.FieldHTTPSCertPemPath:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field https_cert_pem_path", values[i])
+			} else if value.Valid {
+				_m.HTTPSCertPemPath = value.String
+			}
+		case globalsettings.FieldHTTPSKeyPemPath:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field https_key_pem_path", values[i])
+			} else if value.Valid {
+				_m.HTTPSKeyPemPath = value.String
+			}
 		case globalsettings.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
@@ -189,6 +213,15 @@ func (_m *GlobalSettings) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("mail_class_header=")
 	builder.WriteString(_m.MailClassHeader)
+	builder.WriteString(", ")
+	builder.WriteString("https_listen=")
+	builder.WriteString(_m.HTTPSListen)
+	builder.WriteString(", ")
+	builder.WriteString("https_cert_pem_path=")
+	builder.WriteString(_m.HTTPSCertPemPath)
+	builder.WriteString(", ")
+	builder.WriteString("https_key_pem_path=")
+	builder.WriteString(_m.HTTPSKeyPemPath)
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))

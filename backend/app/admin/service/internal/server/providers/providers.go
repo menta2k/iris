@@ -62,11 +62,13 @@ func RegisterServers(
 	dashboard *service.DashboardService,
 	dsns *service.DsnService,
 	gsvc *service.GlobalSettingsService,
+	listeners *service.ListenerService,
+	acme *service.AcmeService,
 	writer *data.AuditWriter,
 ) Registered {
 	server.RegisterServices(gs, hs, auth, users, audit,
 		queues, suppressions, vmtas, routing, dkim, feedback, logs, policy,
-		mailClasses, vmtaGroups, dashboard, dsns, gsvc, writer.Write)
+		mailClasses, vmtaGroups, dashboard, dsns, gsvc, listeners, acme, writer.Write)
 	return Registered{}
 }
 
@@ -77,6 +79,8 @@ var ProviderSet = wire.NewSet(
 	server.NewHTTPServer,
 	server.NewLogstreamServer,
 	server.NewDsnstreamServer,
+	server.NewAcmeChallengeServer,
+	server.NewHTTPSServer,
 	server.NewSuppressionResyncServer,
 	server.NewMetricsServer,
 	RegisterServers,

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import type { GlobalSettings } from '#/api/kumo';
+import type { AcmeCertificate, GlobalSettings } from '#/api/kumo';
 
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
@@ -15,13 +15,16 @@ import {
   Input,
   message,
   Popconfirm,
+  Radio,
+  RadioGroup,
   Select,
   Space,
   Spin,
+  Switch,
   Tag,
 } from 'ant-design-vue';
 
-import { globalSettingsApi, policyApi } from '#/api/kumo';
+import { acmeApi, globalSettingsApi, policyApi } from '#/api/kumo';
 
 defineOptions({ name: 'GlobalSettings' });
 
@@ -43,7 +46,61 @@ const form = reactive<GlobalSettings>({
   bounce_sender_domains: [],
   bounce_prefix: '',
   mail_class_header: '',
+  https_listen: '',
+  https_cert_pem_path: '',
+  https_key_pem_path: '',
 });
+
+// HTTPS termination state. Operator picks an issued ACME cert from the
+// dropdown; we mirror its on-disk paths into the form, same approach
+// the Listener drawer uses (paths are stable across renewals).
+const acmeCerts = ref<AcmeCertificate[]>([]);
+const httpsEnabled = ref(false);
+const httpsSource = ref<'acme' | 'manual'>('acme');
+const selectedHttpsCertId = ref<null | number>(null);
+
+const acmeCertsAvailable = computed(() => acmeCerts.value.length > 0);
+
+function detectHttpsState(s: GlobalSettings) {
+  httpsEnabled.value = !!s.https_listen;
+  if (!httpsEnabled.value) {
+    httpsSource.value = 'acme';
+    selectedHttpsCertId.value = null;
+    return;
+  }
+  // Try to map the saved paths to one of the issued certs; if it
+  // matches we open in ACME mode, otherwise the operator typed paths
+  // by hand and we leave it in Manual.
+  const match = acmeCerts.value.find(
+    (c) =>
+      c.cert_pem_path === s.https_cert_pem_path &&
+      c.key_pem_path === s.https_key_pem_path,
+  );
+  if (match?.id) {
+    httpsSource.value = 'acme';
+    selectedHttpsCertId.value = match.id;
+  } else {
+    httpsSource.value = 'manual';
+    selectedHttpsCertId.value = null;
+  }
+}
+
+watch(selectedHttpsCertId, (id) => {
+  if (httpsSource.value !== 'acme' || id == null) return;
+  const cert = acmeCerts.value.find((c) => c.id === id);
+  if (!cert) return;
+  form.https_cert_pem_path = cert.cert_pem_path ?? '';
+  form.https_key_pem_path = cert.key_pem_path ?? '';
+});
+
+watch(httpsSource, (mode) => {
+  if (mode === 'manual') selectedHttpsCertId.value = null;
+});
+
+function labelForCert(c: AcmeCertificate): string {
+  const sans = (c.alt_names ?? []).length > 0 ? ` (+${c.alt_names!.length} SAN)` : '';
+  return `${c.domain}${sans}`;
+}
 
 // Bounce mode is derived from the form, not stored separately. Keeping
 // it computed avoids a desync between the radio and the underlying
@@ -58,11 +115,18 @@ function detectMode(s: GlobalSettings) {
 async function load() {
   loading.value = true;
   try {
-    const r = await globalSettingsApi.get();
-    Object.assign(form, r);
-    bounceMode.value = detectMode(r);
-    updatedAt.value = r.updated_at ?? '';
-    updatedBy.value = r.updated_by ?? '';
+    const [settings, certs] = await Promise.all([
+      globalSettingsApi.get(),
+      acmeApi.listCertificates().catch(() => ({ items: [] })),
+    ]);
+    Object.assign(form, settings);
+    bounceMode.value = detectMode(settings);
+    acmeCerts.value = (certs.items ?? []).filter(
+      (c) => c.status === 'issued' && c.cert_pem_path && c.key_pem_path,
+    );
+    detectHttpsState(settings);
+    updatedAt.value = settings.updated_at ?? '';
+    updatedBy.value = settings.updated_by ?? '';
   } finally {
     loading.value = false;
   }
@@ -80,6 +144,12 @@ async function save() {
       bounce_domain: bounceMode.value === 'single' ? form.bounce_domain : '',
       bounce_sender_domains:
         bounceMode.value === 'multi' ? form.bounce_sender_domains : [],
+      // Wipe HTTPS fields when disabled so the next backend boot
+      // doesn't keep stale paths around (the validator would reject a
+      // half-set state too).
+      https_listen: httpsEnabled.value ? form.https_listen : '',
+      https_cert_pem_path: httpsEnabled.value ? form.https_cert_pem_path : '',
+      https_key_pem_path: httpsEnabled.value ? form.https_key_pem_path : '',
     };
     const r = await globalSettingsApi.update(payload);
     Object.assign(form, r);
@@ -239,6 +309,102 @@ onMounted(load);
         </Form>
       </Card>
 
+      <!-- ───── Iris admin HTTPS ───── -->
+      <Card title="Admin HTTPS" :body-style="{ padding: '20px' }" class="mb-4">
+        <Alert
+          v-if="!httpsEnabled"
+          type="info"
+          show-icon
+          class="mb-3"
+          message="Admin HTTPS is disabled."
+          description="When enabled, iris terminates TLS on the bind below and reverse-proxies to the existing plain HTTP server (default :8000). Operator-side requirements: an issued ACME cert (or manually-supplied cert+key files), and the configured port reachable from your audience."
+        />
+
+        <Form :model="form" layout="vertical" :colon="false">
+          <FormItem>
+            <Space>
+              <Switch v-model:checked="httpsEnabled" />
+              <span>Enable admin HTTPS termination</span>
+            </Space>
+          </FormItem>
+
+          <template v-if="httpsEnabled">
+            <FormItem
+              label="Listen"
+              help="host:port the HTTPS server binds. Default :443. Inside the container the process runs as root in dev compose, so binding <1024 works; on prod with a non-root container add cap_net_bind_service or pick a port ≥1024 and forward from your reverse proxy."
+              :rules="[{ required: true, message: 'Listen address is required' }]"
+            >
+              <Input
+                v-model:value="form.https_listen"
+                placeholder=":443"
+                style="max-width: 240px"
+              />
+            </FormItem>
+
+            <FormItem label="Certificate source">
+              <RadioGroup v-model:value="httpsSource">
+                <Radio value="acme" :disabled="!acmeCertsAvailable">
+                  Issued ACME certificate
+                </Radio>
+                <Radio value="manual">Manual paths</Radio>
+              </RadioGroup>
+              <div v-if="!acmeCertsAvailable" class="hint">
+                No issued ACME certificates found.
+                <a href="/security/certificates">Issue one</a> first, or pick
+                Manual to point at cert+key files you've already got on disk.
+              </div>
+            </FormItem>
+
+            <template v-if="httpsSource === 'acme'">
+              <FormItem
+                label="Certificate"
+                :rules="[{ required: true, message: 'Pick an issued certificate' }]"
+              >
+                <Select
+                  :value="selectedHttpsCertId ?? undefined"
+                  placeholder="Select an issued certificate…"
+                  style="width: 100%; max-width: 540px"
+                  @change="(v: any) => (selectedHttpsCertId = (v as null | number) ?? null)"
+                >
+                  <Select.Option
+                    v-for="c in acmeCerts"
+                    :key="c.id"
+                    :value="c.id"
+                  >
+                    {{ labelForCert(c) }}
+                  </Select.Option>
+                </Select>
+              </FormItem>
+            </template>
+
+            <FormItem label="Certificate path">
+              <Input
+                v-model:value="form.https_cert_pem_path"
+                :disabled="httpsSource === 'acme'"
+                placeholder="/opt/kumomta/etc/tls/iris.example.com/fullchain.pem"
+                style="max-width: 540px"
+              />
+            </FormItem>
+            <FormItem label="Private key path">
+              <Input
+                v-model:value="form.https_key_pem_path"
+                :disabled="httpsSource === 'acme'"
+                placeholder="/opt/kumomta/etc/tls/iris.example.com/privkey.pem"
+                style="max-width: 540px"
+              />
+            </FormItem>
+
+            <Alert
+              type="info"
+              show-icon
+              class="mt-2"
+              message="Plain HTTP stays available."
+              description="Enabling HTTPS doesn't disable the existing plain :8000 listener — the HTTPS server reverse-proxies to it. Front iris with a load balancer that redirects http://… to https://… if you want HTTP-free access; iris itself keeps both paths open so internal /healthz callers don't break."
+            />
+          </template>
+        </Form>
+      </Card>
+
       <!-- ───── Misc ───── -->
       <Card title="Other" :body-style="{ padding: '20px' }" class="mb-4">
         <Form :model="form" layout="vertical" :colon="false">
@@ -290,5 +456,14 @@ onMounted(load);
 }
 .meta .when {
   font-family: ui-monospace, 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
+}
+.hint {
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary);
+  margin-top: 6px;
+  line-height: 1.45;
+}
+.mt-2 {
+  margin-top: 12px;
 }
 </style>
