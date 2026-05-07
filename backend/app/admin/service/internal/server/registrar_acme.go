@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 	"time"
@@ -196,9 +195,11 @@ func registerAcmeHTTP(hs *kratoshttp.Server, s *service.AcmeService, write audit
 				writeErr(w, http.StatusBadRequest, "BAD_JSON", err.Error())
 				return
 			}
-			ctx, cancel := contextWithIssueTimeout(r.Context())
-			defer cancel()
-			row, err := s.IssueCertificate(ctx, service.AcmeIssueRequest{
+			// IssueCertificate returns immediately with a `pending` row;
+			// the actual ACME flow runs in a goroutine. UI polls
+			// /v1/acme/certificates to see the status flip to
+			// `issued` / `failed`. 202 Accepted reflects that semantics.
+			row, err := s.IssueCertificate(r.Context(), service.AcmeIssueRequest{
 				Domain: body.Domain, AltNames: body.AltNames,
 				ChallengeType: body.ChallengeType, DnsProvider: body.DnsProvider,
 			})
@@ -206,7 +207,7 @@ func registerAcmeHTTP(hs *kratoshttp.Server, s *service.AcmeService, write audit
 				writeErr(w, http.StatusBadRequest, "ISSUE_FAILED", err.Error())
 				return
 			}
-			writeJSON(w, http.StatusCreated, certToHTTP(row))
+			writeJSON(w, http.StatusAccepted, certToHTTP(row))
 		default:
 			writeErr(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "use GET or POST")
 		}
@@ -235,27 +236,21 @@ func registerAcmeHTTP(hs *kratoshttp.Server, s *service.AcmeService, write audit
 		}
 	}))
 
-	// /v1/acme/certificates/{id}/renew
+	// /v1/acme/certificates/{id}/renew — fires the same async flow as
+	// Issue; returns 202 Accepted with the row in `pending`.
 	hs.HandleFunc("/v1/acme/certificates/{id:[0-9]+}/renew", mut(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeErr(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "use POST")
 			return
 		}
 		id64, _ := strconv.ParseUint(mux.Vars(r)["id"], 10, 32)
-		ctx, cancel := contextWithIssueTimeout(r.Context())
-		defer cancel()
-		row, err := s.RenewCertificate(ctx, uint32(id64))
+		row, err := s.RenewCertificate(r.Context(), uint32(id64))
 		if err != nil {
 			writeErr(w, http.StatusBadRequest, "RENEW_FAILED", err.Error())
 			return
 		}
-		writeJSON(w, http.StatusOK, certToHTTP(row))
+		writeJSON(w, http.StatusAccepted, certToHTTP(row))
 	}))
-}
-
-// ACME issuance can take 30-90s with DNS-01 propagation; default 120s.
-func contextWithIssueTimeout(parent context.Context) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(parent, 120*time.Second)
 }
 
 // --- adapters ---------------------------------------------------------------
