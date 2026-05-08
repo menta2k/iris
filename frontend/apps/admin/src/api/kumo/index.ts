@@ -190,6 +190,7 @@ export const dsnsApi = {
 // ─── Global Settings ─────────────────────────────────────────────────────────
 export interface GlobalSettings {
   kumo_http_listen: string;
+  esmtp_listen_addr: string;
   esmtp_relay_hosts: string[];
   http_trusted_hosts: string[];
   bounce_domain: string;

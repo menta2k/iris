@@ -59,6 +59,11 @@ func KumoHTTPListen(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldEQ(FieldKumoHTTPListen, v))
 }
 
+// EsmtpListenAddr applies equality check predicate on the "esmtp_listen_addr" field. It's identical to EsmtpListenAddrEQ.
+func EsmtpListenAddr(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldEsmtpListenAddr, v))
+}
+
 // BounceDomain applies equality check predicate on the "bounce_domain" field. It's identical to BounceDomainEQ.
 func BounceDomain(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldEQ(FieldBounceDomain, v))
@@ -172,6 +177,81 @@ func KumoHTTPListenEqualFold(v string) predicate.GlobalSettings {
 // KumoHTTPListenContainsFold applies the ContainsFold predicate on the "kumo_http_listen" field.
 func KumoHTTPListenContainsFold(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldContainsFold(FieldKumoHTTPListen, v))
+}
+
+// EsmtpListenAddrEQ applies the EQ predicate on the "esmtp_listen_addr" field.
+func EsmtpListenAddrEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldEsmtpListenAddr, v))
+}
+
+// EsmtpListenAddrNEQ applies the NEQ predicate on the "esmtp_listen_addr" field.
+func EsmtpListenAddrNEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNEQ(FieldEsmtpListenAddr, v))
+}
+
+// EsmtpListenAddrIn applies the In predicate on the "esmtp_listen_addr" field.
+func EsmtpListenAddrIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIn(FieldEsmtpListenAddr, vs...))
+}
+
+// EsmtpListenAddrNotIn applies the NotIn predicate on the "esmtp_listen_addr" field.
+func EsmtpListenAddrNotIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotIn(FieldEsmtpListenAddr, vs...))
+}
+
+// EsmtpListenAddrGT applies the GT predicate on the "esmtp_listen_addr" field.
+func EsmtpListenAddrGT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGT(FieldEsmtpListenAddr, v))
+}
+
+// EsmtpListenAddrGTE applies the GTE predicate on the "esmtp_listen_addr" field.
+func EsmtpListenAddrGTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGTE(FieldEsmtpListenAddr, v))
+}
+
+// EsmtpListenAddrLT applies the LT predicate on the "esmtp_listen_addr" field.
+func EsmtpListenAddrLT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLT(FieldEsmtpListenAddr, v))
+}
+
+// EsmtpListenAddrLTE applies the LTE predicate on the "esmtp_listen_addr" field.
+func EsmtpListenAddrLTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLTE(FieldEsmtpListenAddr, v))
+}
+
+// EsmtpListenAddrContains applies the Contains predicate on the "esmtp_listen_addr" field.
+func EsmtpListenAddrContains(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContains(FieldEsmtpListenAddr, v))
+}
+
+// EsmtpListenAddrHasPrefix applies the HasPrefix predicate on the "esmtp_listen_addr" field.
+func EsmtpListenAddrHasPrefix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasPrefix(FieldEsmtpListenAddr, v))
+}
+
+// EsmtpListenAddrHasSuffix applies the HasSuffix predicate on the "esmtp_listen_addr" field.
+func EsmtpListenAddrHasSuffix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasSuffix(FieldEsmtpListenAddr, v))
+}
+
+// EsmtpListenAddrIsNil applies the IsNil predicate on the "esmtp_listen_addr" field.
+func EsmtpListenAddrIsNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIsNull(FieldEsmtpListenAddr))
+}
+
+// EsmtpListenAddrNotNil applies the NotNil predicate on the "esmtp_listen_addr" field.
+func EsmtpListenAddrNotNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotNull(FieldEsmtpListenAddr))
+}
+
+// EsmtpListenAddrEqualFold applies the EqualFold predicate on the "esmtp_listen_addr" field.
+func EsmtpListenAddrEqualFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEqualFold(FieldEsmtpListenAddr, v))
+}
+
+// EsmtpListenAddrContainsFold applies the ContainsFold predicate on the "esmtp_listen_addr" field.
+func EsmtpListenAddrContainsFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContainsFold(FieldEsmtpListenAddr, v))
 }
 
 // EsmtpRelayHostsIsNil applies the IsNil predicate on the "esmtp_relay_hosts" field.

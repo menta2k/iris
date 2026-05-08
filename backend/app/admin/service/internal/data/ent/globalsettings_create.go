@@ -34,6 +34,20 @@ func (_c *GlobalSettingsCreate) SetNillableKumoHTTPListen(v *string) *GlobalSett
 	return _c
 }
 
+// SetEsmtpListenAddr sets the "esmtp_listen_addr" field.
+func (_c *GlobalSettingsCreate) SetEsmtpListenAddr(v string) *GlobalSettingsCreate {
+	_c.mutation.SetEsmtpListenAddr(v)
+	return _c
+}
+
+// SetNillableEsmtpListenAddr sets the "esmtp_listen_addr" field if the given value is not nil.
+func (_c *GlobalSettingsCreate) SetNillableEsmtpListenAddr(v *string) *GlobalSettingsCreate {
+	if v != nil {
+		_c.SetEsmtpListenAddr(*v)
+	}
+	return _c
+}
+
 // SetEsmtpRelayHosts sets the "esmtp_relay_hosts" field.
 func (_c *GlobalSettingsCreate) SetEsmtpRelayHosts(v []string) *GlobalSettingsCreate {
 	_c.mutation.SetEsmtpRelayHosts(v)
@@ -230,6 +244,11 @@ func (_c *GlobalSettingsCreate) check() error {
 			return &ValidationError{Name: "kumo_http_listen", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.kumo_http_listen": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.EsmtpListenAddr(); ok {
+		if err := globalsettings.EsmtpListenAddrValidator(v); err != nil {
+			return &ValidationError{Name: "esmtp_listen_addr", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.esmtp_listen_addr": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.BounceDomain(); ok {
 		if err := globalsettings.BounceDomainValidator(v); err != nil {
 			return &ValidationError{Name: "bounce_domain", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.bounce_domain": %w`, err)}
@@ -303,6 +322,10 @@ func (_c *GlobalSettingsCreate) createSpec() (*GlobalSettings, *sqlgraph.CreateS
 	if value, ok := _c.mutation.KumoHTTPListen(); ok {
 		_spec.SetField(globalsettings.FieldKumoHTTPListen, field.TypeString, value)
 		_node.KumoHTTPListen = value
+	}
+	if value, ok := _c.mutation.EsmtpListenAddr(); ok {
+		_spec.SetField(globalsettings.FieldEsmtpListenAddr, field.TypeString, value)
+		_node.EsmtpListenAddr = value
 	}
 	if value, ok := _c.mutation.EsmtpRelayHosts(); ok {
 		_spec.SetField(globalsettings.FieldEsmtpRelayHosts, field.TypeJSON, value)

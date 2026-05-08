@@ -6912,6 +6912,7 @@ type GlobalSettingsMutation struct {
 	typ                         string
 	id                          *int
 	kumo_http_listen            *string
+	esmtp_listen_addr           *string
 	esmtp_relay_hosts           *[]string
 	appendesmtp_relay_hosts     []string
 	http_trusted_hosts          *[]string
@@ -7083,6 +7084,55 @@ func (m *GlobalSettingsMutation) KumoHTTPListenCleared() bool {
 func (m *GlobalSettingsMutation) ResetKumoHTTPListen() {
 	m.kumo_http_listen = nil
 	delete(m.clearedFields, globalsettings.FieldKumoHTTPListen)
+}
+
+// SetEsmtpListenAddr sets the "esmtp_listen_addr" field.
+func (m *GlobalSettingsMutation) SetEsmtpListenAddr(s string) {
+	m.esmtp_listen_addr = &s
+}
+
+// EsmtpListenAddr returns the value of the "esmtp_listen_addr" field in the mutation.
+func (m *GlobalSettingsMutation) EsmtpListenAddr() (r string, exists bool) {
+	v := m.esmtp_listen_addr
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEsmtpListenAddr returns the old "esmtp_listen_addr" field's value of the GlobalSettings entity.
+// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GlobalSettingsMutation) OldEsmtpListenAddr(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEsmtpListenAddr is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEsmtpListenAddr requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEsmtpListenAddr: %w", err)
+	}
+	return oldValue.EsmtpListenAddr, nil
+}
+
+// ClearEsmtpListenAddr clears the value of the "esmtp_listen_addr" field.
+func (m *GlobalSettingsMutation) ClearEsmtpListenAddr() {
+	m.esmtp_listen_addr = nil
+	m.clearedFields[globalsettings.FieldEsmtpListenAddr] = struct{}{}
+}
+
+// EsmtpListenAddrCleared returns if the "esmtp_listen_addr" field was cleared in this mutation.
+func (m *GlobalSettingsMutation) EsmtpListenAddrCleared() bool {
+	_, ok := m.clearedFields[globalsettings.FieldEsmtpListenAddr]
+	return ok
+}
+
+// ResetEsmtpListenAddr resets all changes to the "esmtp_listen_addr" field.
+func (m *GlobalSettingsMutation) ResetEsmtpListenAddr() {
+	m.esmtp_listen_addr = nil
+	delete(m.clearedFields, globalsettings.FieldEsmtpListenAddr)
 }
 
 // SetEsmtpRelayHosts sets the "esmtp_relay_hosts" field.
@@ -7693,9 +7743,12 @@ func (m *GlobalSettingsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GlobalSettingsMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.kumo_http_listen != nil {
 		fields = append(fields, globalsettings.FieldKumoHTTPListen)
+	}
+	if m.esmtp_listen_addr != nil {
+		fields = append(fields, globalsettings.FieldEsmtpListenAddr)
 	}
 	if m.esmtp_relay_hosts != nil {
 		fields = append(fields, globalsettings.FieldEsmtpRelayHosts)
@@ -7740,6 +7793,8 @@ func (m *GlobalSettingsMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case globalsettings.FieldKumoHTTPListen:
 		return m.KumoHTTPListen()
+	case globalsettings.FieldEsmtpListenAddr:
+		return m.EsmtpListenAddr()
 	case globalsettings.FieldEsmtpRelayHosts:
 		return m.EsmtpRelayHosts()
 	case globalsettings.FieldHTTPTrustedHosts:
@@ -7773,6 +7828,8 @@ func (m *GlobalSettingsMutation) OldField(ctx context.Context, name string) (ent
 	switch name {
 	case globalsettings.FieldKumoHTTPListen:
 		return m.OldKumoHTTPListen(ctx)
+	case globalsettings.FieldEsmtpListenAddr:
+		return m.OldEsmtpListenAddr(ctx)
 	case globalsettings.FieldEsmtpRelayHosts:
 		return m.OldEsmtpRelayHosts(ctx)
 	case globalsettings.FieldHTTPTrustedHosts:
@@ -7810,6 +7867,13 @@ func (m *GlobalSettingsMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetKumoHTTPListen(v)
+		return nil
+	case globalsettings.FieldEsmtpListenAddr:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEsmtpListenAddr(v)
 		return nil
 	case globalsettings.FieldEsmtpRelayHosts:
 		v, ok := value.([]string)
@@ -7921,6 +7985,9 @@ func (m *GlobalSettingsMutation) ClearedFields() []string {
 	if m.FieldCleared(globalsettings.FieldKumoHTTPListen) {
 		fields = append(fields, globalsettings.FieldKumoHTTPListen)
 	}
+	if m.FieldCleared(globalsettings.FieldEsmtpListenAddr) {
+		fields = append(fields, globalsettings.FieldEsmtpListenAddr)
+	}
 	if m.FieldCleared(globalsettings.FieldEsmtpRelayHosts) {
 		fields = append(fields, globalsettings.FieldEsmtpRelayHosts)
 	}
@@ -7968,6 +8035,9 @@ func (m *GlobalSettingsMutation) ClearField(name string) error {
 	case globalsettings.FieldKumoHTTPListen:
 		m.ClearKumoHTTPListen()
 		return nil
+	case globalsettings.FieldEsmtpListenAddr:
+		m.ClearEsmtpListenAddr()
+		return nil
 	case globalsettings.FieldEsmtpRelayHosts:
 		m.ClearEsmtpRelayHosts()
 		return nil
@@ -8008,6 +8078,9 @@ func (m *GlobalSettingsMutation) ResetField(name string) error {
 	switch name {
 	case globalsettings.FieldKumoHTTPListen:
 		m.ResetKumoHTTPListen()
+		return nil
+	case globalsettings.FieldEsmtpListenAddr:
+		m.ResetEsmtpListenAddr()
 		return nil
 	case globalsettings.FieldEsmtpRelayHosts:
 		m.ResetEsmtpRelayHosts()

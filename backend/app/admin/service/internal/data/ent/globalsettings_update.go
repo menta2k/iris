@@ -49,6 +49,26 @@ func (_u *GlobalSettingsUpdate) ClearKumoHTTPListen() *GlobalSettingsUpdate {
 	return _u
 }
 
+// SetEsmtpListenAddr sets the "esmtp_listen_addr" field.
+func (_u *GlobalSettingsUpdate) SetEsmtpListenAddr(v string) *GlobalSettingsUpdate {
+	_u.mutation.SetEsmtpListenAddr(v)
+	return _u
+}
+
+// SetNillableEsmtpListenAddr sets the "esmtp_listen_addr" field if the given value is not nil.
+func (_u *GlobalSettingsUpdate) SetNillableEsmtpListenAddr(v *string) *GlobalSettingsUpdate {
+	if v != nil {
+		_u.SetEsmtpListenAddr(*v)
+	}
+	return _u
+}
+
+// ClearEsmtpListenAddr clears the value of the "esmtp_listen_addr" field.
+func (_u *GlobalSettingsUpdate) ClearEsmtpListenAddr() *GlobalSettingsUpdate {
+	_u.mutation.ClearEsmtpListenAddr()
+	return _u
+}
+
 // SetEsmtpRelayHosts sets the "esmtp_relay_hosts" field.
 func (_u *GlobalSettingsUpdate) SetEsmtpRelayHosts(v []string) *GlobalSettingsUpdate {
 	_u.mutation.SetEsmtpRelayHosts(v)
@@ -297,6 +317,11 @@ func (_u *GlobalSettingsUpdate) check() error {
 			return &ValidationError{Name: "kumo_http_listen", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.kumo_http_listen": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.EsmtpListenAddr(); ok {
+		if err := globalsettings.EsmtpListenAddrValidator(v); err != nil {
+			return &ValidationError{Name: "esmtp_listen_addr", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.esmtp_listen_addr": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.BounceDomain(); ok {
 		if err := globalsettings.BounceDomainValidator(v); err != nil {
 			return &ValidationError{Name: "bounce_domain", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.bounce_domain": %w`, err)}
@@ -352,6 +377,12 @@ func (_u *GlobalSettingsUpdate) sqlSave(ctx context.Context) (_node int, err err
 	}
 	if _u.mutation.KumoHTTPListenCleared() {
 		_spec.ClearField(globalsettings.FieldKumoHTTPListen, field.TypeString)
+	}
+	if value, ok := _u.mutation.EsmtpListenAddr(); ok {
+		_spec.SetField(globalsettings.FieldEsmtpListenAddr, field.TypeString, value)
+	}
+	if _u.mutation.EsmtpListenAddrCleared() {
+		_spec.ClearField(globalsettings.FieldEsmtpListenAddr, field.TypeString)
 	}
 	if value, ok := _u.mutation.EsmtpRelayHosts(); ok {
 		_spec.SetField(globalsettings.FieldEsmtpRelayHosts, field.TypeJSON, value)
@@ -468,6 +499,26 @@ func (_u *GlobalSettingsUpdateOne) SetNillableKumoHTTPListen(v *string) *GlobalS
 // ClearKumoHTTPListen clears the value of the "kumo_http_listen" field.
 func (_u *GlobalSettingsUpdateOne) ClearKumoHTTPListen() *GlobalSettingsUpdateOne {
 	_u.mutation.ClearKumoHTTPListen()
+	return _u
+}
+
+// SetEsmtpListenAddr sets the "esmtp_listen_addr" field.
+func (_u *GlobalSettingsUpdateOne) SetEsmtpListenAddr(v string) *GlobalSettingsUpdateOne {
+	_u.mutation.SetEsmtpListenAddr(v)
+	return _u
+}
+
+// SetNillableEsmtpListenAddr sets the "esmtp_listen_addr" field if the given value is not nil.
+func (_u *GlobalSettingsUpdateOne) SetNillableEsmtpListenAddr(v *string) *GlobalSettingsUpdateOne {
+	if v != nil {
+		_u.SetEsmtpListenAddr(*v)
+	}
+	return _u
+}
+
+// ClearEsmtpListenAddr clears the value of the "esmtp_listen_addr" field.
+func (_u *GlobalSettingsUpdateOne) ClearEsmtpListenAddr() *GlobalSettingsUpdateOne {
+	_u.mutation.ClearEsmtpListenAddr()
 	return _u
 }
 
@@ -732,6 +783,11 @@ func (_u *GlobalSettingsUpdateOne) check() error {
 			return &ValidationError{Name: "kumo_http_listen", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.kumo_http_listen": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.EsmtpListenAddr(); ok {
+		if err := globalsettings.EsmtpListenAddrValidator(v); err != nil {
+			return &ValidationError{Name: "esmtp_listen_addr", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.esmtp_listen_addr": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.BounceDomain(); ok {
 		if err := globalsettings.BounceDomainValidator(v); err != nil {
 			return &ValidationError{Name: "bounce_domain", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.bounce_domain": %w`, err)}
@@ -804,6 +860,12 @@ func (_u *GlobalSettingsUpdateOne) sqlSave(ctx context.Context) (_node *GlobalSe
 	}
 	if _u.mutation.KumoHTTPListenCleared() {
 		_spec.ClearField(globalsettings.FieldKumoHTTPListen, field.TypeString)
+	}
+	if value, ok := _u.mutation.EsmtpListenAddr(); ok {
+		_spec.SetField(globalsettings.FieldEsmtpListenAddr, field.TypeString, value)
+	}
+	if _u.mutation.EsmtpListenAddrCleared() {
+		_spec.ClearField(globalsettings.FieldEsmtpListenAddr, field.TypeString)
 	}
 	if value, ok := _u.mutation.EsmtpRelayHosts(); ok {
 		_spec.SetField(globalsettings.FieldEsmtpRelayHosts, field.TypeJSON, value)

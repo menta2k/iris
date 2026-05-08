@@ -434,16 +434,23 @@ func writeInit(b *strings.Builder, ls []Listener, gs GlobalSettings) {
 	}
 	fmt.Fprintf(b, "  kumo.configure_local_logs { log_dir = %s }\n", MustLuaString(logDir))
 
-	// Listeners. If none are configured we emit a single default that listens
-	// on :2525 and accepts relay from a configurable CIDR list (Global
-	// Settings → Listeners). Empty falls back to RFC1918 + loopback so dev
-	// compose still works without any UI configuration.
+	// Listeners. If none are configured we emit a single default block
+	// whose listen address and relay_hosts both come from Global
+	// Settings (or fall back to the dev-friendly 0:2525 + RFC1918 +
+	// loopback set so the compose stack works without any UI
+	// configuration). The moment a Listener row is created on the
+	// Listeners page, that row renders its own block and the default
+	// disappears.
 	if len(ls) == 0 {
+		listen := strings.TrimSpace(gs.EsmtpListenAddr)
+		if listen == "" {
+			listen = "0:2525"
+		}
 		fmt.Fprintf(b, `  kumo.start_esmtp_listener {
-    listen = '0:2525',
+    listen = %s,
     relay_hosts = %s,
   }
-`, luaCIDRList(gs.EsmtpRelayHosts))
+`, MustLuaString(listen), luaCIDRList(gs.EsmtpRelayHosts))
 	} else {
 		for _, l := range ls {
 			writeOneListener(b, l)

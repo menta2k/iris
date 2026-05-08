@@ -253,6 +253,7 @@ var (
 	GlobalSettingsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "kumo_http_listen", Type: field.TypeString, Nullable: true, Size: 128},
+		{Name: "esmtp_listen_addr", Type: field.TypeString, Nullable: true, Size: 128},
 		{Name: "esmtp_relay_hosts", Type: field.TypeJSON, Nullable: true},
 		{Name: "http_trusted_hosts", Type: field.TypeJSON, Nullable: true},
 		{Name: "bounce_domain", Type: field.TypeString, Nullable: true, Size: 253},

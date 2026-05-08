@@ -40,6 +40,7 @@ const updatedBy = ref<string>('');
 // Select normalises into chips).
 const form = reactive<GlobalSettings>({
   kumo_http_listen: '',
+  esmtp_listen_addr: '',
   esmtp_relay_hosts: [],
   http_trusted_hosts: [],
   bounce_domain: '',
@@ -200,8 +201,18 @@ onMounted(load);
             />
           </FormItem>
           <FormItem
+            label="ESMTP default listen address"
+            help="Bind spec for the default kumo.start_esmtp_listener block (host:port; e.g. 0:25, 0:2525, 0.0.0.0:587). Empty defaults to '0:2525'. Only applies when no Listener rows exist on the Listeners page — those override this default."
+          >
+            <Input
+              v-model:value="form.esmtp_listen_addr"
+              placeholder="0:2525"
+              style="max-width: 320px"
+            />
+          </FormItem>
+          <FormItem
             label="ESMTP relay_hosts (CIDRs)"
-            help="Allowed peers for the default :2525 ESMTP listener. Empty falls back to RFC1918 + loopback. Per-listener entries (Listeners page) override this default."
+            help="Allowed peers for the default ESMTP listener. Empty falls back to RFC1918 + loopback. Per-listener entries (Listeners page) override this default."
           >
             <Select
               v-model:value="form.esmtp_relay_hosts"

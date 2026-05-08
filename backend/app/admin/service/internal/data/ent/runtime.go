@@ -451,38 +451,42 @@ func init() {
 	globalsettingsDescKumoHTTPListen := globalsettingsFields[1].Descriptor()
 	// globalsettings.KumoHTTPListenValidator is a validator for the "kumo_http_listen" field. It is called by the builders before save.
 	globalsettings.KumoHTTPListenValidator = globalsettingsDescKumoHTTPListen.Validators[0].(func(string) error)
+	// globalsettingsDescEsmtpListenAddr is the schema descriptor for esmtp_listen_addr field.
+	globalsettingsDescEsmtpListenAddr := globalsettingsFields[2].Descriptor()
+	// globalsettings.EsmtpListenAddrValidator is a validator for the "esmtp_listen_addr" field. It is called by the builders before save.
+	globalsettings.EsmtpListenAddrValidator = globalsettingsDescEsmtpListenAddr.Validators[0].(func(string) error)
 	// globalsettingsDescBounceDomain is the schema descriptor for bounce_domain field.
-	globalsettingsDescBounceDomain := globalsettingsFields[4].Descriptor()
+	globalsettingsDescBounceDomain := globalsettingsFields[5].Descriptor()
 	// globalsettings.BounceDomainValidator is a validator for the "bounce_domain" field. It is called by the builders before save.
 	globalsettings.BounceDomainValidator = globalsettingsDescBounceDomain.Validators[0].(func(string) error)
 	// globalsettingsDescBouncePrefix is the schema descriptor for bounce_prefix field.
-	globalsettingsDescBouncePrefix := globalsettingsFields[6].Descriptor()
+	globalsettingsDescBouncePrefix := globalsettingsFields[7].Descriptor()
 	// globalsettings.BouncePrefixValidator is a validator for the "bounce_prefix" field. It is called by the builders before save.
 	globalsettings.BouncePrefixValidator = globalsettingsDescBouncePrefix.Validators[0].(func(string) error)
 	// globalsettingsDescMailClassHeader is the schema descriptor for mail_class_header field.
-	globalsettingsDescMailClassHeader := globalsettingsFields[7].Descriptor()
+	globalsettingsDescMailClassHeader := globalsettingsFields[8].Descriptor()
 	// globalsettings.MailClassHeaderValidator is a validator for the "mail_class_header" field. It is called by the builders before save.
 	globalsettings.MailClassHeaderValidator = globalsettingsDescMailClassHeader.Validators[0].(func(string) error)
 	// globalsettingsDescHTTPSListen is the schema descriptor for https_listen field.
-	globalsettingsDescHTTPSListen := globalsettingsFields[8].Descriptor()
+	globalsettingsDescHTTPSListen := globalsettingsFields[9].Descriptor()
 	// globalsettings.HTTPSListenValidator is a validator for the "https_listen" field. It is called by the builders before save.
 	globalsettings.HTTPSListenValidator = globalsettingsDescHTTPSListen.Validators[0].(func(string) error)
 	// globalsettingsDescHTTPSCertPemPath is the schema descriptor for https_cert_pem_path field.
-	globalsettingsDescHTTPSCertPemPath := globalsettingsFields[9].Descriptor()
+	globalsettingsDescHTTPSCertPemPath := globalsettingsFields[10].Descriptor()
 	// globalsettings.HTTPSCertPemPathValidator is a validator for the "https_cert_pem_path" field. It is called by the builders before save.
 	globalsettings.HTTPSCertPemPathValidator = globalsettingsDescHTTPSCertPemPath.Validators[0].(func(string) error)
 	// globalsettingsDescHTTPSKeyPemPath is the schema descriptor for https_key_pem_path field.
-	globalsettingsDescHTTPSKeyPemPath := globalsettingsFields[10].Descriptor()
+	globalsettingsDescHTTPSKeyPemPath := globalsettingsFields[11].Descriptor()
 	// globalsettings.HTTPSKeyPemPathValidator is a validator for the "https_key_pem_path" field. It is called by the builders before save.
 	globalsettings.HTTPSKeyPemPathValidator = globalsettingsDescHTTPSKeyPemPath.Validators[0].(func(string) error)
 	// globalsettingsDescUpdatedAt is the schema descriptor for updated_at field.
-	globalsettingsDescUpdatedAt := globalsettingsFields[11].Descriptor()
+	globalsettingsDescUpdatedAt := globalsettingsFields[12].Descriptor()
 	// globalsettings.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	globalsettings.DefaultUpdatedAt = globalsettingsDescUpdatedAt.Default.(func() time.Time)
 	// globalsettings.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	globalsettings.UpdateDefaultUpdatedAt = globalsettingsDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// globalsettingsDescUpdatedBy is the schema descriptor for updated_by field.
-	globalsettingsDescUpdatedBy := globalsettingsFields[12].Descriptor()
+	globalsettingsDescUpdatedBy := globalsettingsFields[13].Descriptor()
 	// globalsettings.UpdatedByValidator is a validator for the "updated_by" field. It is called by the builders before save.
 	globalsettings.UpdatedByValidator = globalsettingsDescUpdatedBy.Validators[0].(func(string) error)
 	// globalsettingsDescID is the schema descriptor for id field.
