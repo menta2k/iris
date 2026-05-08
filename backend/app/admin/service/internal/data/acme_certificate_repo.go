@@ -4,6 +4,7 @@ package data
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/acmecertificate"
@@ -37,6 +38,27 @@ func (r *AcmeCertificateRepo) Get(ctx context.Context, id uint32) (*service.Acme
 	}
 	row := acmeCertToRow(e)
 	return &row, nil
+}
+
+// ListNearExpiry returns issued + failed certs whose expires_at falls
+// before the cutoff, oldest-first. The renewer adds its own time-based
+// backoff for the failed-recently case so we don't hammer the CA.
+func (r *AcmeCertificateRepo) ListNearExpiry(ctx context.Context, before time.Time) ([]service.AcmeCertificateRow, error) {
+	rows, err := r.client.AcmeCertificate.Query().
+		Where(
+			acmecertificate.ExpiresAtLT(before),
+			acmecertificate.StatusIn("issued", "failed"),
+		).
+		Order(ent.Asc(acmecertificate.FieldExpiresAt)).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("acme_certificate_repo: list_near_expiry: %w", err)
+	}
+	out := make([]service.AcmeCertificateRow, 0, len(rows))
+	for _, e := range rows {
+		out = append(out, acmeCertToRow(e))
+	}
+	return out, nil
 }
 
 func (r *AcmeCertificateRepo) GetByDomain(ctx context.Context, domain string) (*service.AcmeCertificateRow, error) {

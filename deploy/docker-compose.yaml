@@ -92,6 +92,14 @@ services:
       # that forwards /.well-known/acme-challenge/* to port 8000.
       IRIS_ACME_CERT_DIR:  ${IRIS_ACME_CERT_DIR:-/opt/kumomta/etc/tls}
       IRIS_ACME_HTTP_BIND: ${IRIS_ACME_HTTP_BIND:-:80}
+      # Auto-renewer: scan every interval, queue renewals when the
+      # cert expires within `before`. Recently-failed renewals are
+      # held off for `backoff` before the next retry. Set
+      # IRIS_ACME_RENEW_DISABLED=true to fall back to manual-only.
+      IRIS_ACME_RENEW_INTERVAL: ${IRIS_ACME_RENEW_INTERVAL:-12h}
+      IRIS_ACME_RENEW_BEFORE:   ${IRIS_ACME_RENEW_BEFORE:-720h}
+      IRIS_ACME_RENEW_BACKOFF:  ${IRIS_ACME_RENEW_BACKOFF:-24h}
+      IRIS_ACME_RENEW_DISABLED: ${IRIS_ACME_RENEW_DISABLED:-}
       # Redis-stream consumer: kumomta XADDs log records here, admin-service
       # XREADGROUPs them and persists into log_event + feedback_report.
       # The renderer also picks this URL up via GlobalSettings to emit the

@@ -69,6 +69,11 @@ type AcmeCertificateStore interface {
 	List(ctx context.Context) ([]AcmeCertificateRow, error)
 	Get(ctx context.Context, id uint32) (*AcmeCertificateRow, error)
 	GetByDomain(ctx context.Context, domain string) (*AcmeCertificateRow, error)
+	// ListNearExpiry returns rows whose expires_at < `before` and whose
+	// status is either "issued" (normal renewal) or "failed" (retry). The
+	// renewer applies its own time-based backoff on top of the result.
+	// Sorted by expires_at ascending so the soonest-to-expire goes first.
+	ListNearExpiry(ctx context.Context, before time.Time) ([]AcmeCertificateRow, error)
 	Upsert(ctx context.Context, in AcmeCertificateRow) (*AcmeCertificateRow, error)
 	Delete(ctx context.Context, id uint32) error
 }
@@ -295,6 +300,21 @@ func (s *AcmeService) GetCertificate(ctx context.Context, id uint32) (*AcmeCerti
 	return s.certs.Get(ctx, id)
 }
 
+// ListCertificatesNearExpiry is the renewer's hook into the cert
+// table. PEM bodies are zeroed for the same bandwidth reason as
+// ListCertificates — the renewer only needs metadata.
+func (s *AcmeService) ListCertificatesNearExpiry(ctx context.Context, before time.Time) ([]AcmeCertificateRow, error) {
+	rows, err := s.certs.ListNearExpiry(ctx, before)
+	if err != nil {
+		return nil, err
+	}
+	for i := range rows {
+		rows[i].CertPEM = ""
+		rows[i].KeyPEM = ""
+	}
+	return rows, nil
+}
+
 // DeleteCertificate removes a cert row. The PEM files on disk are NOT
 // removed — kumomta may still be holding open file descriptors and
 // Listener rows may still reference the path.
@@ -446,7 +466,13 @@ func (s *AcmeService) runIssue(ctx context.Context, req AcmeIssueRequest, state 
 	log.Printf("acme: wrote PEMs cert=%s key=%s", certPath, keyPath)
 
 	now := time.Now().UTC()
-	expires := now.AddDate(0, 0, 90) // Let's Encrypt default; refined later by parsing the cert
+	// Real validity window from the leaf cert. Falls back to the
+	// LE 90-day default if parsing fails (which it shouldn't — we
+	// just parsed it on disk above).
+	expires := acmeissuer.ParseExpiry(res.Certificate)
+	if expires.IsZero() {
+		expires = now.AddDate(0, 0, 90)
+	}
 	if _, err := s.certs.Upsert(ctx, AcmeCertificateRow{
 		Domain:        req.Domain,
 		AltNames:      req.AltNames,

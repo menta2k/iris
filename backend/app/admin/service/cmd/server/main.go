@@ -37,6 +37,7 @@ func newApp(
 	ls *server.LogstreamServer,
 	ds *server.DsnstreamServer,
 	acs *server.AcmeChallengeServer,
+	ars *server.AcmeRenewerServer,
 	hss *server.HTTPSServer,
 	srs *server.SuppressionResyncServer,
 	ms *server.MetricsServer,
@@ -44,9 +45,10 @@ func newApp(
 ) *kratos.App {
 	// All these servers are no-ops when their respective configuration
 	// is unset (Redis / BounceDomain / IRIS_ACME_HTTP_BIND /
-	// global_settings.https_listen / metrics). Either way they join
-	// the kratos lifecycle so clean shutdown waits on in-flight work.
-	return bootstrap.NewApp(ctx, hs, gs, ls, ds, acs, hss, srs, ms)
+	// IRIS_ACME_RENEW_DISABLED / global_settings.https_listen /
+	// metrics). Either way they join the kratos lifecycle so clean
+	// shutdown waits on in-flight work.
+	return bootstrap.NewApp(ctx, hs, gs, ls, ds, acs, ars, hss, srs, ms)
 }
 
 func runApp() error {
