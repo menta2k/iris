@@ -54,6 +54,15 @@ RestartSec=5s
 # Hardening. The binary needs to read configs and write
 # /opt/kumomta/etc/policy/ — both whitelisted via ReadWritePaths.
 NoNewPrivileges=true
+# CAP_NET_BIND_SERVICE: the binary runs as the non-root `iris` user
+# but binds privileged ports — :80 for the ACME HTTP-01 challenge
+# listener (always-on when IRIS_ACME_HTTP_BIND is set) and :443 for
+# the optional admin HTTPS server (when global_settings.https_listen
+# is configured). Both surfaces are inert if their respective
+# config is empty, so granting the capability unconditionally is
+# fine — it costs nothing when unused.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 ProtectSystem=strict
 ProtectHome=true
 ProtectKernelTunables=true
@@ -68,10 +77,11 @@ RestrictSUIDSGID=true
 SystemCallArchitectures=native
 SystemCallFilter=@system-service
 
-# Writable surfaces. /opt/kumomta/etc/{policy,dkim} are the bind-mount
-# equivalents from docker-compose: admin-service generates init.lua and
-# emits/imports DKIM PEMs there; kumomta reads them.
-ReadWritePaths=/opt/kumomta/etc/policy /opt/kumomta/etc/dkim /var/lib/iris
+# Writable surfaces. /opt/kumomta/etc/{policy,dkim,tls} are the bind-mount
+# equivalents from docker-compose: admin-service generates init.lua,
+# emits/imports DKIM PEMs, and writes ACME-issued cert/key PEMs at
+# /opt/kumomta/etc/tls/<domain>/ — kumomta reads them all.
+ReadWritePaths=/opt/kumomta/etc/policy /opt/kumomta/etc/dkim /opt/kumomta/etc/tls /var/lib/iris
 
 # Network: loopback-only by default would require socket-level binding,
 # which kratos doesn't expose. We let the binary bind whatever
