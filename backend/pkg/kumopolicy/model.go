@@ -61,6 +61,14 @@ type GlobalSettings struct {
 	// and admin-service share a host and would otherwise collide on :8000.
 	KumoHTTPListen string
 
+	// EsmtpListenAddr is the bind spec emitted into the *default*
+	// kumo.start_esmtp_listener block — only consulted when no
+	// Listener rows exist on the Listeners page (those rows render as
+	// their own per-listener blocks and supersede the default). Empty
+	// falls back to "0:2525" so the dev compose stack works without
+	// any UI configuration.
+	EsmtpListenAddr string
+
 	// EsmtpRelayHosts is the relay-allowed CIDR list emitted into the
 	// default kumo.start_esmtp_listener block. Only consulted when no
 	// Listener rows exist (per-listener configs override). Empty falls

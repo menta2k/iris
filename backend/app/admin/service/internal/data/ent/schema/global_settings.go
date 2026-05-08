@@ -36,6 +36,11 @@ func (GlobalSettings) Fields() []ent.Field {
 		// the iris admin service itself.
 		field.String("kumo_http_listen").Optional().MaxLen(128),
 
+		// Bind spec for the *default* kumo.start_esmtp_listener block
+		// (only consulted when no Listener rows are configured —
+		// per-listener entries override). Empty -> "0:2525" fallback.
+		field.String("esmtp_listen_addr").Optional().MaxLen(128),
+
 		// CIDRs allowed to relay through the default ESMTP listener
 		// (only consulted when no Listener rows are configured —
 		// per-listener entries override). Stored as a json-encoded list

@@ -15,6 +15,8 @@ const (
 	FieldID = "id"
 	// FieldKumoHTTPListen holds the string denoting the kumo_http_listen field in the database.
 	FieldKumoHTTPListen = "kumo_http_listen"
+	// FieldEsmtpListenAddr holds the string denoting the esmtp_listen_addr field in the database.
+	FieldEsmtpListenAddr = "esmtp_listen_addr"
 	// FieldEsmtpRelayHosts holds the string denoting the esmtp_relay_hosts field in the database.
 	FieldEsmtpRelayHosts = "esmtp_relay_hosts"
 	// FieldHTTPTrustedHosts holds the string denoting the http_trusted_hosts field in the database.
@@ -45,6 +47,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldKumoHTTPListen,
+	FieldEsmtpListenAddr,
 	FieldEsmtpRelayHosts,
 	FieldHTTPTrustedHosts,
 	FieldBounceDomain,
@@ -71,6 +74,8 @@ func ValidColumn(column string) bool {
 var (
 	// KumoHTTPListenValidator is a validator for the "kumo_http_listen" field. It is called by the builders before save.
 	KumoHTTPListenValidator func(string) error
+	// EsmtpListenAddrValidator is a validator for the "esmtp_listen_addr" field. It is called by the builders before save.
+	EsmtpListenAddrValidator func(string) error
 	// BounceDomainValidator is a validator for the "bounce_domain" field. It is called by the builders before save.
 	BounceDomainValidator func(string) error
 	// BouncePrefixValidator is a validator for the "bounce_prefix" field. It is called by the builders before save.
@@ -104,6 +109,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByKumoHTTPListen orders the results by the kumo_http_listen field.
 func ByKumoHTTPListen(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKumoHTTPListen, opts...).ToFunc()
+}
+
+// ByEsmtpListenAddr orders the results by the esmtp_listen_addr field.
+func ByEsmtpListenAddr(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEsmtpListenAddr, opts...).ToFunc()
 }
 
 // ByBounceDomain orders the results by the bounce_domain field.

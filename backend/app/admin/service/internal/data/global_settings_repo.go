@@ -60,6 +60,7 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in service.GlobalSettin
 	}
 	upd := r.client.GlobalSettings.UpdateOneID(globalSettingsID).
 		SetKumoHTTPListen(in.KumoHTTPListen).
+		SetEsmtpListenAddr(in.EsmtpListenAddr).
 		SetEsmtpRelayHosts(append([]string(nil), in.EsmtpRelayHosts...)).
 		SetHTTPTrustedHosts(append([]string(nil), in.HTTPTrustedHosts...)).
 		SetBounceDomain(in.BounceDomain).
@@ -83,6 +84,7 @@ func entToRow(g *ent.GlobalSettings) *service.GlobalSettingsRow {
 	}
 	return &service.GlobalSettingsRow{
 		KumoHTTPListen:      g.KumoHTTPListen,
+		EsmtpListenAddr:     g.EsmtpListenAddr,
 		EsmtpRelayHosts:     append([]string(nil), g.EsmtpRelayHosts...),
 		HTTPTrustedHosts:    append([]string(nil), g.HTTPTrustedHosts...),
 		BounceDomain:        g.BounceDomain,

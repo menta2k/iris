@@ -13,6 +13,7 @@ import (
 // — those stay env-only and are wired separately in providers.
 type GlobalSettingsRow struct {
 	KumoHTTPListen      string
+	EsmtpListenAddr     string
 	EsmtpRelayHosts     []string
 	HTTPTrustedHosts    []string
 	BounceDomain        string
@@ -90,6 +91,9 @@ func validateGlobalSettings(in *GlobalSettingsRow) error {
 	if in.KumoHTTPListen != "" && !strings.Contains(in.KumoHTTPListen, ":") {
 		return errors.New("kumo_http_listen must be host:port (e.g. 0.0.0.0:8000)")
 	}
+	if in.EsmtpListenAddr != "" && !strings.Contains(in.EsmtpListenAddr, ":") {
+		return errors.New("esmtp_listen_addr must be host:port (e.g. 0:25 or 0.0.0.0:2525)")
+	}
 	if in.HTTPSListen != "" {
 		if !strings.Contains(in.HTTPSListen, ":") {
 			return errors.New("https_listen must be host:port (e.g. :443)")
@@ -116,6 +120,7 @@ func normaliseRow(r *GlobalSettingsRow) {
 		return
 	}
 	r.KumoHTTPListen = strings.TrimSpace(r.KumoHTTPListen)
+	r.EsmtpListenAddr = strings.TrimSpace(r.EsmtpListenAddr)
 	r.EsmtpRelayHosts = dedupTrim(r.EsmtpRelayHosts, false)
 	r.HTTPTrustedHosts = dedupTrim(r.HTTPTrustedHosts, false)
 	r.BounceDomain = strings.ToLower(strings.TrimSpace(r.BounceDomain))

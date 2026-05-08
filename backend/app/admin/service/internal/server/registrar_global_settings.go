@@ -17,6 +17,7 @@ import (
 // form fields without nullability gymnastics.
 type httpGlobalSettings struct {
 	KumoHTTPListen      string    `json:"kumo_http_listen"`
+	EsmtpListenAddr     string    `json:"esmtp_listen_addr"`
 	EsmtpRelayHosts     []string  `json:"esmtp_relay_hosts"`
 	HTTPTrustedHosts    []string  `json:"http_trusted_hosts"`
 	BounceDomain        string    `json:"bounce_domain"`
@@ -79,6 +80,7 @@ func rowToHTTP(r *service.GlobalSettingsRow) httpGlobalSettings {
 	}
 	out := httpGlobalSettings{
 		KumoHTTPListen:      r.KumoHTTPListen,
+		EsmtpListenAddr:     r.EsmtpListenAddr,
 		EsmtpRelayHosts:     append([]string{}, r.EsmtpRelayHosts...),
 		HTTPTrustedHosts:    append([]string{}, r.HTTPTrustedHosts...),
 		BounceDomain:        r.BounceDomain,
@@ -97,6 +99,7 @@ func rowToHTTP(r *service.GlobalSettingsRow) httpGlobalSettings {
 func httpToRow(h httpGlobalSettings) service.GlobalSettingsRow {
 	return service.GlobalSettingsRow{
 		KumoHTTPListen:      h.KumoHTTPListen,
+		EsmtpListenAddr:     h.EsmtpListenAddr,
 		EsmtpRelayHosts:     append([]string(nil), h.EsmtpRelayHosts...),
 		HTTPTrustedHosts:    append([]string(nil), h.HTTPTrustedHosts...),
 		BounceDomain:        h.BounceDomain,

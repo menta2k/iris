@@ -20,6 +20,8 @@ type GlobalSettings struct {
 	ID int `json:"id,omitempty"`
 	// KumoHTTPListen holds the value of the "kumo_http_listen" field.
 	KumoHTTPListen string `json:"kumo_http_listen,omitempty"`
+	// EsmtpListenAddr holds the value of the "esmtp_listen_addr" field.
+	EsmtpListenAddr string `json:"esmtp_listen_addr,omitempty"`
 	// EsmtpRelayHosts holds the value of the "esmtp_relay_hosts" field.
 	EsmtpRelayHosts []string `json:"esmtp_relay_hosts,omitempty"`
 	// HTTPTrustedHosts holds the value of the "http_trusted_hosts" field.
@@ -54,7 +56,7 @@ func (*GlobalSettings) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case globalsettings.FieldID:
 			values[i] = new(sql.NullInt64)
-		case globalsettings.FieldKumoHTTPListen, globalsettings.FieldBounceDomain, globalsettings.FieldBouncePrefix, globalsettings.FieldMailClassHeader, globalsettings.FieldHTTPSListen, globalsettings.FieldHTTPSCertPemPath, globalsettings.FieldHTTPSKeyPemPath, globalsettings.FieldUpdatedBy:
+		case globalsettings.FieldKumoHTTPListen, globalsettings.FieldEsmtpListenAddr, globalsettings.FieldBounceDomain, globalsettings.FieldBouncePrefix, globalsettings.FieldMailClassHeader, globalsettings.FieldHTTPSListen, globalsettings.FieldHTTPSCertPemPath, globalsettings.FieldHTTPSKeyPemPath, globalsettings.FieldUpdatedBy:
 			values[i] = new(sql.NullString)
 		case globalsettings.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -84,6 +86,12 @@ func (_m *GlobalSettings) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field kumo_http_listen", values[i])
 			} else if value.Valid {
 				_m.KumoHTTPListen = value.String
+			}
+		case globalsettings.FieldEsmtpListenAddr:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field esmtp_listen_addr", values[i])
+			} else if value.Valid {
+				_m.EsmtpListenAddr = value.String
 			}
 		case globalsettings.FieldEsmtpRelayHosts:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -195,6 +203,9 @@ func (_m *GlobalSettings) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("kumo_http_listen=")
 	builder.WriteString(_m.KumoHTTPListen)
+	builder.WriteString(", ")
+	builder.WriteString("esmtp_listen_addr=")
+	builder.WriteString(_m.EsmtpListenAddr)
 	builder.WriteString(", ")
 	builder.WriteString("esmtp_relay_hosts=")
 	builder.WriteString(fmt.Sprintf("%v", _m.EsmtpRelayHosts))

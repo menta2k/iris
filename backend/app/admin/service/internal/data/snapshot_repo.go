@@ -195,6 +195,7 @@ func (r *SnapshotRepo) CurrentSnapshot(ctx context.Context) (*kumopolicy.Snapsho
 		// processes share the loopback interface and would collide on :8000;
 		// set to '127.0.0.1:8025' (or similar) and align IRIS_KUMO_API_ENDPOINT.
 		KumoHTTPListen:   strings.TrimSpace(os.Getenv("IRIS_KUMO_HTTP_LISTEN")),
+		EsmtpListenAddr:  strings.TrimSpace(os.Getenv("IRIS_ESMTP_LISTEN")),
 		TestDomainRoutes: parseTestDomainRoutes(),
 		QueuePerVmta:     parseBoolEnv("IRIS_QUEUE_PER_VMTA"),
 		// Async DSN ingestion. Empty BounceDomain disables the whole
@@ -234,6 +235,9 @@ func (r *SnapshotRepo) applyGlobalSettings(ctx context.Context, snap *kumopolicy
 	}
 	if v := strings.TrimSpace(row.KumoHTTPListen); v != "" {
 		snap.GlobalSettings.KumoHTTPListen = v
+	}
+	if v := strings.TrimSpace(row.EsmtpListenAddr); v != "" {
+		snap.GlobalSettings.EsmtpListenAddr = v
 	}
 	if len(row.EsmtpRelayHosts) > 0 {
 		snap.GlobalSettings.EsmtpRelayHosts = append([]string(nil), row.EsmtpRelayHosts...)
