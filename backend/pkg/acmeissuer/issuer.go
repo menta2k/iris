@@ -13,10 +13,13 @@ package acmeissuer
 
 import (
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/challenge"
@@ -141,6 +144,22 @@ func (i *Issuer) Issue(opts IssueOptions) (*certificate.Resource, error) {
 		return nil, fmt.Errorf("acmeissuer: Obtain(%s): %w", opts.PrimaryDomain, err)
 	}
 	return res, nil
+}
+
+// ParseExpiry pulls the leaf certificate's NotAfter out of a
+// fullchain-bundled PEM (lego returns the leaf first, then the
+// chain). Returns the zero time when parsing fails — callers fall
+// back to the LE 90-day default.
+func ParseExpiry(certPEM []byte) time.Time {
+	block, _ := pem.Decode(certPEM)
+	if block == nil {
+		return time.Time{}
+	}
+	leaf, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return time.Time{}
+	}
+	return leaf.NotAfter
 }
 
 // WriteCertFiles mirrors the issued cert to disk under the convention
