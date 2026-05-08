@@ -1,10 +1,16 @@
 // DsnstreamServer adapts a *dsnstream.RedisConsumer into a kratos
 // transport.Server, mirroring LogstreamServer. Disabled (no-op) when
-// IRIS_BOUNCE_DOMAIN is unset — operators opt in by configuring a bounce
-// domain. The Redis stream the consumer reads from is shared with the
-// log-stream pipeline; the dsnstream consumer is gated by BounceDomain
-// rather than by a separate URL because there's no scenario in which
-// you'd run iris with one but not the other.
+// the bounce pipeline isn't configured — i.e. when neither
+// IRIS_BOUNCE_DOMAIN / IRIS_BOUNCE_SENDER_DOMAINS env vars nor the
+// matching fields on the global_settings DB row are set.
+//
+// Why both env AND DB: the renderer (pkg/kumopolicy) overlays the
+// global_settings row on top of env values, so an operator who
+// configures the bounce pipeline ONLY via the UI would correctly get
+// the inbound catcher emitted into init.lua but — without this
+// dual-source check — would have no consumer running. DSNs would pile
+// up on the Redis stream with nothing draining them. Always check
+// both sources here so the UI flow works end-to-end.
 package server
 
 import (
@@ -14,7 +20,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/menta2k/iris/backend/app/admin/service/internal/service"
 	"github.com/menta2k/iris/backend/pkg/dsnstream"
 )
 
@@ -25,13 +33,14 @@ type DsnstreamServer struct {
 	done     chan struct{}
 }
 
-// NewDsnstreamServer reads env vars and constructs the consumer. Disabled
-// when either IRIS_BOUNCE_DOMAIN or IRIS_LOGSTREAM_REDIS_URL is unset
-// (the latter because the kumomta side puts DSN bodies on the same
-// Redis instance).
-func NewDsnstreamServer(persister dsnstream.Persister) (*DsnstreamServer, error) {
-	if strings.TrimSpace(os.Getenv("IRIS_BOUNCE_DOMAIN")) == "" {
-		log.Printf("dsnstream: IRIS_BOUNCE_DOMAIN unset — DSN consumer disabled")
+// NewDsnstreamServer constructs the consumer if the bounce pipeline is
+// enabled (env OR DB) and the log-stream Redis URL is set. The
+// GlobalSettingsService dependency is used only for the boot-time DB
+// read; consult-on-toggle would require a service restart anyway since
+// we don't hot-reload the consumer config.
+func NewDsnstreamServer(persister dsnstream.Persister, gsvc *service.GlobalSettingsService) (*DsnstreamServer, error) {
+	if !bouncePipelineEnabled(gsvc) {
+		log.Printf("dsnstream: bounce domain unset (env + global_settings) — DSN consumer disabled")
 		return &DsnstreamServer{}, nil
 	}
 	url := strings.TrimSpace(os.Getenv("IRIS_LOGSTREAM_REDIS_URL"))
@@ -95,4 +104,36 @@ func (s *DsnstreamServer) Stop(ctx context.Context) error {
 	case <-ctx.Done():
 	}
 	return s.consumer.Close()
+}
+
+// bouncePipelineEnabled returns true when *any* of the four bounce
+// configuration knobs is set: env IRIS_BOUNCE_DOMAIN /
+// IRIS_BOUNCE_SENDER_DOMAINS, or the matching fields on the
+// global_settings DB row. Mirrors the predicate the renderer uses so
+// boot-time consumer gating stays in sync with what the policy emits.
+//
+// A read failure on the DB row is logged but treated as "not
+// configured" — fail-safe: better to leave the consumer disabled than
+// drain DSNs we can't actually correlate or persist.
+func bouncePipelineEnabled(gsvc *service.GlobalSettingsService) bool {
+	if strings.TrimSpace(os.Getenv("IRIS_BOUNCE_DOMAIN")) != "" {
+		return true
+	}
+	if strings.TrimSpace(os.Getenv("IRIS_BOUNCE_SENDER_DOMAINS")) != "" {
+		return true
+	}
+	if gsvc == nil {
+		return false
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	row, err := gsvc.Get(ctx)
+	if err != nil {
+		log.Printf("dsnstream: read global_settings failed (%v) — treating as disabled", err)
+		return false
+	}
+	if row == nil {
+		return false
+	}
+	return strings.TrimSpace(row.BounceDomain) != "" || len(row.BounceSenderDomains) > 0
 }

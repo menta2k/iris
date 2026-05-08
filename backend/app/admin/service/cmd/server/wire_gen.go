@@ -51,7 +51,10 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	}
 	dsnstreamPersister := data.NewDsnstreamPersister(client)
 	persister2 := providers.DsnstreamPersisterIface(dsnstreamPersister)
-	dsnstreamServer, err := server.NewDsnstreamServer(persister2)
+	globalSettingsRepo := data.NewGlobalSettingsRepo(client)
+	globalSettingsStore := providers3.GlobalSettingsStoreFromRepo(globalSettingsRepo)
+	globalSettingsService := service.NewGlobalSettingsService(globalSettingsStore)
+	dsnstreamServer, err := server.NewDsnstreamServer(persister2, globalSettingsService)
 	if err != nil {
 		cleanup2()
 		cleanup()
@@ -73,9 +76,6 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	acmeCertBaseDir := providers3.NewAcmeCertBaseDir()
 	acmeService := providers3.NewAcmeServiceProvider(acmeAccountStore, acmeCertificateStore, acmeDnsProviderConfigStore, tokenStore, acmeCertBaseDir)
 	acmeRenewerServer := server.NewAcmeRenewerServer(acmeService)
-	globalSettingsRepo := data.NewGlobalSettingsRepo(client)
-	globalSettingsStore := providers3.GlobalSettingsStoreFromRepo(globalSettingsRepo)
-	globalSettingsService := service.NewGlobalSettingsService(globalSettingsStore)
 	httpsServer := server.NewHTTPSServer(globalSettingsService)
 	suppressionRepo := data.NewSuppressionRepo(client)
 	index := providers3.NewSuppressionIndex(metrics)
