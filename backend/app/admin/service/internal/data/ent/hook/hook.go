@@ -141,6 +141,18 @@ func (f LogEventFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, er
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LogEventMutation", m)
 }
 
+// The LoginPolicyFunc type is an adapter to allow the use of ordinary
+// function as LoginPolicy mutator.
+type LoginPolicyFunc func(context.Context, *ent.LoginPolicyMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LoginPolicyFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.LoginPolicyMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LoginPolicyMutation", m)
+}
+
 // The MailClassFunc type is an adapter to allow the use of ordinary
 // function as MailClass mutator.
 type MailClassFunc func(context.Context, *ent.MailClassMutation) (ent.Value, error)

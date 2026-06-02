@@ -23,6 +23,7 @@ import (
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/listenerconfig"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/listenerdomain"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/logevent"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/loginpolicy"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mailclass"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/metricsnapshot"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/policyhistory"
@@ -106,6 +107,7 @@ func checkColumn(t, c string) error {
 			listenerconfig.Table:        listenerconfig.ValidColumn,
 			listenerdomain.Table:        listenerdomain.ValidColumn,
 			logevent.Table:              logevent.ValidColumn,
+			loginpolicy.Table:           loginpolicy.ValidColumn,
 			mailclass.Table:             mailclass.ValidColumn,
 			metricsnapshot.Table:        metricsnapshot.ValidColumn,
 			policyhistory.Table:         policyhistory.ValidColumn,

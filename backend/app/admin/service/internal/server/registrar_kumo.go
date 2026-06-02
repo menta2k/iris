@@ -37,6 +37,7 @@ func RegisterKumoHTTP(
 	gsvc *service.GlobalSettingsService,
 	listeners *service.ListenerService,
 	acme *service.AcmeService,
+	loginPolicies *service.LoginPolicyService,
 	write auditmw.WriteFunc,
 ) {
 	registerQueuesHTTP(hs, queues, write)
@@ -54,6 +55,7 @@ func RegisterKumoHTTP(
 	registerGlobalSettingsHTTP(hs, gsvc, write)
 	registerListeners(hs, listeners, write)
 	registerAcmeHTTP(hs, acme, write)
+	registerLoginPolicies(hs, loginPolicies, write)
 }
 
 // --- /v1/queues -----------------------------------------------------------

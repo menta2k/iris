@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	appcrypto "github.com/menta2k/iris/backend/pkg/crypto"
@@ -45,14 +46,16 @@ type UserRow struct {
 
 // AuthenticationService implements the auth-related gRPC methods.
 type AuthenticationService struct {
-	users  UserStore
-	jwt    *appjwt.Issuer
-	now    func() time.Time
+	users    UserStore
+	jwt      *appjwt.Issuer
+	firewall *LoginFirewall // optional; nil disables login-firewall enforcement
+	now      func() time.Time
 }
 
-// NewAuthenticationService constructs the service.
-func NewAuthenticationService(users UserStore, issuer *appjwt.Issuer) *AuthenticationService {
-	return &AuthenticationService{users: users, jwt: issuer, now: time.Now}
+// NewAuthenticationService constructs the service. firewall may be nil (no
+// login-policy enforcement) — tests and minimal deployments pass nil.
+func NewAuthenticationService(users UserStore, issuer *appjwt.Issuer, firewall *LoginFirewall) *AuthenticationService {
+	return &AuthenticationService{users: users, jwt: issuer, firewall: firewall, now: time.Now}
 }
 
 // LoginRequest is the input to Login.
@@ -76,6 +79,7 @@ var (
 	ErrInvalidCredentials = errors.New("authentication: invalid credentials")
 	ErrAccountInactive    = errors.New("authentication: account inactive")
 	ErrAccountLocked      = errors.New("authentication: account locked")
+	ErrLoginBlocked       = errors.New("authentication: login blocked by policy")
 )
 
 // Login validates a username + password and issues a token pair.
@@ -97,6 +101,26 @@ func (s *AuthenticationService) Login(ctx context.Context, req *LoginRequest, cl
 	}
 	if !user.Active {
 		return nil, ErrAccountInactive
+	}
+	// Login firewall: evaluate global + per-user rules before spending a
+	// bcrypt compare or touching the lockout counter, so a blocked source
+	// can't probe passwords. A store error fails open (logged) — a DB blip
+	// must not lock out every login. The missing-user branch above is left
+	// untouched to preserve the timing-attack mitigation (enforcing there
+	// would add a query only when the user exists, leaking existence).
+	if s.firewall != nil {
+		uid := user.ID
+		res, ferr := s.firewall.Evaluate(ctx, LoginAttempt{
+			Username: req.Username,
+			UserID:   &uid,
+			IP:       clientIP,
+			Now:      s.now(),
+		})
+		if ferr != nil {
+			log.Printf("authentication: login_firewall evaluate error (failing open): %v", ferr)
+		} else if !res.Allowed {
+			return nil, ErrLoginBlocked
+		}
 	}
 	locked, err := s.users.IsLockedOut(ctx, user.ID, s.now())
 	if err != nil {

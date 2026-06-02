@@ -1,9 +1,10 @@
 <script lang="ts" setup>
 import type { User } from '#/api/kumo';
 
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
+import { useUserStore } from '@vben/stores';
 
 import {
   Button,
@@ -24,10 +25,32 @@ import { usersApi } from '#/api/kumo';
 
 defineOptions({ name: 'Users' });
 
+const userStore = useUserStore();
+const currentUserId = computed<null | number>(() => {
+  const id = userStore.userInfo?.id;
+  return typeof id === 'number' ? id : null;
+});
+
 const items = ref<User[]>([]);
 const loading = ref(false);
 const drawerOpen = ref(false);
 const submitting = ref(false);
+
+const passwordDrawerOpen = ref(false);
+const passwordSubmitting = ref(false);
+const passwordTarget = ref<null | User>(null);
+const passwordForm = reactive({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+});
+
+const passwordIsSelf = computed(
+  () =>
+    passwordTarget.value !== null &&
+    currentUserId.value !== null &&
+    passwordTarget.value.id === currentUserId.value,
+);
 
 const form = reactive({
   username: '',
@@ -53,7 +76,7 @@ const columns = [
     key: 'last_login_at',
     width: 200,
   },
-  { title: 'Actions', key: 'actions', width: 120 },
+  { title: 'Actions', key: 'actions', width: 220 },
 ];
 
 async function load() {
@@ -101,6 +124,45 @@ async function removeRow(id: number) {
   await load();
 }
 
+function openChangePassword(record: User) {
+  passwordTarget.value = record;
+  passwordForm.oldPassword = '';
+  passwordForm.newPassword = '';
+  passwordForm.confirmPassword = '';
+  passwordDrawerOpen.value = true;
+}
+
+async function submitChangePassword() {
+  const target = passwordTarget.value;
+  if (!target) {
+    return;
+  }
+  if (passwordIsSelf.value && !passwordForm.oldPassword) {
+    message.warning('Current password is required');
+    return;
+  }
+  if (!passwordForm.newPassword || passwordForm.newPassword.length < 12) {
+    message.warning('New password must be at least 12 characters');
+    return;
+  }
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    message.warning('Passwords do not match');
+    return;
+  }
+  passwordSubmitting.value = true;
+  try {
+    await usersApi.changePassword(target.id, {
+      old_password: passwordIsSelf.value ? passwordForm.oldPassword : undefined,
+      new_password: passwordForm.newPassword,
+    });
+    message.success('Password updated');
+    passwordDrawerOpen.value = false;
+    passwordTarget.value = null;
+  } finally {
+    passwordSubmitting.value = false;
+  }
+}
+
 onMounted(load);
 </script>
 
@@ -132,14 +194,19 @@ onMounted(load);
             </Tag>
           </template>
           <template v-else-if="column.key === 'actions'">
-            <Popconfirm
-              title="Remove this user?"
-              ok-text="Remove"
-              ok-type="danger"
-              @confirm="removeRow(record.id)"
-            >
-              <Button danger size="small">Remove</Button>
-            </Popconfirm>
+            <Space>
+              <Button size="small" @click="openChangePassword(record as User)">
+                Change password
+              </Button>
+              <Popconfirm
+                title="Remove this user?"
+                ok-text="Remove"
+                ok-type="danger"
+                @confirm="removeRow(record.id)"
+              >
+                <Button danger size="small">Remove</Button>
+              </Popconfirm>
+            </Space>
           </template>
         </template>
       </Table>
@@ -182,6 +249,54 @@ onMounted(load);
           <Button @click="drawerOpen = false">Cancel</Button>
           <Button type="primary" :loading="submitting" @click="submit">
             Save
+          </Button>
+        </Space>
+      </template>
+    </Drawer>
+
+    <Drawer
+      v-model:open="passwordDrawerOpen"
+      :title="
+        passwordTarget
+          ? `Change password – ${passwordTarget.username}`
+          : 'Change password'
+      "
+      width="460"
+      :destroy-on-close="true"
+    >
+      <Form :model="passwordForm" layout="vertical">
+        <FormItem
+          v-if="passwordIsSelf"
+          label="Current password"
+          name="oldPassword"
+          :rules="[{ required: true, message: 'Current password is required' }]"
+        >
+          <Input.Password v-model:value="passwordForm.oldPassword" />
+        </FormItem>
+        <FormItem
+          label="New password"
+          name="newPassword"
+          :rules="[{ required: true, min: 12, message: 'At least 12 characters' }]"
+        >
+          <Input.Password v-model:value="passwordForm.newPassword" />
+        </FormItem>
+        <FormItem
+          label="Confirm new password"
+          name="confirmPassword"
+          :rules="[{ required: true, message: 'Please re-enter the password' }]"
+        >
+          <Input.Password v-model:value="passwordForm.confirmPassword" />
+        </FormItem>
+      </Form>
+      <template #extra>
+        <Space>
+          <Button @click="passwordDrawerOpen = false">Cancel</Button>
+          <Button
+            type="primary"
+            :loading="passwordSubmitting"
+            @click="submitChangePassword"
+          >
+            Update
           </Button>
         </Space>
       </template>

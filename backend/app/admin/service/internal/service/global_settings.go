@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -45,10 +46,46 @@ type GlobalSettingsStore interface {
 // GlobalSettingsService applies validation + audit metadata around the
 // store. The renderer doesn't depend on it directly; the snapshot
 // provider does (see SnapshotProvider).
-type GlobalSettingsService struct{ store GlobalSettingsStore }
+//
+// Update notifies registered observers after a successful write so
+// live-reconfigurable consumers (e.g. the HTTPS listener, which owns a
+// bound socket derived from these settings) can re-read and re-apply
+// without a process restart. Observers are fired on detached goroutines
+// — a callback must not block the caller's request, and one that owns
+// the connection the request arrived on (the HTTPS proxy) would
+// otherwise deadlock draining itself.
+type GlobalSettingsService struct {
+	store GlobalSettingsStore
+
+	mu       sync.Mutex
+	onChange []func()
+}
 
 func NewGlobalSettingsService(s GlobalSettingsStore) *GlobalSettingsService {
 	return &GlobalSettingsService{store: s}
+}
+
+// OnChange registers a callback invoked after every successful Update.
+// Registration is expected during boot (single goroutine), before the
+// server starts accepting mutations. Nil callbacks are ignored.
+func (s *GlobalSettingsService) OnChange(fn func()) {
+	if fn == nil {
+		return
+	}
+	s.mu.Lock()
+	s.onChange = append(s.onChange, fn)
+	s.mu.Unlock()
+}
+
+// fireOnChange invokes every registered observer on its own goroutine.
+// Detached on purpose — see the type comment.
+func (s *GlobalSettingsService) fireOnChange() {
+	s.mu.Lock()
+	fns := append([]func(){}, s.onChange...)
+	s.mu.Unlock()
+	for _, fn := range fns {
+		go fn()
+	}
 }
 
 // Get returns the current settings, normalised: list fields are
@@ -77,6 +114,7 @@ func (s *GlobalSettingsService) Update(ctx context.Context, in GlobalSettingsRow
 		return nil, fmt.Errorf("global_settings: update: %w", err)
 	}
 	normaliseRow(row)
+	s.fireOnChange()
 	return row, nil
 }
 

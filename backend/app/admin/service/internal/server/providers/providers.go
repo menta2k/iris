@@ -64,11 +64,12 @@ func RegisterServers(
 	gsvc *service.GlobalSettingsService,
 	listeners *service.ListenerService,
 	acme *service.AcmeService,
+	loginPolicies *service.LoginPolicyService,
 	writer *data.AuditWriter,
 ) Registered {
 	server.RegisterServices(gs, hs, auth, users, audit,
 		queues, suppressions, vmtas, routing, dkim, feedback, logs, policy,
-		mailClasses, vmtaGroups, dashboard, dsns, gsvc, listeners, acme, writer.Write)
+		mailClasses, vmtaGroups, dashboard, dsns, gsvc, listeners, acme, loginPolicies, writer.Write)
 	return Registered{}
 }
 

@@ -17,6 +17,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/menta2k/iris/backend/app/admin/service/internal/service"
+	identitymw "github.com/menta2k/iris/backend/pkg/middleware/auth"
 	auditmw "github.com/menta2k/iris/backend/pkg/middleware/audit"
 )
 
@@ -34,8 +35,15 @@ func RegisterAdminHTTP(hs *kratoshttp.Server, users *service.UserService, audit 
 		resourceVar:     "id",
 		mutatingMethods: []string{http.MethodDelete, http.MethodPatch, http.MethodPut},
 	})
+	userPwAudit := httpAudit(write, httpAuditConfig{
+		operation:       "/identity.service.v1.UserService/ChangePassword",
+		resourceType:    "user",
+		resourceVar:     "id",
+		mutatingMethods: []string{http.MethodPost, http.MethodPut},
+	})
 	hs.HandleFunc("/v1/users", usersCollAudit(usersCollectionHandler(users)))
 	hs.HandleFunc("/v1/users/{id:[0-9]+}", userItemAudit(userItemHandler(users)))
+	hs.HandleFunc("/v1/users/{id:[0-9]+}/password", userPwAudit(userPasswordHandler(users)))
 	hs.HandleFunc("/v1/audit", auditListHandler(audit))
 }
 
@@ -141,6 +149,58 @@ func createUser(w http.ResponseWriter, r *http.Request, users *service.UserServi
 		return
 	}
 	writeJSON(w, http.StatusCreated, userRowToHTTP(row))
+}
+
+type httpChangePasswordReq struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+
+// userPasswordHandler handles POST /v1/users/{id}/password. When the caller
+// changes their own password an `old_password` must be supplied; admins
+// resetting another user's password may omit it. Authorization to reach this
+// route is enforced by the auth middleware (admin role for foreign users).
+func userPasswordHandler(users *service.UserService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost && r.Method != http.MethodPut {
+			writeErr(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "use POST")
+			return
+		}
+		id, ok := parseIDParam(w, r)
+		if !ok {
+			return
+		}
+		var body httpChangePasswordReq
+		if err := decodeJSON(r, &body); err != nil {
+			writeErr(w, http.StatusBadRequest, "BAD_JSON", err.Error())
+			return
+		}
+		caller, _ := identitymw.FromContext(r.Context())
+		// Self-service requires the old password; refuse if the caller tries
+		// to change their own without proving knowledge of it.
+		if caller.UserID == id && body.OldPassword == "" {
+			writeErr(w, http.StatusBadRequest, "OLD_PASSWORD_REQUIRED", "old_password is required when changing your own password")
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
+		if err := users.ChangePassword(ctx, id, body.OldPassword, body.NewPassword); err != nil {
+			writeErr(w, mapChangePasswordErr(err), "CHANGE_PASSWORD_FAILED", err.Error())
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func mapChangePasswordErr(err error) int {
+	switch {
+	case errors.Is(err, service.ErrInvalidPassword):
+		return http.StatusForbidden
+	case errors.Is(err, service.ErrPasswordWeak):
+		return http.StatusBadRequest
+	default:
+		return http.StatusInternalServerError
+	}
 }
 
 func userRowToHTTP(r *service.UserRow) httpUserItem {

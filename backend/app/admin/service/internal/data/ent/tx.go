@@ -34,6 +34,8 @@ type Tx struct {
 	ListenerDomain *ListenerDomainClient
 	// LogEvent is the client for interacting with the LogEvent builders.
 	LogEvent *LogEventClient
+	// LoginPolicy is the client for interacting with the LoginPolicy builders.
+	LoginPolicy *LoginPolicyClient
 	// MailClass is the client for interacting with the MailClass builders.
 	MailClass *MailClassClient
 	// MetricSnapshot is the client for interacting with the MetricSnapshot builders.
@@ -200,6 +202,7 @@ func (tx *Tx) init() {
 	tx.ListenerConfig = NewListenerConfigClient(tx.config)
 	tx.ListenerDomain = NewListenerDomainClient(tx.config)
 	tx.LogEvent = NewLogEventClient(tx.config)
+	tx.LoginPolicy = NewLoginPolicyClient(tx.config)
 	tx.MailClass = NewMailClassClient(tx.config)
 	tx.MetricSnapshot = NewMetricSnapshotClient(tx.config)
 	tx.PolicyHistory = NewPolicyHistoryClient(tx.config)

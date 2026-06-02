@@ -26,6 +26,7 @@ import (
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/listenerconfig"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/listenerdomain"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/logevent"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/loginpolicy"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mailclass"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/metricsnapshot"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/policyhistory"
@@ -67,6 +68,8 @@ type Client struct {
 	ListenerDomain *ListenerDomainClient
 	// LogEvent is the client for interacting with the LogEvent builders.
 	LogEvent *LogEventClient
+	// LoginPolicy is the client for interacting with the LoginPolicy builders.
+	LoginPolicy *LoginPolicyClient
 	// MailClass is the client for interacting with the MailClass builders.
 	MailClass *MailClassClient
 	// MetricSnapshot is the client for interacting with the MetricSnapshot builders.
@@ -113,6 +116,7 @@ func (c *Client) init() {
 	c.ListenerConfig = NewListenerConfigClient(c.config)
 	c.ListenerDomain = NewListenerDomainClient(c.config)
 	c.LogEvent = NewLogEventClient(c.config)
+	c.LoginPolicy = NewLoginPolicyClient(c.config)
 	c.MailClass = NewMailClassClient(c.config)
 	c.MetricSnapshot = NewMetricSnapshotClient(c.config)
 	c.PolicyHistory = NewPolicyHistoryClient(c.config)
@@ -228,6 +232,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ListenerConfig:        NewListenerConfigClient(cfg),
 		ListenerDomain:        NewListenerDomainClient(cfg),
 		LogEvent:              NewLogEventClient(cfg),
+		LoginPolicy:           NewLoginPolicyClient(cfg),
 		MailClass:             NewMailClassClient(cfg),
 		MetricSnapshot:        NewMetricSnapshotClient(cfg),
 		PolicyHistory:         NewPolicyHistoryClient(cfg),
@@ -270,6 +275,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ListenerConfig:        NewListenerConfigClient(cfg),
 		ListenerDomain:        NewListenerDomainClient(cfg),
 		LogEvent:              NewLogEventClient(cfg),
+		LoginPolicy:           NewLoginPolicyClient(cfg),
 		MailClass:             NewMailClassClient(cfg),
 		MetricSnapshot:        NewMetricSnapshotClient(cfg),
 		PolicyHistory:         NewPolicyHistoryClient(cfg),
@@ -313,9 +319,9 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.AcmeAccount, c.AcmeCertificate, c.AcmeDnsProviderConfig, c.AuditEntry,
 		c.DkimIdentity, c.DsnEvent, c.FeedbackReport, c.GlobalSettings,
-		c.ListenerConfig, c.ListenerDomain, c.LogEvent, c.MailClass, c.MetricSnapshot,
-		c.PolicyHistory, c.Role, c.RoutingRule, c.RuleCondition, c.RuleTarget,
-		c.SuppressionEntry, c.User, c.VirtualMta, c.VirtualMtaGroup,
+		c.ListenerConfig, c.ListenerDomain, c.LogEvent, c.LoginPolicy, c.MailClass,
+		c.MetricSnapshot, c.PolicyHistory, c.Role, c.RoutingRule, c.RuleCondition,
+		c.RuleTarget, c.SuppressionEntry, c.User, c.VirtualMta, c.VirtualMtaGroup,
 		c.VirtualMtaGroupMember,
 	} {
 		n.Use(hooks...)
@@ -328,9 +334,9 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.AcmeAccount, c.AcmeCertificate, c.AcmeDnsProviderConfig, c.AuditEntry,
 		c.DkimIdentity, c.DsnEvent, c.FeedbackReport, c.GlobalSettings,
-		c.ListenerConfig, c.ListenerDomain, c.LogEvent, c.MailClass, c.MetricSnapshot,
-		c.PolicyHistory, c.Role, c.RoutingRule, c.RuleCondition, c.RuleTarget,
-		c.SuppressionEntry, c.User, c.VirtualMta, c.VirtualMtaGroup,
+		c.ListenerConfig, c.ListenerDomain, c.LogEvent, c.LoginPolicy, c.MailClass,
+		c.MetricSnapshot, c.PolicyHistory, c.Role, c.RoutingRule, c.RuleCondition,
+		c.RuleTarget, c.SuppressionEntry, c.User, c.VirtualMta, c.VirtualMtaGroup,
 		c.VirtualMtaGroupMember,
 	} {
 		n.Intercept(interceptors...)
@@ -362,6 +368,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ListenerDomain.mutate(ctx, m)
 	case *LogEventMutation:
 		return c.LogEvent.mutate(ctx, m)
+	case *LoginPolicyMutation:
+		return c.LoginPolicy.mutate(ctx, m)
 	case *MailClassMutation:
 		return c.MailClass.mutate(ctx, m)
 	case *MetricSnapshotMutation:
@@ -1883,6 +1891,139 @@ func (c *LogEventClient) mutate(ctx context.Context, m *LogEventMutation) (Value
 		return (&LogEventDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown LogEvent mutation op: %q", m.Op())
+	}
+}
+
+// LoginPolicyClient is a client for the LoginPolicy schema.
+type LoginPolicyClient struct {
+	config
+}
+
+// NewLoginPolicyClient returns a client for the LoginPolicy from the given config.
+func NewLoginPolicyClient(c config) *LoginPolicyClient {
+	return &LoginPolicyClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `loginpolicy.Hooks(f(g(h())))`.
+func (c *LoginPolicyClient) Use(hooks ...Hook) {
+	c.hooks.LoginPolicy = append(c.hooks.LoginPolicy, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `loginpolicy.Intercept(f(g(h())))`.
+func (c *LoginPolicyClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LoginPolicy = append(c.inters.LoginPolicy, interceptors...)
+}
+
+// Create returns a builder for creating a LoginPolicy entity.
+func (c *LoginPolicyClient) Create() *LoginPolicyCreate {
+	mutation := newLoginPolicyMutation(c.config, OpCreate)
+	return &LoginPolicyCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LoginPolicy entities.
+func (c *LoginPolicyClient) CreateBulk(builders ...*LoginPolicyCreate) *LoginPolicyCreateBulk {
+	return &LoginPolicyCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LoginPolicyClient) MapCreateBulk(slice any, setFunc func(*LoginPolicyCreate, int)) *LoginPolicyCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LoginPolicyCreateBulk{err: fmt.Errorf("calling to LoginPolicyClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LoginPolicyCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LoginPolicyCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LoginPolicy.
+func (c *LoginPolicyClient) Update() *LoginPolicyUpdate {
+	mutation := newLoginPolicyMutation(c.config, OpUpdate)
+	return &LoginPolicyUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LoginPolicyClient) UpdateOne(_m *LoginPolicy) *LoginPolicyUpdateOne {
+	mutation := newLoginPolicyMutation(c.config, OpUpdateOne, withLoginPolicy(_m))
+	return &LoginPolicyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LoginPolicyClient) UpdateOneID(id int) *LoginPolicyUpdateOne {
+	mutation := newLoginPolicyMutation(c.config, OpUpdateOne, withLoginPolicyID(id))
+	return &LoginPolicyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LoginPolicy.
+func (c *LoginPolicyClient) Delete() *LoginPolicyDelete {
+	mutation := newLoginPolicyMutation(c.config, OpDelete)
+	return &LoginPolicyDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LoginPolicyClient) DeleteOne(_m *LoginPolicy) *LoginPolicyDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LoginPolicyClient) DeleteOneID(id int) *LoginPolicyDeleteOne {
+	builder := c.Delete().Where(loginpolicy.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LoginPolicyDeleteOne{builder}
+}
+
+// Query returns a query builder for LoginPolicy.
+func (c *LoginPolicyClient) Query() *LoginPolicyQuery {
+	return &LoginPolicyQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLoginPolicy},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LoginPolicy entity by its id.
+func (c *LoginPolicyClient) Get(ctx context.Context, id int) (*LoginPolicy, error) {
+	return c.Query().Where(loginpolicy.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LoginPolicyClient) GetX(ctx context.Context, id int) *LoginPolicy {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *LoginPolicyClient) Hooks() []Hook {
+	return c.hooks.LoginPolicy
+}
+
+// Interceptors returns the client interceptors.
+func (c *LoginPolicyClient) Interceptors() []Interceptor {
+	return c.inters.LoginPolicy
+}
+
+func (c *LoginPolicyClient) mutate(ctx context.Context, m *LoginPolicyMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LoginPolicyCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LoginPolicyUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LoginPolicyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LoginPolicyDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown LoginPolicy mutation op: %q", m.Op())
 	}
 }
 
@@ -3631,15 +3772,15 @@ type (
 	hooks struct {
 		AcmeAccount, AcmeCertificate, AcmeDnsProviderConfig, AuditEntry, DkimIdentity,
 		DsnEvent, FeedbackReport, GlobalSettings, ListenerConfig, ListenerDomain,
-		LogEvent, MailClass, MetricSnapshot, PolicyHistory, Role, RoutingRule,
-		RuleCondition, RuleTarget, SuppressionEntry, User, VirtualMta, VirtualMtaGroup,
-		VirtualMtaGroupMember []ent.Hook
+		LogEvent, LoginPolicy, MailClass, MetricSnapshot, PolicyHistory, Role,
+		RoutingRule, RuleCondition, RuleTarget, SuppressionEntry, User, VirtualMta,
+		VirtualMtaGroup, VirtualMtaGroupMember []ent.Hook
 	}
 	inters struct {
 		AcmeAccount, AcmeCertificate, AcmeDnsProviderConfig, AuditEntry, DkimIdentity,
 		DsnEvent, FeedbackReport, GlobalSettings, ListenerConfig, ListenerDomain,
-		LogEvent, MailClass, MetricSnapshot, PolicyHistory, Role, RoutingRule,
-		RuleCondition, RuleTarget, SuppressionEntry, User, VirtualMta, VirtualMtaGroup,
-		VirtualMtaGroupMember []ent.Interceptor
+		LogEvent, LoginPolicy, MailClass, MetricSnapshot, PolicyHistory, Role,
+		RoutingRule, RuleCondition, RuleTarget, SuppressionEntry, User, VirtualMta,
+		VirtualMtaGroup, VirtualMtaGroupMember []ent.Interceptor
 	}
 )

@@ -171,6 +171,12 @@ const routes: RouteRecordRaw[] = [
     },
     children: [
       {
+        name: 'LoginFirewall',
+        path: '/security/login-firewall',
+        component: () => import('#/views/kumo/login-firewall/index.vue'),
+        meta: { icon: 'lucide:shield-alert', title: 'Login Firewall' },
+      },
+      {
         name: 'AcmeSettings',
         path: '/security/acme-settings',
         component: () => import('#/views/kumo/acme-settings/index.vue'),

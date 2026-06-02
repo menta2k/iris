@@ -384,6 +384,51 @@ var (
 			},
 		},
 	}
+	// LoginPoliciesColumns holds the columns for the "login_policies" table.
+	LoginPoliciesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "target_id", Type: field.TypeUint32, Default: 0},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"BLACKLIST", "WHITELIST"}},
+		{Name: "method", Type: field.TypeEnum, Enums: []string{"IP", "MAC", "REGION", "TIME", "DEVICE"}},
+		{Name: "value", Type: field.TypeString, Nullable: true, Size: 512},
+		{Name: "time_window", Type: field.TypeString, Nullable: true, Size: 1024},
+		{Name: "reason", Type: field.TypeString, Nullable: true, Size: 512},
+		{Name: "enabled", Type: field.TypeBool, Default: true},
+		{Name: "created_by", Type: field.TypeUint32, Nullable: true, Default: 0},
+		{Name: "updated_by", Type: field.TypeUint32, Nullable: true, Default: 0},
+		{Name: "deleted_by", Type: field.TypeUint32, Nullable: true, Default: 0},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+	}
+	// LoginPoliciesTable holds the schema information for the "login_policies" table.
+	LoginPoliciesTable = &schema.Table{
+		Name:       "login_policies",
+		Columns:    LoginPoliciesColumns,
+		PrimaryKey: []*schema.Column{LoginPoliciesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "loginpolicy_target_id",
+				Unique:  false,
+				Columns: []*schema.Column{LoginPoliciesColumns[1]},
+			},
+			{
+				Name:    "loginpolicy_method",
+				Unique:  false,
+				Columns: []*schema.Column{LoginPoliciesColumns[3]},
+			},
+			{
+				Name:    "loginpolicy_type",
+				Unique:  false,
+				Columns: []*schema.Column{LoginPoliciesColumns[2]},
+			},
+			{
+				Name:    "loginpolicy_enabled_deleted_at_target_id",
+				Unique:  false,
+				Columns: []*schema.Column{LoginPoliciesColumns[7], LoginPoliciesColumns[13], LoginPoliciesColumns[1]},
+			},
+		},
+	}
 	// MailClassesColumns holds the columns for the "mail_classes" table.
 	MailClassesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -760,6 +805,7 @@ var (
 		ListenerConfigsTable,
 		ListenerDomainsTable,
 		LogEventTable,
+		LoginPoliciesTable,
 		MailClassesTable,
 		MetricSnapshotTable,
 		PolicyHistoriesTable,
@@ -798,6 +844,9 @@ func init() {
 	ListenerDomainsTable.ForeignKeys[0].RefTable = ListenerConfigsTable
 	LogEventTable.Annotation = &entsql.Annotation{
 		Table: "log_event",
+	}
+	LoginPoliciesTable.Annotation = &entsql.Annotation{
+		Table: "login_policies",
 	}
 	MetricSnapshotTable.Annotation = &entsql.Annotation{
 		Table: "metric_snapshot",

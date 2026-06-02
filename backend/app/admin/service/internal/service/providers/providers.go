@@ -15,6 +15,7 @@ import (
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/service"
 	"github.com/menta2k/iris/backend/pkg/acmeissuer"
+	"github.com/menta2k/iris/backend/pkg/geoip"
 	appjwt "github.com/menta2k/iris/backend/pkg/jwt"
 	"github.com/menta2k/iris/backend/pkg/kumomta"
 	"github.com/menta2k/iris/backend/pkg/metrics"
@@ -78,7 +79,47 @@ var ProviderSet = wire.NewSet(
 	AcmeAccountStoreFromRepo,
 	AcmeCertificateStoreFromRepo,
 	AcmeDnsProviderConfigStoreFromRepo,
+	LoginPolicyStoreFromRepo,
+	RuleSourceFromRepo,
+	NewGeoIPDBPath,
+	NewGeoResolver,
+	service.NewLoginFirewall,
+	service.NewLoginPolicyService,
 )
+
+// LoginPolicyStoreFromRepo / RuleSourceFromRepo bind the single login-policy
+// repo to the two service interfaces it satisfies (CRUD store + the
+// enforcement read path).
+func LoginPolicyStoreFromRepo(r *data.LoginPolicyRepo) service.LoginPolicyStore { return r }
+func RuleSourceFromRepo(r *data.LoginPolicyRepo) service.RuleSource             { return r }
+
+// GeoIPDBPath is a typed alias so wire disambiguates the path string.
+// Default matches the kumomta etc dir; override via IRIS_GEOIP_DB_PATH.
+type GeoIPDBPath string
+
+func NewGeoIPDBPath() GeoIPDBPath {
+	if v := strings.TrimSpace(os.Getenv("IRIS_GEOIP_DB_PATH")); v != "" {
+		return GeoIPDBPath(v)
+	}
+	return GeoIPDBPath("/opt/kumomta/etc/GeoLite2-Country.mmdb")
+}
+
+// NewGeoResolver opens the GeoLite2 database for REGION rules. A missing or
+// unreadable database is non-fatal: it returns a disabled (nil-backed)
+// resolver so boot proceeds and REGION rules fail open (the firewall logs a
+// warning when it encounters them). The cleanup closes the db handle.
+func NewGeoResolver(path GeoIPDBPath) (service.GeoResolver, func(), error) {
+	r, err := geoip.Open(string(path))
+	if err != nil {
+		log.Printf("geoip: open %q failed: %v — REGION rules will fail open", string(path), err)
+		return (*geoip.Resolver)(nil), func() {}, nil
+	}
+	if r == nil {
+		log.Printf("geoip: no database at %q — REGION rules will fail open", string(path))
+		return (*geoip.Resolver)(nil), func() {}, nil
+	}
+	return r, func() { _ = r.Close() }, nil
+}
 
 // AuthStoreFromUserRepo binds *data.UserRepo to the service.UserStore
 // interface (auth read path).
