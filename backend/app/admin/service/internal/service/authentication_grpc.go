@@ -102,17 +102,9 @@ func mapAuthError(err error) error {
 		return status.Error(codes.PermissionDenied, "account inactive")
 	case errors.Is(err, ErrAccountLocked):
 		return status.Error(codes.ResourceExhausted, "account locked")
+	case errors.Is(err, ErrLoginBlocked):
+		return status.Error(codes.PermissionDenied, "login blocked by security policy")
 	default:
 		return status.Error(codes.Internal, err.Error())
 	}
-}
-
-// clientIPFromCtx is a tiny helper kept here so the adapter is the single
-// place we'd extend if Kratos exposed peer info differently in future.
-func clientIPFromCtx(ctx context.Context) string {
-	// The kratos transport carries headers via transport.FromServerContext;
-	// the audit middleware pulls X-Forwarded-For canonically. For login
-	// audit purposes the value is also captured by the audit middleware.
-	_ = ctx
-	return ""
 }

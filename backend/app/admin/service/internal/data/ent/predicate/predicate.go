@@ -39,6 +39,9 @@ type ListenerDomain func(*sql.Selector)
 // LogEvent is the predicate function for logevent builders.
 type LogEvent func(*sql.Selector)
 
+// LoginPolicy is the predicate function for loginpolicy builders.
+type LoginPolicy func(*sql.Selector)
+
 // MailClass is the predicate function for mailclass builders.
 type MailClass func(*sql.Selector)
 

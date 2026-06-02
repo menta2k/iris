@@ -16,6 +16,7 @@ import (
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/listenerconfig"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/listenerdomain"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/logevent"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/loginpolicy"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mailclass"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/metricsnapshot"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/policyhistory"
@@ -663,6 +664,50 @@ func init() {
 	logeventDescMailClass := logeventFields[11].Descriptor()
 	// logevent.MailClassValidator is a validator for the "mail_class" field. It is called by the builders before save.
 	logevent.MailClassValidator = logeventDescMailClass.Validators[0].(func(string) error)
+	loginpolicyFields := schema.LoginPolicy{}.Fields()
+	_ = loginpolicyFields
+	// loginpolicyDescTargetID is the schema descriptor for target_id field.
+	loginpolicyDescTargetID := loginpolicyFields[0].Descriptor()
+	// loginpolicy.DefaultTargetID holds the default value on creation for the target_id field.
+	loginpolicy.DefaultTargetID = loginpolicyDescTargetID.Default.(uint32)
+	// loginpolicyDescValue is the schema descriptor for value field.
+	loginpolicyDescValue := loginpolicyFields[3].Descriptor()
+	// loginpolicy.ValueValidator is a validator for the "value" field. It is called by the builders before save.
+	loginpolicy.ValueValidator = loginpolicyDescValue.Validators[0].(func(string) error)
+	// loginpolicyDescTimeWindow is the schema descriptor for time_window field.
+	loginpolicyDescTimeWindow := loginpolicyFields[4].Descriptor()
+	// loginpolicy.TimeWindowValidator is a validator for the "time_window" field. It is called by the builders before save.
+	loginpolicy.TimeWindowValidator = loginpolicyDescTimeWindow.Validators[0].(func(string) error)
+	// loginpolicyDescReason is the schema descriptor for reason field.
+	loginpolicyDescReason := loginpolicyFields[5].Descriptor()
+	// loginpolicy.ReasonValidator is a validator for the "reason" field. It is called by the builders before save.
+	loginpolicy.ReasonValidator = loginpolicyDescReason.Validators[0].(func(string) error)
+	// loginpolicyDescEnabled is the schema descriptor for enabled field.
+	loginpolicyDescEnabled := loginpolicyFields[6].Descriptor()
+	// loginpolicy.DefaultEnabled holds the default value on creation for the enabled field.
+	loginpolicy.DefaultEnabled = loginpolicyDescEnabled.Default.(bool)
+	// loginpolicyDescCreatedBy is the schema descriptor for created_by field.
+	loginpolicyDescCreatedBy := loginpolicyFields[7].Descriptor()
+	// loginpolicy.DefaultCreatedBy holds the default value on creation for the created_by field.
+	loginpolicy.DefaultCreatedBy = loginpolicyDescCreatedBy.Default.(uint32)
+	// loginpolicyDescUpdatedBy is the schema descriptor for updated_by field.
+	loginpolicyDescUpdatedBy := loginpolicyFields[8].Descriptor()
+	// loginpolicy.DefaultUpdatedBy holds the default value on creation for the updated_by field.
+	loginpolicy.DefaultUpdatedBy = loginpolicyDescUpdatedBy.Default.(uint32)
+	// loginpolicyDescDeletedBy is the schema descriptor for deleted_by field.
+	loginpolicyDescDeletedBy := loginpolicyFields[9].Descriptor()
+	// loginpolicy.DefaultDeletedBy holds the default value on creation for the deleted_by field.
+	loginpolicy.DefaultDeletedBy = loginpolicyDescDeletedBy.Default.(uint32)
+	// loginpolicyDescCreatedAt is the schema descriptor for created_at field.
+	loginpolicyDescCreatedAt := loginpolicyFields[10].Descriptor()
+	// loginpolicy.DefaultCreatedAt holds the default value on creation for the created_at field.
+	loginpolicy.DefaultCreatedAt = loginpolicyDescCreatedAt.Default.(func() time.Time)
+	// loginpolicyDescUpdatedAt is the schema descriptor for updated_at field.
+	loginpolicyDescUpdatedAt := loginpolicyFields[11].Descriptor()
+	// loginpolicy.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	loginpolicy.DefaultUpdatedAt = loginpolicyDescUpdatedAt.Default.(func() time.Time)
+	// loginpolicy.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	loginpolicy.UpdateDefaultUpdatedAt = loginpolicyDescUpdatedAt.UpdateDefault.(func() time.Time)
 	mailclassFields := schema.MailClass{}.Fields()
 	_ = mailclassFields
 	// mailclassDescName is the schema descriptor for name field.

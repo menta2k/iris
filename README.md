@@ -24,7 +24,7 @@ instead of doing all three.**
 
 | feature | what it actually means for you |
 |---|---|
-| **Operator UI** | 16 CRUD pages for everything kumomta needs (listeners, DKIM, VMTAs, mail classes, routing rules, suppressions, …). No more SSH-and-edit-Lua-by-hand. |
+| **Operator UI** | 17 CRUD pages for everything kumomta needs (listeners, DKIM, VMTAs, mail classes, routing rules, suppressions, …). No more SSH-and-edit-Lua-by-hand. |
 | **Policy generator** | UI changes → validated Lua `init.lua` → atomic file write → kumomta hot-reloads on its 10s epoch poll. You click Apply, it goes live. |
 | **Live logs with timeline reconstruction** | Click any `message_id` in the Logs page and you see the full story for that one submission: Reception → every retry → final Delivery or Bounce. The 3am pager call gets shorter. |
 | **Mail-class header routing** | Set `X-Kumo-Mail-Class: marketing` on a message; Iris turns it into a queue tenant + egress-pool selector. `/v1/queues` shows one row per class so you can spot which kind of mail is backing up. |
@@ -34,6 +34,7 @@ instead of doing all three.**
 | **Inbound feedback loop (ARF)** | Parses [RFC 5965] complaint reports, auto-suppresses the complainant. Nothing for you to do. |
 | **Async bounce handling (DSN)** | Inbound [RFC 3464] DSNs are accepted at one or more configurable bounce subdomains (multi-domain mode handles cross-org senders), parsed, classified into 14 stable categories, and correlated to the originating send via VERP. Hard bounces auto-suppress; soft bounces suppress after a configurable threshold. Browse them at `/observability/dsns`. |
 | **Audit trail** | Every admin operation gets a row: actor, IP, status, duration. Compliance auditors stop bothering you. |
+| **Login firewall** | Gate who can authenticate by IP/CIDR, country (GeoIP), or time-of-day window — global or per-user, blacklist or whitelist. Evaluated before the password check so blocked sources can't even probe credentials. Fails open on indeterminate attributes and guards against locking yourself out. Manage it at `/security/login-firewall`. |
 | **Prometheus metrics** | `/metrics` on a dedicated listener (default `127.0.0.1:9090`). Per-event-type counters, processing-time histogram, stream-pending gauge, suppression-index size, kumomta-admin-call latency, build info. |
 | **Live dashboard** | `/analytics` page reads from a Prometheus-backed admin API: 6 summary cards (delivery rate, bounce rate, stream backlog, suppressions, policy applies), a 1h/6h/24h/7d event-rate chart, and per-mail-class volume table. Auto-refreshes every 15s. |
 | **E2E test harness** | Five aiosmtpd mock receivers (accept / bounce / defer / slow / fbl), a Go loadgen, scenario YAML, automatic teardown. `make test` and you're done. |
@@ -767,6 +768,7 @@ Every knob is an env var on the admin-service binary:
 | `IRIS_SOFT_BOUNCE_THRESHOLD` | `3` | how many soft (4.x.x) bounces a recipient can accumulate within the window before iris suppresses them |
 | `IRIS_SOFT_BOUNCE_WINDOW_HOURS` | `168` (7d) | sliding window for the soft-bounce threshold |
 | `IRIS_BOUNCE_TOKEN_TTL` | `720h` (30d) | reserved — DSNs older than this should be treated as backscatter (not yet enforced; see roadmap) |
+| `IRIS_GEOIP_DB_PATH` | `/opt/kumomta/etc/GeoLite2-Country.mmdb` | MaxMind GeoLite2 country database for the **login firewall**'s REGION rules. Optional: a missing/unreadable file is non-fatal — the service boots and region rules simply fail open (a warning is logged). IP and time-window rules need no database. Requires a free MaxMind license; refresh ~weekly. |
 | `IRIS_METRICS_LISTEN` | `127.0.0.1:9090` | bind for the Prometheus `/metrics` listener; set to `off` to disable, or to `0.0.0.0:9090` when behind a reverse proxy / Docker port-forward |
 | `IRIS_PROMETHEUS_URL` | *(unset → /v1/dashboard/* return 503)* | base URL of a Prometheus instance the admin-service queries on the operator UI's behalf for the `/analytics` dashboard. In compose: `http://prometheus:9090`. |
 | `IRIS_AUTH_ACCESS_SECRET` / `_REFRESH_SECRET` | *(refused if placeholder)* | JWT HS512 secrets — the binary refuses to start with the shipped placeholder values |
@@ -1094,6 +1096,12 @@ flip to public in the GitHub UI if you want world-readable pulls.
   first-boot setup — change it before exposing the service.
 - **Authorization.** RBAC matcher in `pkg/authorizer`; routes carry
   `meta.authority`, the router guard enforces.
+- **Login firewall.** Per-user and global rules gate authentication by
+  IP/CIDR, country, or time window (blacklist / whitelist), evaluated
+  before the password compare so blocked sources never reach the
+  credential path. Fails open on indeterminate attributes (no client IP,
+  GeoIP DB absent) to avoid lockouts, and Create/Update refuse a rule
+  that would lock out the acting operator unless explicitly acknowledged.
 - **Audit.** Every admin operation produces an `audit_entry` row
   (actor / IP / status / duration); the writer is async + batched,
   with clean shutdown draining its queue.

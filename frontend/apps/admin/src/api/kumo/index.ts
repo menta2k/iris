@@ -94,11 +94,18 @@ export interface UserInput {
   roles: string[];
 }
 
+export interface ChangePasswordInput {
+  old_password?: string;
+  new_password: string;
+}
+
 export const usersApi = {
   list: (params?: ListParams) =>
     requestClient.get<ListResponse<User>>('/v1/users', { params }),
   create: (input: UserInput) => requestClient.post<User>('/v1/users', input),
   remove: (id: number) => requestClient.delete(`/v1/users/${id}`),
+  changePassword: (id: number, input: ChangePasswordInput) =>
+    requestClient.post<void>(`/v1/users/${id}/password`, input),
 };
 
 // ─── Audit ───────────────────────────────────────────────────────────────────
@@ -623,4 +630,63 @@ export const dashboardApi = {
       `/v1/dashboard/event-rates?range=${encodeURIComponent(range)}&step=${encodeURIComponent(step)}`,
     ),
   byClass: () => requestClient.get<DashboardByClass>('/v1/dashboard/by-class'),
+};
+
+// ─── Login Firewall (login policies) ─────────────────────────────────────────
+export type LoginPolicyType = 'BLACKLIST' | 'WHITELIST';
+// IP / REGION / TIME are enforced; MAC / DEVICE exist in the backend enum for
+// forward-compat but are rejected on create, so the UI never offers them.
+export type LoginPolicyMethod = 'IP' | 'REGION' | 'TIME';
+
+// Weekdays follow Go's time.Weekday: 0 = Sunday .. 6 = Saturday.
+export interface LoginPolicyTimeWindow {
+  days: number[];
+  start: string; // "HH:MM"
+  end: string; // "HH:MM"
+  timezone: string; // IANA, empty = UTC
+}
+
+export interface LoginPolicy {
+  id: number;
+  targetId?: number; // 0 / absent = global
+  type: LoginPolicyType;
+  method: LoginPolicyMethod | string;
+  value?: string; // CIDR/IP (IP) or ISO country code (REGION)
+  timeWindow?: LoginPolicyTimeWindow;
+  reason?: string;
+  enabled?: boolean;
+  createdBy?: number;
+  updatedBy?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface LoginPolicyInput {
+  targetId?: number;
+  type: LoginPolicyType;
+  method: LoginPolicyMethod;
+  value?: string;
+  timeWindow?: LoginPolicyTimeWindow;
+  reason?: string;
+  enabled?: boolean;
+}
+
+export const loginPoliciesApi = {
+  list: (params?: ListParams) =>
+    requestClient.get<ListResponse<LoginPolicy>>('/v1/login-policies', {
+      params,
+    }),
+  // acknowledge=true bypasses the backend self-lockout guard (409
+  // WOULD_LOCK_OUT_SELF) after the operator confirms.
+  create: (input: LoginPolicyInput, acknowledge = false) =>
+    requestClient.post<LoginPolicy>(
+      `/v1/login-policies${acknowledge ? '?acknowledge=true' : ''}`,
+      input,
+    ),
+  update: (id: number, input: LoginPolicyInput, acknowledge = false) =>
+    requestClient.request<LoginPolicy>(
+      `/v1/login-policies/${id}${acknowledge ? '?acknowledge=true' : ''}`,
+      { method: 'PUT', data: input },
+    ),
+  remove: (id: number) => requestClient.delete(`/v1/login-policies/${id}`),
 };

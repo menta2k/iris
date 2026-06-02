@@ -89,7 +89,17 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 		cleanup()
 		return nil, nil, err
 	}
-	authenticationService := service.NewAuthenticationService(userStore, issuer)
+	loginPolicyRepo := data.NewLoginPolicyRepo(client)
+	ruleSource := providers3.RuleSourceFromRepo(loginPolicyRepo)
+	geoIPDBPath := providers3.NewGeoIPDBPath()
+	geoResolver, cleanup3, err := providers3.NewGeoResolver(geoIPDBPath)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	loginFirewall := service.NewLoginFirewall(ruleSource, geoResolver)
+	authenticationService := service.NewAuthenticationService(userStore, issuer, loginFirewall)
 	authenticationGRPC := service.NewAuthenticationGRPC(authenticationService)
 	userAdminStore := providers3.UserAdminStoreFromUserRepo(userRepo)
 	bcryptCost := providers3.NewBcryptCost()
@@ -99,6 +109,7 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	auditService := service.NewAuditService(auditStore)
 	kumomtaClient, err := providers3.NewKumomtaClient(context, metrics)
 	if err != nil {
+		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
@@ -119,6 +130,7 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	dkimKeysDir := providers3.NewDkimKeysDir()
 	dkimService, err := providers3.NewDkimServiceProvider(dkimStore, keyGenerator, dkimKeysDir)
 	if err != nil {
+		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
@@ -137,6 +149,7 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	policyDir := providers3.NewPolicyDir()
 	policyService, err := providers3.NewPolicyServiceProvider(snapshotProvider, policyHistoryWriter, kumoReloader, policyDir, metrics)
 	if err != nil {
+		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
@@ -155,9 +168,12 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	listenerRepo := data.NewListenerRepo(client)
 	listenerStore := providers3.ListenerStoreFromRepo(listenerRepo)
 	listenerService := service.NewListenerService(listenerStore)
-	registered := providers2.RegisterServers(grpcServer, httpServer, authenticationGRPC, userService, auditService, queueService, suppressionService, virtualMtaService, routingService, dkimService, feedbackService, logService, policyService, mailClassService, vmtaGroupService, dashboardService, dsnService, globalSettingsService, listenerService, acmeService, auditWriter)
+	loginPolicyStore := providers3.LoginPolicyStoreFromRepo(loginPolicyRepo)
+	loginPolicyService := service.NewLoginPolicyService(loginPolicyStore, geoResolver)
+	registered := providers2.RegisterServers(grpcServer, httpServer, authenticationGRPC, userService, auditService, queueService, suppressionService, virtualMtaService, routingService, dkimService, feedbackService, logService, policyService, mailClassService, vmtaGroupService, dashboardService, dsnService, globalSettingsService, listenerService, acmeService, loginPolicyService, auditWriter)
 	app := newApp(context, httpServer, grpcServer, logstreamServer, dsnstreamServer, acmeChallengeServer, acmeRenewerServer, httpsServer, suppressionResyncServer, metricsServer, registered)
 	return app, func() {
+		cleanup3()
 		cleanup2()
 		cleanup()
 	}, nil

@@ -49,12 +49,13 @@ func RegisterServices(
 	gsvc *service.GlobalSettingsService,
 	listeners *service.ListenerService,
 	acme *service.AcmeService,
+	loginPolicies *service.LoginPolicyService,
 	auditWrite auditmw.WriteFunc,
 ) {
 	registerAuthGRPC(gs, auth)
 	registerAuthHTTP(hs, auth, auditWrite)
 	RegisterAdminHTTP(hs, users, audit, auditWrite)
-	RegisterKumoHTTP(hs, queues, suppressions, vmtas, routing, dkim, feedback, logs, policy, mailClasses, vmtaGroups, dashboard, dsns, gsvc, listeners, acme, auditWrite)
+	RegisterKumoHTTP(hs, queues, suppressions, vmtas, routing, dkim, feedback, logs, policy, mailClasses, vmtaGroups, dashboard, dsns, gsvc, listeners, acme, loginPolicies, auditWrite)
 	// SPA: must be registered LAST so /v1/* and /api/v1/* matchers above
 	// take precedence. The fallback handler covers /, /assets/*, and
 	// every client-side route the Vue router resolves at runtime.
@@ -134,6 +135,9 @@ func loginHandler(auth *service.AuthenticationGRPC) func(http.ResponseWriter, *h
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 		defer cancel()
+		// Thread the real client IP (X-Forwarded-For behind the HTTPS
+		// proxy) so the login firewall can evaluate IP/REGION rules.
+		ctx = service.WithClientIP(ctx, clientIP(r))
 		resp, err := auth.Login(ctx, &authenticationpb.LoginRequest{
 			Username: body.Username,
 			Password: body.Password,
@@ -260,6 +264,8 @@ func mapStatus(err error) (int, string) {
 	switch {
 	case strings.Contains(st.Message(), "invalid credentials"):
 		return http.StatusUnauthorized, st.Message()
+	case strings.Contains(st.Message(), "blocked by security policy"):
+		return http.StatusForbidden, st.Message()
 	case strings.Contains(st.Message(), "inactive"):
 		return http.StatusForbidden, st.Message()
 	case strings.Contains(st.Message(), "locked"):

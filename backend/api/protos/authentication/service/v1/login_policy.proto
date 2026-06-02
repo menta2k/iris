@@ -1,0 +1,217 @@
+syntax = "proto3";
+
+package authentication.service.v1;
+
+import "gnostic/openapi/v3/annotations.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "pagination/v1/pagination.proto";
+
+// Login Policy Management Service
+service LoginPolicyService {
+  // Query login policy list
+  rpc List(pagination.PagingRequest) returns (ListLoginPolicyResponse) {}
+
+  // Count the number of login policies
+  rpc Count(pagination.PagingRequest) returns (CountLoginPolicyResponse) {}
+
+  // View login policy details
+  rpc Get(GetLoginPolicyRequest) returns (LoginPolicy) {}
+
+  // Create login policy
+  rpc Create(CreateLoginPolicyRequest) returns (google.protobuf.Empty) {}
+
+  // Update login policy
+  rpc Update(UpdateLoginPolicyRequest) returns (google.protobuf.Empty) {}
+
+  // Delete login policy
+  rpc Delete(DeleteLoginPolicyRequest) returns (google.protobuf.Empty) {}
+}
+
+// Login Policy
+message LoginPolicy {
+  // Login Policy Type
+  enum Type {
+    LOGIN_RESTRICTION_TYPE_UNSPECIFIED = 0; // Unknown
+
+    BLACKLIST = 1; // blacklist
+    WHITELIST = 2; // Whitelist
+  }
+
+  // Login Policy Method
+  enum Method {
+    LOGIN_RESTRICTION_METHOD_UNSPECIFIED = 0; // Unknown
+
+    IP = 1; // IP address restriction
+    MAC = 2; // MAC address restriction, bind the device's MAC address.
+    REGION = 3; // Regional restrictions, limiting login based on geographic location (such as country or city).
+    TIME = 4; // Time restrictions, limiting the login periods, for example, only allowing logins during working hours.
+    DEVICE = 5; // Device restrictions, limiting the types of devices that can log in (such as PC, mobile) or specific device IDs.
+  }
+
+  optional uint32 id = 1 [
+    json_name = "id",
+    (google.api.field_behavior) = OPTIONAL,
+    (gnostic.openapi.v3.property) = {description: "Login policy ID"}
+  ]; // Login Policy ID
+
+  optional uint32 target_id = 2 [
+    json_name = "targetId",
+    (gnostic.openapi.v3.property) = {description: "target user id"}
+  ]; // Target user ID
+
+  optional Type type = 3 [
+    json_name = "type",
+    (gnostic.openapi.v3.property) = {description: "Restriction type"}
+  ]; // Restriction type
+
+  optional Method method = 4 [
+    json_name = "method",
+    (gnostic.openapi.v3.property) = {description: "Restriction method"}
+  ]; // Restriction method
+
+  optional string value = 5 [
+    json_name = "value",
+    (gnostic.openapi.v3.property) = {description: "Restricted values ​​(such as IP address, MAC address or region code)"}
+  ]; // Limit values (such as IP addresses, MAC addresses, or region codes)
+
+  optional string reason = 6 [
+    json_name = "reason",
+    (gnostic.openapi.v3.property) = {description: "Reason for restriction"}
+  ]; // Reason for restriction
+
+  // enabled toggles a rule without deleting it. Absent on create is
+  // treated as true by the service (proto3 bool zero-value is false, so
+  // the HTTP DTO carries this as a nullable to distinguish absent from
+  // explicit-false).
+  optional bool enabled = 7 [
+    json_name = "enabled",
+    (gnostic.openapi.v3.property) = {description: "Whether the rule is active"}
+  ];
+
+  // time_window carries the structured restriction when method == TIME.
+  // For IP and REGION methods it is ignored and `value` is authoritative
+  // (CIDR/IP, or ISO-3166-1 alpha-2 country code respectively).
+  optional TimeWindow time_window = 8 [
+    json_name = "timeWindow",
+    (gnostic.openapi.v3.property) = {description: "Time-of-day restriction (method=TIME)"}
+  ];
+
+  // TimeWindow is a recurring weekly time restriction. An empty `days`
+  // means "every day". `start`/`end` are 24h "HH:MM" in `timezone`
+  // (IANA, e.g. "Europe/Sofia"; empty = UTC). v1 supports same-day
+  // ranges only (start <= end); wrap-past-midnight is a follow-up.
+  message TimeWindow {
+    repeated uint32 days = 1 [
+      json_name = "days",
+      (gnostic.openapi.v3.property) = {description: "Weekdays (0=Sun..6=Sat); empty = all days"}
+    ]; // time.Weekday values
+    string start = 2 [
+      json_name = "start",
+      (gnostic.openapi.v3.property) = {description: "Window start, 24h HH:MM"}
+    ];
+    string end = 3 [
+      json_name = "end",
+      (gnostic.openapi.v3.property) = {description: "Window end, 24h HH:MM"}
+    ];
+    string timezone = 4 [
+      json_name = "timezone",
+      (gnostic.openapi.v3.property) = {description: "IANA timezone; empty = UTC"}
+    ];
+  }
+
+  optional uint32 created_by = 100 [
+    json_name = "createdBy",
+    (gnostic.openapi.v3.property) = {description: "Created by user ID"}
+  ]; // Created by user ID
+  optional uint32 updated_by = 101 [
+    json_name = "updatedBy",
+    (gnostic.openapi.v3.property) = {description: "Updated by user ID"}
+  ]; // Updated by user ID
+  optional uint32 deleted_by = 102 [
+    json_name = "deletedBy",
+    (gnostic.openapi.v3.property) = {description: "Deleted by user ID"}
+  ]; // Deleted by user ID
+
+  optional google.protobuf.Timestamp created_at = 200 [
+    json_name = "createdAt",
+    (gnostic.openapi.v3.property) = {description: "创建时间"}
+  ]; // Creation Time
+  optional google.protobuf.Timestamp updated_at = 201 [
+    json_name = "updatedAt",
+    (gnostic.openapi.v3.property) = {description: "更新时间"}
+  ]; // Update Time
+  optional google.protobuf.Timestamp deleted_at = 202 [
+    json_name = "deletedAt",
+    (gnostic.openapi.v3.property) = {description: "删除时间"}
+  ]; // Delete time
+}
+
+// Query Login Policy List - Response
+message ListLoginPolicyResponse {
+  repeated LoginPolicy items = 1;
+  uint64 total = 2;
+}
+
+// Query Login Policy Details - Request
+message GetLoginPolicyRequest {
+  oneof query_by {
+    uint32 id = 1 [
+      (gnostic.openapi.v3.property) = {
+        description: "ID"
+        read_only: true
+      },
+      json_name = "id"
+    ]; // Id
+  }
+
+  optional google.protobuf.FieldMask view_mask = 100 [
+    json_name = "viewMask",
+    (gnostic.openapi.v3.property) = {description: "视图字段过滤器，用于控制返回的字段"}
+  ]; // View field filter, used to control the returned fields
+}
+
+// Create Login Policy - Request
+message CreateLoginPolicyRequest {
+  LoginPolicy data = 1;
+}
+
+// Update Login Policy - Request
+message UpdateLoginPolicyRequest {
+  uint32 id = 1;
+
+  LoginPolicy data = 2;
+
+  google.protobuf.FieldMask update_mask = 3 [
+    (gnostic.openapi.v3.property) = {
+      description: "要更新的字段列表"
+      example: {yaml: "id,realname,username"}
+    },
+    json_name = "updateMask"
+  ]; // List of fields to be updated
+
+  optional bool allow_missing = 4 [
+    (gnostic.openapi.v3.property) = {description: "如果设置为true的时候，资源不存在则会新增(插入)，并且在这种情况下`updateMask`字段将会被忽略。"},
+    json_name = "allowMissing"
+  ]; // If set to true, if the resource does not exist, it will be added (inserted), and in this case, the `update mask` field will be ignored.
+}
+
+// Delete Login Policy - Request
+message DeleteLoginPolicyRequest {
+  oneof query_by {
+    uint32 id = 1 [
+      (gnostic.openapi.v3.property) = {
+        description: "ID"
+        read_only: true
+      },
+      json_name = "id"
+    ]; // Id
+  }
+}
+
+message CountLoginPolicyResponse {
+  uint64 count = 1;
+}

@@ -69,7 +69,49 @@ func newSvc(t *testing.T) (*AuthenticationService, *fakeUsers) {
 	users.m["alice"] = &UserRow{ID: 1, Username: "alice", PasswordHash: hash, Active: true, Roles: []string{"admin"}}
 	users.m["bob"] = &UserRow{ID: 2, Username: "bob", PasswordHash: hash, Active: false}
 
-	return NewAuthenticationService(users, iss), users
+	return NewAuthenticationService(users, iss, nil), users
+}
+
+// newSvcWithFirewall is like newSvc but installs a login firewall over the
+// given rule source (geo nil).
+func newSvcWithFirewall(t *testing.T, rules RuleSource) (*AuthenticationService, *fakeUsers) {
+	t.Helper()
+	svc, users := newSvc(t)
+	svc.firewall = NewLoginFirewall(rules, nil)
+	return svc, users
+}
+
+func TestLoginBlockedByFirewall(t *testing.T) {
+	rules := &fakeRuleSource{rows: []LoginPolicyRow{
+		{ID: 7, Type: PolicyTypeBlacklist, Method: MethodIP, Value: "1.2.3.0/24", Enabled: true},
+	}}
+	svc, users := newSvcWithFirewall(t, rules)
+	_, err := svc.Login(context.Background(),
+		&LoginRequest{Username: "alice", Password: "super-secret-password!"}, "1.2.3.4")
+	require.ErrorIs(t, err, ErrLoginBlocked)
+	// A blocked source must not reach the password / lockout path.
+	require.Empty(t, users.failures, "blocked login must not record a credential failure")
+	require.Empty(t, users.successes, "blocked login must not record a success")
+}
+
+func TestLoginAllowedWhenFirewallNoMatch(t *testing.T) {
+	rules := &fakeRuleSource{rows: []LoginPolicyRow{
+		{ID: 7, Type: PolicyTypeBlacklist, Method: MethodIP, Value: "10.0.0.0/8", Enabled: true},
+	}}
+	svc, _ := newSvcWithFirewall(t, rules)
+	resp, err := svc.Login(context.Background(),
+		&LoginRequest{Username: "alice", Password: "super-secret-password!"}, "1.2.3.4")
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.AccessToken)
+}
+
+func TestLoginFirewallFailsOpenOnStoreError(t *testing.T) {
+	rules := &fakeRuleSource{err: errors.New("db down")}
+	svc, _ := newSvcWithFirewall(t, rules)
+	resp, err := svc.Login(context.Background(),
+		&LoginRequest{Username: "alice", Password: "super-secret-password!"}, "1.2.3.4")
+	require.NoError(t, err, "a rule-store error must fail open, not block login")
+	require.NotEmpty(t, resp.AccessToken)
 }
 
 func TestLoginSuccess(t *testing.T) {

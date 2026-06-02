@@ -14,6 +14,13 @@
 // pair on every handshake. tls.Config caches certs internally per
 // session, so a renewal that rewrites the file in place is picked up
 // on the next new connection without a process restart.
+//
+// Listen-address / cert-path hot-reload: Start registers an OnChange
+// observer with GlobalSettingsService. When an operator saves new
+// https_listen / cert / key values, the observer fires Reload, which
+// re-reads the settings and re-binds the socket — no process restart.
+// Reload is idempotent (a no-op when the effective config is
+// unchanged) so edits to unrelated fields don't blip the listener.
 package server
 
 import (
@@ -28,6 +35,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/menta2k/iris/backend/app/admin/service/internal/service"
@@ -35,8 +43,15 @@ import (
 
 type HTTPSServer struct {
 	gsvc *service.GlobalSettingsService
+
+	mu   sync.Mutex
 	srv  *http.Server
 	done chan struct{}
+	// Effective config of the live listener, used to skip needless
+	// re-binds when an unrelated global_settings field changes.
+	curBind string
+	curCert string
+	curKey  string
 }
 
 // NewHTTPSServer is wired by kratos. It just stashes the service
@@ -46,36 +61,67 @@ func NewHTTPSServer(gsvc *service.GlobalSettingsService) *HTTPSServer {
 	return &HTTPSServer{gsvc: gsvc}
 }
 
-// Start reads the current global_settings; if https_listen is empty
-// or the cert/key files don't exist, the server is a no-op. The
-// reverse-proxy upstream is hardcoded to the local plain HTTP server
-// (server.yaml: server.rest.addr) — operators who change that addr
-// also need to keep this in sync.
+// Start binds the listener from the current global_settings and
+// registers the reload observer so later settings updates re-apply
+// live. If https_listen is empty or the cert/key files don't exist,
+// the listener stays down (the observer can still bring it up later).
 func (s *HTTPSServer) Start(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.gsvc.OnChange(s.Reload)
+	s.applyLocked()
+	return nil
+}
+
+// Reload re-reads global_settings and re-binds the listener to match.
+// Fired on a detached goroutine by GlobalSettingsService.OnChange, so
+// it must not assume the caller's request context — it uses
+// context.Background() throughout.
+func (s *HTTPSServer) Reload() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.applyLocked()
+}
+
+// applyLocked (re)configures the listener from the current settings.
+// Caller must hold s.mu. Idempotent: when the desired bind/cert/key
+// match what's already serving it returns without touching the socket.
+func (s *HTTPSServer) applyLocked() {
 	row, err := s.gsvc.Get(context.Background())
 	if err != nil {
-		log.Printf("https-server: read global_settings failed (%v) — disabled", err)
-		return nil
+		log.Printf("https-server: read global_settings failed (%v) — listener unchanged", err)
+		return
 	}
 	bind := strings.TrimSpace(row.HTTPSListen)
 	cert := strings.TrimSpace(row.HTTPSCertPemPath)
 	key := strings.TrimSpace(row.HTTPSKeyPemPath)
+
+	// Unchanged effective config → leave the running listener alone.
+	if s.srv != nil && bind == s.curBind && cert == s.curCert && key == s.curKey {
+		return
+	}
+
+	// Tear down whatever is currently bound before re-binding. Doing
+	// this even when the new config is "disabled" means clearing
+	// https_listen actually stops the listener.
+	s.stopLocked()
+
 	if bind == "" || cert == "" || key == "" {
 		log.Printf("https-server: not configured (https_listen / cert / key empty) — disabled")
-		return nil
+		return
 	}
 	upstream, err := url.Parse(httpsUpstreamURL())
 	if err != nil {
 		log.Printf("https-server: parse upstream %q: %v — disabled", httpsUpstreamURL(), err)
-		return nil
+		return
 	}
 
-	// Lazy cert loader. We probe-load once at Start to fail loudly if
-	// the operator pointed at non-existent paths; subsequent loads
-	// happen per-handshake via GetCertificate.
+	// Probe-load once to fail loudly if the operator pointed at
+	// non-existent paths; subsequent loads happen per-handshake via
+	// GetCertificate.
 	if _, err := tls.LoadX509KeyPair(cert, key); err != nil {
 		log.Printf("https-server: initial LoadX509KeyPair(%s, %s): %v — disabled", cert, key, err)
-		return nil
+		return
 	}
 
 	tlsCfg := &tls.Config{
@@ -103,7 +149,7 @@ func (s *HTTPSServer) Start(ctx context.Context) error {
 		}
 	}
 
-	s.srv = &http.Server{
+	srv := &http.Server{
 		Addr:              bind,
 		Handler:           proxy,
 		TLSConfig:         tlsCfg,
@@ -115,27 +161,29 @@ func (s *HTTPSServer) Start(ctx context.Context) error {
 	ln, err := net.Listen("tcp", bind)
 	if err != nil {
 		log.Printf("https-server: bind %s failed: %v — disabled", bind, err)
-		s.srv = nil
-		return nil
+		return
 	}
 	tlsLn := tls.NewListener(ln, tlsCfg)
 	log.Printf("https-server: listening on %s (cert=%s) → %s", bind, cert, upstream)
-	s.done = make(chan struct{})
+	done := make(chan struct{})
+	s.srv, s.done = srv, done
+	s.curBind, s.curCert, s.curKey = bind, cert, key
 	go func() {
-		defer close(s.done)
-		if err := s.srv.Serve(tlsLn); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		defer close(done)
+		if err := srv.Serve(tlsLn); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Printf("https-server: serve exited: %v", err)
 		}
 	}()
-	return nil
 }
 
-// Stop drains in-flight requests and closes the listener.
-func (s *HTTPSServer) Stop(ctx context.Context) error {
+// stopLocked drains in-flight requests and closes the current
+// listener, resetting the effective-config tracking. Caller must hold
+// s.mu. Safe to call when nothing is running.
+func (s *HTTPSServer) stopLocked() {
 	if s.srv == nil {
-		return nil
+		return
 	}
-	shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := s.srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("https-server: shutdown: %v", err)
@@ -143,6 +191,16 @@ func (s *HTTPSServer) Stop(ctx context.Context) error {
 	if s.done != nil {
 		<-s.done
 	}
+	s.srv, s.done = nil, nil
+	s.curBind, s.curCert, s.curKey = "", "", ""
+}
+
+// Stop drains in-flight requests and closes the listener (kratos
+// lifecycle teardown).
+func (s *HTTPSServer) Stop(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.stopLocked()
 	return nil
 }
 
