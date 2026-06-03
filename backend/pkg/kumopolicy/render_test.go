@@ -260,3 +260,34 @@ func TestRenderBounceMultiPrecedence(t *testing.T) {
 	require.NotContains(t, out.Lua, `legacy.example.com`)
 	require.Contains(t, out.Lua, `["test.com"] = "bounces.test.com",`)
 }
+
+func TestRenderAddsMissingHeaderHook(t *testing.T) {
+	out, err := Render(goodSnapshot(), RenderOptions{})
+	require.NoError(t, err)
+	// The header-hygiene helper exists, is invoked from the routing chain,
+	// and only adds Date/Message-ID when absent.
+	require.Contains(t, out.Lua, "local function iris_add_missing_headers(msg)")
+	require.Contains(t, out.Lua, "iris_add_missing_headers(msg)")
+	require.Contains(t, out.Lua, "msg:prepend_header('Date'")
+	require.Contains(t, out.Lua, "msg:prepend_header('Message-ID'")
+	require.Contains(t, out.Lua, "get_first_named_header_value('Date')")
+}
+
+func TestRenderEgressEhloDefaultWhenSet(t *testing.T) {
+	snap := goodSnapshot()
+	snap.GlobalSettings.EgressEhloDomain = "mail.example.com"
+	out, err := Render(snap, RenderOptions{})
+	require.NoError(t, err)
+	require.Contains(t, out.Lua, "kumo.on('get_egress_path_config'")
+	require.Contains(t, out.Lua, `ehlo_domain = "mail.example.com"`)
+	// Message-ID domain is pinned to the configured EHLO FQDN.
+	require.Contains(t, out.Lua, `local IRIS_MID_DOMAIN = "mail.example.com"`)
+}
+
+func TestRenderNoEgressPathHookWhenUnset(t *testing.T) {
+	out, err := Render(goodSnapshot(), RenderOptions{})
+	require.NoError(t, err)
+	// Without a configured default, we don't emit the path-config hook
+	// (behavior unchanged for existing deployments).
+	require.NotContains(t, out.Lua, "kumo.on('get_egress_path_config'")
+}

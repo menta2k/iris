@@ -6924,6 +6924,7 @@ type GlobalSettingsMutation struct {
 	appendbounce_sender_domains []string
 	bounce_prefix               *string
 	mail_class_header           *string
+	egress_ehlo_domain          *string
 	https_listen                *string
 	https_cert_pem_path         *string
 	https_key_pem_path          *string
@@ -7479,6 +7480,55 @@ func (m *GlobalSettingsMutation) ResetMailClassHeader() {
 	delete(m.clearedFields, globalsettings.FieldMailClassHeader)
 }
 
+// SetEgressEhloDomain sets the "egress_ehlo_domain" field.
+func (m *GlobalSettingsMutation) SetEgressEhloDomain(s string) {
+	m.egress_ehlo_domain = &s
+}
+
+// EgressEhloDomain returns the value of the "egress_ehlo_domain" field in the mutation.
+func (m *GlobalSettingsMutation) EgressEhloDomain() (r string, exists bool) {
+	v := m.egress_ehlo_domain
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEgressEhloDomain returns the old "egress_ehlo_domain" field's value of the GlobalSettings entity.
+// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GlobalSettingsMutation) OldEgressEhloDomain(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEgressEhloDomain is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEgressEhloDomain requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEgressEhloDomain: %w", err)
+	}
+	return oldValue.EgressEhloDomain, nil
+}
+
+// ClearEgressEhloDomain clears the value of the "egress_ehlo_domain" field.
+func (m *GlobalSettingsMutation) ClearEgressEhloDomain() {
+	m.egress_ehlo_domain = nil
+	m.clearedFields[globalsettings.FieldEgressEhloDomain] = struct{}{}
+}
+
+// EgressEhloDomainCleared returns if the "egress_ehlo_domain" field was cleared in this mutation.
+func (m *GlobalSettingsMutation) EgressEhloDomainCleared() bool {
+	_, ok := m.clearedFields[globalsettings.FieldEgressEhloDomain]
+	return ok
+}
+
+// ResetEgressEhloDomain resets all changes to the "egress_ehlo_domain" field.
+func (m *GlobalSettingsMutation) ResetEgressEhloDomain() {
+	m.egress_ehlo_domain = nil
+	delete(m.clearedFields, globalsettings.FieldEgressEhloDomain)
+}
+
 // SetHTTPSListen sets the "https_listen" field.
 func (m *GlobalSettingsMutation) SetHTTPSListen(s string) {
 	m.https_listen = &s
@@ -7745,7 +7795,7 @@ func (m *GlobalSettingsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GlobalSettingsMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.kumo_http_listen != nil {
 		fields = append(fields, globalsettings.FieldKumoHTTPListen)
 	}
@@ -7769,6 +7819,9 @@ func (m *GlobalSettingsMutation) Fields() []string {
 	}
 	if m.mail_class_header != nil {
 		fields = append(fields, globalsettings.FieldMailClassHeader)
+	}
+	if m.egress_ehlo_domain != nil {
+		fields = append(fields, globalsettings.FieldEgressEhloDomain)
 	}
 	if m.https_listen != nil {
 		fields = append(fields, globalsettings.FieldHTTPSListen)
@@ -7809,6 +7862,8 @@ func (m *GlobalSettingsMutation) Field(name string) (ent.Value, bool) {
 		return m.BouncePrefix()
 	case globalsettings.FieldMailClassHeader:
 		return m.MailClassHeader()
+	case globalsettings.FieldEgressEhloDomain:
+		return m.EgressEhloDomain()
 	case globalsettings.FieldHTTPSListen:
 		return m.HTTPSListen()
 	case globalsettings.FieldHTTPSCertPemPath:
@@ -7844,6 +7899,8 @@ func (m *GlobalSettingsMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldBouncePrefix(ctx)
 	case globalsettings.FieldMailClassHeader:
 		return m.OldMailClassHeader(ctx)
+	case globalsettings.FieldEgressEhloDomain:
+		return m.OldEgressEhloDomain(ctx)
 	case globalsettings.FieldHTTPSListen:
 		return m.OldHTTPSListen(ctx)
 	case globalsettings.FieldHTTPSCertPemPath:
@@ -7918,6 +7975,13 @@ func (m *GlobalSettingsMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMailClassHeader(v)
+		return nil
+	case globalsettings.FieldEgressEhloDomain:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEgressEhloDomain(v)
 		return nil
 	case globalsettings.FieldHTTPSListen:
 		v, ok := value.(string)
@@ -8008,6 +8072,9 @@ func (m *GlobalSettingsMutation) ClearedFields() []string {
 	if m.FieldCleared(globalsettings.FieldMailClassHeader) {
 		fields = append(fields, globalsettings.FieldMailClassHeader)
 	}
+	if m.FieldCleared(globalsettings.FieldEgressEhloDomain) {
+		fields = append(fields, globalsettings.FieldEgressEhloDomain)
+	}
 	if m.FieldCleared(globalsettings.FieldHTTPSListen) {
 		fields = append(fields, globalsettings.FieldHTTPSListen)
 	}
@@ -8058,6 +8125,9 @@ func (m *GlobalSettingsMutation) ClearField(name string) error {
 	case globalsettings.FieldMailClassHeader:
 		m.ClearMailClassHeader()
 		return nil
+	case globalsettings.FieldEgressEhloDomain:
+		m.ClearEgressEhloDomain()
+		return nil
 	case globalsettings.FieldHTTPSListen:
 		m.ClearHTTPSListen()
 		return nil
@@ -8101,6 +8171,9 @@ func (m *GlobalSettingsMutation) ResetField(name string) error {
 		return nil
 	case globalsettings.FieldMailClassHeader:
 		m.ResetMailClassHeader()
+		return nil
+	case globalsettings.FieldEgressEhloDomain:
+		m.ResetEgressEhloDomain()
 		return nil
 	case globalsettings.FieldHTTPSListen:
 		m.ResetHTTPSListen()

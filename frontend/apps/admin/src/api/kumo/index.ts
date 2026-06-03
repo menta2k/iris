@@ -204,6 +204,7 @@ export interface GlobalSettings {
   bounce_sender_domains: string[];
   bounce_prefix: string;
   mail_class_header: string;
+  egress_ehlo_domain: string;
   https_listen: string;
   https_cert_pem_path: string;
   https_key_pem_path: string;

@@ -257,6 +257,9 @@ func (r *SnapshotRepo) applyGlobalSettings(ctx context.Context, snap *kumopolicy
 	if v := strings.TrimSpace(row.MailClassHeader); v != "" {
 		snap.GlobalSettings.MailClassHeader = v
 	}
+	if v := strings.TrimSpace(row.EgressEhloDomain); v != "" {
+		snap.GlobalSettings.EgressEhloDomain = v
+	}
 }
 
 // parseBoolEnv reads a truthy/falsy env var. Accepts 1/true/yes/on

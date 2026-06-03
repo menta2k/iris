@@ -54,6 +54,14 @@ type GlobalSettings struct {
 	// up a MailClass by name. Empty defaults to MailClassHeaderDefault.
 	MailClassHeader string
 
+	// EgressEhloDomain is the default outbound EHLO hostname (a FQDN).
+	// Rendered as the egress *path* ehlo_domain so all outbound mail
+	// announces a resolvable name rather than the bare system hostname
+	// (rspamd HFILTER_HELO_5). Per-VMTA HeloName overrides it at the egress
+	// *source* level. Also used as the domain for iris-generated
+	// Message-IDs. Empty leaves kumomta's default (system hostname).
+	EgressEhloDomain string
+
 	// KumoHTTPListen is the bind spec for kumomta's HTTP admin listener
 	// emitted into init.lua's kumo.start_http_listener block. Defaults to
 	// '0.0.0.0:8000' (matches the docker-compose layout). Set to

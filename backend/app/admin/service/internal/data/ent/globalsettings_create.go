@@ -108,6 +108,20 @@ func (_c *GlobalSettingsCreate) SetNillableMailClassHeader(v *string) *GlobalSet
 	return _c
 }
 
+// SetEgressEhloDomain sets the "egress_ehlo_domain" field.
+func (_c *GlobalSettingsCreate) SetEgressEhloDomain(v string) *GlobalSettingsCreate {
+	_c.mutation.SetEgressEhloDomain(v)
+	return _c
+}
+
+// SetNillableEgressEhloDomain sets the "egress_ehlo_domain" field if the given value is not nil.
+func (_c *GlobalSettingsCreate) SetNillableEgressEhloDomain(v *string) *GlobalSettingsCreate {
+	if v != nil {
+		_c.SetEgressEhloDomain(*v)
+	}
+	return _c
+}
+
 // SetHTTPSListen sets the "https_listen" field.
 func (_c *GlobalSettingsCreate) SetHTTPSListen(v string) *GlobalSettingsCreate {
 	_c.mutation.SetHTTPSListen(v)
@@ -264,6 +278,11 @@ func (_c *GlobalSettingsCreate) check() error {
 			return &ValidationError{Name: "mail_class_header", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.mail_class_header": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.EgressEhloDomain(); ok {
+		if err := globalsettings.EgressEhloDomainValidator(v); err != nil {
+			return &ValidationError{Name: "egress_ehlo_domain", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.egress_ehlo_domain": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.HTTPSListen(); ok {
 		if err := globalsettings.HTTPSListenValidator(v); err != nil {
 			return &ValidationError{Name: "https_listen", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.https_listen": %w`, err)}
@@ -350,6 +369,10 @@ func (_c *GlobalSettingsCreate) createSpec() (*GlobalSettings, *sqlgraph.CreateS
 	if value, ok := _c.mutation.MailClassHeader(); ok {
 		_spec.SetField(globalsettings.FieldMailClassHeader, field.TypeString, value)
 		_node.MailClassHeader = value
+	}
+	if value, ok := _c.mutation.EgressEhloDomain(); ok {
+		_spec.SetField(globalsettings.FieldEgressEhloDomain, field.TypeString, value)
+		_node.EgressEhloDomain = value
 	}
 	if value, ok := _c.mutation.HTTPSListen(); ok {
 		_spec.SetField(globalsettings.FieldHTTPSListen, field.TypeString, value)

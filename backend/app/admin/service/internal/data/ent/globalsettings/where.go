@@ -79,6 +79,11 @@ func MailClassHeader(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldEQ(FieldMailClassHeader, v))
 }
 
+// EgressEhloDomain applies equality check predicate on the "egress_ehlo_domain" field. It's identical to EgressEhloDomainEQ.
+func EgressEhloDomain(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldEgressEhloDomain, v))
+}
+
 // HTTPSListen applies equality check predicate on the "https_listen" field. It's identical to HTTPSListenEQ.
 func HTTPSListen(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldEQ(FieldHTTPSListen, v))
@@ -507,6 +512,81 @@ func MailClassHeaderEqualFold(v string) predicate.GlobalSettings {
 // MailClassHeaderContainsFold applies the ContainsFold predicate on the "mail_class_header" field.
 func MailClassHeaderContainsFold(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldContainsFold(FieldMailClassHeader, v))
+}
+
+// EgressEhloDomainEQ applies the EQ predicate on the "egress_ehlo_domain" field.
+func EgressEhloDomainEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldEgressEhloDomain, v))
+}
+
+// EgressEhloDomainNEQ applies the NEQ predicate on the "egress_ehlo_domain" field.
+func EgressEhloDomainNEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNEQ(FieldEgressEhloDomain, v))
+}
+
+// EgressEhloDomainIn applies the In predicate on the "egress_ehlo_domain" field.
+func EgressEhloDomainIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIn(FieldEgressEhloDomain, vs...))
+}
+
+// EgressEhloDomainNotIn applies the NotIn predicate on the "egress_ehlo_domain" field.
+func EgressEhloDomainNotIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotIn(FieldEgressEhloDomain, vs...))
+}
+
+// EgressEhloDomainGT applies the GT predicate on the "egress_ehlo_domain" field.
+func EgressEhloDomainGT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGT(FieldEgressEhloDomain, v))
+}
+
+// EgressEhloDomainGTE applies the GTE predicate on the "egress_ehlo_domain" field.
+func EgressEhloDomainGTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGTE(FieldEgressEhloDomain, v))
+}
+
+// EgressEhloDomainLT applies the LT predicate on the "egress_ehlo_domain" field.
+func EgressEhloDomainLT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLT(FieldEgressEhloDomain, v))
+}
+
+// EgressEhloDomainLTE applies the LTE predicate on the "egress_ehlo_domain" field.
+func EgressEhloDomainLTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLTE(FieldEgressEhloDomain, v))
+}
+
+// EgressEhloDomainContains applies the Contains predicate on the "egress_ehlo_domain" field.
+func EgressEhloDomainContains(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContains(FieldEgressEhloDomain, v))
+}
+
+// EgressEhloDomainHasPrefix applies the HasPrefix predicate on the "egress_ehlo_domain" field.
+func EgressEhloDomainHasPrefix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasPrefix(FieldEgressEhloDomain, v))
+}
+
+// EgressEhloDomainHasSuffix applies the HasSuffix predicate on the "egress_ehlo_domain" field.
+func EgressEhloDomainHasSuffix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasSuffix(FieldEgressEhloDomain, v))
+}
+
+// EgressEhloDomainIsNil applies the IsNil predicate on the "egress_ehlo_domain" field.
+func EgressEhloDomainIsNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIsNull(FieldEgressEhloDomain))
+}
+
+// EgressEhloDomainNotNil applies the NotNil predicate on the "egress_ehlo_domain" field.
+func EgressEhloDomainNotNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotNull(FieldEgressEhloDomain))
+}
+
+// EgressEhloDomainEqualFold applies the EqualFold predicate on the "egress_ehlo_domain" field.
+func EgressEhloDomainEqualFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEqualFold(FieldEgressEhloDomain, v))
+}
+
+// EgressEhloDomainContainsFold applies the ContainsFold predicate on the "egress_ehlo_domain" field.
+func EgressEhloDomainContainsFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContainsFold(FieldEgressEhloDomain, v))
 }
 
 // HTTPSListenEQ applies the EQ predicate on the "https_listen" field.

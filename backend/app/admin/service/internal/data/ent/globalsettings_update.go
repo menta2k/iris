@@ -183,6 +183,26 @@ func (_u *GlobalSettingsUpdate) ClearMailClassHeader() *GlobalSettingsUpdate {
 	return _u
 }
 
+// SetEgressEhloDomain sets the "egress_ehlo_domain" field.
+func (_u *GlobalSettingsUpdate) SetEgressEhloDomain(v string) *GlobalSettingsUpdate {
+	_u.mutation.SetEgressEhloDomain(v)
+	return _u
+}
+
+// SetNillableEgressEhloDomain sets the "egress_ehlo_domain" field if the given value is not nil.
+func (_u *GlobalSettingsUpdate) SetNillableEgressEhloDomain(v *string) *GlobalSettingsUpdate {
+	if v != nil {
+		_u.SetEgressEhloDomain(*v)
+	}
+	return _u
+}
+
+// ClearEgressEhloDomain clears the value of the "egress_ehlo_domain" field.
+func (_u *GlobalSettingsUpdate) ClearEgressEhloDomain() *GlobalSettingsUpdate {
+	_u.mutation.ClearEgressEhloDomain()
+	return _u
+}
+
 // SetHTTPSListen sets the "https_listen" field.
 func (_u *GlobalSettingsUpdate) SetHTTPSListen(v string) *GlobalSettingsUpdate {
 	_u.mutation.SetHTTPSListen(v)
@@ -337,6 +357,11 @@ func (_u *GlobalSettingsUpdate) check() error {
 			return &ValidationError{Name: "mail_class_header", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.mail_class_header": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.EgressEhloDomain(); ok {
+		if err := globalsettings.EgressEhloDomainValidator(v); err != nil {
+			return &ValidationError{Name: "egress_ehlo_domain", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.egress_ehlo_domain": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.HTTPSListen(); ok {
 		if err := globalsettings.HTTPSListenValidator(v); err != nil {
 			return &ValidationError{Name: "https_listen", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.https_listen": %w`, err)}
@@ -434,6 +459,12 @@ func (_u *GlobalSettingsUpdate) sqlSave(ctx context.Context) (_node int, err err
 	}
 	if _u.mutation.MailClassHeaderCleared() {
 		_spec.ClearField(globalsettings.FieldMailClassHeader, field.TypeString)
+	}
+	if value, ok := _u.mutation.EgressEhloDomain(); ok {
+		_spec.SetField(globalsettings.FieldEgressEhloDomain, field.TypeString, value)
+	}
+	if _u.mutation.EgressEhloDomainCleared() {
+		_spec.ClearField(globalsettings.FieldEgressEhloDomain, field.TypeString)
 	}
 	if value, ok := _u.mutation.HTTPSListen(); ok {
 		_spec.SetField(globalsettings.FieldHTTPSListen, field.TypeString, value)
@@ -636,6 +667,26 @@ func (_u *GlobalSettingsUpdateOne) ClearMailClassHeader() *GlobalSettingsUpdateO
 	return _u
 }
 
+// SetEgressEhloDomain sets the "egress_ehlo_domain" field.
+func (_u *GlobalSettingsUpdateOne) SetEgressEhloDomain(v string) *GlobalSettingsUpdateOne {
+	_u.mutation.SetEgressEhloDomain(v)
+	return _u
+}
+
+// SetNillableEgressEhloDomain sets the "egress_ehlo_domain" field if the given value is not nil.
+func (_u *GlobalSettingsUpdateOne) SetNillableEgressEhloDomain(v *string) *GlobalSettingsUpdateOne {
+	if v != nil {
+		_u.SetEgressEhloDomain(*v)
+	}
+	return _u
+}
+
+// ClearEgressEhloDomain clears the value of the "egress_ehlo_domain" field.
+func (_u *GlobalSettingsUpdateOne) ClearEgressEhloDomain() *GlobalSettingsUpdateOne {
+	_u.mutation.ClearEgressEhloDomain()
+	return _u
+}
+
 // SetHTTPSListen sets the "https_listen" field.
 func (_u *GlobalSettingsUpdateOne) SetHTTPSListen(v string) *GlobalSettingsUpdateOne {
 	_u.mutation.SetHTTPSListen(v)
@@ -803,6 +854,11 @@ func (_u *GlobalSettingsUpdateOne) check() error {
 			return &ValidationError{Name: "mail_class_header", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.mail_class_header": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.EgressEhloDomain(); ok {
+		if err := globalsettings.EgressEhloDomainValidator(v); err != nil {
+			return &ValidationError{Name: "egress_ehlo_domain", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.egress_ehlo_domain": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.HTTPSListen(); ok {
 		if err := globalsettings.HTTPSListenValidator(v); err != nil {
 			return &ValidationError{Name: "https_listen", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.https_listen": %w`, err)}
@@ -917,6 +973,12 @@ func (_u *GlobalSettingsUpdateOne) sqlSave(ctx context.Context) (_node *GlobalSe
 	}
 	if _u.mutation.MailClassHeaderCleared() {
 		_spec.ClearField(globalsettings.FieldMailClassHeader, field.TypeString)
+	}
+	if value, ok := _u.mutation.EgressEhloDomain(); ok {
+		_spec.SetField(globalsettings.FieldEgressEhloDomain, field.TypeString, value)
+	}
+	if _u.mutation.EgressEhloDomainCleared() {
+		_spec.ClearField(globalsettings.FieldEgressEhloDomain, field.TypeString)
 	}
 	if value, ok := _u.mutation.HTTPSListen(); ok {
 		_spec.SetField(globalsettings.FieldHTTPSListen, field.TypeString, value)

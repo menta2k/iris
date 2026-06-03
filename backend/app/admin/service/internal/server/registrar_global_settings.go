@@ -24,6 +24,7 @@ type httpGlobalSettings struct {
 	BounceSenderDomains []string  `json:"bounce_sender_domains"`
 	BouncePrefix        string    `json:"bounce_prefix"`
 	MailClassHeader     string    `json:"mail_class_header"`
+	EgressEhloDomain    string    `json:"egress_ehlo_domain"`
 	HTTPSListen         string    `json:"https_listen"`
 	HTTPSCertPemPath    string    `json:"https_cert_pem_path"`
 	HTTPSKeyPemPath     string    `json:"https_key_pem_path"`
@@ -87,6 +88,7 @@ func rowToHTTP(r *service.GlobalSettingsRow) httpGlobalSettings {
 		BounceSenderDomains: append([]string{}, r.BounceSenderDomains...),
 		BouncePrefix:        r.BouncePrefix,
 		MailClassHeader:     r.MailClassHeader,
+		EgressEhloDomain:    r.EgressEhloDomain,
 		HTTPSListen:         r.HTTPSListen,
 		HTTPSCertPemPath:    r.HTTPSCertPemPath,
 		HTTPSKeyPemPath:     r.HTTPSKeyPemPath,
@@ -106,6 +108,7 @@ func httpToRow(h httpGlobalSettings) service.GlobalSettingsRow {
 		BounceSenderDomains: append([]string(nil), h.BounceSenderDomains...),
 		BouncePrefix:        h.BouncePrefix,
 		MailClassHeader:     h.MailClassHeader,
+		EgressEhloDomain:    h.EgressEhloDomain,
 		HTTPSListen:         h.HTTPSListen,
 		HTTPSCertPemPath:    h.HTTPSCertPemPath,
 		HTTPSKeyPemPath:     h.HTTPSKeyPemPath,

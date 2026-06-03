@@ -52,6 +52,7 @@ func Render(s *Snapshot, opts RenderOptions) (RenderResult, error) {
 	writeDsnCatcher(&b, s.GlobalSettings)
 	writeEgressSources(&b, s.VirtualMtas)
 	writeEgressPools(&b, s.VirtualMtas, s.VirtualMtaGroups)
+	writeEgressEhloDefault(&b, s.GlobalSettings)
 	// MailClassTable must come BEFORE writeQueueConfig — the queue-config
 	// closure references CLASS_TO_POOL as an upvalue, which only resolves
 	// if the local is declared in an enclosing scope at closure-creation
@@ -532,6 +533,28 @@ func writeOneListener(b *strings.Builder, l Listener) {
 
 // --- egress sources ---------------------------------------------------------
 
+// writeEgressEhloDefault emits a get_egress_path_config hook setting a
+// default ehlo_domain for all outbound connections when the operator has
+// configured one. KumoMTA's egress *source* ehlo_domain (rendered from each
+// VMTA's HeloName) overrides the egress *path* value, so per-VMTA HELO names
+// still win — this only supplies the fallback that replaces the bare system
+// hostname (which trips rspamd HFILTER_HELO_5) for the default source and
+// any VMTA without its own helo_name.
+func writeEgressEhloDefault(b *strings.Builder, gs GlobalSettings) {
+	ehlo := strings.TrimSpace(gs.EgressEhloDomain)
+	if ehlo == "" {
+		return
+	}
+	fmt.Fprintf(b, `-- ===== egress EHLO default (overridden per-VMTA by source ehlo_domain) =====
+kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
+  return kumo.make_egress_path {
+    ehlo_domain = %s,
+  }
+end)
+
+`, MustLuaString(ehlo))
+}
+
 func writeEgressSources(b *strings.Builder, vs []VirtualMta) {
 	b.WriteString("-- ===== egress sources (one per VMTA) =====\n")
 	b.WriteString("local SOURCES = {}\n")
@@ -917,10 +940,42 @@ func writeRoutingChain(b *strings.Builder, mcs []MailClass, rs []RoutingRule, gs
 	}
 
 	b.WriteString("-- ===== routing chain (suppression → mail class → routing rules → DKIM) =====\n")
+
+	// Header hygiene: submission/injection paths often omit Date and
+	// Message-ID, which receivers' rspamd penalizes (MISSING_DATE,
+	// MISSING_MID). Add them only when absent so relayed mail that already
+	// carries them is untouched. Runs at reception (route_message is hooked
+	// on both smtp_server_message_received and http_message_generated), so
+	// the headers exist before the outbound DKIM signer runs and are
+	// covered by the signature. The Message-ID domain is the configured
+	// egress EHLO FQDN when set, else the envelope-sender domain.
+	fmt.Fprintf(b, "local IRIS_MID_DOMAIN = %s\n", MustLuaString(strings.TrimSpace(gs.EgressEhloDomain)))
+	b.WriteString(`local function iris_add_missing_headers(msg)
+  if (msg:get_first_named_header_value('Date') or '') == '' then
+    -- pcall so an unexpected os.date failure degrades to "no Date added"
+    -- rather than failing the message.
+    local ok, d = pcall(os.date, '!%a, %d %b %Y %H:%M:%S +0000')
+    if ok and d and d ~= '' then
+      msg:prepend_header('Date', d)
+    end
+  end
+  if (msg:get_first_named_header_value('Message-ID') or '') == '' then
+    local dom = IRIS_MID_DOMAIN
+    if dom == '' then
+      local s = msg:sender()
+      dom = (s and s.domain) or 'localhost'
+    end
+    msg:prepend_header('Message-ID', string.format('<%s@%s>', msg:id(), dom))
+  end
+end
+
+`)
+
 	b.WriteString("local function route_message(msg)\n")
 	if opts.DryRun {
 		b.WriteString("  print('[DRY-RUN] route_message')\n")
 	}
+	b.WriteString("  iris_add_missing_headers(msg)\n")
 
 	// 0) inbound DSN catcher. Mail arriving at any of our configured bounce
 	// domains is funneled straight into the DSN_TRACKER queue (custom_lua →
