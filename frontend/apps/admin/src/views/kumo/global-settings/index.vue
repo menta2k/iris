@@ -48,6 +48,9 @@ const form = reactive<GlobalSettings>({
   bounce_prefix: '',
   mail_class_header: '',
   egress_ehlo_domain: '',
+  egress_retry_interval: '',
+  egress_max_retry_interval: '',
+  egress_max_age: '',
   https_listen: '',
   https_cert_pem_path: '',
   https_key_pem_path: '',
@@ -439,6 +442,48 @@ onMounted(load);
               v-model:value="form.egress_ehlo_domain"
               placeholder="mail.example.com"
               style="max-width: 320px"
+            />
+          </FormItem>
+        </Form>
+      </Card>
+
+      <!-- ───── Delivery retries ───── -->
+      <Card title="Delivery retries" :body-style="{ padding: '20px' }" class="mb-4">
+        <Alert
+          type="info"
+          show-icon
+          class="mb-3"
+          message="Applies to outbound delivery after a TransientFailure. Durations like 20m, 4h, 7d. Leave blank to use KumoMTA's defaults (retry every 20m, doubling each attempt, give up after 7d). Takes effect on the next Apply."
+        />
+        <Form :model="form" layout="vertical" :colon="false">
+          <FormItem
+            label="Retry interval"
+            help="Base backoff after the first TransientFailure; doubles on each subsequent attempt. Default 20m."
+          >
+            <Input
+              v-model:value="form.egress_retry_interval"
+              placeholder="20m"
+              style="max-width: 200px"
+            />
+          </FormItem>
+          <FormItem
+            label="Max retry interval"
+            help="Optional cap on the doubling backoff. Blank = no cap (keeps doubling)."
+          >
+            <Input
+              v-model:value="form.egress_max_retry_interval"
+              placeholder="(no cap)"
+              style="max-width: 200px"
+            />
+          </FormItem>
+          <FormItem
+            label="Max age"
+            help="Stop retrying and permanently fail (bounce) once a message is older than this. Default 7d."
+          >
+            <Input
+              v-model:value="form.egress_max_age"
+              placeholder="7d"
+              style="max-width: 200px"
             />
           </FormItem>
         </Form>

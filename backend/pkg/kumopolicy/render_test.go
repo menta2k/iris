@@ -278,16 +278,39 @@ func TestRenderEgressEhloDefaultWhenSet(t *testing.T) {
 	snap.GlobalSettings.EgressEhloDomain = "mail.example.com"
 	out, err := Render(snap, RenderOptions{})
 	require.NoError(t, err)
-	require.Contains(t, out.Lua, "kumo.on('get_egress_path_config'")
-	require.Contains(t, out.Lua, `ehlo_domain = "mail.example.com"`)
+	// Baked as a const and applied at the egress-source level (incl. the
+	// implicit 'default' source) so it can't be bypassed by an unmatched
+	// routing rule.
+	require.Contains(t, out.Lua, `local EGRESS_EHLO_DEFAULT = "mail.example.com"`)
+	require.Contains(t, out.Lua, "if (clean.ehlo_domain == nil or clean.ehlo_domain == '') and EGRESS_EHLO_DEFAULT ~= '' then")
 	// Message-ID domain is pinned to the configured EHLO FQDN.
 	require.Contains(t, out.Lua, `local IRIS_MID_DOMAIN = "mail.example.com"`)
 }
 
-func TestRenderNoEgressPathHookWhenUnset(t *testing.T) {
+func TestRenderEgressEhloEmptyWhenUnset(t *testing.T) {
 	out, err := Render(goodSnapshot(), RenderOptions{})
 	require.NoError(t, err)
-	// Without a configured default, we don't emit the path-config hook
-	// (behavior unchanged for existing deployments).
-	require.NotContains(t, out.Lua, "kumo.on('get_egress_path_config'")
+	// No default configured → empty const, so kumomta's own default
+	// (system hostname) is preserved for sources without a helo_name.
+	require.Contains(t, out.Lua, `local EGRESS_EHLO_DEFAULT = ""`)
+}
+
+func TestRenderQueueRetryFields(t *testing.T) {
+	snap := goodSnapshot()
+	snap.GlobalSettings.EgressRetryInterval = "5m"
+	snap.GlobalSettings.EgressMaxRetryInterval = "2h"
+	snap.GlobalSettings.EgressMaxAge = "3d"
+	out, err := Render(snap, RenderOptions{})
+	require.NoError(t, err)
+	require.Contains(t, out.Lua, `retry_interval = "5m",`)
+	require.Contains(t, out.Lua, `max_retry_interval = "2h",`)
+	require.Contains(t, out.Lua, `max_age = "3d",`)
+}
+
+func TestRenderQueueRetryOmittedWhenUnset(t *testing.T) {
+	out, err := Render(goodSnapshot(), RenderOptions{})
+	require.NoError(t, err)
+	// The normal queue config carries only egress_pool when no retry
+	// settings are configured (kumomta defaults apply).
+	require.Contains(t, out.Lua, "  return kumo.make_queue_config {\n    egress_pool = pool,\n  }")
 }

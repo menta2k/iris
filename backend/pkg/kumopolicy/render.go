@@ -50,9 +50,8 @@ func Render(s *Snapshot, opts RenderOptions) (RenderResult, error) {
 	writeInit(&b, s.Listeners, s.GlobalSettings)
 	writeRedisLogHook(&b, s.GlobalSettings)
 	writeDsnCatcher(&b, s.GlobalSettings)
-	writeEgressSources(&b, s.VirtualMtas)
+	writeEgressSources(&b, s.VirtualMtas, s.GlobalSettings)
 	writeEgressPools(&b, s.VirtualMtas, s.VirtualMtaGroups)
-	writeEgressEhloDefault(&b, s.GlobalSettings)
 	// MailClassTable must come BEFORE writeQueueConfig — the queue-config
 	// closure references CLASS_TO_POOL as an upvalue, which only resolves
 	// if the local is declared in an enclosing scope at closure-creation
@@ -533,30 +532,15 @@ func writeOneListener(b *strings.Builder, l Listener) {
 
 // --- egress sources ---------------------------------------------------------
 
-// writeEgressEhloDefault emits a get_egress_path_config hook setting a
-// default ehlo_domain for all outbound connections when the operator has
-// configured one. KumoMTA's egress *source* ehlo_domain (rendered from each
-// VMTA's HeloName) overrides the egress *path* value, so per-VMTA HELO names
-// still win — this only supplies the fallback that replaces the bare system
-// hostname (which trips rspamd HFILTER_HELO_5) for the default source and
-// any VMTA without its own helo_name.
-func writeEgressEhloDefault(b *strings.Builder, gs GlobalSettings) {
-	ehlo := strings.TrimSpace(gs.EgressEhloDomain)
-	if ehlo == "" {
-		return
-	}
-	fmt.Fprintf(b, `-- ===== egress EHLO default (overridden per-VMTA by source ehlo_domain) =====
-kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
-  return kumo.make_egress_path {
-    ehlo_domain = %s,
-  }
-end)
-
-`, MustLuaString(ehlo))
-}
-
-func writeEgressSources(b *strings.Builder, vs []VirtualMta) {
+func writeEgressSources(b *strings.Builder, vs []VirtualMta, gs GlobalSettings) {
 	b.WriteString("-- ===== egress sources (one per VMTA) =====\n")
+	// Default outbound EHLO/HELO. Applied to every source that doesn't set
+	// its own ehlo_domain — including the implicit 'default' source kumomta
+	// builds when no routing rule matched — so outbound never announces the
+	// bare system hostname (which receivers reject: "Helo command rejected:
+	// Host not found" / rspamd HFILTER_HELO_5). A per-VMTA HeloName still
+	// wins. Empty leaves kumomta's default (system hostname).
+	fmt.Fprintf(b, "local EGRESS_EHLO_DEFAULT = %s\n", MustLuaString(strings.TrimSpace(gs.EgressEhloDomain)))
 	b.WriteString("local SOURCES = {}\n")
 	cp := append([]VirtualMta(nil), vs...)
 	sort.Slice(cp, func(i, j int) bool { return cp[i].Name < cp[j].Name })
@@ -585,15 +569,20 @@ func writeEgressSources(b *strings.Builder, vs []VirtualMta) {
 	b.WriteString(`
 kumo.on('get_egress_source', function(name)
   local cfg = SOURCES[name]
-  if not cfg then
-    return kumo.make_egress_source { name = name }
-  end
-  -- Strip _-prefixed pseudo-fields kumomta doesn't accept.
   local clean = {}
-  for k, val in pairs(cfg) do
-    if string.sub(k, 1, 1) ~= '_' then clean[k] = val end
+  if cfg then
+    -- Strip _-prefixed pseudo-fields kumomta doesn't accept.
+    for k, val in pairs(cfg) do
+      if string.sub(k, 1, 1) ~= '_' then clean[k] = val end
+    end
   end
   clean.name = name
+  -- Apply the default EHLO to any source lacking its own (incl. the
+  -- implicit 'default' source). Per-VMTA helo_name already populated
+  -- clean.ehlo_domain above and is preserved.
+  if (clean.ehlo_domain == nil or clean.ehlo_domain == '') and EGRESS_EHLO_DEFAULT ~= '' then
+    clean.ehlo_domain = EGRESS_EHLO_DEFAULT
+  end
   return kumo.make_egress_source(clean)
 end)
 
@@ -730,12 +719,29 @@ func writeQueueConfig(b *strings.Builder, gs GlobalSettings) {
       max_retry_interval = '1m',
     }
   end
-  return kumo.make_queue_config {
-    egress_pool = pool,
-  }
-end)
-
 `)
+	// Normal delivery queue. Operator-configured retry/age fields are
+	// appended when set; otherwise kumomta's defaults apply.
+	fmt.Fprintf(b, "  return kumo.make_queue_config {\n    egress_pool = pool,%s\n  }\nend)\n\n",
+		queueRetryFields(gs, "    "))
+}
+
+// queueRetryFields renders the operator-configured retry/age fields for the
+// normal queue config. Each is omitted when empty so kumomta's defaults
+// (retry_interval 20m, doubling, max_age 7d) apply. indent is the leading
+// whitespace used to align fields inside the make_queue_config table.
+func queueRetryFields(gs GlobalSettings, indent string) string {
+	var b strings.Builder
+	for _, f := range []struct{ key, val string }{
+		{"retry_interval", strings.TrimSpace(gs.EgressRetryInterval)},
+		{"max_retry_interval", strings.TrimSpace(gs.EgressMaxRetryInterval)},
+		{"max_age", strings.TrimSpace(gs.EgressMaxAge)},
+	} {
+		if f.val != "" {
+			fmt.Fprintf(&b, "\n%s%s = %s,", indent, f.key, MustLuaString(f.val))
+		}
+	}
+	return b.String()
 }
 
 // --- listener domains -------------------------------------------------------

@@ -6925,6 +6925,9 @@ type GlobalSettingsMutation struct {
 	bounce_prefix               *string
 	mail_class_header           *string
 	egress_ehlo_domain          *string
+	egress_retry_interval       *string
+	egress_max_retry_interval   *string
+	egress_max_age              *string
 	https_listen                *string
 	https_cert_pem_path         *string
 	https_key_pem_path          *string
@@ -7529,6 +7532,153 @@ func (m *GlobalSettingsMutation) ResetEgressEhloDomain() {
 	delete(m.clearedFields, globalsettings.FieldEgressEhloDomain)
 }
 
+// SetEgressRetryInterval sets the "egress_retry_interval" field.
+func (m *GlobalSettingsMutation) SetEgressRetryInterval(s string) {
+	m.egress_retry_interval = &s
+}
+
+// EgressRetryInterval returns the value of the "egress_retry_interval" field in the mutation.
+func (m *GlobalSettingsMutation) EgressRetryInterval() (r string, exists bool) {
+	v := m.egress_retry_interval
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEgressRetryInterval returns the old "egress_retry_interval" field's value of the GlobalSettings entity.
+// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GlobalSettingsMutation) OldEgressRetryInterval(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEgressRetryInterval is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEgressRetryInterval requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEgressRetryInterval: %w", err)
+	}
+	return oldValue.EgressRetryInterval, nil
+}
+
+// ClearEgressRetryInterval clears the value of the "egress_retry_interval" field.
+func (m *GlobalSettingsMutation) ClearEgressRetryInterval() {
+	m.egress_retry_interval = nil
+	m.clearedFields[globalsettings.FieldEgressRetryInterval] = struct{}{}
+}
+
+// EgressRetryIntervalCleared returns if the "egress_retry_interval" field was cleared in this mutation.
+func (m *GlobalSettingsMutation) EgressRetryIntervalCleared() bool {
+	_, ok := m.clearedFields[globalsettings.FieldEgressRetryInterval]
+	return ok
+}
+
+// ResetEgressRetryInterval resets all changes to the "egress_retry_interval" field.
+func (m *GlobalSettingsMutation) ResetEgressRetryInterval() {
+	m.egress_retry_interval = nil
+	delete(m.clearedFields, globalsettings.FieldEgressRetryInterval)
+}
+
+// SetEgressMaxRetryInterval sets the "egress_max_retry_interval" field.
+func (m *GlobalSettingsMutation) SetEgressMaxRetryInterval(s string) {
+	m.egress_max_retry_interval = &s
+}
+
+// EgressMaxRetryInterval returns the value of the "egress_max_retry_interval" field in the mutation.
+func (m *GlobalSettingsMutation) EgressMaxRetryInterval() (r string, exists bool) {
+	v := m.egress_max_retry_interval
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEgressMaxRetryInterval returns the old "egress_max_retry_interval" field's value of the GlobalSettings entity.
+// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GlobalSettingsMutation) OldEgressMaxRetryInterval(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEgressMaxRetryInterval is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEgressMaxRetryInterval requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEgressMaxRetryInterval: %w", err)
+	}
+	return oldValue.EgressMaxRetryInterval, nil
+}
+
+// ClearEgressMaxRetryInterval clears the value of the "egress_max_retry_interval" field.
+func (m *GlobalSettingsMutation) ClearEgressMaxRetryInterval() {
+	m.egress_max_retry_interval = nil
+	m.clearedFields[globalsettings.FieldEgressMaxRetryInterval] = struct{}{}
+}
+
+// EgressMaxRetryIntervalCleared returns if the "egress_max_retry_interval" field was cleared in this mutation.
+func (m *GlobalSettingsMutation) EgressMaxRetryIntervalCleared() bool {
+	_, ok := m.clearedFields[globalsettings.FieldEgressMaxRetryInterval]
+	return ok
+}
+
+// ResetEgressMaxRetryInterval resets all changes to the "egress_max_retry_interval" field.
+func (m *GlobalSettingsMutation) ResetEgressMaxRetryInterval() {
+	m.egress_max_retry_interval = nil
+	delete(m.clearedFields, globalsettings.FieldEgressMaxRetryInterval)
+}
+
+// SetEgressMaxAge sets the "egress_max_age" field.
+func (m *GlobalSettingsMutation) SetEgressMaxAge(s string) {
+	m.egress_max_age = &s
+}
+
+// EgressMaxAge returns the value of the "egress_max_age" field in the mutation.
+func (m *GlobalSettingsMutation) EgressMaxAge() (r string, exists bool) {
+	v := m.egress_max_age
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEgressMaxAge returns the old "egress_max_age" field's value of the GlobalSettings entity.
+// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GlobalSettingsMutation) OldEgressMaxAge(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEgressMaxAge is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEgressMaxAge requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEgressMaxAge: %w", err)
+	}
+	return oldValue.EgressMaxAge, nil
+}
+
+// ClearEgressMaxAge clears the value of the "egress_max_age" field.
+func (m *GlobalSettingsMutation) ClearEgressMaxAge() {
+	m.egress_max_age = nil
+	m.clearedFields[globalsettings.FieldEgressMaxAge] = struct{}{}
+}
+
+// EgressMaxAgeCleared returns if the "egress_max_age" field was cleared in this mutation.
+func (m *GlobalSettingsMutation) EgressMaxAgeCleared() bool {
+	_, ok := m.clearedFields[globalsettings.FieldEgressMaxAge]
+	return ok
+}
+
+// ResetEgressMaxAge resets all changes to the "egress_max_age" field.
+func (m *GlobalSettingsMutation) ResetEgressMaxAge() {
+	m.egress_max_age = nil
+	delete(m.clearedFields, globalsettings.FieldEgressMaxAge)
+}
+
 // SetHTTPSListen sets the "https_listen" field.
 func (m *GlobalSettingsMutation) SetHTTPSListen(s string) {
 	m.https_listen = &s
@@ -7795,7 +7945,7 @@ func (m *GlobalSettingsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GlobalSettingsMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 17)
 	if m.kumo_http_listen != nil {
 		fields = append(fields, globalsettings.FieldKumoHTTPListen)
 	}
@@ -7822,6 +7972,15 @@ func (m *GlobalSettingsMutation) Fields() []string {
 	}
 	if m.egress_ehlo_domain != nil {
 		fields = append(fields, globalsettings.FieldEgressEhloDomain)
+	}
+	if m.egress_retry_interval != nil {
+		fields = append(fields, globalsettings.FieldEgressRetryInterval)
+	}
+	if m.egress_max_retry_interval != nil {
+		fields = append(fields, globalsettings.FieldEgressMaxRetryInterval)
+	}
+	if m.egress_max_age != nil {
+		fields = append(fields, globalsettings.FieldEgressMaxAge)
 	}
 	if m.https_listen != nil {
 		fields = append(fields, globalsettings.FieldHTTPSListen)
@@ -7864,6 +8023,12 @@ func (m *GlobalSettingsMutation) Field(name string) (ent.Value, bool) {
 		return m.MailClassHeader()
 	case globalsettings.FieldEgressEhloDomain:
 		return m.EgressEhloDomain()
+	case globalsettings.FieldEgressRetryInterval:
+		return m.EgressRetryInterval()
+	case globalsettings.FieldEgressMaxRetryInterval:
+		return m.EgressMaxRetryInterval()
+	case globalsettings.FieldEgressMaxAge:
+		return m.EgressMaxAge()
 	case globalsettings.FieldHTTPSListen:
 		return m.HTTPSListen()
 	case globalsettings.FieldHTTPSCertPemPath:
@@ -7901,6 +8066,12 @@ func (m *GlobalSettingsMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldMailClassHeader(ctx)
 	case globalsettings.FieldEgressEhloDomain:
 		return m.OldEgressEhloDomain(ctx)
+	case globalsettings.FieldEgressRetryInterval:
+		return m.OldEgressRetryInterval(ctx)
+	case globalsettings.FieldEgressMaxRetryInterval:
+		return m.OldEgressMaxRetryInterval(ctx)
+	case globalsettings.FieldEgressMaxAge:
+		return m.OldEgressMaxAge(ctx)
 	case globalsettings.FieldHTTPSListen:
 		return m.OldHTTPSListen(ctx)
 	case globalsettings.FieldHTTPSCertPemPath:
@@ -7982,6 +8153,27 @@ func (m *GlobalSettingsMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetEgressEhloDomain(v)
+		return nil
+	case globalsettings.FieldEgressRetryInterval:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEgressRetryInterval(v)
+		return nil
+	case globalsettings.FieldEgressMaxRetryInterval:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEgressMaxRetryInterval(v)
+		return nil
+	case globalsettings.FieldEgressMaxAge:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEgressMaxAge(v)
 		return nil
 	case globalsettings.FieldHTTPSListen:
 		v, ok := value.(string)
@@ -8075,6 +8267,15 @@ func (m *GlobalSettingsMutation) ClearedFields() []string {
 	if m.FieldCleared(globalsettings.FieldEgressEhloDomain) {
 		fields = append(fields, globalsettings.FieldEgressEhloDomain)
 	}
+	if m.FieldCleared(globalsettings.FieldEgressRetryInterval) {
+		fields = append(fields, globalsettings.FieldEgressRetryInterval)
+	}
+	if m.FieldCleared(globalsettings.FieldEgressMaxRetryInterval) {
+		fields = append(fields, globalsettings.FieldEgressMaxRetryInterval)
+	}
+	if m.FieldCleared(globalsettings.FieldEgressMaxAge) {
+		fields = append(fields, globalsettings.FieldEgressMaxAge)
+	}
 	if m.FieldCleared(globalsettings.FieldHTTPSListen) {
 		fields = append(fields, globalsettings.FieldHTTPSListen)
 	}
@@ -8128,6 +8329,15 @@ func (m *GlobalSettingsMutation) ClearField(name string) error {
 	case globalsettings.FieldEgressEhloDomain:
 		m.ClearEgressEhloDomain()
 		return nil
+	case globalsettings.FieldEgressRetryInterval:
+		m.ClearEgressRetryInterval()
+		return nil
+	case globalsettings.FieldEgressMaxRetryInterval:
+		m.ClearEgressMaxRetryInterval()
+		return nil
+	case globalsettings.FieldEgressMaxAge:
+		m.ClearEgressMaxAge()
+		return nil
 	case globalsettings.FieldHTTPSListen:
 		m.ClearHTTPSListen()
 		return nil
@@ -8174,6 +8384,15 @@ func (m *GlobalSettingsMutation) ResetField(name string) error {
 		return nil
 	case globalsettings.FieldEgressEhloDomain:
 		m.ResetEgressEhloDomain()
+		return nil
+	case globalsettings.FieldEgressRetryInterval:
+		m.ResetEgressRetryInterval()
+		return nil
+	case globalsettings.FieldEgressMaxRetryInterval:
+		m.ResetEgressMaxRetryInterval()
+		return nil
+	case globalsettings.FieldEgressMaxAge:
+		m.ResetEgressMaxAge()
 		return nil
 	case globalsettings.FieldHTTPSListen:
 		m.ResetHTTPSListen()

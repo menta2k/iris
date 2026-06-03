@@ -260,6 +260,15 @@ func (r *SnapshotRepo) applyGlobalSettings(ctx context.Context, snap *kumopolicy
 	if v := strings.TrimSpace(row.EgressEhloDomain); v != "" {
 		snap.GlobalSettings.EgressEhloDomain = v
 	}
+	if v := strings.TrimSpace(row.EgressRetryInterval); v != "" {
+		snap.GlobalSettings.EgressRetryInterval = v
+	}
+	if v := strings.TrimSpace(row.EgressMaxRetryInterval); v != "" {
+		snap.GlobalSettings.EgressMaxRetryInterval = v
+	}
+	if v := strings.TrimSpace(row.EgressMaxAge); v != "" {
+		snap.GlobalSettings.EgressMaxAge = v
+	}
 }
 
 // parseBoolEnv reads a truthy/falsy env var. Accepts 1/true/yes/on

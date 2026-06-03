@@ -203,6 +203,66 @@ func (_u *GlobalSettingsUpdate) ClearEgressEhloDomain() *GlobalSettingsUpdate {
 	return _u
 }
 
+// SetEgressRetryInterval sets the "egress_retry_interval" field.
+func (_u *GlobalSettingsUpdate) SetEgressRetryInterval(v string) *GlobalSettingsUpdate {
+	_u.mutation.SetEgressRetryInterval(v)
+	return _u
+}
+
+// SetNillableEgressRetryInterval sets the "egress_retry_interval" field if the given value is not nil.
+func (_u *GlobalSettingsUpdate) SetNillableEgressRetryInterval(v *string) *GlobalSettingsUpdate {
+	if v != nil {
+		_u.SetEgressRetryInterval(*v)
+	}
+	return _u
+}
+
+// ClearEgressRetryInterval clears the value of the "egress_retry_interval" field.
+func (_u *GlobalSettingsUpdate) ClearEgressRetryInterval() *GlobalSettingsUpdate {
+	_u.mutation.ClearEgressRetryInterval()
+	return _u
+}
+
+// SetEgressMaxRetryInterval sets the "egress_max_retry_interval" field.
+func (_u *GlobalSettingsUpdate) SetEgressMaxRetryInterval(v string) *GlobalSettingsUpdate {
+	_u.mutation.SetEgressMaxRetryInterval(v)
+	return _u
+}
+
+// SetNillableEgressMaxRetryInterval sets the "egress_max_retry_interval" field if the given value is not nil.
+func (_u *GlobalSettingsUpdate) SetNillableEgressMaxRetryInterval(v *string) *GlobalSettingsUpdate {
+	if v != nil {
+		_u.SetEgressMaxRetryInterval(*v)
+	}
+	return _u
+}
+
+// ClearEgressMaxRetryInterval clears the value of the "egress_max_retry_interval" field.
+func (_u *GlobalSettingsUpdate) ClearEgressMaxRetryInterval() *GlobalSettingsUpdate {
+	_u.mutation.ClearEgressMaxRetryInterval()
+	return _u
+}
+
+// SetEgressMaxAge sets the "egress_max_age" field.
+func (_u *GlobalSettingsUpdate) SetEgressMaxAge(v string) *GlobalSettingsUpdate {
+	_u.mutation.SetEgressMaxAge(v)
+	return _u
+}
+
+// SetNillableEgressMaxAge sets the "egress_max_age" field if the given value is not nil.
+func (_u *GlobalSettingsUpdate) SetNillableEgressMaxAge(v *string) *GlobalSettingsUpdate {
+	if v != nil {
+		_u.SetEgressMaxAge(*v)
+	}
+	return _u
+}
+
+// ClearEgressMaxAge clears the value of the "egress_max_age" field.
+func (_u *GlobalSettingsUpdate) ClearEgressMaxAge() *GlobalSettingsUpdate {
+	_u.mutation.ClearEgressMaxAge()
+	return _u
+}
+
 // SetHTTPSListen sets the "https_listen" field.
 func (_u *GlobalSettingsUpdate) SetHTTPSListen(v string) *GlobalSettingsUpdate {
 	_u.mutation.SetHTTPSListen(v)
@@ -362,6 +422,21 @@ func (_u *GlobalSettingsUpdate) check() error {
 			return &ValidationError{Name: "egress_ehlo_domain", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.egress_ehlo_domain": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.EgressRetryInterval(); ok {
+		if err := globalsettings.EgressRetryIntervalValidator(v); err != nil {
+			return &ValidationError{Name: "egress_retry_interval", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.egress_retry_interval": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.EgressMaxRetryInterval(); ok {
+		if err := globalsettings.EgressMaxRetryIntervalValidator(v); err != nil {
+			return &ValidationError{Name: "egress_max_retry_interval", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.egress_max_retry_interval": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.EgressMaxAge(); ok {
+		if err := globalsettings.EgressMaxAgeValidator(v); err != nil {
+			return &ValidationError{Name: "egress_max_age", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.egress_max_age": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.HTTPSListen(); ok {
 		if err := globalsettings.HTTPSListenValidator(v); err != nil {
 			return &ValidationError{Name: "https_listen", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.https_listen": %w`, err)}
@@ -465,6 +540,24 @@ func (_u *GlobalSettingsUpdate) sqlSave(ctx context.Context) (_node int, err err
 	}
 	if _u.mutation.EgressEhloDomainCleared() {
 		_spec.ClearField(globalsettings.FieldEgressEhloDomain, field.TypeString)
+	}
+	if value, ok := _u.mutation.EgressRetryInterval(); ok {
+		_spec.SetField(globalsettings.FieldEgressRetryInterval, field.TypeString, value)
+	}
+	if _u.mutation.EgressRetryIntervalCleared() {
+		_spec.ClearField(globalsettings.FieldEgressRetryInterval, field.TypeString)
+	}
+	if value, ok := _u.mutation.EgressMaxRetryInterval(); ok {
+		_spec.SetField(globalsettings.FieldEgressMaxRetryInterval, field.TypeString, value)
+	}
+	if _u.mutation.EgressMaxRetryIntervalCleared() {
+		_spec.ClearField(globalsettings.FieldEgressMaxRetryInterval, field.TypeString)
+	}
+	if value, ok := _u.mutation.EgressMaxAge(); ok {
+		_spec.SetField(globalsettings.FieldEgressMaxAge, field.TypeString, value)
+	}
+	if _u.mutation.EgressMaxAgeCleared() {
+		_spec.ClearField(globalsettings.FieldEgressMaxAge, field.TypeString)
 	}
 	if value, ok := _u.mutation.HTTPSListen(); ok {
 		_spec.SetField(globalsettings.FieldHTTPSListen, field.TypeString, value)
@@ -687,6 +780,66 @@ func (_u *GlobalSettingsUpdateOne) ClearEgressEhloDomain() *GlobalSettingsUpdate
 	return _u
 }
 
+// SetEgressRetryInterval sets the "egress_retry_interval" field.
+func (_u *GlobalSettingsUpdateOne) SetEgressRetryInterval(v string) *GlobalSettingsUpdateOne {
+	_u.mutation.SetEgressRetryInterval(v)
+	return _u
+}
+
+// SetNillableEgressRetryInterval sets the "egress_retry_interval" field if the given value is not nil.
+func (_u *GlobalSettingsUpdateOne) SetNillableEgressRetryInterval(v *string) *GlobalSettingsUpdateOne {
+	if v != nil {
+		_u.SetEgressRetryInterval(*v)
+	}
+	return _u
+}
+
+// ClearEgressRetryInterval clears the value of the "egress_retry_interval" field.
+func (_u *GlobalSettingsUpdateOne) ClearEgressRetryInterval() *GlobalSettingsUpdateOne {
+	_u.mutation.ClearEgressRetryInterval()
+	return _u
+}
+
+// SetEgressMaxRetryInterval sets the "egress_max_retry_interval" field.
+func (_u *GlobalSettingsUpdateOne) SetEgressMaxRetryInterval(v string) *GlobalSettingsUpdateOne {
+	_u.mutation.SetEgressMaxRetryInterval(v)
+	return _u
+}
+
+// SetNillableEgressMaxRetryInterval sets the "egress_max_retry_interval" field if the given value is not nil.
+func (_u *GlobalSettingsUpdateOne) SetNillableEgressMaxRetryInterval(v *string) *GlobalSettingsUpdateOne {
+	if v != nil {
+		_u.SetEgressMaxRetryInterval(*v)
+	}
+	return _u
+}
+
+// ClearEgressMaxRetryInterval clears the value of the "egress_max_retry_interval" field.
+func (_u *GlobalSettingsUpdateOne) ClearEgressMaxRetryInterval() *GlobalSettingsUpdateOne {
+	_u.mutation.ClearEgressMaxRetryInterval()
+	return _u
+}
+
+// SetEgressMaxAge sets the "egress_max_age" field.
+func (_u *GlobalSettingsUpdateOne) SetEgressMaxAge(v string) *GlobalSettingsUpdateOne {
+	_u.mutation.SetEgressMaxAge(v)
+	return _u
+}
+
+// SetNillableEgressMaxAge sets the "egress_max_age" field if the given value is not nil.
+func (_u *GlobalSettingsUpdateOne) SetNillableEgressMaxAge(v *string) *GlobalSettingsUpdateOne {
+	if v != nil {
+		_u.SetEgressMaxAge(*v)
+	}
+	return _u
+}
+
+// ClearEgressMaxAge clears the value of the "egress_max_age" field.
+func (_u *GlobalSettingsUpdateOne) ClearEgressMaxAge() *GlobalSettingsUpdateOne {
+	_u.mutation.ClearEgressMaxAge()
+	return _u
+}
+
 // SetHTTPSListen sets the "https_listen" field.
 func (_u *GlobalSettingsUpdateOne) SetHTTPSListen(v string) *GlobalSettingsUpdateOne {
 	_u.mutation.SetHTTPSListen(v)
@@ -859,6 +1012,21 @@ func (_u *GlobalSettingsUpdateOne) check() error {
 			return &ValidationError{Name: "egress_ehlo_domain", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.egress_ehlo_domain": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.EgressRetryInterval(); ok {
+		if err := globalsettings.EgressRetryIntervalValidator(v); err != nil {
+			return &ValidationError{Name: "egress_retry_interval", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.egress_retry_interval": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.EgressMaxRetryInterval(); ok {
+		if err := globalsettings.EgressMaxRetryIntervalValidator(v); err != nil {
+			return &ValidationError{Name: "egress_max_retry_interval", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.egress_max_retry_interval": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.EgressMaxAge(); ok {
+		if err := globalsettings.EgressMaxAgeValidator(v); err != nil {
+			return &ValidationError{Name: "egress_max_age", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.egress_max_age": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.HTTPSListen(); ok {
 		if err := globalsettings.HTTPSListenValidator(v); err != nil {
 			return &ValidationError{Name: "https_listen", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.https_listen": %w`, err)}
@@ -979,6 +1147,24 @@ func (_u *GlobalSettingsUpdateOne) sqlSave(ctx context.Context) (_node *GlobalSe
 	}
 	if _u.mutation.EgressEhloDomainCleared() {
 		_spec.ClearField(globalsettings.FieldEgressEhloDomain, field.TypeString)
+	}
+	if value, ok := _u.mutation.EgressRetryInterval(); ok {
+		_spec.SetField(globalsettings.FieldEgressRetryInterval, field.TypeString, value)
+	}
+	if _u.mutation.EgressRetryIntervalCleared() {
+		_spec.ClearField(globalsettings.FieldEgressRetryInterval, field.TypeString)
+	}
+	if value, ok := _u.mutation.EgressMaxRetryInterval(); ok {
+		_spec.SetField(globalsettings.FieldEgressMaxRetryInterval, field.TypeString, value)
+	}
+	if _u.mutation.EgressMaxRetryIntervalCleared() {
+		_spec.ClearField(globalsettings.FieldEgressMaxRetryInterval, field.TypeString)
+	}
+	if value, ok := _u.mutation.EgressMaxAge(); ok {
+		_spec.SetField(globalsettings.FieldEgressMaxAge, field.TypeString, value)
+	}
+	if _u.mutation.EgressMaxAgeCleared() {
+		_spec.ClearField(globalsettings.FieldEgressMaxAge, field.TypeString)
 	}
 	if value, ok := _u.mutation.HTTPSListen(); ok {
 		_spec.SetField(globalsettings.FieldHTTPSListen, field.TypeString, value)

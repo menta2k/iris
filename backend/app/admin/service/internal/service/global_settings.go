@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +23,10 @@ type GlobalSettingsRow struct {
 	BouncePrefix        string
 	MailClassHeader     string
 	EgressEhloDomain    string
+
+	EgressRetryInterval    string
+	EgressMaxRetryInterval string
+	EgressMaxAge           string
 
 	// Iris admin HTTPS — a TLS-terminating reverse proxy that fronts
 	// the plain :8000 server. Empty Listen disables.
@@ -148,7 +153,28 @@ func validateGlobalSettings(in *GlobalSettingsRow) error {
 			return errors.New("bounce_sender_domains entries must not contain whitespace")
 		}
 	}
+	for _, f := range []struct{ name, val string }{
+		{"egress_retry_interval", in.EgressRetryInterval},
+		{"egress_max_retry_interval", in.EgressMaxRetryInterval},
+		{"egress_max_age", in.EgressMaxAge},
+	} {
+		if !isValidDuration(f.val) {
+			return fmt.Errorf("%s must be a duration like 20m, 4h or 7d", f.name)
+		}
+	}
 	return nil
+}
+
+// reDuration matches a simple single-unit duration (the common KumoMTA
+// forms). Empty is allowed by isValidDuration (= use kumomta default).
+var reDuration = regexp.MustCompile(`^[0-9]+(ms|s|m|h|d)$`)
+
+func isValidDuration(v string) bool {
+	v = strings.ToLower(strings.TrimSpace(v))
+	if v == "" {
+		return true
+	}
+	return reDuration.MatchString(v)
 }
 
 // normaliseRow runs the same cleanup the env parser does so the
@@ -167,6 +193,9 @@ func normaliseRow(r *GlobalSettingsRow) {
 	r.BouncePrefix = strings.Trim(strings.ToLower(strings.TrimSpace(r.BouncePrefix)), ".")
 	r.MailClassHeader = strings.TrimSpace(r.MailClassHeader)
 	r.EgressEhloDomain = strings.ToLower(strings.TrimSpace(r.EgressEhloDomain))
+	r.EgressRetryInterval = strings.ToLower(strings.TrimSpace(r.EgressRetryInterval))
+	r.EgressMaxRetryInterval = strings.ToLower(strings.TrimSpace(r.EgressMaxRetryInterval))
+	r.EgressMaxAge = strings.ToLower(strings.TrimSpace(r.EgressMaxAge))
 	r.HTTPSListen = strings.TrimSpace(r.HTTPSListen)
 	r.HTTPSCertPemPath = strings.TrimSpace(r.HTTPSCertPemPath)
 	r.HTTPSKeyPemPath = strings.TrimSpace(r.HTTPSKeyPemPath)
