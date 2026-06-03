@@ -36,7 +36,7 @@ const submitting = ref(false);
 const publicKeyOpen = ref(false);
 const selectedKey = ref<DkimIdentity | null>(null);
 
-type DkimAlgorithm = 'ed25519' | 'rsa-2048' | 'rsa-4096';
+type DkimAlgorithm = 'ed25519' | 'rsa-1024' | 'rsa-2048' | 'rsa-4096';
 type CreateMode = 'generate' | 'import';
 
 const form = reactive({
@@ -202,6 +202,7 @@ onMounted(load);
         <FormItem label="Algorithm" name="algorithm">
           <Select v-model:value="form.algorithm">
             <SelectOption value="ed25519">ed25519</SelectOption>
+            <SelectOption value="rsa-1024">rsa-1024</SelectOption>
             <SelectOption value="rsa-2048">rsa-2048</SelectOption>
             <SelectOption value="rsa-4096">rsa-4096</SelectOption>
           </Select>
@@ -210,7 +211,7 @@ onMounted(load);
               Must match the imported key. Mismatch is rejected server-side.
             </template>
             <template v-else>
-              ed25519 produces shorter DNS records; rsa-2048 has the widest verifier support.
+              ed25519 produces shorter DNS records; rsa-2048 has the widest verifier support. rsa-1024 is weaker but fits in a single DNS TXT string (no splitting).
             </template>
           </span>
         </FormItem>

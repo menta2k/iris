@@ -837,12 +837,12 @@ func writeDkimTable(b *strings.Builder, ids []DkimIdentity) {
 	cp := append([]DkimIdentity(nil), ids...)
 	sort.Slice(cp, func(i, j int) bool { return cp[i].Domain < cp[j].Domain })
 	for _, d := range cp {
-		// Translate ed25519/rsa-2048/rsa-4096 → kumomta's algorithm names.
+		// Translate ed25519/rsa-1024/rsa-2048/rsa-4096 → kumomta's algorithm names.
 		algo := d.Algorithm
 		switch algo {
 		case "ed25519":
 			algo = "ed25519"
-		case "rsa-2048", "rsa-4096", "rsa":
+		case "rsa-1024", "rsa-2048", "rsa-4096", "rsa":
 			algo = "sha256"
 		}
 		fmt.Fprintf(b, "DKIM_BY_DOMAIN[%s] = { selector = %s, key = %s, algo = %s }\n",
