@@ -82,6 +82,7 @@ var ProviderSet = wire.NewSet(
 	server.NewDsnstreamServer,
 	server.NewAcmeChallengeServer,
 	server.NewAcmeRenewerServer,
+	server.NewGeoIPUpdaterServer,
 	server.NewHTTPSServer,
 	server.NewSuppressionResyncServer,
 	server.NewMetricsServer,
