@@ -76,6 +76,14 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	acmeCertBaseDir := providers3.NewAcmeCertBaseDir()
 	acmeService := providers3.NewAcmeServiceProvider(acmeAccountStore, acmeCertificateStore, acmeDnsProviderConfigStore, tokenStore, acmeCertBaseDir)
 	acmeRenewerServer := server.NewAcmeRenewerServer(acmeService)
+	geoIPDBPath := providers3.NewGeoIPDBPath()
+	resolver, cleanup3, err := providers3.NewGeoResolver(geoIPDBPath)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	geoIPUpdaterServer := server.NewGeoIPUpdaterServer(resolver)
 	httpsServer := server.NewHTTPSServer(globalSettingsService)
 	suppressionRepo := data.NewSuppressionRepo(client)
 	index := providers3.NewSuppressionIndex(metrics)
@@ -85,19 +93,14 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	userStore := providers3.AuthStoreFromUserRepo(userRepo)
 	issuer, err := providers3.NewJWTIssuer(context)
 	if err != nil {
+		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
 	loginPolicyRepo := data.NewLoginPolicyRepo(client)
 	ruleSource := providers3.RuleSourceFromRepo(loginPolicyRepo)
-	geoIPDBPath := providers3.NewGeoIPDBPath()
-	geoResolver, cleanup3, err := providers3.NewGeoResolver(geoIPDBPath)
-	if err != nil {
-		cleanup2()
-		cleanup()
-		return nil, nil, err
-	}
+	geoResolver := providers3.GeoResolverIface(resolver)
 	loginFirewall := service.NewLoginFirewall(ruleSource, geoResolver)
 	authenticationService := service.NewAuthenticationService(userStore, issuer, loginFirewall)
 	authenticationGRPC := service.NewAuthenticationGRPC(authenticationService)
@@ -171,7 +174,7 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	loginPolicyStore := providers3.LoginPolicyStoreFromRepo(loginPolicyRepo)
 	loginPolicyService := service.NewLoginPolicyService(loginPolicyStore, geoResolver)
 	registered := providers2.RegisterServers(grpcServer, httpServer, authenticationGRPC, userService, auditService, queueService, suppressionService, virtualMtaService, routingService, dkimService, feedbackService, logService, policyService, mailClassService, vmtaGroupService, dashboardService, dsnService, globalSettingsService, listenerService, acmeService, loginPolicyService, auditWriter)
-	app := newApp(context, httpServer, grpcServer, logstreamServer, dsnstreamServer, acmeChallengeServer, acmeRenewerServer, httpsServer, suppressionResyncServer, metricsServer, registered)
+	app := newApp(context, httpServer, grpcServer, logstreamServer, dsnstreamServer, acmeChallengeServer, acmeRenewerServer, geoIPUpdaterServer, httpsServer, suppressionResyncServer, metricsServer, registered)
 	return app, func() {
 		cleanup3()
 		cleanup2()

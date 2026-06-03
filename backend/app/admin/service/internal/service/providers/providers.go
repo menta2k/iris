@@ -83,6 +83,7 @@ var ProviderSet = wire.NewSet(
 	RuleSourceFromRepo,
 	NewGeoIPDBPath,
 	NewGeoResolver,
+	GeoResolverIface,
 	service.NewLoginFirewall,
 	service.NewLoginPolicyService,
 )
@@ -95,31 +96,30 @@ func RuleSourceFromRepo(r *data.LoginPolicyRepo) service.RuleSource             
 
 // GeoIPDBPath is a typed alias so wire disambiguates the path string.
 // Default matches the kumomta etc dir; override via IRIS_GEOIP_DB_PATH.
+// Any .mmdb with a country.iso_code field works — the free DB-IP
+// IP-to-Country Lite db or a MaxMind GeoLite2-Country db.
 type GeoIPDBPath string
 
 func NewGeoIPDBPath() GeoIPDBPath {
 	if v := strings.TrimSpace(os.Getenv("IRIS_GEOIP_DB_PATH")); v != "" {
 		return GeoIPDBPath(v)
 	}
-	return GeoIPDBPath("/opt/kumomta/etc/GeoLite2-Country.mmdb")
+	return GeoIPDBPath("/opt/kumomta/etc/dbip-country-lite.mmdb")
 }
 
-// NewGeoResolver opens the GeoLite2 database for REGION rules. A missing or
-// unreadable database is non-fatal: it returns a disabled (nil-backed)
-// resolver so boot proceeds and REGION rules fail open (the firewall logs a
-// warning when it encounters them). The cleanup closes the db handle.
-func NewGeoResolver(path GeoIPDBPath) (service.GeoResolver, func(), error) {
-	r, err := geoip.Open(string(path))
-	if err != nil {
-		log.Printf("geoip: open %q failed: %v — REGION rules will fail open", string(path), err)
-		return (*geoip.Resolver)(nil), func() {}, nil
-	}
-	if r == nil {
-		log.Printf("geoip: no database at %q — REGION rules will fail open", string(path))
-		return (*geoip.Resolver)(nil), func() {}, nil
-	}
+// NewGeoResolver constructs the hot-swappable country resolver bound to the
+// configured path. It never fails boot — a missing database leaves the
+// resolver disabled (REGION rules fail open) until the geoip-updater
+// downloads one and reloads it. The cleanup closes the db handle.
+func NewGeoResolver(path GeoIPDBPath) (*geoip.Resolver, func(), error) {
+	r := geoip.New(string(path))
 	return r, func() { _ = r.Close() }, nil
 }
+
+// GeoResolverIface binds the concrete resolver to the service interface the
+// firewall + login-policy service consume. The concrete *geoip.Resolver is
+// kept in the graph for the geoip-updater server, which needs Reload/Path.
+func GeoResolverIface(r *geoip.Resolver) service.GeoResolver { return r }
 
 // AuthStoreFromUserRepo binds *data.UserRepo to the service.UserStore
 // interface (auth read path).
