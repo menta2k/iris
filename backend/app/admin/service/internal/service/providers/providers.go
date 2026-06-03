@@ -95,16 +95,19 @@ func LoginPolicyStoreFromRepo(r *data.LoginPolicyRepo) service.LoginPolicyStore 
 func RuleSourceFromRepo(r *data.LoginPolicyRepo) service.RuleSource             { return r }
 
 // GeoIPDBPath is a typed alias so wire disambiguates the path string.
-// Default matches the kumomta etc dir; override via IRIS_GEOIP_DB_PATH.
-// Any .mmdb with a country.iso_code field works — the free DB-IP
-// IP-to-Country Lite db or a MaxMind GeoLite2-Country db.
+// Override via IRIS_GEOIP_DB_PATH. Any .mmdb with a country.iso_code field
+// works — the free DB-IP IP-to-Country Lite db or a MaxMind GeoLite2-Country
+// db. The default lives under /var/lib/iris (the service's writable state
+// dir, created by the systemd unit's StateDirectory=) rather than
+// /opt/kumomta/etc, which is read-only under the hardened unit
+// (ProtectSystem=strict) — the auto-updater needs to write here.
 type GeoIPDBPath string
 
 func NewGeoIPDBPath() GeoIPDBPath {
 	if v := strings.TrimSpace(os.Getenv("IRIS_GEOIP_DB_PATH")); v != "" {
 		return GeoIPDBPath(v)
 	}
-	return GeoIPDBPath("/opt/kumomta/etc/dbip-country-lite.mmdb")
+	return GeoIPDBPath("/var/lib/iris/dbip-country-lite.mmdb")
 }
 
 // NewGeoResolver constructs the hot-swappable country resolver bound to the

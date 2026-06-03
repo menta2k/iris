@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"maps"
 	"strings"
 	"sync"
 	"time"
@@ -254,16 +255,30 @@ func (s *AcmeService) ListDnsProviderConfigs(ctx context.Context) ([]AcmeDnsProv
 	return s.dnsCfg.List(ctx)
 }
 
-// UpsertDnsProviderConfig validates the provider name against the
-// registry and writes the config.
+// UpsertDnsProviderConfig validates the provider name against the registry
+// and writes the config, MERGING over any existing values.
+//
+// Because the API never returns stored credentials, the UI can't pre-fill
+// them on edit — so a submitted field that is blank/omitted means "keep the
+// stored value", and only non-empty submitted fields overwrite. This lets an
+// operator change one credential without re-typing the rest, and prevents a
+// partial edit from silently wiping secrets it never saw.
 func (s *AcmeService) UpsertDnsProviderConfig(ctx context.Context, in AcmeDnsProviderConfigRow, actor string) (*AcmeDnsProviderConfigRow, error) {
 	in.Provider = strings.TrimSpace(in.Provider)
 	if _, err := acmedns.GetProviderInfo(in.Provider); err != nil {
 		return nil, err
 	}
-	if in.Config == nil {
-		in.Config = map[string]string{}
+	merged := map[string]string{}
+	if existing, err := s.dnsCfg.Get(ctx, in.Provider); err == nil && existing != nil {
+		maps.Copy(merged, existing.Config)
 	}
+	for k, v := range in.Config {
+		if v == "" {
+			continue // blank = keep whatever is already stored
+		}
+		merged[k] = v
+	}
+	in.Config = merged
 	return s.dnsCfg.Upsert(ctx, in, actor)
 }
 

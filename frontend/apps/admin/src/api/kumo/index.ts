@@ -232,11 +232,21 @@ export interface AcmeProviderInfo {
   optional_fields: string[];
 }
 
+// Response shape — the secret `config` values are NEVER returned by the API.
+// `configured_keys` lists which credential fields currently hold a value so
+// the UI can show "saved" without exposing the secret.
 export interface AcmeDnsProviderConfig {
   provider: string;
-  config: Record<string, string>;
+  configured_keys?: string[];
   updated_at?: string;
   updated_by?: string;
+}
+
+// Write-only request body. Only non-empty fields are sent; the backend
+// merges them over the stored config (blank = keep existing).
+export interface AcmeDnsProviderConfigInput {
+  provider: string;
+  config: Record<string, string>;
 }
 
 export interface AcmeCertificate {
@@ -281,7 +291,7 @@ export const acmeApi = {
     requestClient.get<{ items: AcmeDnsProviderConfig[] }>(
       '/v1/acme/dns-providers',
     ),
-  saveDnsProviderConfig: (in_: AcmeDnsProviderConfig) =>
+  saveDnsProviderConfig: (in_: AcmeDnsProviderConfigInput) =>
     requestClient.put<AcmeDnsProviderConfig>('/v1/acme/dns-providers', in_),
   removeDnsProviderConfig: (provider: string) =>
     requestClient.delete(

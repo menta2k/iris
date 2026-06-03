@@ -60,6 +60,13 @@ func EnsureCurrent(ctx context.Context, path, urlTemplate string, client *http.C
 	defer gz.Close()
 
 	dir := filepath.Dir(path)
+	// Best-effort: create the target dir on a fresh install. Under a
+	// hardened systemd unit the parent is read-only, so this is a no-op
+	// when the dir already exists (e.g. via StateDirectory=) and a clear
+	// error otherwise — either way the caller fails open.
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return false, fmt.Errorf("geoip: ensure dir %s: %w", dir, err)
+	}
 	tmp, err := os.CreateTemp(dir, ".dbip-*.mmdb.tmp")
 	if err != nil {
 		return false, fmt.Errorf("geoip: temp file in %s: %w", dir, err)
