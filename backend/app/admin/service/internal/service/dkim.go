@@ -21,7 +21,7 @@ type DkimRow struct {
 	ID           uint32
 	Domain       string
 	Selector     string
-	Algorithm    string // "ed25519" | "rsa-2048" | "rsa-4096"
+	Algorithm    string // "ed25519" | "rsa-1024" | "rsa-2048" | "rsa-4096"
 	PublicKeyPEM string
 	KeyPath      string
 	Active       bool
@@ -74,7 +74,7 @@ func NewDkimService(store DkimStore, keygen KeyGenerator, keysDir string) (*Dkim
 var (
 	ErrDkimDomain     = errors.New("dkim: domain invalid")
 	ErrDkimSelector   = errors.New("dkim: selector invalid")
-	ErrDkimAlgorithm  = errors.New("dkim: algorithm must be ed25519|rsa-2048|rsa-4096")
+	ErrDkimAlgorithm  = errors.New("dkim: algorithm must be ed25519|rsa-1024|rsa-2048|rsa-4096")
 	ErrDkimPrivateKey = errors.New("dkim: private_key_pem invalid")
 	ErrDkimMismatch   = errors.New("dkim: private key does not match declared algorithm")
 )
@@ -184,7 +184,7 @@ func importPrivateKey(pemStr, declaredAlgo string) (*KeyMaterial, error) {
 		case *rsa.PrivateKey:
 			actualAlgo = rsaAlgoForBits(k.N.BitLen())
 			if actualAlgo == "" {
-				return nil, fmt.Errorf("%w: rsa key bit-size %d not supported (use 2048 or 4096)", ErrDkimPrivateKey, k.N.BitLen())
+				return nil, fmt.Errorf("%w: rsa key bit-size %d not supported (use 1024, 2048 or 4096)", ErrDkimPrivateKey, k.N.BitLen())
 			}
 			pubPKIX, err = x509.MarshalPKIXPublicKey(&k.PublicKey)
 			if err == nil {
@@ -200,7 +200,7 @@ func importPrivateKey(pemStr, declaredAlgo string) (*KeyMaterial, error) {
 		}
 		actualAlgo = rsaAlgoForBits(k.N.BitLen())
 		if actualAlgo == "" {
-			return nil, fmt.Errorf("%w: rsa key bit-size %d not supported (use 2048 or 4096)", ErrDkimPrivateKey, k.N.BitLen())
+			return nil, fmt.Errorf("%w: rsa key bit-size %d not supported (use 1024, 2048 or 4096)", ErrDkimPrivateKey, k.N.BitLen())
 		}
 		pubPKIX, err = x509.MarshalPKIXPublicKey(&k.PublicKey)
 		if err == nil {
@@ -213,9 +213,9 @@ func importPrivateKey(pemStr, declaredAlgo string) (*KeyMaterial, error) {
 		return nil, fmt.Errorf("%w: %v", ErrDkimPrivateKey, err)
 	}
 	if declaredAlgo != "" && declaredAlgo != actualAlgo {
-		// Special case: caller may declare just "rsa" — accept if the actual
-		// is rsa-2048 or rsa-4096. Otherwise mismatch is fatal.
-		if !(declaredAlgo == "rsa" && (actualAlgo == "rsa-2048" || actualAlgo == "rsa-4096")) {
+		// Special case: caller may declare just "rsa" — accept any RSA size
+		// the key actually is. Otherwise mismatch is fatal.
+		if !(declaredAlgo == "rsa" && strings.HasPrefix(actualAlgo, "rsa-")) {
 			return nil, fmt.Errorf("%w (declared %q, key is %q)", ErrDkimMismatch, declaredAlgo, actualAlgo)
 		}
 	}
@@ -228,6 +228,8 @@ func importPrivateKey(pemStr, declaredAlgo string) (*KeyMaterial, error) {
 
 func rsaAlgoForBits(bits int) string {
 	switch bits {
+	case 1024:
+		return "rsa-1024"
 	case 2048:
 		return "rsa-2048"
 	case 4096:
@@ -335,9 +337,12 @@ func (DefaultKeyGenerator) Generate(algorithm string) (*KeyMaterial, error) {
 			PublicPEM:  string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubPKIX})),
 			Algorithm:  "ed25519",
 		}, nil
-	case "rsa-2048", "rsa-4096":
+	case "rsa-1024", "rsa-2048", "rsa-4096":
 		bits := 2048
-		if algorithm == "rsa-4096" {
+		switch algorithm {
+		case "rsa-1024":
+			bits = 1024
+		case "rsa-4096":
 			bits = 4096
 		}
 		key, err := rsa.GenerateKey(rand.Reader, bits)

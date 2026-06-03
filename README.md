@@ -29,7 +29,7 @@ instead of doing all three.**
 | **Live logs with timeline reconstruction** | Click any `message_id` in the Logs page and you see the full story for that one submission: Reception → every retry → final Delivery or Bounce. The 3am pager call gets shorter. |
 | **Mail-class header routing** | Set `X-Kumo-Mail-Class: marketing` on a message; Iris turns it into a queue tenant + egress-pool selector. `/v1/queues` shows one row per class so you can spot which kind of mail is backing up. |
 | **VMTAs + weighted Groups** | Per-IP egress sources, plus groups with per-member weight + priority. Round-robin warming, dedicated IPs for transactional, the usual. |
-| **DKIM** | Generate (Ed25519 / RSA-2048 / RSA-4096) **or import** existing PEM keys. Rotation is one click. |
+| **DKIM** | Generate (Ed25519 / RSA-1024 / RSA-2048 / RSA-4096) **or import** existing PEM keys. Rotation is one click. (RSA-1024 is weaker but fits a single DNS TXT string; RSA-2048 is the safer default.) |
 | **Suppression list at scale** | Redis-backed hot-path lookup with a `kumo.memoize` cache. Adding the 8 millionth entry doesn't slow down policy renders or messages. |
 | **Inbound feedback loop (ARF)** | Parses [RFC 5965] complaint reports, auto-suppresses the complainant. Nothing for you to do. |
 | **Async bounce handling (DSN)** | Inbound [RFC 3464] DSNs are accepted at one or more configurable bounce subdomains (multi-domain mode handles cross-org senders), parsed, classified into 14 stable categories, and correlated to the originating send via VERP. Hard bounces auto-suppress; soft bounces suppress after a configurable threshold. Browse them at `/observability/dsns`. |

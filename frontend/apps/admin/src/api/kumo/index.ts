@@ -339,7 +339,7 @@ export interface DkimIdentity {
 export interface DkimInput {
   domain: string;
   selector: string;
-  algorithm: 'ed25519' | 'rsa-2048' | 'rsa-4096';
+  algorithm: 'ed25519' | 'rsa-1024' | 'rsa-2048' | 'rsa-4096';
   // Optional. When set, the backend imports the supplied PEM instead of
   // generating a fresh keypair. The public key is derived server-side.
   private_key_pem?: string;

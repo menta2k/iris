@@ -201,7 +201,7 @@ type ListenerDomain struct {
 type DkimIdentity struct {
 	Domain    string
 	Selector  string
-	Algorithm string // "ed25519" | "rsa-2048" | "rsa-4096"
+	Algorithm string // "ed25519" | "rsa-1024" | "rsa-2048" | "rsa-4096"
 	KeyPath   string
 }
 
@@ -293,6 +293,7 @@ var AllowedTargetKinds = map[string]struct{}{
 // AllowedDkimAlgorithms closes the DKIM algorithm set.
 var AllowedDkimAlgorithms = map[string]struct{}{
 	"ed25519":   {},
+	"rsa-1024":  {},
 	"rsa-2048":  {},
 	"rsa-4096":  {},
 }
