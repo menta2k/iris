@@ -62,6 +62,13 @@ type GlobalSettings struct {
 	// Message-IDs. Empty leaves kumomta's default (system hostname).
 	EgressEhloDomain string
 
+	// Outbound retry schedule for the normal delivery queue, in
+	// KumoMTA/Go duration form ("20m", "4h", "7d"). Empty fields leave
+	// kumomta's defaults (retry_interval 20m, doubling, max_age 7d).
+	EgressRetryInterval    string
+	EgressMaxRetryInterval string
+	EgressMaxAge           string
+
 	// KumoHTTPListen is the bind spec for kumomta's HTTP admin listener
 	// emitted into init.lua's kumo.start_http_listener block. Defaults to
 	// '0.0.0.0:8000' (matches the docker-compose layout). Set to

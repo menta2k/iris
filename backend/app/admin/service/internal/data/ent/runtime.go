@@ -472,26 +472,38 @@ func init() {
 	globalsettingsDescEgressEhloDomain := globalsettingsFields[9].Descriptor()
 	// globalsettings.EgressEhloDomainValidator is a validator for the "egress_ehlo_domain" field. It is called by the builders before save.
 	globalsettings.EgressEhloDomainValidator = globalsettingsDescEgressEhloDomain.Validators[0].(func(string) error)
+	// globalsettingsDescEgressRetryInterval is the schema descriptor for egress_retry_interval field.
+	globalsettingsDescEgressRetryInterval := globalsettingsFields[10].Descriptor()
+	// globalsettings.EgressRetryIntervalValidator is a validator for the "egress_retry_interval" field. It is called by the builders before save.
+	globalsettings.EgressRetryIntervalValidator = globalsettingsDescEgressRetryInterval.Validators[0].(func(string) error)
+	// globalsettingsDescEgressMaxRetryInterval is the schema descriptor for egress_max_retry_interval field.
+	globalsettingsDescEgressMaxRetryInterval := globalsettingsFields[11].Descriptor()
+	// globalsettings.EgressMaxRetryIntervalValidator is a validator for the "egress_max_retry_interval" field. It is called by the builders before save.
+	globalsettings.EgressMaxRetryIntervalValidator = globalsettingsDescEgressMaxRetryInterval.Validators[0].(func(string) error)
+	// globalsettingsDescEgressMaxAge is the schema descriptor for egress_max_age field.
+	globalsettingsDescEgressMaxAge := globalsettingsFields[12].Descriptor()
+	// globalsettings.EgressMaxAgeValidator is a validator for the "egress_max_age" field. It is called by the builders before save.
+	globalsettings.EgressMaxAgeValidator = globalsettingsDescEgressMaxAge.Validators[0].(func(string) error)
 	// globalsettingsDescHTTPSListen is the schema descriptor for https_listen field.
-	globalsettingsDescHTTPSListen := globalsettingsFields[10].Descriptor()
+	globalsettingsDescHTTPSListen := globalsettingsFields[13].Descriptor()
 	// globalsettings.HTTPSListenValidator is a validator for the "https_listen" field. It is called by the builders before save.
 	globalsettings.HTTPSListenValidator = globalsettingsDescHTTPSListen.Validators[0].(func(string) error)
 	// globalsettingsDescHTTPSCertPemPath is the schema descriptor for https_cert_pem_path field.
-	globalsettingsDescHTTPSCertPemPath := globalsettingsFields[11].Descriptor()
+	globalsettingsDescHTTPSCertPemPath := globalsettingsFields[14].Descriptor()
 	// globalsettings.HTTPSCertPemPathValidator is a validator for the "https_cert_pem_path" field. It is called by the builders before save.
 	globalsettings.HTTPSCertPemPathValidator = globalsettingsDescHTTPSCertPemPath.Validators[0].(func(string) error)
 	// globalsettingsDescHTTPSKeyPemPath is the schema descriptor for https_key_pem_path field.
-	globalsettingsDescHTTPSKeyPemPath := globalsettingsFields[12].Descriptor()
+	globalsettingsDescHTTPSKeyPemPath := globalsettingsFields[15].Descriptor()
 	// globalsettings.HTTPSKeyPemPathValidator is a validator for the "https_key_pem_path" field. It is called by the builders before save.
 	globalsettings.HTTPSKeyPemPathValidator = globalsettingsDescHTTPSKeyPemPath.Validators[0].(func(string) error)
 	// globalsettingsDescUpdatedAt is the schema descriptor for updated_at field.
-	globalsettingsDescUpdatedAt := globalsettingsFields[13].Descriptor()
+	globalsettingsDescUpdatedAt := globalsettingsFields[16].Descriptor()
 	// globalsettings.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	globalsettings.DefaultUpdatedAt = globalsettingsDescUpdatedAt.Default.(func() time.Time)
 	// globalsettings.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	globalsettings.UpdateDefaultUpdatedAt = globalsettingsDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// globalsettingsDescUpdatedBy is the schema descriptor for updated_by field.
-	globalsettingsDescUpdatedBy := globalsettingsFields[14].Descriptor()
+	globalsettingsDescUpdatedBy := globalsettingsFields[17].Descriptor()
 	// globalsettings.UpdatedByValidator is a validator for the "updated_by" field. It is called by the builders before save.
 	globalsettings.UpdatedByValidator = globalsettingsDescUpdatedBy.Validators[0].(func(string) error)
 	// globalsettingsDescID is the schema descriptor for id field.

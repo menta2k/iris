@@ -205,6 +205,9 @@ export interface GlobalSettings {
   bounce_prefix: string;
   mail_class_header: string;
   egress_ehlo_domain: string;
+  egress_retry_interval: string;
+  egress_max_retry_interval: string;
+  egress_max_age: string;
   https_listen: string;
   https_cert_pem_path: string;
   https_key_pem_path: string;

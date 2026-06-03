@@ -36,6 +36,12 @@ type GlobalSettings struct {
 	MailClassHeader string `json:"mail_class_header,omitempty"`
 	// EgressEhloDomain holds the value of the "egress_ehlo_domain" field.
 	EgressEhloDomain string `json:"egress_ehlo_domain,omitempty"`
+	// EgressRetryInterval holds the value of the "egress_retry_interval" field.
+	EgressRetryInterval string `json:"egress_retry_interval,omitempty"`
+	// EgressMaxRetryInterval holds the value of the "egress_max_retry_interval" field.
+	EgressMaxRetryInterval string `json:"egress_max_retry_interval,omitempty"`
+	// EgressMaxAge holds the value of the "egress_max_age" field.
+	EgressMaxAge string `json:"egress_max_age,omitempty"`
 	// HTTPSListen holds the value of the "https_listen" field.
 	HTTPSListen string `json:"https_listen,omitempty"`
 	// HTTPSCertPemPath holds the value of the "https_cert_pem_path" field.
@@ -58,7 +64,7 @@ func (*GlobalSettings) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case globalsettings.FieldID:
 			values[i] = new(sql.NullInt64)
-		case globalsettings.FieldKumoHTTPListen, globalsettings.FieldEsmtpListenAddr, globalsettings.FieldBounceDomain, globalsettings.FieldBouncePrefix, globalsettings.FieldMailClassHeader, globalsettings.FieldEgressEhloDomain, globalsettings.FieldHTTPSListen, globalsettings.FieldHTTPSCertPemPath, globalsettings.FieldHTTPSKeyPemPath, globalsettings.FieldUpdatedBy:
+		case globalsettings.FieldKumoHTTPListen, globalsettings.FieldEsmtpListenAddr, globalsettings.FieldBounceDomain, globalsettings.FieldBouncePrefix, globalsettings.FieldMailClassHeader, globalsettings.FieldEgressEhloDomain, globalsettings.FieldEgressRetryInterval, globalsettings.FieldEgressMaxRetryInterval, globalsettings.FieldEgressMaxAge, globalsettings.FieldHTTPSListen, globalsettings.FieldHTTPSCertPemPath, globalsettings.FieldHTTPSKeyPemPath, globalsettings.FieldUpdatedBy:
 			values[i] = new(sql.NullString)
 		case globalsettings.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -142,6 +148,24 @@ func (_m *GlobalSettings) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field egress_ehlo_domain", values[i])
 			} else if value.Valid {
 				_m.EgressEhloDomain = value.String
+			}
+		case globalsettings.FieldEgressRetryInterval:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field egress_retry_interval", values[i])
+			} else if value.Valid {
+				_m.EgressRetryInterval = value.String
+			}
+		case globalsettings.FieldEgressMaxRetryInterval:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field egress_max_retry_interval", values[i])
+			} else if value.Valid {
+				_m.EgressMaxRetryInterval = value.String
+			}
+		case globalsettings.FieldEgressMaxAge:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field egress_max_age", values[i])
+			} else if value.Valid {
+				_m.EgressMaxAge = value.String
 			}
 		case globalsettings.FieldHTTPSListen:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -235,6 +259,15 @@ func (_m *GlobalSettings) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("egress_ehlo_domain=")
 	builder.WriteString(_m.EgressEhloDomain)
+	builder.WriteString(", ")
+	builder.WriteString("egress_retry_interval=")
+	builder.WriteString(_m.EgressRetryInterval)
+	builder.WriteString(", ")
+	builder.WriteString("egress_max_retry_interval=")
+	builder.WriteString(_m.EgressMaxRetryInterval)
+	builder.WriteString(", ")
+	builder.WriteString("egress_max_age=")
+	builder.WriteString(_m.EgressMaxAge)
 	builder.WriteString(", ")
 	builder.WriteString("https_listen=")
 	builder.WriteString(_m.HTTPSListen)

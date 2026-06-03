@@ -68,6 +68,9 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in service.GlobalSettin
 		SetBouncePrefix(in.BouncePrefix).
 		SetMailClassHeader(in.MailClassHeader).
 		SetEgressEhloDomain(in.EgressEhloDomain).
+		SetEgressRetryInterval(in.EgressRetryInterval).
+		SetEgressMaxRetryInterval(in.EgressMaxRetryInterval).
+		SetEgressMaxAge(in.EgressMaxAge).
 		SetHTTPSListen(in.HTTPSListen).
 		SetHTTPSCertPemPath(in.HTTPSCertPemPath).
 		SetHTTPSKeyPemPath(in.HTTPSKeyPemPath).
@@ -91,9 +94,12 @@ func entToRow(g *ent.GlobalSettings) *service.GlobalSettingsRow {
 		BounceDomain:        g.BounceDomain,
 		BounceSenderDomains: append([]string(nil), g.BounceSenderDomains...),
 		BouncePrefix:        g.BouncePrefix,
-		MailClassHeader:     g.MailClassHeader,
-		EgressEhloDomain:    g.EgressEhloDomain,
-		HTTPSListen:         g.HTTPSListen,
+		MailClassHeader:        g.MailClassHeader,
+		EgressEhloDomain:       g.EgressEhloDomain,
+		EgressRetryInterval:    g.EgressRetryInterval,
+		EgressMaxRetryInterval: g.EgressMaxRetryInterval,
+		EgressMaxAge:           g.EgressMaxAge,
+		HTTPSListen:            g.HTTPSListen,
 		HTTPSCertPemPath:    g.HTTPSCertPemPath,
 		HTTPSKeyPemPath:     g.HTTPSKeyPemPath,
 		UpdatedAt:           g.UpdatedAt,

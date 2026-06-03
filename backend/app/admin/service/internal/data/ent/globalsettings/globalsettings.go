@@ -31,6 +31,12 @@ const (
 	FieldMailClassHeader = "mail_class_header"
 	// FieldEgressEhloDomain holds the string denoting the egress_ehlo_domain field in the database.
 	FieldEgressEhloDomain = "egress_ehlo_domain"
+	// FieldEgressRetryInterval holds the string denoting the egress_retry_interval field in the database.
+	FieldEgressRetryInterval = "egress_retry_interval"
+	// FieldEgressMaxRetryInterval holds the string denoting the egress_max_retry_interval field in the database.
+	FieldEgressMaxRetryInterval = "egress_max_retry_interval"
+	// FieldEgressMaxAge holds the string denoting the egress_max_age field in the database.
+	FieldEgressMaxAge = "egress_max_age"
 	// FieldHTTPSListen holds the string denoting the https_listen field in the database.
 	FieldHTTPSListen = "https_listen"
 	// FieldHTTPSCertPemPath holds the string denoting the https_cert_pem_path field in the database.
@@ -57,6 +63,9 @@ var Columns = []string{
 	FieldBouncePrefix,
 	FieldMailClassHeader,
 	FieldEgressEhloDomain,
+	FieldEgressRetryInterval,
+	FieldEgressMaxRetryInterval,
+	FieldEgressMaxAge,
 	FieldHTTPSListen,
 	FieldHTTPSCertPemPath,
 	FieldHTTPSKeyPemPath,
@@ -87,6 +96,12 @@ var (
 	MailClassHeaderValidator func(string) error
 	// EgressEhloDomainValidator is a validator for the "egress_ehlo_domain" field. It is called by the builders before save.
 	EgressEhloDomainValidator func(string) error
+	// EgressRetryIntervalValidator is a validator for the "egress_retry_interval" field. It is called by the builders before save.
+	EgressRetryIntervalValidator func(string) error
+	// EgressMaxRetryIntervalValidator is a validator for the "egress_max_retry_interval" field. It is called by the builders before save.
+	EgressMaxRetryIntervalValidator func(string) error
+	// EgressMaxAgeValidator is a validator for the "egress_max_age" field. It is called by the builders before save.
+	EgressMaxAgeValidator func(string) error
 	// HTTPSListenValidator is a validator for the "https_listen" field. It is called by the builders before save.
 	HTTPSListenValidator func(string) error
 	// HTTPSCertPemPathValidator is a validator for the "https_cert_pem_path" field. It is called by the builders before save.
@@ -139,6 +154,21 @@ func ByMailClassHeader(opts ...sql.OrderTermOption) OrderOption {
 // ByEgressEhloDomain orders the results by the egress_ehlo_domain field.
 func ByEgressEhloDomain(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEgressEhloDomain, opts...).ToFunc()
+}
+
+// ByEgressRetryInterval orders the results by the egress_retry_interval field.
+func ByEgressRetryInterval(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEgressRetryInterval, opts...).ToFunc()
+}
+
+// ByEgressMaxRetryInterval orders the results by the egress_max_retry_interval field.
+func ByEgressMaxRetryInterval(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEgressMaxRetryInterval, opts...).ToFunc()
+}
+
+// ByEgressMaxAge orders the results by the egress_max_age field.
+func ByEgressMaxAge(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEgressMaxAge, opts...).ToFunc()
 }
 
 // ByHTTPSListen orders the results by the https_listen field.

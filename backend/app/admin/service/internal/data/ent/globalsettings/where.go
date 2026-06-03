@@ -84,6 +84,21 @@ func EgressEhloDomain(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldEQ(FieldEgressEhloDomain, v))
 }
 
+// EgressRetryInterval applies equality check predicate on the "egress_retry_interval" field. It's identical to EgressRetryIntervalEQ.
+func EgressRetryInterval(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldEgressRetryInterval, v))
+}
+
+// EgressMaxRetryInterval applies equality check predicate on the "egress_max_retry_interval" field. It's identical to EgressMaxRetryIntervalEQ.
+func EgressMaxRetryInterval(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldEgressMaxRetryInterval, v))
+}
+
+// EgressMaxAge applies equality check predicate on the "egress_max_age" field. It's identical to EgressMaxAgeEQ.
+func EgressMaxAge(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldEgressMaxAge, v))
+}
+
 // HTTPSListen applies equality check predicate on the "https_listen" field. It's identical to HTTPSListenEQ.
 func HTTPSListen(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldEQ(FieldHTTPSListen, v))
@@ -587,6 +602,231 @@ func EgressEhloDomainEqualFold(v string) predicate.GlobalSettings {
 // EgressEhloDomainContainsFold applies the ContainsFold predicate on the "egress_ehlo_domain" field.
 func EgressEhloDomainContainsFold(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldContainsFold(FieldEgressEhloDomain, v))
+}
+
+// EgressRetryIntervalEQ applies the EQ predicate on the "egress_retry_interval" field.
+func EgressRetryIntervalEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldEgressRetryInterval, v))
+}
+
+// EgressRetryIntervalNEQ applies the NEQ predicate on the "egress_retry_interval" field.
+func EgressRetryIntervalNEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNEQ(FieldEgressRetryInterval, v))
+}
+
+// EgressRetryIntervalIn applies the In predicate on the "egress_retry_interval" field.
+func EgressRetryIntervalIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIn(FieldEgressRetryInterval, vs...))
+}
+
+// EgressRetryIntervalNotIn applies the NotIn predicate on the "egress_retry_interval" field.
+func EgressRetryIntervalNotIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotIn(FieldEgressRetryInterval, vs...))
+}
+
+// EgressRetryIntervalGT applies the GT predicate on the "egress_retry_interval" field.
+func EgressRetryIntervalGT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGT(FieldEgressRetryInterval, v))
+}
+
+// EgressRetryIntervalGTE applies the GTE predicate on the "egress_retry_interval" field.
+func EgressRetryIntervalGTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGTE(FieldEgressRetryInterval, v))
+}
+
+// EgressRetryIntervalLT applies the LT predicate on the "egress_retry_interval" field.
+func EgressRetryIntervalLT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLT(FieldEgressRetryInterval, v))
+}
+
+// EgressRetryIntervalLTE applies the LTE predicate on the "egress_retry_interval" field.
+func EgressRetryIntervalLTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLTE(FieldEgressRetryInterval, v))
+}
+
+// EgressRetryIntervalContains applies the Contains predicate on the "egress_retry_interval" field.
+func EgressRetryIntervalContains(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContains(FieldEgressRetryInterval, v))
+}
+
+// EgressRetryIntervalHasPrefix applies the HasPrefix predicate on the "egress_retry_interval" field.
+func EgressRetryIntervalHasPrefix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasPrefix(FieldEgressRetryInterval, v))
+}
+
+// EgressRetryIntervalHasSuffix applies the HasSuffix predicate on the "egress_retry_interval" field.
+func EgressRetryIntervalHasSuffix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasSuffix(FieldEgressRetryInterval, v))
+}
+
+// EgressRetryIntervalIsNil applies the IsNil predicate on the "egress_retry_interval" field.
+func EgressRetryIntervalIsNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIsNull(FieldEgressRetryInterval))
+}
+
+// EgressRetryIntervalNotNil applies the NotNil predicate on the "egress_retry_interval" field.
+func EgressRetryIntervalNotNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotNull(FieldEgressRetryInterval))
+}
+
+// EgressRetryIntervalEqualFold applies the EqualFold predicate on the "egress_retry_interval" field.
+func EgressRetryIntervalEqualFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEqualFold(FieldEgressRetryInterval, v))
+}
+
+// EgressRetryIntervalContainsFold applies the ContainsFold predicate on the "egress_retry_interval" field.
+func EgressRetryIntervalContainsFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContainsFold(FieldEgressRetryInterval, v))
+}
+
+// EgressMaxRetryIntervalEQ applies the EQ predicate on the "egress_max_retry_interval" field.
+func EgressMaxRetryIntervalEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldEgressMaxRetryInterval, v))
+}
+
+// EgressMaxRetryIntervalNEQ applies the NEQ predicate on the "egress_max_retry_interval" field.
+func EgressMaxRetryIntervalNEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNEQ(FieldEgressMaxRetryInterval, v))
+}
+
+// EgressMaxRetryIntervalIn applies the In predicate on the "egress_max_retry_interval" field.
+func EgressMaxRetryIntervalIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIn(FieldEgressMaxRetryInterval, vs...))
+}
+
+// EgressMaxRetryIntervalNotIn applies the NotIn predicate on the "egress_max_retry_interval" field.
+func EgressMaxRetryIntervalNotIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotIn(FieldEgressMaxRetryInterval, vs...))
+}
+
+// EgressMaxRetryIntervalGT applies the GT predicate on the "egress_max_retry_interval" field.
+func EgressMaxRetryIntervalGT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGT(FieldEgressMaxRetryInterval, v))
+}
+
+// EgressMaxRetryIntervalGTE applies the GTE predicate on the "egress_max_retry_interval" field.
+func EgressMaxRetryIntervalGTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGTE(FieldEgressMaxRetryInterval, v))
+}
+
+// EgressMaxRetryIntervalLT applies the LT predicate on the "egress_max_retry_interval" field.
+func EgressMaxRetryIntervalLT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLT(FieldEgressMaxRetryInterval, v))
+}
+
+// EgressMaxRetryIntervalLTE applies the LTE predicate on the "egress_max_retry_interval" field.
+func EgressMaxRetryIntervalLTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLTE(FieldEgressMaxRetryInterval, v))
+}
+
+// EgressMaxRetryIntervalContains applies the Contains predicate on the "egress_max_retry_interval" field.
+func EgressMaxRetryIntervalContains(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContains(FieldEgressMaxRetryInterval, v))
+}
+
+// EgressMaxRetryIntervalHasPrefix applies the HasPrefix predicate on the "egress_max_retry_interval" field.
+func EgressMaxRetryIntervalHasPrefix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasPrefix(FieldEgressMaxRetryInterval, v))
+}
+
+// EgressMaxRetryIntervalHasSuffix applies the HasSuffix predicate on the "egress_max_retry_interval" field.
+func EgressMaxRetryIntervalHasSuffix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasSuffix(FieldEgressMaxRetryInterval, v))
+}
+
+// EgressMaxRetryIntervalIsNil applies the IsNil predicate on the "egress_max_retry_interval" field.
+func EgressMaxRetryIntervalIsNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIsNull(FieldEgressMaxRetryInterval))
+}
+
+// EgressMaxRetryIntervalNotNil applies the NotNil predicate on the "egress_max_retry_interval" field.
+func EgressMaxRetryIntervalNotNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotNull(FieldEgressMaxRetryInterval))
+}
+
+// EgressMaxRetryIntervalEqualFold applies the EqualFold predicate on the "egress_max_retry_interval" field.
+func EgressMaxRetryIntervalEqualFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEqualFold(FieldEgressMaxRetryInterval, v))
+}
+
+// EgressMaxRetryIntervalContainsFold applies the ContainsFold predicate on the "egress_max_retry_interval" field.
+func EgressMaxRetryIntervalContainsFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContainsFold(FieldEgressMaxRetryInterval, v))
+}
+
+// EgressMaxAgeEQ applies the EQ predicate on the "egress_max_age" field.
+func EgressMaxAgeEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldEgressMaxAge, v))
+}
+
+// EgressMaxAgeNEQ applies the NEQ predicate on the "egress_max_age" field.
+func EgressMaxAgeNEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNEQ(FieldEgressMaxAge, v))
+}
+
+// EgressMaxAgeIn applies the In predicate on the "egress_max_age" field.
+func EgressMaxAgeIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIn(FieldEgressMaxAge, vs...))
+}
+
+// EgressMaxAgeNotIn applies the NotIn predicate on the "egress_max_age" field.
+func EgressMaxAgeNotIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotIn(FieldEgressMaxAge, vs...))
+}
+
+// EgressMaxAgeGT applies the GT predicate on the "egress_max_age" field.
+func EgressMaxAgeGT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGT(FieldEgressMaxAge, v))
+}
+
+// EgressMaxAgeGTE applies the GTE predicate on the "egress_max_age" field.
+func EgressMaxAgeGTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGTE(FieldEgressMaxAge, v))
+}
+
+// EgressMaxAgeLT applies the LT predicate on the "egress_max_age" field.
+func EgressMaxAgeLT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLT(FieldEgressMaxAge, v))
+}
+
+// EgressMaxAgeLTE applies the LTE predicate on the "egress_max_age" field.
+func EgressMaxAgeLTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLTE(FieldEgressMaxAge, v))
+}
+
+// EgressMaxAgeContains applies the Contains predicate on the "egress_max_age" field.
+func EgressMaxAgeContains(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContains(FieldEgressMaxAge, v))
+}
+
+// EgressMaxAgeHasPrefix applies the HasPrefix predicate on the "egress_max_age" field.
+func EgressMaxAgeHasPrefix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasPrefix(FieldEgressMaxAge, v))
+}
+
+// EgressMaxAgeHasSuffix applies the HasSuffix predicate on the "egress_max_age" field.
+func EgressMaxAgeHasSuffix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasSuffix(FieldEgressMaxAge, v))
+}
+
+// EgressMaxAgeIsNil applies the IsNil predicate on the "egress_max_age" field.
+func EgressMaxAgeIsNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIsNull(FieldEgressMaxAge))
+}
+
+// EgressMaxAgeNotNil applies the NotNil predicate on the "egress_max_age" field.
+func EgressMaxAgeNotNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotNull(FieldEgressMaxAge))
+}
+
+// EgressMaxAgeEqualFold applies the EqualFold predicate on the "egress_max_age" field.
+func EgressMaxAgeEqualFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEqualFold(FieldEgressMaxAge, v))
+}
+
+// EgressMaxAgeContainsFold applies the ContainsFold predicate on the "egress_max_age" field.
+func EgressMaxAgeContainsFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContainsFold(FieldEgressMaxAge, v))
 }
 
 // HTTPSListenEQ applies the EQ predicate on the "https_listen" field.

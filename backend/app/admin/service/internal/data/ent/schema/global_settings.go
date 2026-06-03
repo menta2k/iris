@@ -72,6 +72,17 @@ func (GlobalSettings) Fields() []ent.Field {
 		// (system hostname).
 		field.String("egress_ehlo_domain").Optional().MaxLen(253),
 
+		// Outbound retry schedule applied to the normal delivery queue
+		// config (make_queue_config). Durations in KumoMTA/Go form
+		// ("20m", "4h", "7d"). Empty leaves kumomta's defaults
+		// (retry_interval 20m, doubling, max_age 7d).
+		//   - retry_interval: base backoff after a TransientFailure.
+		//   - max_retry_interval: optional cap on the doubling.
+		//   - max_age: give up (permanent bounce) once a message is older.
+		field.String("egress_retry_interval").Optional().MaxLen(32),
+		field.String("egress_max_retry_interval").Optional().MaxLen(32),
+		field.String("egress_max_age").Optional().MaxLen(32),
+
 		// Iris admin HTTPS termination. When https_listen is set, a
 		// kratos transport.Server starts on that bind, terminates TLS
 		// using the cert+key paths below, and reverse-proxies to the

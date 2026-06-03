@@ -85,3 +85,24 @@ func TestUpdateValidationDoesNotNotify(t *testing.T) {
 		// expected: no notification
 	}
 }
+
+func TestUpdateRejectsBadEgressDuration(t *testing.T) {
+	svc := NewGlobalSettingsService(&fakeGSStore{})
+	_, err := svc.Update(context.Background(),
+		GlobalSettingsRow{EgressRetryInterval: "banana"}, "tester")
+	if err == nil {
+		t.Fatal("expected rejection of invalid duration")
+	}
+}
+
+func TestUpdateAcceptsValidEgressDurations(t *testing.T) {
+	svc := NewGlobalSettingsService(&fakeGSStore{})
+	_, err := svc.Update(context.Background(), GlobalSettingsRow{
+		EgressRetryInterval:    "5m",
+		EgressMaxRetryInterval: "2h",
+		EgressMaxAge:           "7d",
+	}, "tester")
+	if err != nil {
+		t.Fatalf("valid durations rejected: %v", err)
+	}
+}
