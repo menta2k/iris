@@ -47,6 +47,7 @@ const form = reactive<GlobalSettings>({
   bounce_sender_domains: [],
   bounce_prefix: '',
   mail_class_header: '',
+  egress_ehlo_domain: '',
   https_listen: '',
   https_cert_pem_path: '',
   https_key_pem_path: '',
@@ -426,6 +427,17 @@ onMounted(load);
             <Input
               v-model:value="form.mail_class_header"
               placeholder="X-Kumo-Mail-Class"
+              style="max-width: 320px"
+            />
+          </FormItem>
+
+          <FormItem
+            label="Outbound EHLO hostname"
+            help="Default FQDN announced on outbound SMTP (EHLO). Set this to a resolvable name (e.g. mail.example.com) so receivers don't penalise the bare system hostname (rspamd HFILTER_HELO_5). A per-VMTA HELO name overrides this. Also used as the domain for any Message-ID iris adds. Leave blank to keep kumomta's default."
+          >
+            <Input
+              v-model:value="form.egress_ehlo_domain"
+              placeholder="mail.example.com"
               style="max-width: 320px"
             />
           </FormItem>

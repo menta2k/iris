@@ -468,26 +468,30 @@ func init() {
 	globalsettingsDescMailClassHeader := globalsettingsFields[8].Descriptor()
 	// globalsettings.MailClassHeaderValidator is a validator for the "mail_class_header" field. It is called by the builders before save.
 	globalsettings.MailClassHeaderValidator = globalsettingsDescMailClassHeader.Validators[0].(func(string) error)
+	// globalsettingsDescEgressEhloDomain is the schema descriptor for egress_ehlo_domain field.
+	globalsettingsDescEgressEhloDomain := globalsettingsFields[9].Descriptor()
+	// globalsettings.EgressEhloDomainValidator is a validator for the "egress_ehlo_domain" field. It is called by the builders before save.
+	globalsettings.EgressEhloDomainValidator = globalsettingsDescEgressEhloDomain.Validators[0].(func(string) error)
 	// globalsettingsDescHTTPSListen is the schema descriptor for https_listen field.
-	globalsettingsDescHTTPSListen := globalsettingsFields[9].Descriptor()
+	globalsettingsDescHTTPSListen := globalsettingsFields[10].Descriptor()
 	// globalsettings.HTTPSListenValidator is a validator for the "https_listen" field. It is called by the builders before save.
 	globalsettings.HTTPSListenValidator = globalsettingsDescHTTPSListen.Validators[0].(func(string) error)
 	// globalsettingsDescHTTPSCertPemPath is the schema descriptor for https_cert_pem_path field.
-	globalsettingsDescHTTPSCertPemPath := globalsettingsFields[10].Descriptor()
+	globalsettingsDescHTTPSCertPemPath := globalsettingsFields[11].Descriptor()
 	// globalsettings.HTTPSCertPemPathValidator is a validator for the "https_cert_pem_path" field. It is called by the builders before save.
 	globalsettings.HTTPSCertPemPathValidator = globalsettingsDescHTTPSCertPemPath.Validators[0].(func(string) error)
 	// globalsettingsDescHTTPSKeyPemPath is the schema descriptor for https_key_pem_path field.
-	globalsettingsDescHTTPSKeyPemPath := globalsettingsFields[11].Descriptor()
+	globalsettingsDescHTTPSKeyPemPath := globalsettingsFields[12].Descriptor()
 	// globalsettings.HTTPSKeyPemPathValidator is a validator for the "https_key_pem_path" field. It is called by the builders before save.
 	globalsettings.HTTPSKeyPemPathValidator = globalsettingsDescHTTPSKeyPemPath.Validators[0].(func(string) error)
 	// globalsettingsDescUpdatedAt is the schema descriptor for updated_at field.
-	globalsettingsDescUpdatedAt := globalsettingsFields[12].Descriptor()
+	globalsettingsDescUpdatedAt := globalsettingsFields[13].Descriptor()
 	// globalsettings.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	globalsettings.DefaultUpdatedAt = globalsettingsDescUpdatedAt.Default.(func() time.Time)
 	// globalsettings.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	globalsettings.UpdateDefaultUpdatedAt = globalsettingsDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// globalsettingsDescUpdatedBy is the schema descriptor for updated_by field.
-	globalsettingsDescUpdatedBy := globalsettingsFields[13].Descriptor()
+	globalsettingsDescUpdatedBy := globalsettingsFields[14].Descriptor()
 	// globalsettings.UpdatedByValidator is a validator for the "updated_by" field. It is called by the builders before save.
 	globalsettings.UpdatedByValidator = globalsettingsDescUpdatedBy.Validators[0].(func(string) error)
 	// globalsettingsDescID is the schema descriptor for id field.

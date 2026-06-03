@@ -260,6 +260,7 @@ var (
 		{Name: "bounce_sender_domains", Type: field.TypeJSON, Nullable: true},
 		{Name: "bounce_prefix", Type: field.TypeString, Nullable: true, Size: 64},
 		{Name: "mail_class_header", Type: field.TypeString, Nullable: true, Size: 128},
+		{Name: "egress_ehlo_domain", Type: field.TypeString, Nullable: true, Size: 253},
 		{Name: "https_listen", Type: field.TypeString, Nullable: true, Size: 64},
 		{Name: "https_cert_pem_path", Type: field.TypeString, Nullable: true, Size: 1024},
 		{Name: "https_key_pem_path", Type: field.TypeString, Nullable: true, Size: 1024},

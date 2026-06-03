@@ -63,6 +63,15 @@ func (GlobalSettings) Fields() []ent.Field {
 		// to "X-Kumo-Mail-Class".
 		field.String("mail_class_header").Optional().MaxLen(128),
 
+		// Default outbound EHLO/HELO hostname (a FQDN, e.g.
+		// "mail.example.com"). Rendered as the egress *path* ehlo_domain so
+		// every outbound connection announces a resolvable name instead of
+		// the bare system hostname (which trips rspamd HFILTER_HELO_5). A
+		// per-VMTA helo_name still overrides this. Also used as the domain
+		// for any Message-ID iris generates. Empty = leave kumomta's default
+		// (system hostname).
+		field.String("egress_ehlo_domain").Optional().MaxLen(253),
+
 		// Iris admin HTTPS termination. When https_listen is set, a
 		// kratos transport.Server starts on that bind, terminates TLS
 		// using the cert+key paths below, and reverse-proxies to the

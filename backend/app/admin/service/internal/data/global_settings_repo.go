@@ -67,6 +67,7 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in service.GlobalSettin
 		SetBounceSenderDomains(append([]string(nil), in.BounceSenderDomains...)).
 		SetBouncePrefix(in.BouncePrefix).
 		SetMailClassHeader(in.MailClassHeader).
+		SetEgressEhloDomain(in.EgressEhloDomain).
 		SetHTTPSListen(in.HTTPSListen).
 		SetHTTPSCertPemPath(in.HTTPSCertPemPath).
 		SetHTTPSKeyPemPath(in.HTTPSKeyPemPath).
@@ -91,6 +92,7 @@ func entToRow(g *ent.GlobalSettings) *service.GlobalSettingsRow {
 		BounceSenderDomains: append([]string(nil), g.BounceSenderDomains...),
 		BouncePrefix:        g.BouncePrefix,
 		MailClassHeader:     g.MailClassHeader,
+		EgressEhloDomain:    g.EgressEhloDomain,
 		HTTPSListen:         g.HTTPSListen,
 		HTTPSCertPemPath:    g.HTTPSCertPemPath,
 		HTTPSKeyPemPath:     g.HTTPSKeyPemPath,

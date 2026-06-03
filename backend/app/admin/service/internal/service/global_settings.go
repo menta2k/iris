@@ -21,6 +21,7 @@ type GlobalSettingsRow struct {
 	BounceSenderDomains []string
 	BouncePrefix        string
 	MailClassHeader     string
+	EgressEhloDomain    string
 
 	// Iris admin HTTPS — a TLS-terminating reverse proxy that fronts
 	// the plain :8000 server. Empty Listen disables.
@@ -165,6 +166,7 @@ func normaliseRow(r *GlobalSettingsRow) {
 	r.BounceSenderDomains = dedupTrim(r.BounceSenderDomains, true)
 	r.BouncePrefix = strings.Trim(strings.ToLower(strings.TrimSpace(r.BouncePrefix)), ".")
 	r.MailClassHeader = strings.TrimSpace(r.MailClassHeader)
+	r.EgressEhloDomain = strings.ToLower(strings.TrimSpace(r.EgressEhloDomain))
 	r.HTTPSListen = strings.TrimSpace(r.HTTPSListen)
 	r.HTTPSCertPemPath = strings.TrimSpace(r.HTTPSCertPemPath)
 	r.HTTPSKeyPemPath = strings.TrimSpace(r.HTTPSKeyPemPath)

@@ -29,6 +29,8 @@ const (
 	FieldBouncePrefix = "bounce_prefix"
 	// FieldMailClassHeader holds the string denoting the mail_class_header field in the database.
 	FieldMailClassHeader = "mail_class_header"
+	// FieldEgressEhloDomain holds the string denoting the egress_ehlo_domain field in the database.
+	FieldEgressEhloDomain = "egress_ehlo_domain"
 	// FieldHTTPSListen holds the string denoting the https_listen field in the database.
 	FieldHTTPSListen = "https_listen"
 	// FieldHTTPSCertPemPath holds the string denoting the https_cert_pem_path field in the database.
@@ -54,6 +56,7 @@ var Columns = []string{
 	FieldBounceSenderDomains,
 	FieldBouncePrefix,
 	FieldMailClassHeader,
+	FieldEgressEhloDomain,
 	FieldHTTPSListen,
 	FieldHTTPSCertPemPath,
 	FieldHTTPSKeyPemPath,
@@ -82,6 +85,8 @@ var (
 	BouncePrefixValidator func(string) error
 	// MailClassHeaderValidator is a validator for the "mail_class_header" field. It is called by the builders before save.
 	MailClassHeaderValidator func(string) error
+	// EgressEhloDomainValidator is a validator for the "egress_ehlo_domain" field. It is called by the builders before save.
+	EgressEhloDomainValidator func(string) error
 	// HTTPSListenValidator is a validator for the "https_listen" field. It is called by the builders before save.
 	HTTPSListenValidator func(string) error
 	// HTTPSCertPemPathValidator is a validator for the "https_cert_pem_path" field. It is called by the builders before save.
@@ -129,6 +134,11 @@ func ByBouncePrefix(opts ...sql.OrderTermOption) OrderOption {
 // ByMailClassHeader orders the results by the mail_class_header field.
 func ByMailClassHeader(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMailClassHeader, opts...).ToFunc()
+}
+
+// ByEgressEhloDomain orders the results by the egress_ehlo_domain field.
+func ByEgressEhloDomain(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEgressEhloDomain, opts...).ToFunc()
 }
 
 // ByHTTPSListen orders the results by the https_listen field.
