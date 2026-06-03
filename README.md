@@ -768,7 +768,7 @@ Every knob is an env var on the admin-service binary:
 | `IRIS_SOFT_BOUNCE_THRESHOLD` | `3` | how many soft (4.x.x) bounces a recipient can accumulate within the window before iris suppresses them |
 | `IRIS_SOFT_BOUNCE_WINDOW_HOURS` | `168` (7d) | sliding window for the soft-bounce threshold |
 | `IRIS_BOUNCE_TOKEN_TTL` | `720h` (30d) | reserved — DSNs older than this should be treated as backscatter (not yet enforced; see roadmap) |
-| `IRIS_GEOIP_DB_PATH` | `/opt/kumomta/etc/dbip-country-lite.mmdb` | Country `.mmdb` for the **login firewall**'s REGION rules. Any MaxMind-DB-format file with a `country.iso_code` field works — the free [DB-IP IP-to-Country Lite](https://db-ip.com/db/download/ip-to-country-lite) db or a MaxMind GeoLite2-Country db. **Auto-downloaded** on startup by default (see below), so you only need a writable directory. Optional overall: with auto-update off and no file, region rules fail open (logged); IP and time-window rules need no database. |
+| `IRIS_GEOIP_DB_PATH` | `/var/lib/iris/dbip-country-lite.mmdb` | Country `.mmdb` for the **login firewall**'s REGION rules. Any MaxMind-DB-format file with a `country.iso_code` field works — the free [DB-IP IP-to-Country Lite](https://db-ip.com/db/download/ip-to-country-lite) db or a MaxMind GeoLite2-Country db. **Auto-downloaded** on startup by default (see below). Default lives in `/var/lib/iris` (the systemd unit's `StateDirectory=`, writable under `ProtectSystem=strict`); don't point it at `/opt/kumomta/etc`, which the hardened unit mounts read-only. Optional overall: with auto-update off and no file, region rules fail open (logged); IP and time-window rules need no database. |
 | `IRIS_GEOIP_AUTO_UPDATE` | `true` | Auto-download the current month's DB-IP database to `IRIS_GEOIP_DB_PATH` on boot, hot-swapping it into the firewall without a restart, and re-check on an interval. Set `false` for air-gapped hosts that ship the file out-of-band. Failures are best-effort — they never block boot or login. |
 | `IRIS_GEOIP_UPDATE_INTERVAL` | `24h` | How often the updater re-checks for a new monthly release. |
 | `IRIS_GEOIP_DOWNLOAD_URL` | *(DB-IP free)* | Override the download URL template (`%s` = `YYYY-MM`) for a mirror or a paid DB-IP/MaxMind edition. Body must be a gzipped `.mmdb`. |
@@ -1114,6 +1114,13 @@ flip to public in the GitHub UI if you want world-readable pulls.
   closed.
 - **Secrets.** JWT secrets refused if placeholder. DKIM private keys
   stored mode 0640 (group-readable for the kumomta uid only).
+- **Write-only credentials.** DNS-01 provider credentials
+  (`/security/dns-providers`) are write-only: the API accepts them on
+  save but never returns the values — list/save responses carry only
+  `configured_keys` (which fields are set), so a secret can't be read
+  back out once entered. Edits merge over the stored config (blank field
+  = keep existing), so changing one credential never exposes or requires
+  re-typing the others.
 
 ---
 

@@ -2,7 +2,9 @@ package server
 
 import (
 	"net/http"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
@@ -48,11 +50,23 @@ type httpAcmeIssueReq struct {
 	DnsProvider   string   `json:"dns_provider"`
 }
 
+// httpAcmeDnsCfgReq is the write-only request body. Credentials are
+// accepted here but NEVER echoed back — see httpAcmeDnsCfg.
+type httpAcmeDnsCfgReq struct {
+	Provider string            `json:"provider"`
+	Config   map[string]string `json:"config"`
+}
+
+// httpAcmeDnsCfg is the response shape. It deliberately omits the secret
+// `config` values: once a credential is entered it can never be read back
+// out of the API. ConfiguredKeys lists which credential fields currently
+// have a value (the field names come from the provider registry and aren't
+// secret) so the UI can show "saved" without exposing the secret.
 type httpAcmeDnsCfg struct {
-	Provider  string            `json:"provider"`
-	Config    map[string]string `json:"config"`
-	UpdatedAt time.Time         `json:"updated_at,omitempty"`
-	UpdatedBy string            `json:"updated_by,omitempty"`
+	Provider       string    `json:"provider"`
+	ConfiguredKeys []string  `json:"configured_keys"`
+	UpdatedAt      time.Time `json:"updated_at,omitempty"`
+	UpdatedBy      string    `json:"updated_by,omitempty"`
 }
 
 type httpAcmeDnsCfgList struct {
@@ -141,7 +155,7 @@ func registerAcmeHTTP(hs *kratoshttp.Server, s *service.AcmeService, write audit
 			}
 			writeJSON(w, http.StatusOK, out)
 		case http.MethodPut:
-			var body httpAcmeDnsCfg
+			var body httpAcmeDnsCfgReq
 			if err := decodeJSON(r, &body); err != nil {
 				writeErr(w, http.StatusBadRequest, "BAD_JSON", err.Error())
 				return
@@ -273,9 +287,21 @@ func certToHTTP(r *service.AcmeCertificateRow) httpAcmeCertificate {
 	}
 }
 
+// dnsCfgToHTTP builds the redacted response: the secret values in r.Config
+// are never serialized — only the names of the keys that currently hold a
+// (non-empty) value, sorted for stable output.
 func dnsCfgToHTTP(r service.AcmeDnsProviderConfigRow) httpAcmeDnsCfg {
+	keys := make([]string, 0, len(r.Config))
+	for k, v := range r.Config {
+		if strings.TrimSpace(v) != "" {
+			keys = append(keys, k)
+		}
+	}
+	sort.Strings(keys)
 	return httpAcmeDnsCfg{
-		Provider: r.Provider, Config: r.Config,
-		UpdatedAt: r.UpdatedAt, UpdatedBy: r.UpdatedBy,
+		Provider:       r.Provider,
+		ConfiguredKeys: keys,
+		UpdatedAt:      r.UpdatedAt,
+		UpdatedBy:      r.UpdatedBy,
 	}
 }

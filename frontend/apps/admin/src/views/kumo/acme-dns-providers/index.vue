@@ -35,6 +35,10 @@ const registry = ref<AcmeProviderInfo[]>([]);
 
 const drawerOpen = ref(false);
 const editing = ref<null | AcmeDnsProviderConfig>(null);
+// Which credential fields already have a stored value (from the API's
+// configured_keys). The API never returns the secret values themselves, so
+// on edit these fields stay blank and "leave blank to keep" applies.
+const editingConfigured = ref<Set<string>>(new Set());
 
 // The drawer uses a single reactive form whose shape changes with the
 // selected provider. We keep all values as strings (the API expects
@@ -93,6 +97,7 @@ function descriptionOf(name: string): string {
 
 function openCreate() {
   editing.value = null;
+  editingConfigured.value = new Set();
   form.provider = '';
   form.values = {};
   drawerOpen.value = true;
@@ -101,10 +106,27 @@ function openCreate() {
 function openEdit(row: AcmeDnsProviderConfig) {
   editing.value = row;
   form.provider = row.provider;
-  // Spread copy so editing the drawer doesn't mutate the table row
-  // directly — keeps Cancel functional.
-  form.values = { ...row.config };
+  editingConfigured.value = new Set(row.configured_keys ?? []);
+  // Secrets are never returned by the API, so start every field blank.
+  // The operator fills only what they want to change; blanks keep the
+  // stored value (the backend merges). Seed keys from the registry schema
+  // so the v-model bindings exist.
+  const info = registry.value.find((p) => p.name === row.provider);
+  const next: Record<string, string> = {};
+  for (const f of info?.required_fields ?? []) next[f] = '';
+  for (const f of info?.optional_fields ?? []) next[f] = '';
+  form.values = next;
   drawerOpen.value = true;
+}
+
+// True when a field already holds a stored value (on edit). Used to relax
+// required-field validation and to show a "saved" placeholder.
+function isConfigured(field: string): boolean {
+  return editingConfigured.value.has(field);
+}
+
+function fieldPlaceholder(field: string): string {
+  return isConfigured(field) ? '•••••• saved — leave blank to keep' : field;
 }
 
 // Triggered when the operator picks a provider in the "new" flow.
@@ -129,8 +151,10 @@ async function save() {
   // a client-side error is faster.
   const info = selectedInfo.value;
   if (info) {
+    // A required field may be left blank only if it already has a stored
+    // value (edit + keep). New providers must fill every required field.
     const missing = (info.required_fields ?? []).filter(
-      (f) => !(form.values[f] ?? '').trim(),
+      (f) => !(form.values[f] ?? '').trim() && !isConfigured(f),
     );
     if (missing.length > 0) {
       message.warning(`Missing required field(s): ${missing.join(', ')}`);
@@ -271,17 +295,17 @@ onMounted(load);
             v-for="field in selectedInfo.required_fields"
             :key="`req-${field}`"
             :label="field"
-            :required="true"
+            :required="!isConfigured(field)"
           >
             <Input.Password
               v-if="isSecretField(field)"
               v-model:value="form.values[field]"
-              :placeholder="field"
+              :placeholder="fieldPlaceholder(field)"
             />
             <Input
               v-else
               v-model:value="form.values[field]"
-              :placeholder="field"
+              :placeholder="fieldPlaceholder(field)"
             />
           </FormItem>
 
@@ -295,12 +319,12 @@ onMounted(load);
               <Input.Password
                 v-if="isSecretField(field)"
                 v-model:value="form.values[field]"
-                :placeholder="field"
+                :placeholder="fieldPlaceholder(field)"
               />
               <Input
                 v-else
                 v-model:value="form.values[field]"
-                :placeholder="field"
+                :placeholder="fieldPlaceholder(field)"
               />
             </FormItem>
           </template>

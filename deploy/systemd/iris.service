@@ -6,7 +6,9 @@
 #
 #   /etc/iris/iris.env   secrets + env knobs (root-only)
 #   /etc/iris/configs/            kratos layered YAML (data, server, auth)
-#   /var/lib/iris/                (reserved — currently unused)
+#   /var/lib/iris/                service state dir (auto-created via
+#                                 StateDirectory=); holds the auto-downloaded
+#                                 GeoIP country database
 #   /opt/kumomta/etc/policy/init.lua    written by admin-service, read by kumomta
 #   /opt/kumomta/etc/dkim/              DKIM PEM keys
 #
@@ -77,10 +79,16 @@ RestrictSUIDSGID=true
 SystemCallArchitectures=native
 SystemCallFilter=@system-service
 
+# Service state dir: systemd creates /var/lib/iris (mode 0750, owned by
+# User=iris) and makes it writable under ProtectSystem=strict. The GeoIP
+# auto-updater downloads the country database here.
+StateDirectory=iris
+
 # Writable surfaces. /opt/kumomta/etc/{policy,dkim,tls} are the bind-mount
 # equivalents from docker-compose: admin-service generates init.lua,
 # emits/imports DKIM PEMs, and writes ACME-issued cert/key PEMs at
-# /opt/kumomta/etc/tls/<domain>/ — kumomta reads them all.
+# /opt/kumomta/etc/tls/<domain>/ — kumomta reads them all. /var/lib/iris is
+# also covered by StateDirectory= above; listed here for explicitness.
 ReadWritePaths=/opt/kumomta/etc/policy /opt/kumomta/etc/dkim /opt/kumomta/etc/tls /var/lib/iris
 
 # Network: loopback-only by default would require socket-level binding,
