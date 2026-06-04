@@ -457,6 +457,40 @@ var (
 			},
 		},
 	}
+	// MailWebhooksColumns holds the columns for the "mail_webhooks" table.
+	MailWebhooksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString, Unique: true, Size: 64},
+		{Name: "address", Type: field.TypeString, Size: 320},
+		{Name: "url", Type: field.TypeString, Size: 2048},
+		{Name: "secret", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "enabled", Type: field.TypeBool, Default: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// MailWebhooksTable holds the schema information for the "mail_webhooks" table.
+	MailWebhooksTable = &schema.Table{
+		Name:       "mail_webhooks",
+		Columns:    MailWebhooksColumns,
+		PrimaryKey: []*schema.Column{MailWebhooksColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "mailwebhook_name",
+				Unique:  false,
+				Columns: []*schema.Column{MailWebhooksColumns[1]},
+			},
+			{
+				Name:    "mailwebhook_address",
+				Unique:  false,
+				Columns: []*schema.Column{MailWebhooksColumns[2]},
+			},
+			{
+				Name:    "mailwebhook_enabled",
+				Unique:  false,
+				Columns: []*schema.Column{MailWebhooksColumns[5]},
+			},
+		},
+	}
 	// MetricSnapshotColumns holds the columns for the "metric_snapshot" table.
 	MetricSnapshotColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -843,6 +877,7 @@ var (
 		LogEventTable,
 		LoginPoliciesTable,
 		MailClassesTable,
+		MailWebhooksTable,
 		MetricSnapshotTable,
 		MfaCredentialsTable,
 		PolicyHistoriesTable,
@@ -884,6 +919,9 @@ func init() {
 	}
 	LoginPoliciesTable.Annotation = &entsql.Annotation{
 		Table: "login_policies",
+	}
+	MailWebhooksTable.Annotation = &entsql.Annotation{
+		Table: "mail_webhooks",
 	}
 	MetricSnapshotTable.Annotation = &entsql.Annotation{
 		Table: "metric_snapshot",

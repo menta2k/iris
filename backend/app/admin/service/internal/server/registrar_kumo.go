@@ -38,6 +38,7 @@ func RegisterKumoHTTP(
 	listeners *service.ListenerService,
 	acme *service.AcmeService,
 	loginPolicies *service.LoginPolicyService,
+	mailWebhooks *service.MailWebhookService,
 	write auditmw.WriteFunc,
 ) {
 	registerQueuesHTTP(hs, queues, write)
@@ -56,6 +57,7 @@ func RegisterKumoHTTP(
 	registerListeners(hs, listeners, write)
 	registerAcmeHTTP(hs, acme, write)
 	registerLoginPolicies(hs, loginPolicies, write)
+	registerMailWebhooks(hs, mailWebhooks, write)
 }
 
 // --- /v1/queues -----------------------------------------------------------

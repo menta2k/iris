@@ -128,6 +128,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('#/views/kumo/suppressions/index.vue'),
         meta: { icon: 'lucide:ban', title: 'Suppressions' },
       },
+      {
+        name: 'MailWebhooks',
+        path: '/policy/mail-webhooks',
+        component: () => import('#/views/kumo/mail-webhooks/index.vue'),
+        meta: { icon: 'lucide:webhook', title: 'Mail Webhooks' },
+      },
     ],
   },
   {

@@ -89,11 +89,16 @@ var ProviderSet = wire.NewSet(
 	GeoResolverIface,
 	service.NewLoginFirewall,
 	service.NewLoginPolicyService,
+	MailWebhookStoreFromRepo,
+	service.NewMailWebhookService,
 	MFAStoreFromRepo,
 	LoginRecorderFromUserRepo,
 	NewMFASessionStore,
 	NewMFAServiceProvider,
 )
+
+// MailWebhookStoreFromRepo binds the webhook repo to the service iface.
+func MailWebhookStoreFromRepo(r *data.MailWebhookRepo) service.MailWebhookStore { return r }
 
 // MFAStoreFromRepo binds the MFA repo to the service interface (also consumed
 // by AuthenticationService for the login MFA gate).

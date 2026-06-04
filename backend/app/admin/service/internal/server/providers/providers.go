@@ -66,13 +66,14 @@ func RegisterServers(
 	listeners *service.ListenerService,
 	acme *service.AcmeService,
 	loginPolicies *service.LoginPolicyService,
+	mailWebhooks *service.MailWebhookService,
 	mfa *service.MFAService,
 	issuer *appjwt.Issuer,
 	writer *data.AuditWriter,
 ) Registered {
 	server.RegisterServices(gs, hs, auth, users, audit,
 		queues, suppressions, vmtas, routing, dkim, feedback, logs, policy,
-		mailClasses, vmtaGroups, dashboard, dsns, gsvc, listeners, acme, loginPolicies, mfa, issuer, writer.Write)
+		mailClasses, vmtaGroups, dashboard, dsns, gsvc, listeners, acme, loginPolicies, mailWebhooks, mfa, issuer, writer.Write)
 	return Registered{}
 }
 

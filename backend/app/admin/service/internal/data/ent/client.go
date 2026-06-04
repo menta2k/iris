@@ -28,6 +28,7 @@ import (
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/logevent"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/loginpolicy"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mailclass"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mailwebhook"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/metricsnapshot"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mfacredential"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/policyhistory"
@@ -73,6 +74,8 @@ type Client struct {
 	LoginPolicy *LoginPolicyClient
 	// MailClass is the client for interacting with the MailClass builders.
 	MailClass *MailClassClient
+	// MailWebhook is the client for interacting with the MailWebhook builders.
+	MailWebhook *MailWebhookClient
 	// MetricSnapshot is the client for interacting with the MetricSnapshot builders.
 	MetricSnapshot *MetricSnapshotClient
 	// MfaCredential is the client for interacting with the MfaCredential builders.
@@ -121,6 +124,7 @@ func (c *Client) init() {
 	c.LogEvent = NewLogEventClient(c.config)
 	c.LoginPolicy = NewLoginPolicyClient(c.config)
 	c.MailClass = NewMailClassClient(c.config)
+	c.MailWebhook = NewMailWebhookClient(c.config)
 	c.MetricSnapshot = NewMetricSnapshotClient(c.config)
 	c.MfaCredential = NewMfaCredentialClient(c.config)
 	c.PolicyHistory = NewPolicyHistoryClient(c.config)
@@ -238,6 +242,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		LogEvent:              NewLogEventClient(cfg),
 		LoginPolicy:           NewLoginPolicyClient(cfg),
 		MailClass:             NewMailClassClient(cfg),
+		MailWebhook:           NewMailWebhookClient(cfg),
 		MetricSnapshot:        NewMetricSnapshotClient(cfg),
 		MfaCredential:         NewMfaCredentialClient(cfg),
 		PolicyHistory:         NewPolicyHistoryClient(cfg),
@@ -282,6 +287,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		LogEvent:              NewLogEventClient(cfg),
 		LoginPolicy:           NewLoginPolicyClient(cfg),
 		MailClass:             NewMailClassClient(cfg),
+		MailWebhook:           NewMailWebhookClient(cfg),
 		MetricSnapshot:        NewMetricSnapshotClient(cfg),
 		MfaCredential:         NewMfaCredentialClient(cfg),
 		PolicyHistory:         NewPolicyHistoryClient(cfg),
@@ -326,9 +332,9 @@ func (c *Client) Use(hooks ...Hook) {
 		c.AcmeAccount, c.AcmeCertificate, c.AcmeDnsProviderConfig, c.AuditEntry,
 		c.DkimIdentity, c.DsnEvent, c.FeedbackReport, c.GlobalSettings,
 		c.ListenerConfig, c.ListenerDomain, c.LogEvent, c.LoginPolicy, c.MailClass,
-		c.MetricSnapshot, c.MfaCredential, c.PolicyHistory, c.Role, c.RoutingRule,
-		c.RuleCondition, c.RuleTarget, c.SuppressionEntry, c.User, c.VirtualMta,
-		c.VirtualMtaGroup, c.VirtualMtaGroupMember,
+		c.MailWebhook, c.MetricSnapshot, c.MfaCredential, c.PolicyHistory, c.Role,
+		c.RoutingRule, c.RuleCondition, c.RuleTarget, c.SuppressionEntry, c.User,
+		c.VirtualMta, c.VirtualMtaGroup, c.VirtualMtaGroupMember,
 	} {
 		n.Use(hooks...)
 	}
@@ -341,9 +347,9 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.AcmeAccount, c.AcmeCertificate, c.AcmeDnsProviderConfig, c.AuditEntry,
 		c.DkimIdentity, c.DsnEvent, c.FeedbackReport, c.GlobalSettings,
 		c.ListenerConfig, c.ListenerDomain, c.LogEvent, c.LoginPolicy, c.MailClass,
-		c.MetricSnapshot, c.MfaCredential, c.PolicyHistory, c.Role, c.RoutingRule,
-		c.RuleCondition, c.RuleTarget, c.SuppressionEntry, c.User, c.VirtualMta,
-		c.VirtualMtaGroup, c.VirtualMtaGroupMember,
+		c.MailWebhook, c.MetricSnapshot, c.MfaCredential, c.PolicyHistory, c.Role,
+		c.RoutingRule, c.RuleCondition, c.RuleTarget, c.SuppressionEntry, c.User,
+		c.VirtualMta, c.VirtualMtaGroup, c.VirtualMtaGroupMember,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -378,6 +384,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.LoginPolicy.mutate(ctx, m)
 	case *MailClassMutation:
 		return c.MailClass.mutate(ctx, m)
+	case *MailWebhookMutation:
+		return c.MailWebhook.mutate(ctx, m)
 	case *MetricSnapshotMutation:
 		return c.MetricSnapshot.mutate(ctx, m)
 	case *MfaCredentialMutation:
@@ -2168,6 +2176,139 @@ func (c *MailClassClient) mutate(ctx context.Context, m *MailClassMutation) (Val
 	}
 }
 
+// MailWebhookClient is a client for the MailWebhook schema.
+type MailWebhookClient struct {
+	config
+}
+
+// NewMailWebhookClient returns a client for the MailWebhook from the given config.
+func NewMailWebhookClient(c config) *MailWebhookClient {
+	return &MailWebhookClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `mailwebhook.Hooks(f(g(h())))`.
+func (c *MailWebhookClient) Use(hooks ...Hook) {
+	c.hooks.MailWebhook = append(c.hooks.MailWebhook, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `mailwebhook.Intercept(f(g(h())))`.
+func (c *MailWebhookClient) Intercept(interceptors ...Interceptor) {
+	c.inters.MailWebhook = append(c.inters.MailWebhook, interceptors...)
+}
+
+// Create returns a builder for creating a MailWebhook entity.
+func (c *MailWebhookClient) Create() *MailWebhookCreate {
+	mutation := newMailWebhookMutation(c.config, OpCreate)
+	return &MailWebhookCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of MailWebhook entities.
+func (c *MailWebhookClient) CreateBulk(builders ...*MailWebhookCreate) *MailWebhookCreateBulk {
+	return &MailWebhookCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *MailWebhookClient) MapCreateBulk(slice any, setFunc func(*MailWebhookCreate, int)) *MailWebhookCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &MailWebhookCreateBulk{err: fmt.Errorf("calling to MailWebhookClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*MailWebhookCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &MailWebhookCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for MailWebhook.
+func (c *MailWebhookClient) Update() *MailWebhookUpdate {
+	mutation := newMailWebhookMutation(c.config, OpUpdate)
+	return &MailWebhookUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *MailWebhookClient) UpdateOne(_m *MailWebhook) *MailWebhookUpdateOne {
+	mutation := newMailWebhookMutation(c.config, OpUpdateOne, withMailWebhook(_m))
+	return &MailWebhookUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *MailWebhookClient) UpdateOneID(id int) *MailWebhookUpdateOne {
+	mutation := newMailWebhookMutation(c.config, OpUpdateOne, withMailWebhookID(id))
+	return &MailWebhookUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for MailWebhook.
+func (c *MailWebhookClient) Delete() *MailWebhookDelete {
+	mutation := newMailWebhookMutation(c.config, OpDelete)
+	return &MailWebhookDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *MailWebhookClient) DeleteOne(_m *MailWebhook) *MailWebhookDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *MailWebhookClient) DeleteOneID(id int) *MailWebhookDeleteOne {
+	builder := c.Delete().Where(mailwebhook.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &MailWebhookDeleteOne{builder}
+}
+
+// Query returns a query builder for MailWebhook.
+func (c *MailWebhookClient) Query() *MailWebhookQuery {
+	return &MailWebhookQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeMailWebhook},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a MailWebhook entity by its id.
+func (c *MailWebhookClient) Get(ctx context.Context, id int) (*MailWebhook, error) {
+	return c.Query().Where(mailwebhook.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *MailWebhookClient) GetX(ctx context.Context, id int) *MailWebhook {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *MailWebhookClient) Hooks() []Hook {
+	return c.hooks.MailWebhook
+}
+
+// Interceptors returns the client interceptors.
+func (c *MailWebhookClient) Interceptors() []Interceptor {
+	return c.inters.MailWebhook
+}
+
+func (c *MailWebhookClient) mutate(ctx context.Context, m *MailWebhookMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&MailWebhookCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&MailWebhookUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&MailWebhookUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&MailWebhookDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown MailWebhook mutation op: %q", m.Op())
+	}
+}
+
 // MetricSnapshotClient is a client for the MetricSnapshot schema.
 type MetricSnapshotClient struct {
 	config
@@ -3913,15 +4054,15 @@ type (
 	hooks struct {
 		AcmeAccount, AcmeCertificate, AcmeDnsProviderConfig, AuditEntry, DkimIdentity,
 		DsnEvent, FeedbackReport, GlobalSettings, ListenerConfig, ListenerDomain,
-		LogEvent, LoginPolicy, MailClass, MetricSnapshot, MfaCredential, PolicyHistory,
-		Role, RoutingRule, RuleCondition, RuleTarget, SuppressionEntry, User,
-		VirtualMta, VirtualMtaGroup, VirtualMtaGroupMember []ent.Hook
+		LogEvent, LoginPolicy, MailClass, MailWebhook, MetricSnapshot, MfaCredential,
+		PolicyHistory, Role, RoutingRule, RuleCondition, RuleTarget, SuppressionEntry,
+		User, VirtualMta, VirtualMtaGroup, VirtualMtaGroupMember []ent.Hook
 	}
 	inters struct {
 		AcmeAccount, AcmeCertificate, AcmeDnsProviderConfig, AuditEntry, DkimIdentity,
 		DsnEvent, FeedbackReport, GlobalSettings, ListenerConfig, ListenerDomain,
-		LogEvent, LoginPolicy, MailClass, MetricSnapshot, MfaCredential, PolicyHistory,
-		Role, RoutingRule, RuleCondition, RuleTarget, SuppressionEntry, User,
-		VirtualMta, VirtualMtaGroup, VirtualMtaGroupMember []ent.Interceptor
+		LogEvent, LoginPolicy, MailClass, MailWebhook, MetricSnapshot, MfaCredential,
+		PolicyHistory, Role, RoutingRule, RuleCondition, RuleTarget, SuppressionEntry,
+		User, VirtualMta, VirtualMtaGroup, VirtualMtaGroupMember []ent.Interceptor
 	}
 )

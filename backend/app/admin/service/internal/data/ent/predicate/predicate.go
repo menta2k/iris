@@ -45,6 +45,9 @@ type LoginPolicy func(*sql.Selector)
 // MailClass is the predicate function for mailclass builders.
 type MailClass func(*sql.Selector)
 
+// MailWebhook is the predicate function for mailwebhook builders.
+type MailWebhook func(*sql.Selector)
+
 // MetricSnapshot is the predicate function for metricsnapshot builders.
 type MetricSnapshot func(*sql.Selector)
 

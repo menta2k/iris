@@ -38,6 +38,8 @@ type Tx struct {
 	LoginPolicy *LoginPolicyClient
 	// MailClass is the client for interacting with the MailClass builders.
 	MailClass *MailClassClient
+	// MailWebhook is the client for interacting with the MailWebhook builders.
+	MailWebhook *MailWebhookClient
 	// MetricSnapshot is the client for interacting with the MetricSnapshot builders.
 	MetricSnapshot *MetricSnapshotClient
 	// MfaCredential is the client for interacting with the MfaCredential builders.
@@ -206,6 +208,7 @@ func (tx *Tx) init() {
 	tx.LogEvent = NewLogEventClient(tx.config)
 	tx.LoginPolicy = NewLoginPolicyClient(tx.config)
 	tx.MailClass = NewMailClassClient(tx.config)
+	tx.MailWebhook = NewMailWebhookClient(tx.config)
 	tx.MetricSnapshot = NewMetricSnapshotClient(tx.config)
 	tx.MfaCredential = NewMfaCredentialClient(tx.config)
 	tx.PolicyHistory = NewPolicyHistoryClient(tx.config)

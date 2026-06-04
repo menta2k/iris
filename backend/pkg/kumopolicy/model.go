@@ -19,7 +19,35 @@ type Snapshot struct {
 	MailClasses     []MailClass
 	RoutingRules    []RoutingRule
 	Suppressions    []Suppression
+	MailWebhooks    []MailWebhook
 	GlobalSettings  GlobalSettings
+}
+
+// MailWebhook forwards inbound mail for a recipient to an HTTP endpoint.
+// Address is an exact recipient ("support@host") or a bare domain ("host")
+// catch-all. The renderer emits a lookup table + a custom_lua queue that
+// POSTs the raw message to URL (optionally HMAC-signed with Secret).
+type MailWebhook struct {
+	Name    string
+	Address string
+	URL     string
+	Secret  string
+	Enabled bool
+}
+
+// WebhookDomain returns the recipient domain this webhook accepts mail for:
+// the part after '@' for an exact address, or the whole address for a
+// bare-domain catch-all.
+func (m MailWebhook) WebhookDomain() string {
+	if at := strings.IndexByte(m.Address, '@'); at >= 0 {
+		return strings.ToLower(m.Address[at+1:])
+	}
+	return strings.ToLower(m.Address)
+}
+
+// IsDomainCatchAll reports whether the address is a bare domain (no '@').
+func (m MailWebhook) IsDomainCatchAll() bool {
+	return !strings.Contains(m.Address, "@")
 }
 
 // VirtualMtaGroup is the render-friendly view of a weighted VMTA pool. The
@@ -481,6 +509,23 @@ func (s *Snapshot) Validate() error {
 		}
 		if strings.ContainsAny(sup.Address, "\r\n\x00") {
 			push("suppression[%d] address has control chars", i)
+		}
+	}
+
+	// Mail webhooks (inbound → HTTP). Defence-in-depth — the service layer
+	// validates on write; here we guard the render path.
+	for i, wh := range s.MailWebhooks {
+		if strings.ContainsAny(wh.Address, "\r\n\x00 ") || wh.Address == "" {
+			push("mail_webhook[%d].address invalid: %q", i, wh.Address)
+		}
+		if !reHostname.MatchString(wh.WebhookDomain()) {
+			push("mail_webhook[%d] domain invalid: %q", i, wh.WebhookDomain())
+		}
+		if !strings.HasPrefix(wh.URL, "http://") && !strings.HasPrefix(wh.URL, "https://") {
+			push("mail_webhook[%d].url must be http(s): %q", i, wh.URL)
+		}
+		if strings.ContainsAny(wh.URL, "\r\n\x00 ") {
+			push("mail_webhook[%d].url has control chars", i)
 		}
 	}
 

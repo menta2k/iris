@@ -18,6 +18,7 @@ import (
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/logevent"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/loginpolicy"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mailclass"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mailwebhook"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/metricsnapshot"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mfacredential"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/policyhistory"
@@ -771,6 +772,80 @@ func init() {
 	mailclass.DefaultUpdatedAt = mailclassDescUpdatedAt.Default.(func() time.Time)
 	// mailclass.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	mailclass.UpdateDefaultUpdatedAt = mailclassDescUpdatedAt.UpdateDefault.(func() time.Time)
+	mailwebhookFields := schema.MailWebhook{}.Fields()
+	_ = mailwebhookFields
+	// mailwebhookDescName is the schema descriptor for name field.
+	mailwebhookDescName := mailwebhookFields[0].Descriptor()
+	// mailwebhook.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	mailwebhook.NameValidator = func() func(string) error {
+		validators := mailwebhookDescName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name string) error {
+			for _, fn := range fns {
+				if err := fn(name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// mailwebhookDescAddress is the schema descriptor for address field.
+	mailwebhookDescAddress := mailwebhookFields[1].Descriptor()
+	// mailwebhook.AddressValidator is a validator for the "address" field. It is called by the builders before save.
+	mailwebhook.AddressValidator = func() func(string) error {
+		validators := mailwebhookDescAddress.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(address string) error {
+			for _, fn := range fns {
+				if err := fn(address); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// mailwebhookDescURL is the schema descriptor for url field.
+	mailwebhookDescURL := mailwebhookFields[2].Descriptor()
+	// mailwebhook.URLValidator is a validator for the "url" field. It is called by the builders before save.
+	mailwebhook.URLValidator = func() func(string) error {
+		validators := mailwebhookDescURL.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(url string) error {
+			for _, fn := range fns {
+				if err := fn(url); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// mailwebhookDescSecret is the schema descriptor for secret field.
+	mailwebhookDescSecret := mailwebhookFields[3].Descriptor()
+	// mailwebhook.SecretValidator is a validator for the "secret" field. It is called by the builders before save.
+	mailwebhook.SecretValidator = mailwebhookDescSecret.Validators[0].(func(string) error)
+	// mailwebhookDescEnabled is the schema descriptor for enabled field.
+	mailwebhookDescEnabled := mailwebhookFields[4].Descriptor()
+	// mailwebhook.DefaultEnabled holds the default value on creation for the enabled field.
+	mailwebhook.DefaultEnabled = mailwebhookDescEnabled.Default.(bool)
+	// mailwebhookDescCreatedAt is the schema descriptor for created_at field.
+	mailwebhookDescCreatedAt := mailwebhookFields[5].Descriptor()
+	// mailwebhook.DefaultCreatedAt holds the default value on creation for the created_at field.
+	mailwebhook.DefaultCreatedAt = mailwebhookDescCreatedAt.Default.(func() time.Time)
+	// mailwebhookDescUpdatedAt is the schema descriptor for updated_at field.
+	mailwebhookDescUpdatedAt := mailwebhookFields[6].Descriptor()
+	// mailwebhook.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	mailwebhook.DefaultUpdatedAt = mailwebhookDescUpdatedAt.Default.(func() time.Time)
+	// mailwebhook.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	mailwebhook.UpdateDefaultUpdatedAt = mailwebhookDescUpdatedAt.UpdateDefault.(func() time.Time)
 	metricsnapshotFields := schema.MetricSnapshot{}.Fields()
 	_ = metricsnapshotFields
 	// metricsnapshotDescAt is the schema descriptor for at field.

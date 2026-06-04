@@ -314,3 +314,37 @@ func TestRenderQueueRetryOmittedWhenUnset(t *testing.T) {
 	// settings are configured (kumomta defaults apply).
 	require.Contains(t, out.Lua, "  return kumo.make_queue_config {\n    egress_pool = pool,\n  }")
 }
+
+func TestRenderWebhookCatcher(t *testing.T) {
+	snap := goodSnapshot()
+	snap.MailWebhooks = []MailWebhook{
+		{Name: "support", Address: "support@kmx.jobs.bg", URL: "https://hooks.example.com/in", Secret: "s3cr3t", Enabled: true},
+		{Name: "catchall", Address: "inbound.example.com", URL: "https://hooks.example.com/dom", Enabled: true},
+	}
+	out, err := Render(snap, RenderOptions{})
+	require.NoError(t, err)
+	require.Empty(t, Lint(out.Lua))
+	// Lookup tables: exact email vs domain catch-all.
+	require.Contains(t, out.Lua, `WEBHOOK_BY_EMAIL["support@kmx.jobs.bg"] = { url = "https://hooks.example.com/in"`)
+	require.Contains(t, out.Lua, `WEBHOOK_BY_DOMAIN["inbound.example.com"] = { url = "https://hooks.example.com/dom"`)
+	// Custom-lua POST queue + routing + queue-config branch + listener accept.
+	require.Contains(t, out.Lua, "kumo.on('make.webhook_post'")
+	require.Contains(t, out.Lua, "msg:set_meta('queue', WEBHOOK_TRACKER)")
+	require.Contains(t, out.Lua, "if domain == WEBHOOK_TRACKER then")
+	require.Contains(t, out.Lua, `["kmx.jobs.bg"] = { relay_to = true }`)
+	require.Contains(t, out.Lua, `["inbound.example.com"] = { relay_to = true }`)
+}
+
+func TestRenderNoWebhookWhenNone(t *testing.T) {
+	out, err := Render(goodSnapshot(), RenderOptions{})
+	require.NoError(t, err)
+	require.NotContains(t, out.Lua, "kumo.on('make.webhook_post'")
+	require.NotContains(t, out.Lua, "if domain == WEBHOOK_TRACKER then")
+}
+
+func TestRenderRejectsBadWebhookURL(t *testing.T) {
+	snap := goodSnapshot()
+	snap.MailWebhooks = []MailWebhook{{Name: "x", Address: "a@b.com", URL: "ftp://nope", Enabled: true}}
+	_, err := Render(snap, RenderOptions{})
+	require.Error(t, err)
+}

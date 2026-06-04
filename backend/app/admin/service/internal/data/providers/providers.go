@@ -37,6 +37,7 @@ var ProviderSet = wire.NewSet(
 	data.NewAcmeDnsProviderConfigRepo,
 	data.NewLoginPolicyRepo,
 	data.NewMfaRepo,
+	data.NewMailWebhookRepo,
 	data.NewLogstreamPersister,
 	data.NewDsnstreamPersister,
 	AuditPersisterFromEnt,

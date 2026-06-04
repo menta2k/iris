@@ -51,6 +51,7 @@ func RegisterServices(
 	listeners *service.ListenerService,
 	acme *service.AcmeService,
 	loginPolicies *service.LoginPolicyService,
+	mailWebhooks *service.MailWebhookService,
 	mfa *service.MFAService,
 	issuer *appjwt.Issuer,
 	auditWrite auditmw.WriteFunc,
@@ -59,7 +60,7 @@ func RegisterServices(
 	registerAuthHTTP(hs, auth, auditWrite)
 	registerMFA(hs, mfa, issuer, auditWrite)
 	RegisterAdminHTTP(hs, users, audit, mfa, auditWrite)
-	RegisterKumoHTTP(hs, queues, suppressions, vmtas, routing, dkim, feedback, logs, policy, mailClasses, vmtaGroups, dashboard, dsns, gsvc, listeners, acme, loginPolicies, auditWrite)
+	RegisterKumoHTTP(hs, queues, suppressions, vmtas, routing, dkim, feedback, logs, policy, mailClasses, vmtaGroups, dashboard, dsns, gsvc, listeners, acme, loginPolicies, mailWebhooks, auditWrite)
 	// SPA: must be registered LAST so /v1/* and /api/v1/* matchers above
 	// take precedence. The fallback handler covers /, /assets/*, and
 	// every client-side route the Vue router resolves at runtime.
