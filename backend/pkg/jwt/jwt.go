@@ -15,8 +15,13 @@ import (
 )
 
 const (
-	tokenTypeAccess  = "access"
-	tokenTypeRefresh = "refresh"
+	tokenTypeAccess       = "access"
+	tokenTypeRefresh      = "refresh"
+	tokenTypeMFAChallenge = "mfa_challenge"
+
+	// mfaChallengeTTL bounds the window between a successful password step
+	// and second-factor verification.
+	mfaChallengeTTL = 5 * time.Minute
 )
 
 var (
@@ -100,6 +105,16 @@ func (i *Issuer) IssueRefresh(userID uint32, username string, now time.Time) (st
 	return i.sign(tokenTypeRefresh, userID, username, nil, now, exp, i.refreshSecret)
 }
 
+// IssueMFAChallenge returns a short-lived token proving the password step
+// passed; it is exchanged for real tokens after the second factor verifies.
+// Roles are carried so the final access token can be minted without a second
+// store lookup. Signed with the access secret (a distinct token type guards
+// against using it as an access token).
+func (i *Issuer) IssueMFAChallenge(userID uint32, username string, roles []string, now time.Time) (string, time.Time, error) {
+	exp := now.Add(mfaChallengeTTL)
+	return i.sign(tokenTypeMFAChallenge, userID, username, roles, now, exp, i.accessSecret)
+}
+
 func (i *Issuer) sign(typ string, uid uint32, username string, roles []string, iat, exp time.Time, secret []byte) (string, time.Time, error) {
 	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -133,6 +148,11 @@ func (i *Issuer) VerifyAccess(token string) (*Claims, error) {
 // VerifyRefresh parses a refresh token and returns the claims.
 func (i *Issuer) VerifyRefresh(token string) (*Claims, error) {
 	return i.parse(token, tokenTypeRefresh, i.refreshSecret)
+}
+
+// VerifyMFAChallenge parses an MFA-challenge token and returns the claims.
+func (i *Issuer) VerifyMFAChallenge(token string) (*Claims, error) {
+	return i.parse(token, tokenTypeMFAChallenge, i.accessSecret)
 }
 
 func (i *Issuer) parse(token, expectedType string, secret []byte) (*Claims, error) {

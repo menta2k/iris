@@ -23,7 +23,7 @@ import (
 
 // RegisterAdminHTTP mounts /v1/users/* and /v1/audit on the HTTP server.
 // auditWrite is non-nil at runtime; it is the WriteFunc plumbed in from DI.
-func RegisterAdminHTTP(hs *kratoshttp.Server, users *service.UserService, audit *service.AuditService, write auditmw.WriteFunc) {
+func RegisterAdminHTTP(hs *kratoshttp.Server, users *service.UserService, audit *service.AuditService, mfa *service.MFAService, write auditmw.WriteFunc) {
 	usersCollAudit := httpAudit(write, httpAuditConfig{
 		operation:       "/identity.service.v1.UserService/Create",
 		resourceType:    "user",
@@ -41,10 +41,41 @@ func RegisterAdminHTTP(hs *kratoshttp.Server, users *service.UserService, audit 
 		resourceVar:     "id",
 		mutatingMethods: []string{http.MethodPost, http.MethodPut},
 	})
+	userMfaAudit := httpAudit(write, httpAuditConfig{
+		operation:       "/identity.service.v1.UserService/ResetMFA",
+		resourceType:    "user",
+		resourceVar:     "id",
+		mutatingMethods: []string{http.MethodPost},
+	})
 	hs.HandleFunc("/v1/users", usersCollAudit(usersCollectionHandler(users)))
 	hs.HandleFunc("/v1/users/{id:[0-9]+}", userItemAudit(userItemHandler(users)))
 	hs.HandleFunc("/v1/users/{id:[0-9]+}/password", userPwAudit(userPasswordHandler(users)))
+	hs.HandleFunc("/v1/users/{id:[0-9]+}/mfa/reset", userMfaAudit(userResetMFAHandler(mfa)))
 	hs.HandleFunc("/v1/audit", auditListHandler(audit))
+}
+
+// userResetMFAHandler lets an admin clear another account's MFA (e.g. after a
+// lost device). Authorization to reach this route is enforced by the auth
+// middleware (admin role) once mounted; the action disables every active
+// factor for the target user.
+func userResetMFAHandler(mfa *service.MFAService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			writeErr(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "use POST")
+			return
+		}
+		id, ok := parseIDParam(w, r)
+		if !ok {
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
+		if err := mfa.AdminReset(ctx, id); err != nil {
+			writeErr(w, http.StatusInternalServerError, "MFA_RESET_FAILED", err.Error())
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 // --- /v1/users -------------------------------------------------------------

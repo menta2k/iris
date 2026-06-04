@@ -177,6 +177,18 @@ func (f MetricSnapshotFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Val
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MetricSnapshotMutation", m)
 }
 
+// The MfaCredentialFunc type is an adapter to allow the use of ordinary
+// function as MfaCredential mutator.
+type MfaCredentialFunc func(context.Context, *ent.MfaCredentialMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MfaCredentialFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.MfaCredentialMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MfaCredentialMutation", m)
+}
+
 // The PolicyHistoryFunc type is an adapter to allow the use of ordinary
 // function as PolicyHistory mutator.
 type PolicyHistoryFunc func(context.Context, *ent.PolicyHistoryMutation) (ent.Value, error)

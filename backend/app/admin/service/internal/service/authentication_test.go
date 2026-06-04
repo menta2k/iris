@@ -69,7 +69,7 @@ func newSvc(t *testing.T) (*AuthenticationService, *fakeUsers) {
 	users.m["alice"] = &UserRow{ID: 1, Username: "alice", PasswordHash: hash, Active: true, Roles: []string{"admin"}}
 	users.m["bob"] = &UserRow{ID: 2, Username: "bob", PasswordHash: hash, Active: false}
 
-	return NewAuthenticationService(users, iss, nil), users
+	return NewAuthenticationService(users, iss, nil, nil), users
 }
 
 // newSvcWithFirewall is like newSvc but installs a login firewall over the
@@ -180,4 +180,29 @@ func TestRefreshTokenRejectsWhenUserDeactivated(t *testing.T) {
 	users.mu.Unlock()
 	_, err = svc.RefreshToken(context.Background(), resp.RefreshToken)
 	require.ErrorIs(t, err, ErrInvalidCredentials)
+}
+
+func TestLoginRequiresMFAWhenEnrolled(t *testing.T) {
+	iss, err := appjwt.NewIssuer(appjwt.Config{
+		AccessSecret:  []byte(strings.Repeat("a", 32)),
+		RefreshSecret: []byte(strings.Repeat("b", 32)),
+	})
+	require.NoError(t, err)
+	users := newFakeUsers()
+	hash, err := appcrypto.HashPassword("super-secret-password!", appcrypto.MinBcryptCost)
+	require.NoError(t, err)
+	users.m["alice"] = &UserRow{ID: 1, Username: "alice", PasswordHash: hash, Active: true, Roles: []string{"admin"}}
+
+	mfa := &memMFAStore{}
+	mfa.rows = append(mfa.rows, MFACredentialRow{ID: 1, UserID: 1, Kind: MFAKindTOTP, Status: "active"})
+	svc := NewAuthenticationService(users, iss, nil, mfa)
+
+	resp, err := svc.Login(context.Background(),
+		&LoginRequest{Username: "alice", Password: "super-secret-password!"}, "1.2.3.4")
+	require.NoError(t, err)
+	require.True(t, resp.MFARequired, "login must require a second factor when enrolled")
+	require.NotEmpty(t, resp.MFAToken)
+	require.Empty(t, resp.AccessToken, "no access token before the factor is verified")
+	require.Contains(t, resp.MFAMethods, MFAKindTOTP)
+	require.Empty(t, users.successes, "RecordLoginSuccess must not run on a half-finished login")
 }

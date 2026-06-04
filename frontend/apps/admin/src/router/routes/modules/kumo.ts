@@ -171,6 +171,12 @@ const routes: RouteRecordRaw[] = [
     },
     children: [
       {
+        name: 'MfaSettings',
+        path: '/security/mfa',
+        component: () => import('#/views/kumo/mfa-settings/index.vue'),
+        meta: { icon: 'lucide:shield-check', title: 'My MFA' },
+      },
+      {
         name: 'LoginFirewall',
         path: '/security/login-firewall',
         component: () => import('#/views/kumo/login-firewall/index.vue'),

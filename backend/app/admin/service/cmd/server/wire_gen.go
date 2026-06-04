@@ -102,7 +102,9 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	ruleSource := providers3.RuleSourceFromRepo(loginPolicyRepo)
 	geoResolver := providers3.GeoResolverIface(resolver)
 	loginFirewall := service.NewLoginFirewall(ruleSource, geoResolver)
-	authenticationService := service.NewAuthenticationService(userStore, issuer, loginFirewall)
+	mfaRepo := data.NewMfaRepo(client)
+	mfaStore := providers3.MFAStoreFromRepo(mfaRepo)
+	authenticationService := service.NewAuthenticationService(userStore, issuer, loginFirewall, mfaStore)
 	authenticationGRPC := service.NewAuthenticationGRPC(authenticationService)
 	userAdminStore := providers3.UserAdminStoreFromUserRepo(userRepo)
 	bcryptCost := providers3.NewBcryptCost()
@@ -173,7 +175,16 @@ func initApp(context *bootstrap.Context) (*kratos.App, func(), error) {
 	listenerService := service.NewListenerService(listenerStore)
 	loginPolicyStore := providers3.LoginPolicyStoreFromRepo(loginPolicyRepo)
 	loginPolicyService := service.NewLoginPolicyService(loginPolicyStore, geoResolver)
-	registered := providers2.RegisterServers(grpcServer, httpServer, authenticationGRPC, userService, auditService, queueService, suppressionService, virtualMtaService, routingService, dkimService, feedbackService, logService, policyService, mailClassService, vmtaGroupService, dashboardService, dsnService, globalSettingsService, listenerService, acmeService, loginPolicyService, auditWriter)
+	mfaSessionStore := providers3.NewMFASessionStore()
+	loginSuccessRecorder := providers3.LoginRecorderFromUserRepo(userRepo)
+	mfaService, err := providers3.NewMFAServiceProvider(mfaStore, mfaSessionStore, issuer, loginSuccessRecorder, bcryptCost)
+	if err != nil {
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	registered := providers2.RegisterServers(grpcServer, httpServer, authenticationGRPC, userService, auditService, queueService, suppressionService, virtualMtaService, routingService, dkimService, feedbackService, logService, policyService, mailClassService, vmtaGroupService, dashboardService, dsnService, globalSettingsService, listenerService, acmeService, loginPolicyService, mfaService, issuer, auditWriter)
 	app := newApp(context, httpServer, grpcServer, logstreamServer, dsnstreamServer, acmeChallengeServer, acmeRenewerServer, geoIPUpdaterServer, httpsServer, suppressionResyncServer, metricsServer, registered)
 	return app, func() {
 		cleanup3()

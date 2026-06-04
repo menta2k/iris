@@ -12,6 +12,7 @@ import (
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/server"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/service"
+	appjwt "github.com/menta2k/iris/backend/pkg/jwt"
 	authmw "github.com/menta2k/iris/backend/pkg/middleware/audit"
 	identitymw "github.com/menta2k/iris/backend/pkg/middleware/auth"
 )
@@ -65,11 +66,13 @@ func RegisterServers(
 	listeners *service.ListenerService,
 	acme *service.AcmeService,
 	loginPolicies *service.LoginPolicyService,
+	mfa *service.MFAService,
+	issuer *appjwt.Issuer,
 	writer *data.AuditWriter,
 ) Registered {
 	server.RegisterServices(gs, hs, auth, users, audit,
 		queues, suppressions, vmtas, routing, dkim, feedback, logs, policy,
-		mailClasses, vmtaGroups, dashboard, dsns, gsvc, listeners, acme, loginPolicies, writer.Write)
+		mailClasses, vmtaGroups, dashboard, dsns, gsvc, listeners, acme, loginPolicies, mfa, issuer, writer.Write)
 	return Registered{}
 }
 

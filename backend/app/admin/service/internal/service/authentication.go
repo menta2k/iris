@@ -49,13 +49,14 @@ type AuthenticationService struct {
 	users    UserStore
 	jwt      *appjwt.Issuer
 	firewall *LoginFirewall // optional; nil disables login-firewall enforcement
+	mfa      MFAStore       // optional; nil disables MFA gating
 	now      func() time.Time
 }
 
-// NewAuthenticationService constructs the service. firewall may be nil (no
-// login-policy enforcement) — tests and minimal deployments pass nil.
-func NewAuthenticationService(users UserStore, issuer *appjwt.Issuer, firewall *LoginFirewall) *AuthenticationService {
-	return &AuthenticationService{users: users, jwt: issuer, firewall: firewall, now: time.Now}
+// NewAuthenticationService constructs the service. firewall and mfa may be
+// nil (no enforcement) — tests and minimal deployments pass nil.
+func NewAuthenticationService(users UserStore, issuer *appjwt.Issuer, firewall *LoginFirewall, mfa MFAStore) *AuthenticationService {
+	return &AuthenticationService{users: users, jwt: issuer, firewall: firewall, mfa: mfa, now: time.Now}
 }
 
 // LoginRequest is the input to Login.
@@ -64,7 +65,10 @@ type LoginRequest struct {
 	Password string
 }
 
-// LoginResponse is the output of a successful Login / RefreshToken.
+// LoginResponse is the output of a successful Login / RefreshToken. When the
+// account has an active second factor, Login returns MFARequired=true with an
+// MFAToken (a short-lived challenge) and the available MFAMethods instead of
+// tokens; the client then verifies the second factor to obtain tokens.
 type LoginResponse struct {
 	AccessToken  string
 	RefreshToken string
@@ -72,6 +76,10 @@ type LoginResponse struct {
 	UserID       uint32
 	Username     string
 	Roles        []string
+
+	MFARequired bool
+	MFAToken    string
+	MFAMethods  []string
 }
 
 // Errors surfaced to the API layer (callers map to gRPC codes).
@@ -134,6 +142,30 @@ func (s *AuthenticationService) Login(ctx context.Context, req *LoginRequest, cl
 		return nil, ErrInvalidCredentials
 	}
 
+	// Second factor: if the account has an active TOTP/passkey, stop here and
+	// hand back a short-lived challenge instead of tokens. RecordLoginSuccess
+	// runs only after the factor verifies (MFAService.issueTokens), so the
+	// lockout counter isn't cleared by a half-finished login.
+	if s.mfa != nil {
+		hasMFA, err := s.mfa.HasActiveMFA(ctx, user.ID)
+		if err != nil {
+			return nil, fmt.Errorf("authentication: mfa check: %w", err)
+		}
+		if hasMFA {
+			challenge, _, err := s.jwt.IssueMFAChallenge(user.ID, user.Username, user.Roles, s.now())
+			if err != nil {
+				return nil, fmt.Errorf("authentication: issue mfa challenge: %w", err)
+			}
+			return &LoginResponse{
+				MFARequired: true,
+				MFAToken:    challenge,
+				MFAMethods:  s.mfaMethods(ctx, user.ID),
+				UserID:      user.ID,
+				Username:    user.Username,
+			}, nil
+		}
+	}
+
 	access, accessExp, err := s.jwt.IssueAccess(user.ID, user.Username, user.Roles, s.now())
 	if err != nil {
 		return nil, fmt.Errorf("authentication: issue access: %w", err)
@@ -152,6 +184,22 @@ func (s *AuthenticationService) Login(ctx context.Context, req *LoginRequest, cl
 		Username:     user.Username,
 		Roles:        user.Roles,
 	}, nil
+}
+
+// mfaMethods lists the second-factor methods available to a user, for the
+// client to render the right challenge UI.
+func (s *AuthenticationService) mfaMethods(ctx context.Context, userID uint32) []string {
+	var m []string
+	if n, _ := s.mfa.CountActive(ctx, userID, MFAKindTOTP); n > 0 {
+		m = append(m, MFAKindTOTP)
+	}
+	if n, _ := s.mfa.CountActive(ctx, userID, MFAKindWebAuthn); n > 0 {
+		m = append(m, MFAKindWebAuthn)
+	}
+	if n, _ := s.mfa.CountActive(ctx, userID, MFAKindBackup); n > 0 {
+		m = append(m, MFAKindBackup)
+	}
+	return m
 }
 
 // RefreshToken validates a refresh token and issues a new pair.

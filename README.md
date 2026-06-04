@@ -34,6 +34,7 @@ instead of doing all three.**
 | **Inbound feedback loop (ARF)** | Parses [RFC 5965] complaint reports, auto-suppresses the complainant. Nothing for you to do. |
 | **Async bounce handling (DSN)** | Inbound [RFC 3464] DSNs are accepted at one or more configurable bounce subdomains (multi-domain mode handles cross-org senders), parsed, classified into 14 stable categories, and correlated to the originating send via VERP. Hard bounces auto-suppress; soft bounces suppress after a configurable threshold. Browse them at `/observability/dsns`. |
 | **Audit trail** | Every admin operation gets a row: actor, IP, status, duration. Compliance auditors stop bothering you. |
+| **MFA (second factor)** | Optional, self-service multi-factor auth: authenticator-app **TOTP**, **WebAuthn passkeys/security keys**, and single-use **backup codes**. Two-step login (password → factor → tokens); TOTP secrets AES-GCM encrypted at rest. Manage your own at `/security/mfa`; admins can reset a locked-out user's MFA from the Users page. |
 | **Login firewall** | Gate who can authenticate by IP/CIDR, country (GeoIP), or time-of-day window — global or per-user, blacklist or whitelist. Evaluated before the password check so blocked sources can't even probe credentials. Fails open on indeterminate attributes and guards against locking yourself out. The country database (DB-IP, MaxMind-compatible) auto-downloads and self-updates monthly — no manual provisioning. Manage it at `/security/login-firewall`. |
 | **Prometheus metrics** | `/metrics` on a dedicated listener (default `127.0.0.1:9090`). Per-event-type counters, processing-time histogram, stream-pending gauge, suppression-index size, kumomta-admin-call latency, build info. |
 | **Live dashboard** | `/analytics` page reads from a Prometheus-backed admin API: 6 summary cards (delivery rate, bounce rate, stream backlog, suppressions, policy applies), a 1h/6h/24h/7d event-rate chart, and per-mail-class volume table. Auto-refreshes every 15s. |
@@ -777,6 +778,10 @@ Outbound deliverability hygiene (set in **Global Settings**, not env): an **Outb
 | `IRIS_METRICS_LISTEN` | `127.0.0.1:9090` | bind for the Prometheus `/metrics` listener; set to `off` to disable, or to `0.0.0.0:9090` when behind a reverse proxy / Docker port-forward |
 | `IRIS_PROMETHEUS_URL` | *(unset → /v1/dashboard/* return 503)* | base URL of a Prometheus instance the admin-service queries on the operator UI's behalf for the `/analytics` dashboard. In compose: `http://prometheus:9090`. |
 | `IRIS_AUTH_ACCESS_SECRET` / `_REFRESH_SECRET` | *(refused if placeholder)* | JWT HS512 secrets — the binary refuses to start with the shipped placeholder values |
+| `IRIS_MFA_SECRET_KEY` | *(unset → TOTP enrollment disabled)* | AES-GCM key (base64 of 16/24/32 bytes) encrypting TOTP secrets at rest. `openssl rand -base64 32`. Rotating it invalidates existing TOTP enrollments. WebAuthn + backup codes don't need it. |
+| `IRIS_WEBAUTHN_RP_ID` | *(unset → passkeys disabled)* | WebAuthn Relying Party ID — the registrable domain (e.g. `kmx.jobs.bg`). |
+| `IRIS_WEBAUTHN_RP_ORIGINS` | *(unset)* | Comma-separated full origins users hit (e.g. `https://kmx.jobs.bg:8443`). Must match the browser's address bar exactly. |
+| `IRIS_WEBAUTHN_RP_DISPLAY_NAME` | `Iris` | Name shown by the authenticator during passkey enrollment. |
 
 Database DSN, listener bindings, CORS, and TLS live in the Kratos
 layered YAML: `backend/app/admin/service/configs/{server,data,auth,kumo,logger}.yaml`.
@@ -1101,6 +1106,13 @@ flip to public in the GitHub UI if you want world-readable pulls.
   first-boot setup — change it before exposing the service.
 - **Authorization.** RBAC matcher in `pkg/authorizer`; routes carry
   `meta.authority`, the router guard enforces.
+- **MFA (optional, self-service).** TOTP, WebAuthn passkeys, and single-use
+  backup codes. Login is two-step: after the password, an enrolled account
+  gets a short-lived challenge token (5 min) instead of session tokens, and
+  must verify a factor to obtain them. TOTP secrets are AES-GCM encrypted at
+  rest (`IRIS_MFA_SECRET_KEY`); backup codes are bcrypt-hashed and consumed
+  on use; WebAuthn tracks the signature counter for clone detection. Admins
+  can reset a user's MFA (lost device); WebAuthn needs `IRIS_WEBAUTHN_RP_*`.
 - **Login firewall.** Per-user and global rules gate authentication by
   IP/CIDR, country, or time window (blacklist / whitelist), evaluated
   before the password compare so blocked sources never reach the

@@ -2,13 +2,16 @@
 package providers
 
 import (
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/google/wire"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/tx7do/kratos-bootstrap/bootstrap"
 
@@ -86,7 +89,75 @@ var ProviderSet = wire.NewSet(
 	GeoResolverIface,
 	service.NewLoginFirewall,
 	service.NewLoginPolicyService,
+	MFAStoreFromRepo,
+	LoginRecorderFromUserRepo,
+	NewMFASessionStore,
+	NewMFAServiceProvider,
 )
+
+// MFAStoreFromRepo binds the MFA repo to the service interface (also consumed
+// by AuthenticationService for the login MFA gate).
+func MFAStoreFromRepo(r *data.MfaRepo) service.MFAStore { return r }
+
+// LoginRecorderFromUserRepo binds the user repo to the recorder the MFA
+// verify path uses to clear the failed-login counter on success.
+func LoginRecorderFromUserRepo(r *data.UserRepo) service.LoginSuccessRecorder { return r }
+
+// NewMFASessionStore returns a Redis-backed session store when
+// IRIS_LOGSTREAM_REDIS_URL is set (works across replicas), else an in-memory
+// one (single-node only).
+func NewMFASessionStore() service.MFASessionStore {
+	url := strings.TrimSpace(getenv("IRIS_LOGSTREAM_REDIS_URL"))
+	if url == "" {
+		return data.NewMemoryMFASessionStore()
+	}
+	opts, err := redis.ParseURL(url)
+	if err != nil {
+		log.Printf("mfa: IRIS_LOGSTREAM_REDIS_URL invalid (%v) — using in-memory MFA session store", err)
+		return data.NewMemoryMFASessionStore()
+	}
+	return data.NewRedisMFASessionStore(redis.NewClient(opts))
+}
+
+// NewMFAServiceProvider assembles the MFA service, reading the AES key
+// (IRIS_MFA_SECRET_KEY, base64 16/24/32 bytes) and WebAuthn RP config
+// (IRIS_WEBAUTHN_RP_ID / _RP_DISPLAY_NAME / _RP_ORIGINS) from env. An empty
+// AES key leaves TOTP disabled; empty RP config leaves WebAuthn disabled.
+func NewMFAServiceProvider(store service.MFAStore, sessions service.MFASessionStore, issuer *appjwt.Issuer, recorder service.LoginSuccessRecorder, cost service.BcryptCost) (*service.MFAService, error) {
+	aesKey, err := mfaSecretKey()
+	if err != nil {
+		return nil, err
+	}
+	rpID := strings.TrimSpace(getenv("IRIS_WEBAUTHN_RP_ID"))
+	rpDisplay := strings.TrimSpace(getenv("IRIS_WEBAUTHN_RP_DISPLAY_NAME"))
+	if rpDisplay == "" {
+		rpDisplay = "Iris"
+	}
+	var origins []string
+	for _, o := range strings.Split(getenv("IRIS_WEBAUTHN_RP_ORIGINS"), ",") {
+		if o = strings.TrimSpace(o); o != "" {
+			origins = append(origins, o)
+		}
+	}
+	return service.NewMFAServiceFromConfig(store, sessions, issuer, recorder, aesKey, rpID, rpDisplay, origins, int(cost))
+}
+
+func mfaSecretKey() ([]byte, error) {
+	v := strings.TrimSpace(getenv("IRIS_MFA_SECRET_KEY"))
+	if v == "" {
+		return nil, nil // TOTP enrollment disabled until configured
+	}
+	key, err := base64.StdEncoding.DecodeString(v)
+	if err != nil {
+		return nil, fmt.Errorf("mfa: IRIS_MFA_SECRET_KEY must be base64: %w", err)
+	}
+	switch len(key) {
+	case 16, 24, 32:
+		return key, nil
+	default:
+		return nil, errors.New("mfa: IRIS_MFA_SECRET_KEY must decode to 16, 24, or 32 bytes")
+	}
+}
 
 // LoginPolicyStoreFromRepo / RuleSourceFromRepo bind the single login-policy
 // repo to the two service interfaces it satisfies (CRUD store + the

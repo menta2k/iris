@@ -118,6 +118,11 @@ async function submit() {
   }
 }
 
+async function resetMfa(id: number) {
+  await usersApi.resetMfa(id);
+  message.success('MFA reset');
+}
+
 async function removeRow(id: number) {
   await usersApi.remove(id);
   message.success('User removed');
@@ -198,6 +203,14 @@ onMounted(load);
               <Button size="small" @click="openChangePassword(record as User)">
                 Change password
               </Button>
+              <Popconfirm
+                title="Reset this user's MFA? They'll need to re-enroll."
+                ok-text="Reset MFA"
+                ok-type="danger"
+                @confirm="resetMfa(record.id)"
+              >
+                <Button size="small">Reset MFA</Button>
+              </Popconfirm>
               <Popconfirm
                 title="Remove this user?"
                 ok-text="Remove"
