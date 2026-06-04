@@ -29,6 +29,7 @@ import (
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/loginpolicy"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mailclass"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/metricsnapshot"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mfacredential"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/policyhistory"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/role"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/routingrule"
@@ -74,6 +75,8 @@ type Client struct {
 	MailClass *MailClassClient
 	// MetricSnapshot is the client for interacting with the MetricSnapshot builders.
 	MetricSnapshot *MetricSnapshotClient
+	// MfaCredential is the client for interacting with the MfaCredential builders.
+	MfaCredential *MfaCredentialClient
 	// PolicyHistory is the client for interacting with the PolicyHistory builders.
 	PolicyHistory *PolicyHistoryClient
 	// Role is the client for interacting with the Role builders.
@@ -119,6 +122,7 @@ func (c *Client) init() {
 	c.LoginPolicy = NewLoginPolicyClient(c.config)
 	c.MailClass = NewMailClassClient(c.config)
 	c.MetricSnapshot = NewMetricSnapshotClient(c.config)
+	c.MfaCredential = NewMfaCredentialClient(c.config)
 	c.PolicyHistory = NewPolicyHistoryClient(c.config)
 	c.Role = NewRoleClient(c.config)
 	c.RoutingRule = NewRoutingRuleClient(c.config)
@@ -235,6 +239,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		LoginPolicy:           NewLoginPolicyClient(cfg),
 		MailClass:             NewMailClassClient(cfg),
 		MetricSnapshot:        NewMetricSnapshotClient(cfg),
+		MfaCredential:         NewMfaCredentialClient(cfg),
 		PolicyHistory:         NewPolicyHistoryClient(cfg),
 		Role:                  NewRoleClient(cfg),
 		RoutingRule:           NewRoutingRuleClient(cfg),
@@ -278,6 +283,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		LoginPolicy:           NewLoginPolicyClient(cfg),
 		MailClass:             NewMailClassClient(cfg),
 		MetricSnapshot:        NewMetricSnapshotClient(cfg),
+		MfaCredential:         NewMfaCredentialClient(cfg),
 		PolicyHistory:         NewPolicyHistoryClient(cfg),
 		Role:                  NewRoleClient(cfg),
 		RoutingRule:           NewRoutingRuleClient(cfg),
@@ -320,9 +326,9 @@ func (c *Client) Use(hooks ...Hook) {
 		c.AcmeAccount, c.AcmeCertificate, c.AcmeDnsProviderConfig, c.AuditEntry,
 		c.DkimIdentity, c.DsnEvent, c.FeedbackReport, c.GlobalSettings,
 		c.ListenerConfig, c.ListenerDomain, c.LogEvent, c.LoginPolicy, c.MailClass,
-		c.MetricSnapshot, c.PolicyHistory, c.Role, c.RoutingRule, c.RuleCondition,
-		c.RuleTarget, c.SuppressionEntry, c.User, c.VirtualMta, c.VirtualMtaGroup,
-		c.VirtualMtaGroupMember,
+		c.MetricSnapshot, c.MfaCredential, c.PolicyHistory, c.Role, c.RoutingRule,
+		c.RuleCondition, c.RuleTarget, c.SuppressionEntry, c.User, c.VirtualMta,
+		c.VirtualMtaGroup, c.VirtualMtaGroupMember,
 	} {
 		n.Use(hooks...)
 	}
@@ -335,9 +341,9 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.AcmeAccount, c.AcmeCertificate, c.AcmeDnsProviderConfig, c.AuditEntry,
 		c.DkimIdentity, c.DsnEvent, c.FeedbackReport, c.GlobalSettings,
 		c.ListenerConfig, c.ListenerDomain, c.LogEvent, c.LoginPolicy, c.MailClass,
-		c.MetricSnapshot, c.PolicyHistory, c.Role, c.RoutingRule, c.RuleCondition,
-		c.RuleTarget, c.SuppressionEntry, c.User, c.VirtualMta, c.VirtualMtaGroup,
-		c.VirtualMtaGroupMember,
+		c.MetricSnapshot, c.MfaCredential, c.PolicyHistory, c.Role, c.RoutingRule,
+		c.RuleCondition, c.RuleTarget, c.SuppressionEntry, c.User, c.VirtualMta,
+		c.VirtualMtaGroup, c.VirtualMtaGroupMember,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -374,6 +380,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.MailClass.mutate(ctx, m)
 	case *MetricSnapshotMutation:
 		return c.MetricSnapshot.mutate(ctx, m)
+	case *MfaCredentialMutation:
+		return c.MfaCredential.mutate(ctx, m)
 	case *PolicyHistoryMutation:
 		return c.PolicyHistory.mutate(ctx, m)
 	case *RoleMutation:
@@ -2293,6 +2301,139 @@ func (c *MetricSnapshotClient) mutate(ctx context.Context, m *MetricSnapshotMuta
 	}
 }
 
+// MfaCredentialClient is a client for the MfaCredential schema.
+type MfaCredentialClient struct {
+	config
+}
+
+// NewMfaCredentialClient returns a client for the MfaCredential from the given config.
+func NewMfaCredentialClient(c config) *MfaCredentialClient {
+	return &MfaCredentialClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `mfacredential.Hooks(f(g(h())))`.
+func (c *MfaCredentialClient) Use(hooks ...Hook) {
+	c.hooks.MfaCredential = append(c.hooks.MfaCredential, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `mfacredential.Intercept(f(g(h())))`.
+func (c *MfaCredentialClient) Intercept(interceptors ...Interceptor) {
+	c.inters.MfaCredential = append(c.inters.MfaCredential, interceptors...)
+}
+
+// Create returns a builder for creating a MfaCredential entity.
+func (c *MfaCredentialClient) Create() *MfaCredentialCreate {
+	mutation := newMfaCredentialMutation(c.config, OpCreate)
+	return &MfaCredentialCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of MfaCredential entities.
+func (c *MfaCredentialClient) CreateBulk(builders ...*MfaCredentialCreate) *MfaCredentialCreateBulk {
+	return &MfaCredentialCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *MfaCredentialClient) MapCreateBulk(slice any, setFunc func(*MfaCredentialCreate, int)) *MfaCredentialCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &MfaCredentialCreateBulk{err: fmt.Errorf("calling to MfaCredentialClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*MfaCredentialCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &MfaCredentialCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for MfaCredential.
+func (c *MfaCredentialClient) Update() *MfaCredentialUpdate {
+	mutation := newMfaCredentialMutation(c.config, OpUpdate)
+	return &MfaCredentialUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *MfaCredentialClient) UpdateOne(_m *MfaCredential) *MfaCredentialUpdateOne {
+	mutation := newMfaCredentialMutation(c.config, OpUpdateOne, withMfaCredential(_m))
+	return &MfaCredentialUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *MfaCredentialClient) UpdateOneID(id int) *MfaCredentialUpdateOne {
+	mutation := newMfaCredentialMutation(c.config, OpUpdateOne, withMfaCredentialID(id))
+	return &MfaCredentialUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for MfaCredential.
+func (c *MfaCredentialClient) Delete() *MfaCredentialDelete {
+	mutation := newMfaCredentialMutation(c.config, OpDelete)
+	return &MfaCredentialDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *MfaCredentialClient) DeleteOne(_m *MfaCredential) *MfaCredentialDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *MfaCredentialClient) DeleteOneID(id int) *MfaCredentialDeleteOne {
+	builder := c.Delete().Where(mfacredential.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &MfaCredentialDeleteOne{builder}
+}
+
+// Query returns a query builder for MfaCredential.
+func (c *MfaCredentialClient) Query() *MfaCredentialQuery {
+	return &MfaCredentialQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeMfaCredential},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a MfaCredential entity by its id.
+func (c *MfaCredentialClient) Get(ctx context.Context, id int) (*MfaCredential, error) {
+	return c.Query().Where(mfacredential.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *MfaCredentialClient) GetX(ctx context.Context, id int) *MfaCredential {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *MfaCredentialClient) Hooks() []Hook {
+	return c.hooks.MfaCredential
+}
+
+// Interceptors returns the client interceptors.
+func (c *MfaCredentialClient) Interceptors() []Interceptor {
+	return c.inters.MfaCredential
+}
+
+func (c *MfaCredentialClient) mutate(ctx context.Context, m *MfaCredentialMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&MfaCredentialCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&MfaCredentialUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&MfaCredentialUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&MfaCredentialDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown MfaCredential mutation op: %q", m.Op())
+	}
+}
+
 // PolicyHistoryClient is a client for the PolicyHistory schema.
 type PolicyHistoryClient struct {
 	config
@@ -3772,15 +3913,15 @@ type (
 	hooks struct {
 		AcmeAccount, AcmeCertificate, AcmeDnsProviderConfig, AuditEntry, DkimIdentity,
 		DsnEvent, FeedbackReport, GlobalSettings, ListenerConfig, ListenerDomain,
-		LogEvent, LoginPolicy, MailClass, MetricSnapshot, PolicyHistory, Role,
-		RoutingRule, RuleCondition, RuleTarget, SuppressionEntry, User, VirtualMta,
-		VirtualMtaGroup, VirtualMtaGroupMember []ent.Hook
+		LogEvent, LoginPolicy, MailClass, MetricSnapshot, MfaCredential, PolicyHistory,
+		Role, RoutingRule, RuleCondition, RuleTarget, SuppressionEntry, User,
+		VirtualMta, VirtualMtaGroup, VirtualMtaGroupMember []ent.Hook
 	}
 	inters struct {
 		AcmeAccount, AcmeCertificate, AcmeDnsProviderConfig, AuditEntry, DkimIdentity,
 		DsnEvent, FeedbackReport, GlobalSettings, ListenerConfig, ListenerDomain,
-		LogEvent, LoginPolicy, MailClass, MetricSnapshot, PolicyHistory, Role,
-		RoutingRule, RuleCondition, RuleTarget, SuppressionEntry, User, VirtualMta,
-		VirtualMtaGroup, VirtualMtaGroupMember []ent.Interceptor
+		LogEvent, LoginPolicy, MailClass, MetricSnapshot, MfaCredential, PolicyHistory,
+		Role, RoutingRule, RuleCondition, RuleTarget, SuppressionEntry, User,
+		VirtualMta, VirtualMtaGroup, VirtualMtaGroupMember []ent.Interceptor
 	}
 )

@@ -106,6 +106,74 @@ export const usersApi = {
   remove: (id: number) => requestClient.delete(`/v1/users/${id}`),
   changePassword: (id: number, input: ChangePasswordInput) =>
     requestClient.post<void>(`/v1/users/${id}/password`, input),
+  // Admin: clear another account's MFA (lost device recovery).
+  resetMfa: (id: number) =>
+    requestClient.post<void>(`/v1/users/${id}/mfa/reset`, {}),
+};
+
+// ─── MFA (self-service second factor) ────────────────────────────────────────
+export interface MFAPasskey {
+  id: number;
+  label: string;
+  created_at: string;
+}
+
+export interface MFAStatus {
+  totp_enabled: boolean;
+  webauthn_enabled: boolean;
+  backup_remaining: number;
+  passkeys: MFAPasskey[];
+}
+
+export interface TOTPEnrollStart {
+  secret: string;
+  otpauth_url: string;
+  qr_code_data_uri: string;
+  operation_id: string;
+}
+
+export const mfaApi = {
+  status: () => requestClient.get<MFAStatus>('/v1/auth/mfa'),
+  totpEnroll: () =>
+    requestClient.post<TOTPEnrollStart>('/v1/auth/mfa/totp/enroll', {}),
+  totpConfirm: (operationId: string, code: string) =>
+    requestClient.post<{ backup_codes: string[] }>('/v1/auth/mfa/totp/confirm', {
+      operation_id: operationId,
+      code,
+    }),
+  regenerateBackupCodes: () =>
+    requestClient.post<{ backup_codes: string[] }>(
+      '/v1/auth/mfa/backup-codes/regenerate',
+      {},
+    ),
+  disable: () => requestClient.post<void>('/v1/auth/mfa/disable', {}),
+  // Passkey enrollment (Bearer-authed).
+  passkeyEnrollStart: () =>
+    requestClient.post<{ options: unknown; operation_id: string }>(
+      '/v1/auth/mfa/passkey/enroll/start',
+      {},
+    ),
+  passkeyEnrollFinish: (operationId: string, response: unknown, label: string) =>
+    requestClient.post<void>('/v1/auth/mfa/passkey/enroll/finish', {
+      operation_id: operationId,
+      response,
+      label,
+    }),
+  removePasskey: (id: number) =>
+    requestClient.delete(`/v1/auth/mfa/passkey/${id}`),
+  // Login step (uses the mfa_token from /v1/auth/login; no access token yet).
+  verify: (mfaToken: string, body: { code?: string; backup_code?: string }) =>
+    requestClient.post('/v1/auth/mfa/verify', { mfa_token: mfaToken, ...body }),
+  passkeyLoginStart: (mfaToken: string) =>
+    requestClient.post<{ options: unknown; operation_id: string }>(
+      '/v1/auth/mfa/passkey/login/start',
+      { mfa_token: mfaToken },
+    ),
+  passkeyLoginFinish: (operationId: string, response: unknown) =>
+    requestClient.post('/v1/auth/mfa/passkey/login/finish', {
+      operation_id: operationId,
+      response,
+    }),
 };
 
 // ─── Audit ───────────────────────────────────────────────────────────────────

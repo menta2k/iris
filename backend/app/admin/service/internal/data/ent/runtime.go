@@ -19,6 +19,7 @@ import (
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/loginpolicy"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mailclass"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/metricsnapshot"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mfacredential"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/policyhistory"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/role"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/routingrule"
@@ -804,6 +805,30 @@ func init() {
 	metricsnapshotDescSuspended := metricsnapshotFields[8].Descriptor()
 	// metricsnapshot.DefaultSuspended holds the default value on creation for the suspended field.
 	metricsnapshot.DefaultSuspended = metricsnapshotDescSuspended.Default.(bool)
+	mfacredentialFields := schema.MfaCredential{}.Fields()
+	_ = mfacredentialFields
+	// mfacredentialDescSecret is the schema descriptor for secret field.
+	mfacredentialDescSecret := mfacredentialFields[2].Descriptor()
+	// mfacredential.SecretValidator is a validator for the "secret" field. It is called by the builders before save.
+	mfacredential.SecretValidator = mfacredentialDescSecret.Validators[0].(func(string) error)
+	// mfacredentialDescLabel is the schema descriptor for label field.
+	mfacredentialDescLabel := mfacredentialFields[3].Descriptor()
+	// mfacredential.LabelValidator is a validator for the "label" field. It is called by the builders before save.
+	mfacredential.LabelValidator = mfacredentialDescLabel.Validators[0].(func(string) error)
+	// mfacredentialDescSignCount is the schema descriptor for sign_count field.
+	mfacredentialDescSignCount := mfacredentialFields[5].Descriptor()
+	// mfacredential.DefaultSignCount holds the default value on creation for the sign_count field.
+	mfacredential.DefaultSignCount = mfacredentialDescSignCount.Default.(uint32)
+	// mfacredentialDescCreatedAt is the schema descriptor for created_at field.
+	mfacredentialDescCreatedAt := mfacredentialFields[6].Descriptor()
+	// mfacredential.DefaultCreatedAt holds the default value on creation for the created_at field.
+	mfacredential.DefaultCreatedAt = mfacredentialDescCreatedAt.Default.(func() time.Time)
+	// mfacredentialDescUpdatedAt is the schema descriptor for updated_at field.
+	mfacredentialDescUpdatedAt := mfacredentialFields[7].Descriptor()
+	// mfacredential.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	mfacredential.DefaultUpdatedAt = mfacredentialDescUpdatedAt.Default.(func() time.Time)
+	// mfacredential.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	mfacredential.UpdateDefaultUpdatedAt = mfacredentialDescUpdatedAt.UpdateDefault.(func() time.Time)
 	policyhistoryFields := schema.PolicyHistory{}.Fields()
 	_ = policyhistoryFields
 	// policyhistoryDescSha256 is the schema descriptor for sha256 field.

@@ -487,6 +487,38 @@ var (
 			},
 		},
 	}
+	// MfaCredentialsColumns holds the columns for the "mfa_credentials" table.
+	MfaCredentialsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "user_id", Type: field.TypeUint32},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"totp", "webauthn", "backup_code"}},
+		{Name: "secret", Type: field.TypeString, Size: 4096},
+		{Name: "label", Type: field.TypeString, Nullable: true, Size: 128},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "disabled"}, Default: "active"},
+		{Name: "sign_count", Type: field.TypeUint32, Default: 0},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "confirmed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "used_at", Type: field.TypeTime, Nullable: true},
+	}
+	// MfaCredentialsTable holds the schema information for the "mfa_credentials" table.
+	MfaCredentialsTable = &schema.Table{
+		Name:       "mfa_credentials",
+		Columns:    MfaCredentialsColumns,
+		PrimaryKey: []*schema.Column{MfaCredentialsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "mfacredential_user_id_kind_status",
+				Unique:  false,
+				Columns: []*schema.Column{MfaCredentialsColumns[1], MfaCredentialsColumns[2], MfaCredentialsColumns[5]},
+			},
+			{
+				Name:    "mfacredential_user_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{MfaCredentialsColumns[1], MfaCredentialsColumns[5]},
+			},
+		},
+	}
 	// PolicyHistoriesColumns holds the columns for the "policy_histories" table.
 	PolicyHistoriesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -812,6 +844,7 @@ var (
 		LoginPoliciesTable,
 		MailClassesTable,
 		MetricSnapshotTable,
+		MfaCredentialsTable,
 		PolicyHistoriesTable,
 		RolesTable,
 		RoutingRulesTable,
@@ -854,6 +887,9 @@ func init() {
 	}
 	MetricSnapshotTable.Annotation = &entsql.Annotation{
 		Table: "metric_snapshot",
+	}
+	MfaCredentialsTable.Annotation = &entsql.Annotation{
+		Table: "mfa_credentials",
 	}
 	RuleConditionsTable.ForeignKeys[0].RefTable = RoutingRulesTable
 	RuleTargetsTable.ForeignKeys[0].RefTable = RoutingRulesTable

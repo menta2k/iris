@@ -26,6 +26,7 @@ import (
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/loginpolicy"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mailclass"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/metricsnapshot"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mfacredential"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/policyhistory"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/role"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/routingrule"
@@ -110,6 +111,7 @@ func checkColumn(t, c string) error {
 			loginpolicy.Table:           loginpolicy.ValidColumn,
 			mailclass.Table:             mailclass.ValidColumn,
 			metricsnapshot.Table:        metricsnapshot.ValidColumn,
+			mfacredential.Table:         mfacredential.ValidColumn,
 			policyhistory.Table:         policyhistory.ValidColumn,
 			role.Table:                  role.ValidColumn,
 			routingrule.Table:           routingrule.ValidColumn,

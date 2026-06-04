@@ -48,6 +48,9 @@ type MailClass func(*sql.Selector)
 // MetricSnapshot is the predicate function for metricsnapshot builders.
 type MetricSnapshot func(*sql.Selector)
 
+// MfaCredential is the predicate function for mfacredential builders.
+type MfaCredential func(*sql.Selector)
+
 // PolicyHistory is the predicate function for policyhistory builders.
 type PolicyHistory func(*sql.Selector)
 

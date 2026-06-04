@@ -25,6 +25,7 @@ import (
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/loginpolicy"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mailclass"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/metricsnapshot"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mfacredential"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/policyhistory"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/predicate"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/role"
@@ -61,6 +62,7 @@ const (
 	TypeLoginPolicy           = "LoginPolicy"
 	TypeMailClass             = "MailClass"
 	TypeMetricSnapshot        = "MetricSnapshot"
+	TypeMfaCredential         = "MfaCredential"
 	TypePolicyHistory         = "PolicyHistory"
 	TypeRole                  = "Role"
 	TypeRoutingRule           = "RoutingRule"
@@ -14044,6 +14046,947 @@ func (m *MetricSnapshotMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *MetricSnapshotMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown MetricSnapshot edge %s", name)
+}
+
+// MfaCredentialMutation represents an operation that mutates the MfaCredential nodes in the graph.
+type MfaCredentialMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	user_id       *uint32
+	adduser_id    *int32
+	kind          *mfacredential.Kind
+	secret        *string
+	label         *string
+	status        *mfacredential.Status
+	sign_count    *uint32
+	addsign_count *int32
+	created_at    *time.Time
+	updated_at    *time.Time
+	confirmed_at  *time.Time
+	used_at       *time.Time
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*MfaCredential, error)
+	predicates    []predicate.MfaCredential
+}
+
+var _ ent.Mutation = (*MfaCredentialMutation)(nil)
+
+// mfacredentialOption allows management of the mutation configuration using functional options.
+type mfacredentialOption func(*MfaCredentialMutation)
+
+// newMfaCredentialMutation creates new mutation for the MfaCredential entity.
+func newMfaCredentialMutation(c config, op Op, opts ...mfacredentialOption) *MfaCredentialMutation {
+	m := &MfaCredentialMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeMfaCredential,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withMfaCredentialID sets the ID field of the mutation.
+func withMfaCredentialID(id int) mfacredentialOption {
+	return func(m *MfaCredentialMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *MfaCredential
+		)
+		m.oldValue = func(ctx context.Context) (*MfaCredential, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().MfaCredential.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withMfaCredential sets the old MfaCredential of the mutation.
+func withMfaCredential(node *MfaCredential) mfacredentialOption {
+	return func(m *MfaCredentialMutation) {
+		m.oldValue = func(context.Context) (*MfaCredential, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m MfaCredentialMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m MfaCredentialMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *MfaCredentialMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *MfaCredentialMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().MfaCredential.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetUserID sets the "user_id" field.
+func (m *MfaCredentialMutation) SetUserID(u uint32) {
+	m.user_id = &u
+	m.adduser_id = nil
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *MfaCredentialMutation) UserID() (r uint32, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the MfaCredential entity.
+// If the MfaCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MfaCredentialMutation) OldUserID(ctx context.Context) (v uint32, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// AddUserID adds u to the "user_id" field.
+func (m *MfaCredentialMutation) AddUserID(u int32) {
+	if m.adduser_id != nil {
+		*m.adduser_id += u
+	} else {
+		m.adduser_id = &u
+	}
+}
+
+// AddedUserID returns the value that was added to the "user_id" field in this mutation.
+func (m *MfaCredentialMutation) AddedUserID() (r int32, exists bool) {
+	v := m.adduser_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *MfaCredentialMutation) ResetUserID() {
+	m.user_id = nil
+	m.adduser_id = nil
+}
+
+// SetKind sets the "kind" field.
+func (m *MfaCredentialMutation) SetKind(value mfacredential.Kind) {
+	m.kind = &value
+}
+
+// Kind returns the value of the "kind" field in the mutation.
+func (m *MfaCredentialMutation) Kind() (r mfacredential.Kind, exists bool) {
+	v := m.kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKind returns the old "kind" field's value of the MfaCredential entity.
+// If the MfaCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MfaCredentialMutation) OldKind(ctx context.Context) (v mfacredential.Kind, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// ResetKind resets all changes to the "kind" field.
+func (m *MfaCredentialMutation) ResetKind() {
+	m.kind = nil
+}
+
+// SetSecret sets the "secret" field.
+func (m *MfaCredentialMutation) SetSecret(s string) {
+	m.secret = &s
+}
+
+// Secret returns the value of the "secret" field in the mutation.
+func (m *MfaCredentialMutation) Secret() (r string, exists bool) {
+	v := m.secret
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSecret returns the old "secret" field's value of the MfaCredential entity.
+// If the MfaCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MfaCredentialMutation) OldSecret(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSecret is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSecret requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSecret: %w", err)
+	}
+	return oldValue.Secret, nil
+}
+
+// ResetSecret resets all changes to the "secret" field.
+func (m *MfaCredentialMutation) ResetSecret() {
+	m.secret = nil
+}
+
+// SetLabel sets the "label" field.
+func (m *MfaCredentialMutation) SetLabel(s string) {
+	m.label = &s
+}
+
+// Label returns the value of the "label" field in the mutation.
+func (m *MfaCredentialMutation) Label() (r string, exists bool) {
+	v := m.label
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLabel returns the old "label" field's value of the MfaCredential entity.
+// If the MfaCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MfaCredentialMutation) OldLabel(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLabel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLabel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLabel: %w", err)
+	}
+	return oldValue.Label, nil
+}
+
+// ClearLabel clears the value of the "label" field.
+func (m *MfaCredentialMutation) ClearLabel() {
+	m.label = nil
+	m.clearedFields[mfacredential.FieldLabel] = struct{}{}
+}
+
+// LabelCleared returns if the "label" field was cleared in this mutation.
+func (m *MfaCredentialMutation) LabelCleared() bool {
+	_, ok := m.clearedFields[mfacredential.FieldLabel]
+	return ok
+}
+
+// ResetLabel resets all changes to the "label" field.
+func (m *MfaCredentialMutation) ResetLabel() {
+	m.label = nil
+	delete(m.clearedFields, mfacredential.FieldLabel)
+}
+
+// SetStatus sets the "status" field.
+func (m *MfaCredentialMutation) SetStatus(value mfacredential.Status) {
+	m.status = &value
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *MfaCredentialMutation) Status() (r mfacredential.Status, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the MfaCredential entity.
+// If the MfaCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MfaCredentialMutation) OldStatus(ctx context.Context) (v mfacredential.Status, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *MfaCredentialMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetSignCount sets the "sign_count" field.
+func (m *MfaCredentialMutation) SetSignCount(u uint32) {
+	m.sign_count = &u
+	m.addsign_count = nil
+}
+
+// SignCount returns the value of the "sign_count" field in the mutation.
+func (m *MfaCredentialMutation) SignCount() (r uint32, exists bool) {
+	v := m.sign_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSignCount returns the old "sign_count" field's value of the MfaCredential entity.
+// If the MfaCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MfaCredentialMutation) OldSignCount(ctx context.Context) (v uint32, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSignCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSignCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSignCount: %w", err)
+	}
+	return oldValue.SignCount, nil
+}
+
+// AddSignCount adds u to the "sign_count" field.
+func (m *MfaCredentialMutation) AddSignCount(u int32) {
+	if m.addsign_count != nil {
+		*m.addsign_count += u
+	} else {
+		m.addsign_count = &u
+	}
+}
+
+// AddedSignCount returns the value that was added to the "sign_count" field in this mutation.
+func (m *MfaCredentialMutation) AddedSignCount() (r int32, exists bool) {
+	v := m.addsign_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSignCount resets all changes to the "sign_count" field.
+func (m *MfaCredentialMutation) ResetSignCount() {
+	m.sign_count = nil
+	m.addsign_count = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *MfaCredentialMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *MfaCredentialMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the MfaCredential entity.
+// If the MfaCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MfaCredentialMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *MfaCredentialMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *MfaCredentialMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *MfaCredentialMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the MfaCredential entity.
+// If the MfaCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MfaCredentialMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *MfaCredentialMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetConfirmedAt sets the "confirmed_at" field.
+func (m *MfaCredentialMutation) SetConfirmedAt(t time.Time) {
+	m.confirmed_at = &t
+}
+
+// ConfirmedAt returns the value of the "confirmed_at" field in the mutation.
+func (m *MfaCredentialMutation) ConfirmedAt() (r time.Time, exists bool) {
+	v := m.confirmed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldConfirmedAt returns the old "confirmed_at" field's value of the MfaCredential entity.
+// If the MfaCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MfaCredentialMutation) OldConfirmedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldConfirmedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldConfirmedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldConfirmedAt: %w", err)
+	}
+	return oldValue.ConfirmedAt, nil
+}
+
+// ClearConfirmedAt clears the value of the "confirmed_at" field.
+func (m *MfaCredentialMutation) ClearConfirmedAt() {
+	m.confirmed_at = nil
+	m.clearedFields[mfacredential.FieldConfirmedAt] = struct{}{}
+}
+
+// ConfirmedAtCleared returns if the "confirmed_at" field was cleared in this mutation.
+func (m *MfaCredentialMutation) ConfirmedAtCleared() bool {
+	_, ok := m.clearedFields[mfacredential.FieldConfirmedAt]
+	return ok
+}
+
+// ResetConfirmedAt resets all changes to the "confirmed_at" field.
+func (m *MfaCredentialMutation) ResetConfirmedAt() {
+	m.confirmed_at = nil
+	delete(m.clearedFields, mfacredential.FieldConfirmedAt)
+}
+
+// SetUsedAt sets the "used_at" field.
+func (m *MfaCredentialMutation) SetUsedAt(t time.Time) {
+	m.used_at = &t
+}
+
+// UsedAt returns the value of the "used_at" field in the mutation.
+func (m *MfaCredentialMutation) UsedAt() (r time.Time, exists bool) {
+	v := m.used_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUsedAt returns the old "used_at" field's value of the MfaCredential entity.
+// If the MfaCredential object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MfaCredentialMutation) OldUsedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUsedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUsedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUsedAt: %w", err)
+	}
+	return oldValue.UsedAt, nil
+}
+
+// ClearUsedAt clears the value of the "used_at" field.
+func (m *MfaCredentialMutation) ClearUsedAt() {
+	m.used_at = nil
+	m.clearedFields[mfacredential.FieldUsedAt] = struct{}{}
+}
+
+// UsedAtCleared returns if the "used_at" field was cleared in this mutation.
+func (m *MfaCredentialMutation) UsedAtCleared() bool {
+	_, ok := m.clearedFields[mfacredential.FieldUsedAt]
+	return ok
+}
+
+// ResetUsedAt resets all changes to the "used_at" field.
+func (m *MfaCredentialMutation) ResetUsedAt() {
+	m.used_at = nil
+	delete(m.clearedFields, mfacredential.FieldUsedAt)
+}
+
+// Where appends a list predicates to the MfaCredentialMutation builder.
+func (m *MfaCredentialMutation) Where(ps ...predicate.MfaCredential) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the MfaCredentialMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *MfaCredentialMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.MfaCredential, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *MfaCredentialMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *MfaCredentialMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (MfaCredential).
+func (m *MfaCredentialMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *MfaCredentialMutation) Fields() []string {
+	fields := make([]string, 0, 10)
+	if m.user_id != nil {
+		fields = append(fields, mfacredential.FieldUserID)
+	}
+	if m.kind != nil {
+		fields = append(fields, mfacredential.FieldKind)
+	}
+	if m.secret != nil {
+		fields = append(fields, mfacredential.FieldSecret)
+	}
+	if m.label != nil {
+		fields = append(fields, mfacredential.FieldLabel)
+	}
+	if m.status != nil {
+		fields = append(fields, mfacredential.FieldStatus)
+	}
+	if m.sign_count != nil {
+		fields = append(fields, mfacredential.FieldSignCount)
+	}
+	if m.created_at != nil {
+		fields = append(fields, mfacredential.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, mfacredential.FieldUpdatedAt)
+	}
+	if m.confirmed_at != nil {
+		fields = append(fields, mfacredential.FieldConfirmedAt)
+	}
+	if m.used_at != nil {
+		fields = append(fields, mfacredential.FieldUsedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *MfaCredentialMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case mfacredential.FieldUserID:
+		return m.UserID()
+	case mfacredential.FieldKind:
+		return m.Kind()
+	case mfacredential.FieldSecret:
+		return m.Secret()
+	case mfacredential.FieldLabel:
+		return m.Label()
+	case mfacredential.FieldStatus:
+		return m.Status()
+	case mfacredential.FieldSignCount:
+		return m.SignCount()
+	case mfacredential.FieldCreatedAt:
+		return m.CreatedAt()
+	case mfacredential.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case mfacredential.FieldConfirmedAt:
+		return m.ConfirmedAt()
+	case mfacredential.FieldUsedAt:
+		return m.UsedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *MfaCredentialMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case mfacredential.FieldUserID:
+		return m.OldUserID(ctx)
+	case mfacredential.FieldKind:
+		return m.OldKind(ctx)
+	case mfacredential.FieldSecret:
+		return m.OldSecret(ctx)
+	case mfacredential.FieldLabel:
+		return m.OldLabel(ctx)
+	case mfacredential.FieldStatus:
+		return m.OldStatus(ctx)
+	case mfacredential.FieldSignCount:
+		return m.OldSignCount(ctx)
+	case mfacredential.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case mfacredential.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case mfacredential.FieldConfirmedAt:
+		return m.OldConfirmedAt(ctx)
+	case mfacredential.FieldUsedAt:
+		return m.OldUsedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown MfaCredential field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *MfaCredentialMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case mfacredential.FieldUserID:
+		v, ok := value.(uint32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case mfacredential.FieldKind:
+		v, ok := value.(mfacredential.Kind)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKind(v)
+		return nil
+	case mfacredential.FieldSecret:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSecret(v)
+		return nil
+	case mfacredential.FieldLabel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLabel(v)
+		return nil
+	case mfacredential.FieldStatus:
+		v, ok := value.(mfacredential.Status)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case mfacredential.FieldSignCount:
+		v, ok := value.(uint32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSignCount(v)
+		return nil
+	case mfacredential.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case mfacredential.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case mfacredential.FieldConfirmedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetConfirmedAt(v)
+		return nil
+	case mfacredential.FieldUsedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUsedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown MfaCredential field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *MfaCredentialMutation) AddedFields() []string {
+	var fields []string
+	if m.adduser_id != nil {
+		fields = append(fields, mfacredential.FieldUserID)
+	}
+	if m.addsign_count != nil {
+		fields = append(fields, mfacredential.FieldSignCount)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *MfaCredentialMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case mfacredential.FieldUserID:
+		return m.AddedUserID()
+	case mfacredential.FieldSignCount:
+		return m.AddedSignCount()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *MfaCredentialMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case mfacredential.FieldUserID:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUserID(v)
+		return nil
+	case mfacredential.FieldSignCount:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSignCount(v)
+		return nil
+	}
+	return fmt.Errorf("unknown MfaCredential numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *MfaCredentialMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(mfacredential.FieldLabel) {
+		fields = append(fields, mfacredential.FieldLabel)
+	}
+	if m.FieldCleared(mfacredential.FieldConfirmedAt) {
+		fields = append(fields, mfacredential.FieldConfirmedAt)
+	}
+	if m.FieldCleared(mfacredential.FieldUsedAt) {
+		fields = append(fields, mfacredential.FieldUsedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *MfaCredentialMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *MfaCredentialMutation) ClearField(name string) error {
+	switch name {
+	case mfacredential.FieldLabel:
+		m.ClearLabel()
+		return nil
+	case mfacredential.FieldConfirmedAt:
+		m.ClearConfirmedAt()
+		return nil
+	case mfacredential.FieldUsedAt:
+		m.ClearUsedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown MfaCredential nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *MfaCredentialMutation) ResetField(name string) error {
+	switch name {
+	case mfacredential.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case mfacredential.FieldKind:
+		m.ResetKind()
+		return nil
+	case mfacredential.FieldSecret:
+		m.ResetSecret()
+		return nil
+	case mfacredential.FieldLabel:
+		m.ResetLabel()
+		return nil
+	case mfacredential.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case mfacredential.FieldSignCount:
+		m.ResetSignCount()
+		return nil
+	case mfacredential.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case mfacredential.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case mfacredential.FieldConfirmedAt:
+		m.ResetConfirmedAt()
+		return nil
+	case mfacredential.FieldUsedAt:
+		m.ResetUsedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown MfaCredential field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *MfaCredentialMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *MfaCredentialMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *MfaCredentialMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *MfaCredentialMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *MfaCredentialMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *MfaCredentialMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *MfaCredentialMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown MfaCredential unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *MfaCredentialMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown MfaCredential edge %s", name)
 }
 
 // PolicyHistoryMutation represents an operation that mutates the PolicyHistory nodes in the graph.

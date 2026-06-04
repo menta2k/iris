@@ -21,6 +21,7 @@ import (
 
 	authenticationpb "github.com/menta2k/iris/backend/api/gen/go/authentication/service/v1"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/service"
+	appjwt "github.com/menta2k/iris/backend/pkg/jwt"
 	auditmw "github.com/menta2k/iris/backend/pkg/middleware/audit"
 )
 
@@ -50,11 +51,14 @@ func RegisterServices(
 	listeners *service.ListenerService,
 	acme *service.AcmeService,
 	loginPolicies *service.LoginPolicyService,
+	mfa *service.MFAService,
+	issuer *appjwt.Issuer,
 	auditWrite auditmw.WriteFunc,
 ) {
 	registerAuthGRPC(gs, auth)
 	registerAuthHTTP(hs, auth, auditWrite)
-	RegisterAdminHTTP(hs, users, audit, auditWrite)
+	registerMFA(hs, mfa, issuer, auditWrite)
+	RegisterAdminHTTP(hs, users, audit, mfa, auditWrite)
 	RegisterKumoHTTP(hs, queues, suppressions, vmtas, routing, dkim, feedback, logs, policy, mailClasses, vmtaGroups, dashboard, dsns, gsvc, listeners, acme, loginPolicies, auditWrite)
 	// SPA: must be registered LAST so /v1/* and /api/v1/* matchers above
 	// take precedence. The fallback handler covers /, /assets/*, and
@@ -105,6 +109,12 @@ type httpLoginResp struct {
 	UserID       uint32   `json:"user_id"`
 	Username     string   `json:"username"`
 	Roles        []string `json:"roles"`
+
+	// Second-factor challenge: when set, the client must verify a factor
+	// (POST /v1/auth/mfa/verify) before it receives tokens.
+	MFARequired bool     `json:"mfa_required,omitempty"`
+	MFAToken    string   `json:"mfa_token,omitempty"`
+	MFAMethods  []string `json:"mfa_methods,omitempty"`
 }
 
 type httpRefreshReq struct {
@@ -138,31 +148,58 @@ func loginHandler(auth *service.AuthenticationGRPC) func(http.ResponseWriter, *h
 		// Thread the real client IP (X-Forwarded-For behind the HTTPS
 		// proxy) so the login firewall can evaluate IP/REGION rules.
 		ctx = service.WithClientIP(ctx, clientIP(r))
-		resp, err := auth.Login(ctx, &authenticationpb.LoginRequest{
+		// Call the service directly (not the proto adapter) so the MFA
+		// fields on LoginResponse survive — the proto LoginResponse can't
+		// carry them.
+		resp, err := auth.Service().Login(ctx, &service.LoginRequest{
 			Username: body.Username,
 			Password: body.Password,
-		})
+		}, clientIP(r))
 		if err != nil {
-			httpErr, msg := mapStatus(err)
-			writeErr(w, httpErr, "AUTH_FAILED", msg)
+			httpErr, code, msg := mapLoginErr(err)
+			writeErr(w, httpErr, code, msg)
 			return
 		}
-		var roles []string
-		var uid uint32
-		var uname string
-		if resp.User != nil {
-			roles = resp.User.Roles
-			uid = resp.User.UserId
-			uname = resp.User.Username
+		if resp.MFARequired {
+			// 200 with a challenge — the client proceeds to the verify step.
+			writeJSON(w, http.StatusOK, httpLoginResp{
+				MFARequired: true,
+				MFAToken:    resp.MFAToken,
+				MFAMethods:  resp.MFAMethods,
+				UserID:      resp.UserID,
+				Username:    resp.Username,
+			})
+			return
 		}
-		writeJSON(w, http.StatusOK, httpLoginResp{
-			AccessToken:  resp.AccessToken,
-			RefreshToken: resp.RefreshToken,
-			ExpiresIn:    resp.ExpiresIn,
-			UserID:       uid,
-			Username:     uname,
-			Roles:        roles,
-		})
+		writeJSON(w, http.StatusOK, loginRespToHTTP(resp))
+	}
+}
+
+// loginRespToHTTP renders a fully-authenticated login response.
+func loginRespToHTTP(resp *service.LoginResponse) httpLoginResp {
+	return httpLoginResp{
+		AccessToken:  resp.AccessToken,
+		RefreshToken: resp.RefreshToken,
+		ExpiresIn:    resp.ExpiresIn,
+		UserID:       resp.UserID,
+		Username:     resp.Username,
+		Roles:        resp.Roles,
+	}
+}
+
+// mapLoginErr maps service-layer auth sentinels to HTTP status + code.
+func mapLoginErr(err error) (int, string, string) {
+	switch {
+	case errors.Is(err, service.ErrInvalidCredentials):
+		return http.StatusUnauthorized, "INVALID_CREDENTIALS", "invalid credentials"
+	case errors.Is(err, service.ErrAccountInactive):
+		return http.StatusForbidden, "ACCOUNT_INACTIVE", "account inactive"
+	case errors.Is(err, service.ErrAccountLocked):
+		return http.StatusTooManyRequests, "ACCOUNT_LOCKED", "account locked"
+	case errors.Is(err, service.ErrLoginBlocked):
+		return http.StatusForbidden, "LOGIN_BLOCKED", "login blocked by security policy"
+	default:
+		return http.StatusInternalServerError, "AUTH_FAILED", err.Error()
 	}
 }
 

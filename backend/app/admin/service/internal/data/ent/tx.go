@@ -40,6 +40,8 @@ type Tx struct {
 	MailClass *MailClassClient
 	// MetricSnapshot is the client for interacting with the MetricSnapshot builders.
 	MetricSnapshot *MetricSnapshotClient
+	// MfaCredential is the client for interacting with the MfaCredential builders.
+	MfaCredential *MfaCredentialClient
 	// PolicyHistory is the client for interacting with the PolicyHistory builders.
 	PolicyHistory *PolicyHistoryClient
 	// Role is the client for interacting with the Role builders.
@@ -205,6 +207,7 @@ func (tx *Tx) init() {
 	tx.LoginPolicy = NewLoginPolicyClient(tx.config)
 	tx.MailClass = NewMailClassClient(tx.config)
 	tx.MetricSnapshot = NewMetricSnapshotClient(tx.config)
+	tx.MfaCredential = NewMfaCredentialClient(tx.config)
 	tx.PolicyHistory = NewPolicyHistoryClient(tx.config)
 	tx.Role = NewRoleClient(tx.config)
 	tx.RoutingRule = NewRoutingRuleClient(tx.config)

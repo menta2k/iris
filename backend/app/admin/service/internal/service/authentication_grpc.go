@@ -26,6 +26,11 @@ func NewAuthenticationGRPC(svc *AuthenticationService) *AuthenticationGRPC {
 	return &AuthenticationGRPC{svc: svc}
 }
 
+// Service exposes the underlying transport-agnostic service so the hand-rolled
+// HTTP handlers can use the richer LoginResponse (MFA fields) that the proto
+// adapter doesn't carry.
+func (a *AuthenticationGRPC) Service() *AuthenticationService { return a.svc }
+
 // Login proxies to AuthenticationService.Login. Client IP is best-effort —
 // audit middleware extracts the canonical X-Forwarded-For elsewhere; this
 // adapter only forwards the empty string until that wiring is in place.
