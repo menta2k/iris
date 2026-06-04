@@ -165,6 +165,18 @@ func (f MailClassFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, e
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MailClassMutation", m)
 }
 
+// The MailWebhookFunc type is an adapter to allow the use of ordinary
+// function as MailWebhook mutator.
+type MailWebhookFunc func(context.Context, *ent.MailWebhookMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MailWebhookFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.MailWebhookMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MailWebhookMutation", m)
+}
+
 // The MetricSnapshotFunc type is an adapter to allow the use of ordinary
 // function as MetricSnapshot mutator.
 type MetricSnapshotFunc func(context.Context, *ent.MetricSnapshotMutation) (ent.Value, error)

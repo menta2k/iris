@@ -47,9 +47,11 @@ func Render(s *Snapshot, opts RenderOptions) (RenderResult, error) {
 	writeHeader(&b, opts, s.GlobalSettings)
 	writeLogStreamConsts(&b, s.GlobalSettings)
 	writeBounceConsts(&b, s.GlobalSettings)
+	writeWebhookConsts(&b, s.MailWebhooks)
 	writeInit(&b, s.Listeners, s.GlobalSettings)
 	writeRedisLogHook(&b, s.GlobalSettings)
 	writeDsnCatcher(&b, s.GlobalSettings)
+	writeWebhookCatcher(&b, s.MailWebhooks)
 	writeEgressSources(&b, s.VirtualMtas, s.GlobalSettings)
 	writeEgressPools(&b, s.VirtualMtas, s.VirtualMtaGroups)
 	// MailClassTable must come BEFORE writeQueueConfig — the queue-config
@@ -58,11 +60,11 @@ func Render(s *Snapshot, opts RenderOptions) (RenderResult, error) {
 	// time. Otherwise Lua treats it as a missing global and the lookup nils
 	// out.
 	writeMailClassTable(&b, s.MailClasses)
-	writeQueueConfig(&b, s.GlobalSettings)
-	writeListenerDomains(&b, s.Listeners, s.GlobalSettings)
+	writeQueueConfig(&b, s.GlobalSettings, s.MailWebhooks)
+	writeListenerDomains(&b, s.Listeners, s.GlobalSettings, s.MailWebhooks)
 	writeDkimTable(&b, s.DkimIdentities)
 	writeSuppressionLookup(&b, s.GlobalSettings)
-	writeRoutingChain(&b, s.MailClasses, s.RoutingRules, s.GlobalSettings, opts)
+	writeRoutingChain(&b, s.MailClasses, s.RoutingRules, s.GlobalSettings, s.MailWebhooks, opts)
 	writeFooter(&b, opts)
 
 	out := b.String()
@@ -641,7 +643,7 @@ end)
 // egress_pool. The default pool ('default') only matters when no rule
 // matched — it routes to a synthetic pool with no entries, which kumomta
 // surfaces as "no source available" so misconfiguration is loud.
-func writeQueueConfig(b *strings.Builder, gs GlobalSettings) {
+func writeQueueConfig(b *strings.Builder, gs GlobalSettings, whs []MailWebhook) {
 	b.WriteString("-- ===== queue → egress pool mapping =====\n")
 
 	// Test-mode MX overrides: emit a Lua table the e2e harness uses to
@@ -686,6 +688,18 @@ func writeQueueConfig(b *strings.Builder, gs GlobalSettings) {
       protocol = { custom_lua = { constructor = 'make.dsn_xadd' } },
       retry_interval = '30s',
       max_retry_interval = '5m',
+    }
+  end
+`)
+	}
+	if len(enabledWebhooks(whs)) > 0 {
+		// Inbound webhook routing: route_message tags matching mail with
+		// queue=WEBHOOK_TRACKER, delivered by the make.webhook_post HTTP POST.
+		b.WriteString(`  if domain == WEBHOOK_TRACKER then
+    return kumo.make_queue_config {
+      protocol = { custom_lua = { constructor = 'make.webhook_post' } },
+      retry_interval = '1m',
+      max_retry_interval = '30m',
     }
   end
 `)
@@ -744,9 +758,93 @@ func queueRetryFields(gs GlobalSettings, indent string) string {
 	return b.String()
 }
 
+// --- inbound mail webhooks --------------------------------------------------
+
+// enabledWebhooks filters to the active webhooks (defensive — the snapshot
+// already loads only enabled rows).
+func enabledWebhooks(whs []MailWebhook) []MailWebhook {
+	out := make([]MailWebhook, 0, len(whs))
+	for _, w := range whs {
+		if w.Enabled {
+			out = append(out, w)
+		}
+	}
+	return out
+}
+
+const webhookTracker = "iris_webhook"
+
+// writeWebhookConsts emits the lookup tables and the WEBHOOK_TRACKER queue
+// name. Exact-address webhooks key WEBHOOK_BY_EMAIL; bare-domain catch-alls
+// key WEBHOOK_BY_DOMAIN. Both are declared even when empty so later closures
+// resolve them as upvalues.
+func writeWebhookConsts(b *strings.Builder, whs []MailWebhook) {
+	whs = enabledWebhooks(whs)
+	b.WriteString("-- ===== inbound mail webhooks =====\n")
+	fmt.Fprintf(b, "local WEBHOOK_TRACKER = %s\n", MustLuaString(webhookTracker))
+	b.WriteString("local WEBHOOK_BY_EMAIL = {}\n")
+	b.WriteString("local WEBHOOK_BY_DOMAIN = {}\n")
+	for _, w := range whs {
+		table := "WEBHOOK_BY_EMAIL"
+		key := strings.ToLower(w.Address)
+		if w.IsDomainCatchAll() {
+			table = "WEBHOOK_BY_DOMAIN"
+			key = w.WebhookDomain()
+		}
+		fmt.Fprintf(b, "%s[%s] = { url = %s, secret = %s }\n",
+			table, MustLuaString(key), MustLuaString(w.URL), MustLuaString(w.Secret))
+	}
+	b.WriteString("\n")
+}
+
+// writeWebhookCatcher emits the custom_lua queue constructor that POSTs the
+// raw message to the matched endpoint. A 2xx acks (250); anything else (or a
+// transport error) defers so kumomta retries on its normal backoff.
+func writeWebhookCatcher(b *strings.Builder, whs []MailWebhook) {
+	if len(enabledWebhooks(whs)) == 0 {
+		return
+	}
+	b.WriteString(`kumo.on('make.webhook_post', function(_domain, _tenant, _campaign)
+  local connection = {}
+  function connection:send(message)
+    local rcpt = message:recipient()
+    local email = (rcpt and rcpt.email or ''):lower()
+    local dom = (rcpt and rcpt.domain or ''):lower()
+    local route = WEBHOOK_BY_EMAIL[email] or WEBHOOK_BY_DOMAIN[dom]
+    if not route then
+      return '250 no webhook route (dropped)'
+    end
+    local body = message:get_data()
+    local client = kumo.http.build_client {}
+    local req = client:post(route.url)
+    req:header('Content-Type', 'message/rfc822')
+    req:header('X-Iris-Recipient', email)
+    req:header('X-Iris-Message-Id', tostring(message:id()))
+    if route.secret and route.secret ~= '' then
+      local sig = kumo.digest.hmac_sha256({ key_data = route.secret }, body)
+      req:header('X-Iris-Signature', tostring(sig))
+    end
+    req:body(body)
+    local ok, resp = pcall(function() return req:send() end)
+    if not ok then
+      kumo.log_error('webhook: post failed err=' .. tostring(resp))
+      return string.format('451 4.4.1 webhook post error: %s', tostring(resp))
+    end
+    local code = resp:status_code()
+    if code >= 200 and code < 300 then
+      return string.format('250 forwarded to webhook (%d)', code)
+    end
+    return string.format('451 4.4.1 webhook returned %d', code)
+  end
+  return connection
+end)
+
+`)
+}
+
 // --- listener domains -------------------------------------------------------
 
-func writeListenerDomains(b *strings.Builder, ls []Listener, gs GlobalSettings) {
+func writeListenerDomains(b *strings.Builder, ls []Listener, gs GlobalSettings, whs []MailWebhook) {
 	// Aggregate domain → cfg across all listeners. If the same domain appears
 	// on multiple listeners with different settings the last wins; the admin
 	// service should prevent that upstream.
@@ -767,6 +865,12 @@ func writeListenerDomains(b *strings.Builder, ls []Listener, gs GlobalSettings) 
 	// the env-driven config wires them implicitly.
 	for _, d := range effectiveBounceDomains(gs) {
 		domains[d] = rule{relay: true, requireTL: false}
+	}
+	// Accept inbound mail for every webhook recipient's domain so kumomta
+	// relays it into the chain (where route_message hands it to the webhook
+	// queue) instead of rejecting it as an unknown destination.
+	for _, w := range enabledWebhooks(whs) {
+		domains[w.WebhookDomain()] = rule{relay: true, requireTL: false}
 	}
 	if len(domains) == 0 {
 		return
@@ -939,7 +1043,7 @@ end
 // Both the SMTP server (smtp_server_message_received) and the HTTP injection
 // API (http_message_generated) dispatch into the same Lua function so policy
 // decisions stay consistent across both entry points.
-func writeRoutingChain(b *strings.Builder, mcs []MailClass, rs []RoutingRule, gs GlobalSettings, opts RenderOptions) {
+func writeRoutingChain(b *strings.Builder, mcs []MailClass, rs []RoutingRule, gs GlobalSettings, whs []MailWebhook, opts RenderOptions) {
 	header := gs.MailClassHeader
 	if header == "" {
 		header = MailClassHeaderDefault
@@ -996,6 +1100,23 @@ end
     local rdom = (rcpt and rcpt.domain or ''):lower()
     if BOUNCE_DOMAINS[rdom] then
       msg:set_meta('queue', DSN_TRACKER)
+      return
+    end
+  end
+`)
+	}
+
+	// 0b) inbound webhook catcher. Mail addressed to a configured webhook
+	// recipient (exact email or a bare-domain catch-all) is routed straight
+	// to the WEBHOOK_TRACKER queue, which POSTs it to the endpoint. Checked
+	// before suppression for the same loop-avoidance reason as DSNs.
+	if len(enabledWebhooks(whs)) > 0 {
+		b.WriteString(`  do
+    local rcpt = msg:recipient()
+    local email = (rcpt and rcpt.email or ''):lower()
+    local rdom = (rcpt and rcpt.domain or ''):lower()
+    if WEBHOOK_BY_EMAIL[email] or WEBHOOK_BY_DOMAIN[rdom] then
+      msg:set_meta('queue', WEBHOOK_TRACKER)
       return
     end
   end

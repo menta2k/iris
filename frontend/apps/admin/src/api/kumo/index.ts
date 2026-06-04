@@ -588,6 +588,28 @@ export const listenersApi = {
   remove: (id: number) => requestClient.delete(`/v1/listeners/${id}`),
 };
 
+// ─── Mail webhooks (inbound mail → HTTP endpoint) ────────────────────────────
+export interface MailWebhook {
+  id?: number;
+  name: string;
+  address: string; // exact recipient (a@host) or bare domain (host) catch-all
+  url: string;
+  secret?: string; // write-only; responses report secret_set instead
+  secret_set?: boolean;
+  enabled?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export const mailWebhooksApi = {
+  list: () => requestClient.get<ListResponse<MailWebhook>>('/v1/mail-webhooks'),
+  create: (input: MailWebhook) =>
+    requestClient.post<MailWebhook>('/v1/mail-webhooks', input),
+  update: (id: number, input: MailWebhook) =>
+    requestClient.put<MailWebhook>(`/v1/mail-webhooks/${id}`, input),
+  remove: (id: number) => requestClient.delete(`/v1/mail-webhooks/${id}`),
+};
+
 // ─── Listener Domains ───────────────────────────────────────────────────────
 export interface ListenerDomain {
   id: string;

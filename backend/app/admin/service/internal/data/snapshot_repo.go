@@ -15,6 +15,7 @@ import (
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/dkimidentity"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/listenerconfig"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mailclass"
+	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/mailwebhook"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/routingrule"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/virtualmta"
 	"github.com/menta2k/iris/backend/app/admin/service/internal/data/ent/virtualmtagroup"
@@ -75,6 +76,13 @@ func (r *SnapshotRepo) CurrentSnapshot(ctx context.Context) (*kumopolicy.Snapsho
 	if err != nil {
 		return nil, fmt.Errorf("snapshot: vmta groups: %w", err)
 	}
+	webhooks, err := r.client.MailWebhook.Query().
+		Where(mailwebhook.EnabledEQ(true)).
+		Order(ent.Asc(mailwebhook.FieldName)).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("snapshot: mail webhooks: %w", err)
+	}
 
 	snap := &kumopolicy.Snapshot{
 		Listeners:        make([]kumopolicy.Listener, 0, len(listeners)),
@@ -124,6 +132,15 @@ func (r *SnapshotRepo) CurrentSnapshot(ctx context.Context) (*kumopolicy.Snapsho
 			RequireAuth:    l.RequireAuth,
 			MaxMessageSize: l.MaxMessageSize,
 			Domains:        domains,
+		})
+	}
+	for _, wh := range webhooks {
+		snap.MailWebhooks = append(snap.MailWebhooks, kumopolicy.MailWebhook{
+			Name:    wh.Name,
+			Address: wh.Address,
+			URL:     wh.URL,
+			Secret:  wh.Secret,
+			Enabled: wh.Enabled,
 		})
 	}
 	for _, d := range dkim {
