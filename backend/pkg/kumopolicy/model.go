@@ -97,6 +97,13 @@ type GlobalSettings struct {
 	EgressMaxRetryInterval string
 	EgressMaxAge           string
 
+	// Inbound rspamd spam filtering. RspamdMode is "" / "off", "tag"
+	// (scan + add X-Spam headers, never reject) or "enforce" (honor
+	// rspamd's action incl. reject/defer). RspamdURL is the rspamd HTTP
+	// endpoint. Only mail received for hosted domains is scanned.
+	RspamdMode string
+	RspamdURL  string
+
 	// KumoHTTPListen is the bind spec for kumomta's HTTP admin listener
 	// emitted into init.lua's kumo.start_http_listener block. Defaults to
 	// '0.0.0.0:8000' (matches the docker-compose layout). Set to

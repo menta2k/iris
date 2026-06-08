@@ -106,3 +106,29 @@ func TestUpdateAcceptsValidEgressDurations(t *testing.T) {
 		t.Fatalf("valid durations rejected: %v", err)
 	}
 }
+
+func TestUpdateValidatesRspamd(t *testing.T) {
+	svc := NewGlobalSettingsService(&fakeGSStore{})
+	ctx := context.Background()
+
+	// Bad mode rejected.
+	if _, err := svc.Update(ctx, GlobalSettingsRow{RspamdMode: "maybe"}, "t"); err == nil {
+		t.Fatal("expected bad rspamd_mode to be rejected")
+	}
+	// enforce without a URL rejected.
+	if _, err := svc.Update(ctx, GlobalSettingsRow{RspamdMode: "enforce"}, "t"); err == nil {
+		t.Fatal("expected enforce without url to be rejected")
+	}
+	// non-http url rejected.
+	if _, err := svc.Update(ctx, GlobalSettingsRow{RspamdMode: "tag", RspamdURL: "ftp://x"}, "t"); err == nil {
+		t.Fatal("expected non-http url to be rejected")
+	}
+	// Valid config accepted.
+	if _, err := svc.Update(ctx, GlobalSettingsRow{RspamdMode: "enforce", RspamdURL: "http://127.0.0.1:11333"}, "t"); err != nil {
+		t.Fatalf("valid rspamd config rejected: %v", err)
+	}
+	// off / empty accepted.
+	if _, err := svc.Update(ctx, GlobalSettingsRow{RspamdMode: ""}, "t"); err != nil {
+		t.Fatalf("empty rspamd config rejected: %v", err)
+	}
+}

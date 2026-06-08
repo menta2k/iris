@@ -164,6 +164,34 @@ func (_c *GlobalSettingsCreate) SetNillableEgressMaxAge(v *string) *GlobalSettin
 	return _c
 }
 
+// SetRspamdMode sets the "rspamd_mode" field.
+func (_c *GlobalSettingsCreate) SetRspamdMode(v string) *GlobalSettingsCreate {
+	_c.mutation.SetRspamdMode(v)
+	return _c
+}
+
+// SetNillableRspamdMode sets the "rspamd_mode" field if the given value is not nil.
+func (_c *GlobalSettingsCreate) SetNillableRspamdMode(v *string) *GlobalSettingsCreate {
+	if v != nil {
+		_c.SetRspamdMode(*v)
+	}
+	return _c
+}
+
+// SetRspamdURL sets the "rspamd_url" field.
+func (_c *GlobalSettingsCreate) SetRspamdURL(v string) *GlobalSettingsCreate {
+	_c.mutation.SetRspamdURL(v)
+	return _c
+}
+
+// SetNillableRspamdURL sets the "rspamd_url" field if the given value is not nil.
+func (_c *GlobalSettingsCreate) SetNillableRspamdURL(v *string) *GlobalSettingsCreate {
+	if v != nil {
+		_c.SetRspamdURL(*v)
+	}
+	return _c
+}
+
 // SetHTTPSListen sets the "https_listen" field.
 func (_c *GlobalSettingsCreate) SetHTTPSListen(v string) *GlobalSettingsCreate {
 	_c.mutation.SetHTTPSListen(v)
@@ -340,6 +368,16 @@ func (_c *GlobalSettingsCreate) check() error {
 			return &ValidationError{Name: "egress_max_age", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.egress_max_age": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.RspamdMode(); ok {
+		if err := globalsettings.RspamdModeValidator(v); err != nil {
+			return &ValidationError{Name: "rspamd_mode", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.rspamd_mode": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.RspamdURL(); ok {
+		if err := globalsettings.RspamdURLValidator(v); err != nil {
+			return &ValidationError{Name: "rspamd_url", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.rspamd_url": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.HTTPSListen(); ok {
 		if err := globalsettings.HTTPSListenValidator(v); err != nil {
 			return &ValidationError{Name: "https_listen", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.https_listen": %w`, err)}
@@ -442,6 +480,14 @@ func (_c *GlobalSettingsCreate) createSpec() (*GlobalSettings, *sqlgraph.CreateS
 	if value, ok := _c.mutation.EgressMaxAge(); ok {
 		_spec.SetField(globalsettings.FieldEgressMaxAge, field.TypeString, value)
 		_node.EgressMaxAge = value
+	}
+	if value, ok := _c.mutation.RspamdMode(); ok {
+		_spec.SetField(globalsettings.FieldRspamdMode, field.TypeString, value)
+		_node.RspamdMode = value
+	}
+	if value, ok := _c.mutation.RspamdURL(); ok {
+		_spec.SetField(globalsettings.FieldRspamdURL, field.TypeString, value)
+		_node.RspamdURL = value
 	}
 	if value, ok := _c.mutation.HTTPSListen(); ok {
 		_spec.SetField(globalsettings.FieldHTTPSListen, field.TypeString, value)

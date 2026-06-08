@@ -37,6 +37,10 @@ const (
 	FieldEgressMaxRetryInterval = "egress_max_retry_interval"
 	// FieldEgressMaxAge holds the string denoting the egress_max_age field in the database.
 	FieldEgressMaxAge = "egress_max_age"
+	// FieldRspamdMode holds the string denoting the rspamd_mode field in the database.
+	FieldRspamdMode = "rspamd_mode"
+	// FieldRspamdURL holds the string denoting the rspamd_url field in the database.
+	FieldRspamdURL = "rspamd_url"
 	// FieldHTTPSListen holds the string denoting the https_listen field in the database.
 	FieldHTTPSListen = "https_listen"
 	// FieldHTTPSCertPemPath holds the string denoting the https_cert_pem_path field in the database.
@@ -66,6 +70,8 @@ var Columns = []string{
 	FieldEgressRetryInterval,
 	FieldEgressMaxRetryInterval,
 	FieldEgressMaxAge,
+	FieldRspamdMode,
+	FieldRspamdURL,
 	FieldHTTPSListen,
 	FieldHTTPSCertPemPath,
 	FieldHTTPSKeyPemPath,
@@ -102,6 +108,10 @@ var (
 	EgressMaxRetryIntervalValidator func(string) error
 	// EgressMaxAgeValidator is a validator for the "egress_max_age" field. It is called by the builders before save.
 	EgressMaxAgeValidator func(string) error
+	// RspamdModeValidator is a validator for the "rspamd_mode" field. It is called by the builders before save.
+	RspamdModeValidator func(string) error
+	// RspamdURLValidator is a validator for the "rspamd_url" field. It is called by the builders before save.
+	RspamdURLValidator func(string) error
 	// HTTPSListenValidator is a validator for the "https_listen" field. It is called by the builders before save.
 	HTTPSListenValidator func(string) error
 	// HTTPSCertPemPathValidator is a validator for the "https_cert_pem_path" field. It is called by the builders before save.
@@ -169,6 +179,16 @@ func ByEgressMaxRetryInterval(opts ...sql.OrderTermOption) OrderOption {
 // ByEgressMaxAge orders the results by the egress_max_age field.
 func ByEgressMaxAge(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEgressMaxAge, opts...).ToFunc()
+}
+
+// ByRspamdMode orders the results by the rspamd_mode field.
+func ByRspamdMode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRspamdMode, opts...).ToFunc()
+}
+
+// ByRspamdURL orders the results by the rspamd_url field.
+func ByRspamdURL(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRspamdURL, opts...).ToFunc()
 }
 
 // ByHTTPSListen orders the results by the https_listen field.

@@ -99,6 +99,16 @@ func EgressMaxAge(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldEQ(FieldEgressMaxAge, v))
 }
 
+// RspamdMode applies equality check predicate on the "rspamd_mode" field. It's identical to RspamdModeEQ.
+func RspamdMode(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldRspamdMode, v))
+}
+
+// RspamdURL applies equality check predicate on the "rspamd_url" field. It's identical to RspamdURLEQ.
+func RspamdURL(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldRspamdURL, v))
+}
+
 // HTTPSListen applies equality check predicate on the "https_listen" field. It's identical to HTTPSListenEQ.
 func HTTPSListen(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldEQ(FieldHTTPSListen, v))
@@ -827,6 +837,156 @@ func EgressMaxAgeEqualFold(v string) predicate.GlobalSettings {
 // EgressMaxAgeContainsFold applies the ContainsFold predicate on the "egress_max_age" field.
 func EgressMaxAgeContainsFold(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldContainsFold(FieldEgressMaxAge, v))
+}
+
+// RspamdModeEQ applies the EQ predicate on the "rspamd_mode" field.
+func RspamdModeEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldRspamdMode, v))
+}
+
+// RspamdModeNEQ applies the NEQ predicate on the "rspamd_mode" field.
+func RspamdModeNEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNEQ(FieldRspamdMode, v))
+}
+
+// RspamdModeIn applies the In predicate on the "rspamd_mode" field.
+func RspamdModeIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIn(FieldRspamdMode, vs...))
+}
+
+// RspamdModeNotIn applies the NotIn predicate on the "rspamd_mode" field.
+func RspamdModeNotIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotIn(FieldRspamdMode, vs...))
+}
+
+// RspamdModeGT applies the GT predicate on the "rspamd_mode" field.
+func RspamdModeGT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGT(FieldRspamdMode, v))
+}
+
+// RspamdModeGTE applies the GTE predicate on the "rspamd_mode" field.
+func RspamdModeGTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGTE(FieldRspamdMode, v))
+}
+
+// RspamdModeLT applies the LT predicate on the "rspamd_mode" field.
+func RspamdModeLT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLT(FieldRspamdMode, v))
+}
+
+// RspamdModeLTE applies the LTE predicate on the "rspamd_mode" field.
+func RspamdModeLTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLTE(FieldRspamdMode, v))
+}
+
+// RspamdModeContains applies the Contains predicate on the "rspamd_mode" field.
+func RspamdModeContains(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContains(FieldRspamdMode, v))
+}
+
+// RspamdModeHasPrefix applies the HasPrefix predicate on the "rspamd_mode" field.
+func RspamdModeHasPrefix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasPrefix(FieldRspamdMode, v))
+}
+
+// RspamdModeHasSuffix applies the HasSuffix predicate on the "rspamd_mode" field.
+func RspamdModeHasSuffix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasSuffix(FieldRspamdMode, v))
+}
+
+// RspamdModeIsNil applies the IsNil predicate on the "rspamd_mode" field.
+func RspamdModeIsNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIsNull(FieldRspamdMode))
+}
+
+// RspamdModeNotNil applies the NotNil predicate on the "rspamd_mode" field.
+func RspamdModeNotNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotNull(FieldRspamdMode))
+}
+
+// RspamdModeEqualFold applies the EqualFold predicate on the "rspamd_mode" field.
+func RspamdModeEqualFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEqualFold(FieldRspamdMode, v))
+}
+
+// RspamdModeContainsFold applies the ContainsFold predicate on the "rspamd_mode" field.
+func RspamdModeContainsFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContainsFold(FieldRspamdMode, v))
+}
+
+// RspamdURLEQ applies the EQ predicate on the "rspamd_url" field.
+func RspamdURLEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEQ(FieldRspamdURL, v))
+}
+
+// RspamdURLNEQ applies the NEQ predicate on the "rspamd_url" field.
+func RspamdURLNEQ(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNEQ(FieldRspamdURL, v))
+}
+
+// RspamdURLIn applies the In predicate on the "rspamd_url" field.
+func RspamdURLIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIn(FieldRspamdURL, vs...))
+}
+
+// RspamdURLNotIn applies the NotIn predicate on the "rspamd_url" field.
+func RspamdURLNotIn(vs ...string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotIn(FieldRspamdURL, vs...))
+}
+
+// RspamdURLGT applies the GT predicate on the "rspamd_url" field.
+func RspamdURLGT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGT(FieldRspamdURL, v))
+}
+
+// RspamdURLGTE applies the GTE predicate on the "rspamd_url" field.
+func RspamdURLGTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldGTE(FieldRspamdURL, v))
+}
+
+// RspamdURLLT applies the LT predicate on the "rspamd_url" field.
+func RspamdURLLT(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLT(FieldRspamdURL, v))
+}
+
+// RspamdURLLTE applies the LTE predicate on the "rspamd_url" field.
+func RspamdURLLTE(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldLTE(FieldRspamdURL, v))
+}
+
+// RspamdURLContains applies the Contains predicate on the "rspamd_url" field.
+func RspamdURLContains(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContains(FieldRspamdURL, v))
+}
+
+// RspamdURLHasPrefix applies the HasPrefix predicate on the "rspamd_url" field.
+func RspamdURLHasPrefix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasPrefix(FieldRspamdURL, v))
+}
+
+// RspamdURLHasSuffix applies the HasSuffix predicate on the "rspamd_url" field.
+func RspamdURLHasSuffix(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldHasSuffix(FieldRspamdURL, v))
+}
+
+// RspamdURLIsNil applies the IsNil predicate on the "rspamd_url" field.
+func RspamdURLIsNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldIsNull(FieldRspamdURL))
+}
+
+// RspamdURLNotNil applies the NotNil predicate on the "rspamd_url" field.
+func RspamdURLNotNil() predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldNotNull(FieldRspamdURL))
+}
+
+// RspamdURLEqualFold applies the EqualFold predicate on the "rspamd_url" field.
+func RspamdURLEqualFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldEqualFold(FieldRspamdURL, v))
+}
+
+// RspamdURLContainsFold applies the ContainsFold predicate on the "rspamd_url" field.
+func RspamdURLContainsFold(v string) predicate.GlobalSettings {
+	return predicate.GlobalSettings(sql.FieldContainsFold(FieldRspamdURL, v))
 }
 
 // HTTPSListenEQ applies the EQ predicate on the "https_listen" field.

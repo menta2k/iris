@@ -71,6 +71,8 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in service.GlobalSettin
 		SetEgressRetryInterval(in.EgressRetryInterval).
 		SetEgressMaxRetryInterval(in.EgressMaxRetryInterval).
 		SetEgressMaxAge(in.EgressMaxAge).
+		SetRspamdMode(in.RspamdMode).
+		SetRspamdURL(in.RspamdURL).
 		SetHTTPSListen(in.HTTPSListen).
 		SetHTTPSCertPemPath(in.HTTPSCertPemPath).
 		SetHTTPSKeyPemPath(in.HTTPSKeyPemPath).
@@ -99,6 +101,8 @@ func entToRow(g *ent.GlobalSettings) *service.GlobalSettingsRow {
 		EgressRetryInterval:    g.EgressRetryInterval,
 		EgressMaxRetryInterval: g.EgressMaxRetryInterval,
 		EgressMaxAge:           g.EgressMaxAge,
+		RspamdMode:             g.RspamdMode,
+		RspamdURL:              g.RspamdURL,
 		HTTPSListen:            g.HTTPSListen,
 		HTTPSCertPemPath:    g.HTTPSCertPemPath,
 		HTTPSKeyPemPath:     g.HTTPSKeyPemPath,

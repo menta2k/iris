@@ -48,6 +48,7 @@ func Render(s *Snapshot, opts RenderOptions) (RenderResult, error) {
 	writeLogStreamConsts(&b, s.GlobalSettings)
 	writeBounceConsts(&b, s.GlobalSettings)
 	writeWebhookConsts(&b, s.MailWebhooks)
+	writeRspamdConsts(&b, s.GlobalSettings)
 	writeInit(&b, s.Listeners, s.GlobalSettings)
 	writeRedisLogHook(&b, s.GlobalSettings)
 	writeDsnCatcher(&b, s.GlobalSettings)
@@ -62,6 +63,7 @@ func Render(s *Snapshot, opts RenderOptions) (RenderResult, error) {
 	writeMailClassTable(&b, s.MailClasses)
 	writeQueueConfig(&b, s.GlobalSettings, s.MailWebhooks)
 	writeListenerDomains(&b, s.Listeners, s.GlobalSettings, s.MailWebhooks)
+	writeRspamdHook(&b, s.GlobalSettings)
 	writeDkimTable(&b, s.DkimIdentities)
 	writeSuppressionLookup(&b, s.GlobalSettings)
 	writeRoutingChain(&b, s.MailClasses, s.RoutingRules, s.GlobalSettings, s.MailWebhooks, opts)
@@ -837,6 +839,96 @@ func writeWebhookCatcher(b *strings.Builder, whs []MailWebhook) {
     return string.format('451 4.4.1 webhook returned %d', code)
   end
   return connection
+end)
+
+`)
+}
+
+// --- inbound rspamd spam filtering ------------------------------------------
+
+// rspamdEnabled reports whether inbound scanning is configured (mode tag or
+// enforce + a URL).
+func rspamdEnabled(gs GlobalSettings) bool {
+	m := strings.ToLower(strings.TrimSpace(gs.RspamdMode))
+	return (m == "tag" || m == "enforce") && strings.TrimSpace(gs.RspamdURL) != ""
+}
+
+// rspamdEnforce reports whether rspamd's reject/defer verdicts are honored
+// (vs tag-only).
+func rspamdEnforce(gs GlobalSettings) bool {
+	return strings.ToLower(strings.TrimSpace(gs.RspamdMode)) == "enforce"
+}
+
+// writeRspamdConsts emits the rspamd endpoint + enforce flag (only when
+// enabled). Declared early so the reception hook can capture them.
+func writeRspamdConsts(b *strings.Builder, gs GlobalSettings) {
+	if !rspamdEnabled(gs) {
+		return
+	}
+	b.WriteString("-- ===== inbound spam filtering (rspamd) =====\n")
+	fmt.Fprintf(b, "local RSPAMD_URL = %s\n", MustLuaString(strings.TrimSpace(gs.RspamdURL)))
+	fmt.Fprintf(b, "local RSPAMD_ENFORCE = %t\n\n", rspamdEnforce(gs))
+}
+
+// writeRspamdHook registers a dedicated smtp_server_message_received handler
+// that scans inbound mail for hosted domains through rspamd's /checkv2 and
+// honors the verdict. It's a separate handler (not route_message) so it only
+// covers SMTP reception — API-injected/submission mail is never scanned — and
+// it registers BEFORE route_message so a reject/defer happens before any
+// webhook/DSN handling. Fails open: if rspamd is unreachable or its response
+// can't be parsed, the message is accepted.
+func writeRspamdHook(b *strings.Builder, gs GlobalSettings) {
+	if !rspamdEnabled(gs) {
+		return
+	}
+	b.WriteString(`kumo.on('smtp_server_message_received', function(msg)
+  local rcpt = msg:recipient()
+  local rdom = (rcpt and rcpt.domain or ''):lower()
+  -- Inbound-to-hosted only: skip outbound relay (external recipient) and
+  -- bounce/DSN subdomains (system mail must not be spam-rejected).
+  if not (LISTENER_DOMAINS and LISTENER_DOMAINS[rdom]) then return end
+  if BOUNCE_DOMAINS and BOUNCE_DOMAINS[rdom] then return end
+  local s = msg:sender()
+  local client = kumo.http.build_client {}
+  local req = client:post(RSPAMD_URL .. '/checkv2')
+  req:header('From', (s and s.email) or '')
+  req:header('Rcpt', (rcpt and rcpt.email) or '')
+  req:header('Deliver-To', (rcpt and rcpt.email) or '')
+  local ok_ip, ip = pcall(function() return msg:get_meta('received_from') end)
+  if ok_ip and ip and ip ~= '' then req:header('Ip', tostring(ip)) end
+  req:body(msg:get_data())
+  local ok, resp = pcall(function() return req:send() end)
+  if not ok then
+    kumo.log_error('rspamd: request failed: ' .. tostring(resp))
+    return -- fail-open
+  end
+  if resp:status_code() ~= 200 then
+    kumo.log_error('rspamd: unexpected status ' .. tostring(resp:status_code()))
+    return -- fail-open
+  end
+  local ok2, r = pcall(function() return kumo.serde.json_parse(resp:text()) end)
+  if not ok2 or type(r) ~= 'table' then
+    return -- fail-open
+  end
+  local score = r.score or 0
+  local action = r.action or 'no action'
+  msg:prepend_header('X-Spam-Score', string.format('%.2f', score))
+  msg:prepend_header('X-Rspamd-Action', tostring(action))
+  if action == 'reject' then
+    if RSPAMD_ENFORCE then
+      kumo.reject(550, '5.7.1 message rejected as spam')
+      return
+    end
+    msg:prepend_header('X-Spam', 'yes')
+  elseif action == 'soft reject' or action == 'greylist' then
+    if RSPAMD_ENFORCE then
+      kumo.reject(451, '4.7.1 greylisted, please try again later')
+      return
+    end
+  elseif action == 'add header' or action == 'rewrite subject' then
+    msg:prepend_header('X-Spam', 'yes')
+    msg:prepend_header('X-Spam-Status', string.format('Yes, score=%.2f', score))
+  end
 end)
 
 `)

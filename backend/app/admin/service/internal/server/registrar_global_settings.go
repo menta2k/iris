@@ -28,6 +28,8 @@ type httpGlobalSettings struct {
 	EgressRetryInterval    string `json:"egress_retry_interval"`
 	EgressMaxRetryInterval string `json:"egress_max_retry_interval"`
 	EgressMaxAge           string `json:"egress_max_age"`
+	RspamdMode             string `json:"rspamd_mode"`
+	RspamdURL              string `json:"rspamd_url"`
 	HTTPSListen            string `json:"https_listen"`
 	HTTPSCertPemPath    string    `json:"https_cert_pem_path"`
 	HTTPSKeyPemPath     string    `json:"https_key_pem_path"`
@@ -95,6 +97,8 @@ func rowToHTTP(r *service.GlobalSettingsRow) httpGlobalSettings {
 		EgressRetryInterval:    r.EgressRetryInterval,
 		EgressMaxRetryInterval: r.EgressMaxRetryInterval,
 		EgressMaxAge:           r.EgressMaxAge,
+		RspamdMode:             r.RspamdMode,
+		RspamdURL:              r.RspamdURL,
 		HTTPSListen:            r.HTTPSListen,
 		HTTPSCertPemPath:    r.HTTPSCertPemPath,
 		HTTPSKeyPemPath:     r.HTTPSKeyPemPath,
@@ -118,6 +122,8 @@ func httpToRow(h httpGlobalSettings) service.GlobalSettingsRow {
 		EgressRetryInterval:    h.EgressRetryInterval,
 		EgressMaxRetryInterval: h.EgressMaxRetryInterval,
 		EgressMaxAge:           h.EgressMaxAge,
+		RspamdMode:             h.RspamdMode,
+		RspamdURL:              h.RspamdURL,
 		HTTPSListen:            h.HTTPSListen,
 		HTTPSCertPemPath:    h.HTTPSCertPemPath,
 		HTTPSKeyPemPath:     h.HTTPSKeyPemPath,

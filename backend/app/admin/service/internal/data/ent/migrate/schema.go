@@ -264,6 +264,8 @@ var (
 		{Name: "egress_retry_interval", Type: field.TypeString, Nullable: true, Size: 32},
 		{Name: "egress_max_retry_interval", Type: field.TypeString, Nullable: true, Size: 32},
 		{Name: "egress_max_age", Type: field.TypeString, Nullable: true, Size: 32},
+		{Name: "rspamd_mode", Type: field.TypeString, Nullable: true, Size: 16},
+		{Name: "rspamd_url", Type: field.TypeString, Nullable: true, Size: 512},
 		{Name: "https_listen", Type: field.TypeString, Nullable: true, Size: 64},
 		{Name: "https_cert_pem_path", Type: field.TypeString, Nullable: true, Size: 1024},
 		{Name: "https_key_pem_path", Type: field.TypeString, Nullable: true, Size: 1024},

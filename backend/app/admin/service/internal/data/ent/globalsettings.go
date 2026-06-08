@@ -42,6 +42,10 @@ type GlobalSettings struct {
 	EgressMaxRetryInterval string `json:"egress_max_retry_interval,omitempty"`
 	// EgressMaxAge holds the value of the "egress_max_age" field.
 	EgressMaxAge string `json:"egress_max_age,omitempty"`
+	// RspamdMode holds the value of the "rspamd_mode" field.
+	RspamdMode string `json:"rspamd_mode,omitempty"`
+	// RspamdURL holds the value of the "rspamd_url" field.
+	RspamdURL string `json:"rspamd_url,omitempty"`
 	// HTTPSListen holds the value of the "https_listen" field.
 	HTTPSListen string `json:"https_listen,omitempty"`
 	// HTTPSCertPemPath holds the value of the "https_cert_pem_path" field.
@@ -64,7 +68,7 @@ func (*GlobalSettings) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case globalsettings.FieldID:
 			values[i] = new(sql.NullInt64)
-		case globalsettings.FieldKumoHTTPListen, globalsettings.FieldEsmtpListenAddr, globalsettings.FieldBounceDomain, globalsettings.FieldBouncePrefix, globalsettings.FieldMailClassHeader, globalsettings.FieldEgressEhloDomain, globalsettings.FieldEgressRetryInterval, globalsettings.FieldEgressMaxRetryInterval, globalsettings.FieldEgressMaxAge, globalsettings.FieldHTTPSListen, globalsettings.FieldHTTPSCertPemPath, globalsettings.FieldHTTPSKeyPemPath, globalsettings.FieldUpdatedBy:
+		case globalsettings.FieldKumoHTTPListen, globalsettings.FieldEsmtpListenAddr, globalsettings.FieldBounceDomain, globalsettings.FieldBouncePrefix, globalsettings.FieldMailClassHeader, globalsettings.FieldEgressEhloDomain, globalsettings.FieldEgressRetryInterval, globalsettings.FieldEgressMaxRetryInterval, globalsettings.FieldEgressMaxAge, globalsettings.FieldRspamdMode, globalsettings.FieldRspamdURL, globalsettings.FieldHTTPSListen, globalsettings.FieldHTTPSCertPemPath, globalsettings.FieldHTTPSKeyPemPath, globalsettings.FieldUpdatedBy:
 			values[i] = new(sql.NullString)
 		case globalsettings.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -167,6 +171,18 @@ func (_m *GlobalSettings) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.EgressMaxAge = value.String
 			}
+		case globalsettings.FieldRspamdMode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field rspamd_mode", values[i])
+			} else if value.Valid {
+				_m.RspamdMode = value.String
+			}
+		case globalsettings.FieldRspamdURL:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field rspamd_url", values[i])
+			} else if value.Valid {
+				_m.RspamdURL = value.String
+			}
 		case globalsettings.FieldHTTPSListen:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field https_listen", values[i])
@@ -268,6 +284,12 @@ func (_m *GlobalSettings) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("egress_max_age=")
 	builder.WriteString(_m.EgressMaxAge)
+	builder.WriteString(", ")
+	builder.WriteString("rspamd_mode=")
+	builder.WriteString(_m.RspamdMode)
+	builder.WriteString(", ")
+	builder.WriteString("rspamd_url=")
+	builder.WriteString(_m.RspamdURL)
 	builder.WriteString(", ")
 	builder.WriteString("https_listen=")
 	builder.WriteString(_m.HTTPSListen)
