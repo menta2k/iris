@@ -870,18 +870,20 @@ func writeRspamdConsts(b *strings.Builder, gs GlobalSettings) {
 	fmt.Fprintf(b, "local RSPAMD_ENFORCE = %t\n\n", rspamdEnforce(gs))
 }
 
-// writeRspamdHook registers a dedicated smtp_server_message_received handler
-// that scans inbound mail for hosted domains through rspamd's /checkv2 and
-// honors the verdict. It's a separate handler (not route_message) so it only
-// covers SMTP reception — API-injected/submission mail is never scanned — and
-// it registers BEFORE route_message so a reject/defer happens before any
-// webhook/DSN handling. Fails open: if rspamd is unreachable or its response
-// can't be parsed, the message is accepted.
+// writeRspamdHook defines the iris_rspamd_scan(msg) Lua function that scans
+// inbound mail for hosted domains through rspamd's /checkv2 and honors the
+// verdict. KumoMTA permits only ONE handler per event, so this is NOT its own
+// kumo.on('smtp_server_message_received', …) — instead the single routing-chain
+// handler calls iris_rspamd_scan BEFORE route_message (see writeRoutingChain),
+// so a reject/defer happens before any webhook/DSN handling. It's wired only
+// into the SMTP path, not http_message_generated, so API-injected mail is
+// never scanned. Fails open: if rspamd is unreachable or its response can't be
+// parsed, the message is accepted.
 func writeRspamdHook(b *strings.Builder, gs GlobalSettings) {
 	if !rspamdEnabled(gs) {
 		return
 	}
-	b.WriteString(`kumo.on('smtp_server_message_received', function(msg)
+	b.WriteString(`local function iris_rspamd_scan(msg)
   local rcpt = msg:recipient()
   local rdom = (rcpt and rcpt.domain or ''):lower()
   -- Inbound-to-hosted only: skip outbound relay (external recipient) and
@@ -929,7 +931,7 @@ func writeRspamdHook(b *strings.Builder, gs GlobalSettings) {
     msg:prepend_header('X-Spam', 'yes')
     msg:prepend_header('X-Spam-Status', string.format('Yes, score=%.2f', score))
   end
-end)
+end
 
 `)
 }
@@ -1301,11 +1303,23 @@ end
 
 	b.WriteString("end\n\n")
 
-	// Hook routing into both the SMTP and HTTP entry points.
-	b.WriteString(`kumo.on('smtp_server_message_received', function(msg) route_message(msg) end)
+	// Hook routing into both the SMTP and HTTP entry points. KumoMTA allows
+	// only one handler per event, so any inbound-only pre-processing (rspamd
+	// scan) is invoked from inside the single SMTP handler, before routing,
+	// rather than as a second kumo.on(...). A scan that rejects/defers raises
+	// and unwinds before route_message runs. The HTTP path never scans
+	// (API-injected mail is not inbound).
+	if rspamdEnabled(gs) {
+		b.WriteString(`kumo.on('smtp_server_message_received', function(msg) iris_rspamd_scan(msg) route_message(msg) end)
 kumo.on('http_message_generated',         function(msg) route_message(msg) end)
 
 `)
+	} else {
+		b.WriteString(`kumo.on('smtp_server_message_received', function(msg) route_message(msg) end)
+kumo.on('http_message_generated',         function(msg) route_message(msg) end)
+
+`)
+	}
 
 	// DKIM signing + VERP rewrite. Both run at outbound dispatch and need to
 	// share a hook because (a) kumomta runs handlers in registration order
