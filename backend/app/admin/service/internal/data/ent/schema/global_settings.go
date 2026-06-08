@@ -83,6 +83,15 @@ func (GlobalSettings) Fields() []ent.Field {
 		field.String("egress_max_retry_interval").Optional().MaxLen(32),
 		field.String("egress_max_age").Optional().MaxLen(32),
 
+		// Inbound spam filtering via rspamd. rspamd_mode is "" / "off"
+		// (disabled), "tag" (scan + add X-Spam headers, never reject), or
+		// "enforce" (honor rspamd's action incl. reject/defer). rspamd_url
+		// is the rspamd HTTP endpoint (e.g. http://127.0.0.1:11333). Only
+		// mail received for hosted domains is scanned; fail-open if rspamd
+		// is unreachable.
+		field.String("rspamd_mode").Optional().MaxLen(16),
+		field.String("rspamd_url").Optional().MaxLen(512),
+
 		// Iris admin HTTPS termination. When https_listen is set, a
 		// kratos transport.Server starts on that bind, terminates TLS
 		// using the cert+key paths below, and reverse-proxies to the

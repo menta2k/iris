@@ -28,6 +28,9 @@ type GlobalSettingsRow struct {
 	EgressMaxRetryInterval string
 	EgressMaxAge           string
 
+	RspamdMode string
+	RspamdURL  string
+
 	// Iris admin HTTPS — a TLS-terminating reverse proxy that fronts
 	// the plain :8000 server. Empty Listen disables.
 	HTTPSListen      string
@@ -162,6 +165,19 @@ func validateGlobalSettings(in *GlobalSettingsRow) error {
 			return fmt.Errorf("%s must be a duration like 20m, 4h or 7d", f.name)
 		}
 	}
+	// rspamd inbound spam filtering.
+	mode := strings.ToLower(strings.TrimSpace(in.RspamdMode))
+	switch mode {
+	case "", "off", "tag", "enforce":
+	default:
+		return errors.New("rspamd_mode must be off, tag or enforce")
+	}
+	url := strings.TrimSpace(in.RspamdURL)
+	if mode == "tag" || mode == "enforce" {
+		if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+			return errors.New("rspamd_url must be an http(s):// URL when rspamd is enabled")
+		}
+	}
 	return nil
 }
 
@@ -196,6 +212,8 @@ func normaliseRow(r *GlobalSettingsRow) {
 	r.EgressRetryInterval = strings.ToLower(strings.TrimSpace(r.EgressRetryInterval))
 	r.EgressMaxRetryInterval = strings.ToLower(strings.TrimSpace(r.EgressMaxRetryInterval))
 	r.EgressMaxAge = strings.ToLower(strings.TrimSpace(r.EgressMaxAge))
+	r.RspamdMode = strings.ToLower(strings.TrimSpace(r.RspamdMode))
+	r.RspamdURL = strings.TrimSpace(r.RspamdURL)
 	r.HTTPSListen = strings.TrimSpace(r.HTTPSListen)
 	r.HTTPSCertPemPath = strings.TrimSpace(r.HTTPSCertPemPath)
 	r.HTTPSKeyPemPath = strings.TrimSpace(r.HTTPSKeyPemPath)

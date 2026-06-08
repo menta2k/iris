@@ -276,6 +276,8 @@ export interface GlobalSettings {
   egress_retry_interval: string;
   egress_max_retry_interval: string;
   egress_max_age: string;
+  rspamd_mode: string;
+  rspamd_url: string;
   https_listen: string;
   https_cert_pem_path: string;
   https_key_pem_path: string;

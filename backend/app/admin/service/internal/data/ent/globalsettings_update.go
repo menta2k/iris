@@ -263,6 +263,46 @@ func (_u *GlobalSettingsUpdate) ClearEgressMaxAge() *GlobalSettingsUpdate {
 	return _u
 }
 
+// SetRspamdMode sets the "rspamd_mode" field.
+func (_u *GlobalSettingsUpdate) SetRspamdMode(v string) *GlobalSettingsUpdate {
+	_u.mutation.SetRspamdMode(v)
+	return _u
+}
+
+// SetNillableRspamdMode sets the "rspamd_mode" field if the given value is not nil.
+func (_u *GlobalSettingsUpdate) SetNillableRspamdMode(v *string) *GlobalSettingsUpdate {
+	if v != nil {
+		_u.SetRspamdMode(*v)
+	}
+	return _u
+}
+
+// ClearRspamdMode clears the value of the "rspamd_mode" field.
+func (_u *GlobalSettingsUpdate) ClearRspamdMode() *GlobalSettingsUpdate {
+	_u.mutation.ClearRspamdMode()
+	return _u
+}
+
+// SetRspamdURL sets the "rspamd_url" field.
+func (_u *GlobalSettingsUpdate) SetRspamdURL(v string) *GlobalSettingsUpdate {
+	_u.mutation.SetRspamdURL(v)
+	return _u
+}
+
+// SetNillableRspamdURL sets the "rspamd_url" field if the given value is not nil.
+func (_u *GlobalSettingsUpdate) SetNillableRspamdURL(v *string) *GlobalSettingsUpdate {
+	if v != nil {
+		_u.SetRspamdURL(*v)
+	}
+	return _u
+}
+
+// ClearRspamdURL clears the value of the "rspamd_url" field.
+func (_u *GlobalSettingsUpdate) ClearRspamdURL() *GlobalSettingsUpdate {
+	_u.mutation.ClearRspamdURL()
+	return _u
+}
+
 // SetHTTPSListen sets the "https_listen" field.
 func (_u *GlobalSettingsUpdate) SetHTTPSListen(v string) *GlobalSettingsUpdate {
 	_u.mutation.SetHTTPSListen(v)
@@ -437,6 +477,16 @@ func (_u *GlobalSettingsUpdate) check() error {
 			return &ValidationError{Name: "egress_max_age", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.egress_max_age": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.RspamdMode(); ok {
+		if err := globalsettings.RspamdModeValidator(v); err != nil {
+			return &ValidationError{Name: "rspamd_mode", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.rspamd_mode": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.RspamdURL(); ok {
+		if err := globalsettings.RspamdURLValidator(v); err != nil {
+			return &ValidationError{Name: "rspamd_url", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.rspamd_url": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.HTTPSListen(); ok {
 		if err := globalsettings.HTTPSListenValidator(v); err != nil {
 			return &ValidationError{Name: "https_listen", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.https_listen": %w`, err)}
@@ -558,6 +608,18 @@ func (_u *GlobalSettingsUpdate) sqlSave(ctx context.Context) (_node int, err err
 	}
 	if _u.mutation.EgressMaxAgeCleared() {
 		_spec.ClearField(globalsettings.FieldEgressMaxAge, field.TypeString)
+	}
+	if value, ok := _u.mutation.RspamdMode(); ok {
+		_spec.SetField(globalsettings.FieldRspamdMode, field.TypeString, value)
+	}
+	if _u.mutation.RspamdModeCleared() {
+		_spec.ClearField(globalsettings.FieldRspamdMode, field.TypeString)
+	}
+	if value, ok := _u.mutation.RspamdURL(); ok {
+		_spec.SetField(globalsettings.FieldRspamdURL, field.TypeString, value)
+	}
+	if _u.mutation.RspamdURLCleared() {
+		_spec.ClearField(globalsettings.FieldRspamdURL, field.TypeString)
 	}
 	if value, ok := _u.mutation.HTTPSListen(); ok {
 		_spec.SetField(globalsettings.FieldHTTPSListen, field.TypeString, value)
@@ -840,6 +902,46 @@ func (_u *GlobalSettingsUpdateOne) ClearEgressMaxAge() *GlobalSettingsUpdateOne 
 	return _u
 }
 
+// SetRspamdMode sets the "rspamd_mode" field.
+func (_u *GlobalSettingsUpdateOne) SetRspamdMode(v string) *GlobalSettingsUpdateOne {
+	_u.mutation.SetRspamdMode(v)
+	return _u
+}
+
+// SetNillableRspamdMode sets the "rspamd_mode" field if the given value is not nil.
+func (_u *GlobalSettingsUpdateOne) SetNillableRspamdMode(v *string) *GlobalSettingsUpdateOne {
+	if v != nil {
+		_u.SetRspamdMode(*v)
+	}
+	return _u
+}
+
+// ClearRspamdMode clears the value of the "rspamd_mode" field.
+func (_u *GlobalSettingsUpdateOne) ClearRspamdMode() *GlobalSettingsUpdateOne {
+	_u.mutation.ClearRspamdMode()
+	return _u
+}
+
+// SetRspamdURL sets the "rspamd_url" field.
+func (_u *GlobalSettingsUpdateOne) SetRspamdURL(v string) *GlobalSettingsUpdateOne {
+	_u.mutation.SetRspamdURL(v)
+	return _u
+}
+
+// SetNillableRspamdURL sets the "rspamd_url" field if the given value is not nil.
+func (_u *GlobalSettingsUpdateOne) SetNillableRspamdURL(v *string) *GlobalSettingsUpdateOne {
+	if v != nil {
+		_u.SetRspamdURL(*v)
+	}
+	return _u
+}
+
+// ClearRspamdURL clears the value of the "rspamd_url" field.
+func (_u *GlobalSettingsUpdateOne) ClearRspamdURL() *GlobalSettingsUpdateOne {
+	_u.mutation.ClearRspamdURL()
+	return _u
+}
+
 // SetHTTPSListen sets the "https_listen" field.
 func (_u *GlobalSettingsUpdateOne) SetHTTPSListen(v string) *GlobalSettingsUpdateOne {
 	_u.mutation.SetHTTPSListen(v)
@@ -1027,6 +1129,16 @@ func (_u *GlobalSettingsUpdateOne) check() error {
 			return &ValidationError{Name: "egress_max_age", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.egress_max_age": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.RspamdMode(); ok {
+		if err := globalsettings.RspamdModeValidator(v); err != nil {
+			return &ValidationError{Name: "rspamd_mode", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.rspamd_mode": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.RspamdURL(); ok {
+		if err := globalsettings.RspamdURLValidator(v); err != nil {
+			return &ValidationError{Name: "rspamd_url", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.rspamd_url": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.HTTPSListen(); ok {
 		if err := globalsettings.HTTPSListenValidator(v); err != nil {
 			return &ValidationError{Name: "https_listen", err: fmt.Errorf(`ent: validator failed for field "GlobalSettings.https_listen": %w`, err)}
@@ -1165,6 +1277,18 @@ func (_u *GlobalSettingsUpdateOne) sqlSave(ctx context.Context) (_node *GlobalSe
 	}
 	if _u.mutation.EgressMaxAgeCleared() {
 		_spec.ClearField(globalsettings.FieldEgressMaxAge, field.TypeString)
+	}
+	if value, ok := _u.mutation.RspamdMode(); ok {
+		_spec.SetField(globalsettings.FieldRspamdMode, field.TypeString, value)
+	}
+	if _u.mutation.RspamdModeCleared() {
+		_spec.ClearField(globalsettings.FieldRspamdMode, field.TypeString)
+	}
+	if value, ok := _u.mutation.RspamdURL(); ok {
+		_spec.SetField(globalsettings.FieldRspamdURL, field.TypeString, value)
+	}
+	if _u.mutation.RspamdURLCleared() {
+		_spec.ClearField(globalsettings.FieldRspamdURL, field.TypeString)
 	}
 	if value, ok := _u.mutation.HTTPSListen(); ok {
 		_spec.SetField(globalsettings.FieldHTTPSListen, field.TypeString, value)

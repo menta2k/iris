@@ -6932,6 +6932,8 @@ type GlobalSettingsMutation struct {
 	egress_retry_interval       *string
 	egress_max_retry_interval   *string
 	egress_max_age              *string
+	rspamd_mode                 *string
+	rspamd_url                  *string
 	https_listen                *string
 	https_cert_pem_path         *string
 	https_key_pem_path          *string
@@ -7683,6 +7685,104 @@ func (m *GlobalSettingsMutation) ResetEgressMaxAge() {
 	delete(m.clearedFields, globalsettings.FieldEgressMaxAge)
 }
 
+// SetRspamdMode sets the "rspamd_mode" field.
+func (m *GlobalSettingsMutation) SetRspamdMode(s string) {
+	m.rspamd_mode = &s
+}
+
+// RspamdMode returns the value of the "rspamd_mode" field in the mutation.
+func (m *GlobalSettingsMutation) RspamdMode() (r string, exists bool) {
+	v := m.rspamd_mode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRspamdMode returns the old "rspamd_mode" field's value of the GlobalSettings entity.
+// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GlobalSettingsMutation) OldRspamdMode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRspamdMode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRspamdMode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRspamdMode: %w", err)
+	}
+	return oldValue.RspamdMode, nil
+}
+
+// ClearRspamdMode clears the value of the "rspamd_mode" field.
+func (m *GlobalSettingsMutation) ClearRspamdMode() {
+	m.rspamd_mode = nil
+	m.clearedFields[globalsettings.FieldRspamdMode] = struct{}{}
+}
+
+// RspamdModeCleared returns if the "rspamd_mode" field was cleared in this mutation.
+func (m *GlobalSettingsMutation) RspamdModeCleared() bool {
+	_, ok := m.clearedFields[globalsettings.FieldRspamdMode]
+	return ok
+}
+
+// ResetRspamdMode resets all changes to the "rspamd_mode" field.
+func (m *GlobalSettingsMutation) ResetRspamdMode() {
+	m.rspamd_mode = nil
+	delete(m.clearedFields, globalsettings.FieldRspamdMode)
+}
+
+// SetRspamdURL sets the "rspamd_url" field.
+func (m *GlobalSettingsMutation) SetRspamdURL(s string) {
+	m.rspamd_url = &s
+}
+
+// RspamdURL returns the value of the "rspamd_url" field in the mutation.
+func (m *GlobalSettingsMutation) RspamdURL() (r string, exists bool) {
+	v := m.rspamd_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRspamdURL returns the old "rspamd_url" field's value of the GlobalSettings entity.
+// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GlobalSettingsMutation) OldRspamdURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRspamdURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRspamdURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRspamdURL: %w", err)
+	}
+	return oldValue.RspamdURL, nil
+}
+
+// ClearRspamdURL clears the value of the "rspamd_url" field.
+func (m *GlobalSettingsMutation) ClearRspamdURL() {
+	m.rspamd_url = nil
+	m.clearedFields[globalsettings.FieldRspamdURL] = struct{}{}
+}
+
+// RspamdURLCleared returns if the "rspamd_url" field was cleared in this mutation.
+func (m *GlobalSettingsMutation) RspamdURLCleared() bool {
+	_, ok := m.clearedFields[globalsettings.FieldRspamdURL]
+	return ok
+}
+
+// ResetRspamdURL resets all changes to the "rspamd_url" field.
+func (m *GlobalSettingsMutation) ResetRspamdURL() {
+	m.rspamd_url = nil
+	delete(m.clearedFields, globalsettings.FieldRspamdURL)
+}
+
 // SetHTTPSListen sets the "https_listen" field.
 func (m *GlobalSettingsMutation) SetHTTPSListen(s string) {
 	m.https_listen = &s
@@ -7949,7 +8049,7 @@ func (m *GlobalSettingsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GlobalSettingsMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 19)
 	if m.kumo_http_listen != nil {
 		fields = append(fields, globalsettings.FieldKumoHTTPListen)
 	}
@@ -7985,6 +8085,12 @@ func (m *GlobalSettingsMutation) Fields() []string {
 	}
 	if m.egress_max_age != nil {
 		fields = append(fields, globalsettings.FieldEgressMaxAge)
+	}
+	if m.rspamd_mode != nil {
+		fields = append(fields, globalsettings.FieldRspamdMode)
+	}
+	if m.rspamd_url != nil {
+		fields = append(fields, globalsettings.FieldRspamdURL)
 	}
 	if m.https_listen != nil {
 		fields = append(fields, globalsettings.FieldHTTPSListen)
@@ -8033,6 +8139,10 @@ func (m *GlobalSettingsMutation) Field(name string) (ent.Value, bool) {
 		return m.EgressMaxRetryInterval()
 	case globalsettings.FieldEgressMaxAge:
 		return m.EgressMaxAge()
+	case globalsettings.FieldRspamdMode:
+		return m.RspamdMode()
+	case globalsettings.FieldRspamdURL:
+		return m.RspamdURL()
 	case globalsettings.FieldHTTPSListen:
 		return m.HTTPSListen()
 	case globalsettings.FieldHTTPSCertPemPath:
@@ -8076,6 +8186,10 @@ func (m *GlobalSettingsMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldEgressMaxRetryInterval(ctx)
 	case globalsettings.FieldEgressMaxAge:
 		return m.OldEgressMaxAge(ctx)
+	case globalsettings.FieldRspamdMode:
+		return m.OldRspamdMode(ctx)
+	case globalsettings.FieldRspamdURL:
+		return m.OldRspamdURL(ctx)
 	case globalsettings.FieldHTTPSListen:
 		return m.OldHTTPSListen(ctx)
 	case globalsettings.FieldHTTPSCertPemPath:
@@ -8179,6 +8293,20 @@ func (m *GlobalSettingsMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetEgressMaxAge(v)
 		return nil
+	case globalsettings.FieldRspamdMode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRspamdMode(v)
+		return nil
+	case globalsettings.FieldRspamdURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRspamdURL(v)
+		return nil
 	case globalsettings.FieldHTTPSListen:
 		v, ok := value.(string)
 		if !ok {
@@ -8280,6 +8408,12 @@ func (m *GlobalSettingsMutation) ClearedFields() []string {
 	if m.FieldCleared(globalsettings.FieldEgressMaxAge) {
 		fields = append(fields, globalsettings.FieldEgressMaxAge)
 	}
+	if m.FieldCleared(globalsettings.FieldRspamdMode) {
+		fields = append(fields, globalsettings.FieldRspamdMode)
+	}
+	if m.FieldCleared(globalsettings.FieldRspamdURL) {
+		fields = append(fields, globalsettings.FieldRspamdURL)
+	}
 	if m.FieldCleared(globalsettings.FieldHTTPSListen) {
 		fields = append(fields, globalsettings.FieldHTTPSListen)
 	}
@@ -8342,6 +8476,12 @@ func (m *GlobalSettingsMutation) ClearField(name string) error {
 	case globalsettings.FieldEgressMaxAge:
 		m.ClearEgressMaxAge()
 		return nil
+	case globalsettings.FieldRspamdMode:
+		m.ClearRspamdMode()
+		return nil
+	case globalsettings.FieldRspamdURL:
+		m.ClearRspamdURL()
+		return nil
 	case globalsettings.FieldHTTPSListen:
 		m.ClearHTTPSListen()
 		return nil
@@ -8397,6 +8537,12 @@ func (m *GlobalSettingsMutation) ResetField(name string) error {
 		return nil
 	case globalsettings.FieldEgressMaxAge:
 		m.ResetEgressMaxAge()
+		return nil
+	case globalsettings.FieldRspamdMode:
+		m.ResetRspamdMode()
+		return nil
+	case globalsettings.FieldRspamdURL:
+		m.ResetRspamdURL()
 		return nil
 	case globalsettings.FieldHTTPSListen:
 		m.ResetHTTPSListen()

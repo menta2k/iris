@@ -51,6 +51,8 @@ const form = reactive<GlobalSettings>({
   egress_retry_interval: '',
   egress_max_retry_interval: '',
   egress_max_age: '',
+  rspamd_mode: '',
+  rspamd_url: '',
   https_listen: '',
   https_cert_pem_path: '',
   https_key_pem_path: '',
@@ -484,6 +486,43 @@ onMounted(load);
               v-model:value="form.egress_max_age"
               placeholder="7d"
               style="max-width: 200px"
+            />
+          </FormItem>
+        </Form>
+      </Card>
+
+      <!-- ───── Spam filtering (rspamd) ───── -->
+      <Card title="Spam filtering (rspamd)" :body-style="{ padding: '20px' }" class="mb-4">
+        <Alert
+          type="info"
+          show-icon
+          class="mb-3"
+          message="Scans only inbound mail received for the domains you host (listener + webhook recipients) via rspamd's HTTP /checkv2. Outbound relay and API-submitted mail are never scanned. rspamd's own thresholds decide the verdict. Fail-open: if rspamd is unreachable, mail is still accepted. Takes effect on the next Apply."
+        />
+        <Form :model="form" layout="vertical" :colon="false">
+          <FormItem
+            label="Mode"
+            help="Off = disabled. Tag only = scan and add X-Spam-* headers but never reject (monitor mode). Enforce = honor rspamd's action, including 550 reject and 451 greylist/defer."
+          >
+            <Select
+              v-model:value="form.rspamd_mode"
+              style="max-width: 320px"
+              :options="[
+                { label: 'Off', value: 'off' },
+                { label: 'Tag only (never reject)', value: 'tag' },
+                { label: 'Enforce (honor reject/defer)', value: 'enforce' },
+              ]"
+            />
+          </FormItem>
+          <FormItem
+            v-if="form.rspamd_mode === 'tag' || form.rspamd_mode === 'enforce'"
+            label="rspamd URL"
+            help="Base URL of the rspamd HTTP worker, reachable from the KumoMTA host. The /checkv2 path is appended automatically."
+          >
+            <Input
+              v-model:value="form.rspamd_url"
+              placeholder="http://127.0.0.1:11333"
+              style="max-width: 420px"
             />
           </FormItem>
         </Form>
