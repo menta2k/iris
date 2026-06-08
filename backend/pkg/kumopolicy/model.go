@@ -352,8 +352,15 @@ var reSelector = regexp.MustCompile(`^[A-Za-z0-9_]([A-Za-z0-9._-]{0,62})?$`)
 // Forbids: spaces, $, `, ;, |, &, newlines, quotes, glob chars, '..'.
 var reSafePath = regexp.MustCompile(`^/[A-Za-z0-9._/-]+$`)
 
-// reSafeName matches identifiers used as kumomta object names.
+// reSafeName matches identifiers used as kumomta object names. These are
+// rendered as Lua table keys (SOURCES[...], POOLS[...], etc.), so the
+// charset stays conservative.
 var reSafeName = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)
+
+// reListenerName is looser than reSafeName: a listener's name is a purely
+// iris-side label (it is never emitted into the rendered Lua), so operators
+// commonly name a listener after its domain — dots are allowed.
+var reListenerName = regexp.MustCompile(`^[a-z0-9][a-z0-9_.-]{0,63}$`)
 
 // ValidationError aggregates one or more issues encountered by Validate.
 type ValidationError struct{ Issues []string }
@@ -394,7 +401,7 @@ func (s *Snapshot) Validate() error {
 	// Listeners.
 	listenerNames := map[string]struct{}{}
 	for i, l := range s.Listeners {
-		if !reSafeName.MatchString(l.Name) {
+		if !reListenerName.MatchString(l.Name) {
 			push("listener[%d].name invalid: %q", i, l.Name)
 		}
 		if _, dup := listenerNames[l.Name]; dup {

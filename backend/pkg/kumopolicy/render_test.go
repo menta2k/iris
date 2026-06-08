@@ -358,12 +358,17 @@ func TestRenderRspamdEnforce(t *testing.T) {
 	require.Empty(t, Lint(out.Lua))
 	require.Contains(t, out.Lua, `local RSPAMD_URL = "http://127.0.0.1:11333"`)
 	require.Contains(t, out.Lua, "local RSPAMD_ENFORCE = true")
-	require.Contains(t, out.Lua, "kumo.on('smtp_server_message_received', function(msg)")
+	// rspamd is a function called from the single SMTP handler, NOT its own
+	// kumo.on — KumoMTA permits only one smtp_server_message_received handler.
+	require.Contains(t, out.Lua, "local function iris_rspamd_scan(msg)")
+	require.Contains(t, out.Lua, "kumo.on('smtp_server_message_received', function(msg) iris_rspamd_scan(msg) route_message(msg) end)")
 	require.Contains(t, out.Lua, "client:post(RSPAMD_URL .. '/checkv2')")
 	// Inbound-to-hosted guard + bounce exclusion.
 	require.Contains(t, out.Lua, "if not (LISTENER_DOMAINS and LISTENER_DOMAINS[rdom]) then return end")
 	require.Contains(t, out.Lua, "if BOUNCE_DOMAINS and BOUNCE_DOMAINS[rdom] then return end")
 	require.Contains(t, out.Lua, "kumo.reject(550")
+	// Exactly ONE smtp_server_message_received registration must exist.
+	require.Equal(t, 1, strings.Count(out.Lua, "kumo.on('smtp_server_message_received'"))
 }
 
 func TestRenderRspamdTagNeverRejects(t *testing.T) {
@@ -382,4 +387,20 @@ func TestRenderRspamdOff(t *testing.T) {
 	require.NoError(t, err)
 	require.NotContains(t, out.Lua, "/checkv2")
 	require.NotContains(t, out.Lua, "RSPAMD_URL")
+}
+
+func TestListenerNameAllowsDomainStyle(t *testing.T) {
+	snap := goodSnapshot()
+	// Operators commonly name a listener after its domain — dots allowed.
+	snap.Listeners[0].Name = "server-lab.info"
+	out, err := Render(snap, RenderOptions{})
+	require.NoError(t, err)
+	require.Empty(t, Lint(out.Lua))
+}
+
+func TestListenerNameRejectsUnsafe(t *testing.T) {
+	snap := goodSnapshot()
+	snap.Listeners[0].Name = "bad name;rm -rf /"
+	_, err := Render(snap, RenderOptions{})
+	require.Error(t, err)
 }
