@@ -19,6 +19,10 @@ const (
 	FieldDescription = "description"
 	// FieldEnabled holds the string denoting the enabled field in the database.
 	FieldEnabled = "enabled"
+	// FieldHeaderName holds the string denoting the header_name field in the database.
+	FieldHeaderName = "header_name"
+	// FieldHeaderValue holds the string denoting the header_value field in the database.
+	FieldHeaderValue = "header_value"
 	// FieldTargetKind holds the string denoting the target_kind field in the database.
 	FieldTargetKind = "target_kind"
 	// FieldTargetRef holds the string denoting the target_ref field in the database.
@@ -37,6 +41,8 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldEnabled,
+	FieldHeaderName,
+	FieldHeaderValue,
 	FieldTargetKind,
 	FieldTargetRef,
 	FieldCreatedAt,
@@ -60,6 +66,10 @@ var (
 	DescriptionValidator func(string) error
 	// DefaultEnabled holds the default value on creation for the "enabled" field.
 	DefaultEnabled bool
+	// HeaderNameValidator is a validator for the "header_name" field. It is called by the builders before save.
+	HeaderNameValidator func(string) error
+	// HeaderValueValidator is a validator for the "header_value" field. It is called by the builders before save.
+	HeaderValueValidator func(string) error
 	// TargetKindValidator is a validator for the "target_kind" field. It is called by the builders before save.
 	TargetKindValidator func(string) error
 	// TargetRefValidator is a validator for the "target_ref" field. It is called by the builders before save.
@@ -93,6 +103,16 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByEnabled orders the results by the enabled field.
 func ByEnabled(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEnabled, opts...).ToFunc()
+}
+
+// ByHeaderName orders the results by the header_name field.
+func ByHeaderName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHeaderName, opts...).ToFunc()
+}
+
+// ByHeaderValue orders the results by the header_value field.
+func ByHeaderValue(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldHeaderValue, opts...).ToFunc()
 }
 
 // ByTargetKind orders the results by the target_kind field.

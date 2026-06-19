@@ -1019,23 +1019,57 @@ end)
 // --- mail class lookup table -----------------------------------------------
 
 func writeMailClassTable(b *strings.Builder, mcs []MailClass) {
-	b.WriteString("-- ===== mail classes (X-Kumo-Mail-Class router) =====\n")
-	// MAIL_CLASSES drives the header → routing-target match in route_message.
-	// CLASS_TO_POOL is a parallel index used by get_queue_config to translate
-	// the queue's tenant (which equals the mail class name, so /v1/queues
-	// shows one row per class) back into the egress pool that should ship it.
-	b.WriteString("local MAIL_CLASSES = {}\n")
+	b.WriteString("-- ===== mail classes (header/value router) =====\n")
+	// Each class matches on a (header name, header value) pair. route_message
+	// walks MAIL_CLASS_HEADERS (distinct names, sorted for deterministic
+	// precedence), reads each header once, and looks up the value in
+	// MAIL_CLASS_MATCH[name][value] -> class name. CLASS_TO_POOL is the
+	// parallel index get_queue_config uses to translate the queue's tenant
+	// (which equals the class name, so /v1/queues shows one row per class)
+	// back into the egress pool that should ship it.
 	b.WriteString("local CLASS_TO_POOL = {}\n")
-	cp := append([]MailClass(nil), mcs...)
-	sort.Slice(cp, func(i, j int) bool { return cp[i].Name < cp[j].Name })
+	b.WriteString("local MAIL_CLASS_HEADERS = {}\n")
+	b.WriteString("local MAIL_CLASS_MATCH = {}\n")
+
+	cp := make([]MailClass, 0, len(mcs))
+	for _, m := range mcs {
+		// Skip disabled classes and any not-yet-backfilled rows missing a
+		// header name/value — without a pair there's nothing to match on, and
+		// emitting an empty key would route on a blank header.
+		if m.Enabled && m.HeaderName != "" && m.HeaderValue != "" {
+			cp = append(cp, m)
+		}
+	}
+	// Sort by header name, then value, then class name: this makes the
+	// emitted header list deterministic (precedence = header then value) and
+	// makes a duplicated (header,value) pair resolve to the lowest class name.
+	sort.Slice(cp, func(i, j int) bool {
+		if cp[i].HeaderName != cp[j].HeaderName {
+			return cp[i].HeaderName < cp[j].HeaderName
+		}
+		if cp[i].HeaderValue != cp[j].HeaderValue {
+			return cp[i].HeaderValue < cp[j].HeaderValue
+		}
+		return cp[i].Name < cp[j].Name
+	})
+
+	seenHeader := map[string]bool{}
+	seenPair := map[string]bool{}
 	for _, m := range cp {
-		if !m.Enabled {
+		fmt.Fprintf(b, "CLASS_TO_POOL[%s] = %s\n", MustLuaString(m.Name), MustLuaString(m.TargetRef))
+		if !seenHeader[m.HeaderName] {
+			seenHeader[m.HeaderName] = true
+			fmt.Fprintf(b, "MAIL_CLASS_HEADERS[#MAIL_CLASS_HEADERS+1] = %s\n", MustLuaString(m.HeaderName))
+			fmt.Fprintf(b, "MAIL_CLASS_MATCH[%s] = {}\n", MustLuaString(m.HeaderName))
+		}
+		pair := m.HeaderName + "\x00" + m.HeaderValue
+		if seenPair[pair] {
+			// First class (lowest name) already owns this header+value.
 			continue
 		}
-		fmt.Fprintf(b, "MAIL_CLASSES[%s] = { kind = %s, ref = %s }\n",
-			MustLuaString(m.Name), MustLuaString(m.TargetKind), MustLuaString(m.TargetRef))
-		fmt.Fprintf(b, "CLASS_TO_POOL[%s] = %s\n",
-			MustLuaString(m.Name), MustLuaString(m.TargetRef))
+		seenPair[pair] = true
+		fmt.Fprintf(b, "MAIL_CLASS_MATCH[%s][%s] = %s\n",
+			MustLuaString(m.HeaderName), MustLuaString(m.HeaderValue), MustLuaString(m.Name))
 	}
 	b.WriteString("\n")
 }
@@ -1154,11 +1188,6 @@ end
 // API (http_message_generated) dispatch into the same Lua function so policy
 // decisions stay consistent across both entry points.
 func writeRoutingChain(b *strings.Builder, mcs []MailClass, rs []RoutingRule, gs GlobalSettings, whs []MailWebhook, opts RenderOptions) {
-	header := gs.MailClassHeader
-	if header == "" {
-		header = MailClassHeaderDefault
-	}
-
 	b.WriteString("-- ===== routing chain (suppression → mail class → routing rules → DKIM) =====\n")
 
 	// Header hygiene: submission/injection paths often omit Date and
@@ -1247,25 +1276,27 @@ end
   end
 `)
 
-	// 2) mail class header lookup. The class NAME becomes the tenant, so
-	// kumomta's queue grouping (visible in /v1/queues) buckets one row per
-	// class — `<classname>@<domain>` — instead of collapsing everything by
-	// egress pool. The pool itself is recovered in get_queue_config via the
-	// parallel CLASS_TO_POOL lookup. mailclass meta is also set so the log
-	// hook indexes it for the Logs UI search.
+	// 2) mail class lookup. Each class matches a (header, value) pair; we walk
+	// the distinct header names in sorted order (deterministic precedence),
+	// read each header once, and resolve the value to a class name. That class
+	// NAME becomes the tenant, so kumomta's queue grouping (visible in
+	// /v1/queues) buckets one row per class — `<classname>@<domain>` —
+	// instead of collapsing everything by egress pool. The pool itself is
+	// recovered in get_queue_config via the parallel CLASS_TO_POOL lookup.
+	// mailclass meta is also set so the log hook indexes it for the Logs UI.
 	if len(mcs) > 0 {
-		fmt.Fprintf(b, `  do
-    local v = msg:get_first_named_header_value(%s)
+		b.WriteString(`  for _, hn in ipairs(MAIL_CLASS_HEADERS) do
+    local v = msg:get_first_named_header_value(hn)
     if v and v ~= '' then
-      local hit = MAIL_CLASSES[v]
-      if hit then
-        msg:set_meta('mailclass', v)
-        msg:set_meta('tenant', v)
+      local cls = MAIL_CLASS_MATCH[hn][v]
+      if cls then
+        msg:set_meta('mailclass', cls)
+        msg:set_meta('tenant', cls)
         return
       end
     end
   end
-`, MustLuaString(header))
+`)
 	}
 
 	// 3) routing rules in (priority asc, name asc) order.

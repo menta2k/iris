@@ -725,6 +725,8 @@ type httpMailClassItem struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description,omitempty"`
 	Enabled     bool      `json:"enabled"`
+	HeaderName  string    `json:"header_name"`
+	HeaderValue string    `json:"header_value"`
 	TargetKind  string    `json:"target_kind"`
 	TargetRef   string    `json:"target_ref"`
 	CreatedAt   time.Time `json:"created_at"`
@@ -740,6 +742,8 @@ type httpMailClassReq struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Enabled     bool   `json:"enabled"`
+	HeaderName  string `json:"header_name"`
+	HeaderValue string `json:"header_value"`
 	TargetKind  string `json:"target_kind"`
 	TargetRef   string `json:"target_ref"`
 }
@@ -784,6 +788,8 @@ func registerMailClasses(hs *kratoshttp.Server, s *service.MailClassService, wri
 				Name:        body.Name,
 				Description: body.Description,
 				Enabled:     body.Enabled,
+				HeaderName:  body.HeaderName,
+				HeaderValue: body.HeaderValue,
 				TargetKind:  body.TargetKind,
 				TargetRef:   body.TargetRef,
 			})
@@ -812,6 +818,8 @@ func registerMailClasses(hs *kratoshttp.Server, s *service.MailClassService, wri
 				Name:        body.Name,
 				Description: body.Description,
 				Enabled:     body.Enabled,
+				HeaderName:  body.HeaderName,
+				HeaderValue: body.HeaderValue,
 				TargetKind:  body.TargetKind,
 				TargetRef:   body.TargetRef,
 			})
@@ -838,6 +846,8 @@ func mailClassToHTTP(r *service.MailClassRow) httpMailClassItem {
 		Name:        r.Name,
 		Description: r.Description,
 		Enabled:     r.Enabled,
+		HeaderName:  r.HeaderName,
+		HeaderValue: r.HeaderValue,
 		TargetKind:  r.TargetKind,
 		TargetRef:   r.TargetRef,
 		CreatedAt:   r.CreatedAt,

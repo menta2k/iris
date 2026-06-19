@@ -52,6 +52,8 @@ func (r *MailClassRepo) Create(ctx context.Context, in service.MailClassRow) (*s
 		SetName(in.Name).
 		SetDescription(in.Description).
 		SetEnabled(in.Enabled).
+		SetHeaderName(in.HeaderName).
+		SetHeaderValue(in.HeaderValue).
 		SetTargetKind(in.TargetKind).
 		SetTargetRef(in.TargetRef).
 		Save(ctx)
@@ -68,6 +70,8 @@ func (r *MailClassRepo) Update(ctx context.Context, id uint32, in service.MailCl
 		SetName(in.Name).
 		SetDescription(in.Description).
 		SetEnabled(in.Enabled).
+		SetHeaderName(in.HeaderName).
+		SetHeaderValue(in.HeaderValue).
 		SetTargetKind(in.TargetKind).
 		SetTargetRef(in.TargetRef).
 		Save(ctx)
@@ -92,6 +96,8 @@ func mailClassToRow(e *ent.MailClass) service.MailClassRow {
 		Name:        e.Name,
 		Description: e.Description,
 		Enabled:     e.Enabled,
+		HeaderName:  e.HeaderName,
+		HeaderValue: e.HeaderValue,
 		TargetKind:  e.TargetKind,
 		TargetRef:   e.TargetRef,
 		CreatedAt:   e.CreatedAt,

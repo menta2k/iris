@@ -28,11 +28,6 @@ import { mailClassesApi, vmtaGroupsApi, vmtasApi } from '#/api/kumo';
 
 defineOptions({ name: 'MailClasses' });
 
-// The header name kumomta inspects at message reception. Currently a global
-// constant matched by the backend renderer; surfaced here so operators can
-// see what to send in their HTTP/SMTP integration.
-const MAIL_CLASS_HEADER = 'X-Kumo-Mail-Class';
-
 const items = ref<MailClass[]>([]);
 const vmtas = ref<Vmta[]>([]);
 const vmtaGroups = ref<VmtaGroup[]>([]);
@@ -45,12 +40,16 @@ const form = reactive<{
   name: string;
   description: string;
   enabled: boolean;
+  header_name: string;
+  header_value: string;
   target_kind: 'vmta' | 'vmta_group';
   target_ref: string;
 }>({
   name: '',
   description: '',
   enabled: true,
+  header_name: '',
+  header_value: '',
   target_kind: 'vmta',
   target_ref: '',
 });
@@ -67,10 +66,10 @@ const targetOptions = computed(() => {
 });
 
 const columns = [
-  { title: 'Name', dataIndex: 'name', key: 'name', width: 200 },
-  { title: 'Description', dataIndex: 'description', key: 'description' },
-  { title: 'Enabled', dataIndex: 'enabled', key: 'enabled', width: 100 },
-  { title: 'Target', key: 'target', width: 280 },
+  { title: 'Name', dataIndex: 'name', key: 'name', width: 160 },
+  { title: 'Match (header: value)', key: 'match', width: 260 },
+  { title: 'Enabled', dataIndex: 'enabled', key: 'enabled', width: 90 },
+  { title: 'Target', key: 'target', width: 240 },
   { title: 'Actions', key: 'actions', width: 160 },
 ];
 
@@ -97,6 +96,8 @@ function openCreate() {
   form.name = '';
   form.description = '';
   form.enabled = true;
+  form.header_name = '';
+  form.header_value = '';
   form.target_kind = 'vmta';
   form.target_ref = '';
   drawerOpen.value = true;
@@ -108,6 +109,8 @@ function openEdit(item: Record<string, any>) {
   form.name = mc.name;
   form.description = mc.description ?? '';
   form.enabled = mc.enabled;
+  form.header_name = mc.header_name ?? '';
+  form.header_value = mc.header_value ?? '';
   form.target_kind = mc.target_kind;
   form.target_ref = mc.target_ref ?? '';
   drawerOpen.value = true;
@@ -123,6 +126,10 @@ async function submit() {
     message.warning('Name is required');
     return;
   }
+  if (!form.header_name.trim() || !form.header_value.trim()) {
+    message.warning('Header name and value are required');
+    return;
+  }
   if (!form.target_ref) {
     message.warning('Pick a target VMTA or VMTA group');
     return;
@@ -133,6 +140,8 @@ async function submit() {
       name: form.name.trim(),
       description: form.description || undefined,
       enabled: form.enabled,
+      header_name: form.header_name.trim(),
+      header_value: form.header_value.trim(),
       target_kind: form.target_kind,
       target_ref: form.target_ref,
     };
@@ -169,13 +178,13 @@ onMounted(load);
 <template>
   <Page
     title="Mail Classes"
-    description="Header-driven routing: messages with X-Kumo-Mail-Class set to a class name are routed to that class's target."
+    description="Header-driven routing: each class matches a header name + value; messages carrying that header are routed straight to the class's target."
   >
     <Alert
       type="info"
       show-icon
       class="mb-3"
-      :message="`Senders set the header ${MAIL_CLASS_HEADER}: <class-name> via HTTP or SMTP. Matching messages skip routing rules and go straight to the configured VMTA or VMTA group.`"
+      message="Each class defines its own header and value (e.g. X-Campaign-Type: promotional). When an inbound message carries that header=value, it skips the routing rules and goes straight to the configured VMTA or VMTA group. The first match — by header name then value — wins."
     />
 
     <Card :body-style="{ padding: '16px' }">
@@ -193,7 +202,16 @@ onMounted(load);
         size="middle"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'enabled'">
+          <template v-if="column.key === 'match'">
+            <Space v-if="record.header_name" wrap>
+              <Tag color="geekblue">{{ record.header_name }}</Tag>
+              <Typography.Text>:</Typography.Text>
+              <Typography.Text code>{{ record.header_value }}</Typography.Text>
+            </Space>
+            <Typography.Text v-else type="secondary">—</Typography.Text>
+          </template>
+
+          <template v-else-if="column.key === 'enabled'">
             <Tag :color="record.enabled ? 'green' : 'default'">
               {{ record.enabled ? 'Yes' : 'No' }}
             </Tag>
@@ -248,8 +266,28 @@ onMounted(load);
             placeholder="e.g. transactional"
           />
           <span style="color: var(--ant-color-text-tertiary)">
-            Senders write this exact value into the
-            <code>{{ MAIL_CLASS_HEADER }}</code> header.
+            Internal label for this class (shown in queues and logs).
+          </span>
+        </FormItem>
+
+        <FormItem
+          label="Header name"
+          name="header_name"
+          :rules="[{ required: true, message: 'Header name is required' }]"
+        >
+          <Input v-model:value="form.header_name" placeholder="e.g. X-Campaign-Type" />
+        </FormItem>
+
+        <FormItem
+          label="Header value"
+          name="header_value"
+          :rules="[{ required: true, message: 'Header value is required' }]"
+        >
+          <Input v-model:value="form.header_value" placeholder="e.g. promotional" />
+          <span style="color: var(--ant-color-text-tertiary)">
+            An inbound message with
+            <code>{{ form.header_name || 'X-Header' }}: {{ form.header_value || 'value' }}</code>
+            is routed to this class's target.
           </span>
         </FormItem>
 

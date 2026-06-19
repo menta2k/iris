@@ -69,6 +69,16 @@ func Enabled(v bool) predicate.MailClass {
 	return predicate.MailClass(sql.FieldEQ(FieldEnabled, v))
 }
 
+// HeaderName applies equality check predicate on the "header_name" field. It's identical to HeaderNameEQ.
+func HeaderName(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldEQ(FieldHeaderName, v))
+}
+
+// HeaderValue applies equality check predicate on the "header_value" field. It's identical to HeaderValueEQ.
+func HeaderValue(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldEQ(FieldHeaderValue, v))
+}
+
 // TargetKind applies equality check predicate on the "target_kind" field. It's identical to TargetKindEQ.
 func TargetKind(v string) predicate.MailClass {
 	return predicate.MailClass(sql.FieldEQ(FieldTargetKind, v))
@@ -237,6 +247,156 @@ func EnabledEQ(v bool) predicate.MailClass {
 // EnabledNEQ applies the NEQ predicate on the "enabled" field.
 func EnabledNEQ(v bool) predicate.MailClass {
 	return predicate.MailClass(sql.FieldNEQ(FieldEnabled, v))
+}
+
+// HeaderNameEQ applies the EQ predicate on the "header_name" field.
+func HeaderNameEQ(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldEQ(FieldHeaderName, v))
+}
+
+// HeaderNameNEQ applies the NEQ predicate on the "header_name" field.
+func HeaderNameNEQ(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldNEQ(FieldHeaderName, v))
+}
+
+// HeaderNameIn applies the In predicate on the "header_name" field.
+func HeaderNameIn(vs ...string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldIn(FieldHeaderName, vs...))
+}
+
+// HeaderNameNotIn applies the NotIn predicate on the "header_name" field.
+func HeaderNameNotIn(vs ...string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldNotIn(FieldHeaderName, vs...))
+}
+
+// HeaderNameGT applies the GT predicate on the "header_name" field.
+func HeaderNameGT(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldGT(FieldHeaderName, v))
+}
+
+// HeaderNameGTE applies the GTE predicate on the "header_name" field.
+func HeaderNameGTE(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldGTE(FieldHeaderName, v))
+}
+
+// HeaderNameLT applies the LT predicate on the "header_name" field.
+func HeaderNameLT(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldLT(FieldHeaderName, v))
+}
+
+// HeaderNameLTE applies the LTE predicate on the "header_name" field.
+func HeaderNameLTE(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldLTE(FieldHeaderName, v))
+}
+
+// HeaderNameContains applies the Contains predicate on the "header_name" field.
+func HeaderNameContains(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldContains(FieldHeaderName, v))
+}
+
+// HeaderNameHasPrefix applies the HasPrefix predicate on the "header_name" field.
+func HeaderNameHasPrefix(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldHasPrefix(FieldHeaderName, v))
+}
+
+// HeaderNameHasSuffix applies the HasSuffix predicate on the "header_name" field.
+func HeaderNameHasSuffix(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldHasSuffix(FieldHeaderName, v))
+}
+
+// HeaderNameIsNil applies the IsNil predicate on the "header_name" field.
+func HeaderNameIsNil() predicate.MailClass {
+	return predicate.MailClass(sql.FieldIsNull(FieldHeaderName))
+}
+
+// HeaderNameNotNil applies the NotNil predicate on the "header_name" field.
+func HeaderNameNotNil() predicate.MailClass {
+	return predicate.MailClass(sql.FieldNotNull(FieldHeaderName))
+}
+
+// HeaderNameEqualFold applies the EqualFold predicate on the "header_name" field.
+func HeaderNameEqualFold(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldEqualFold(FieldHeaderName, v))
+}
+
+// HeaderNameContainsFold applies the ContainsFold predicate on the "header_name" field.
+func HeaderNameContainsFold(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldContainsFold(FieldHeaderName, v))
+}
+
+// HeaderValueEQ applies the EQ predicate on the "header_value" field.
+func HeaderValueEQ(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldEQ(FieldHeaderValue, v))
+}
+
+// HeaderValueNEQ applies the NEQ predicate on the "header_value" field.
+func HeaderValueNEQ(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldNEQ(FieldHeaderValue, v))
+}
+
+// HeaderValueIn applies the In predicate on the "header_value" field.
+func HeaderValueIn(vs ...string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldIn(FieldHeaderValue, vs...))
+}
+
+// HeaderValueNotIn applies the NotIn predicate on the "header_value" field.
+func HeaderValueNotIn(vs ...string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldNotIn(FieldHeaderValue, vs...))
+}
+
+// HeaderValueGT applies the GT predicate on the "header_value" field.
+func HeaderValueGT(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldGT(FieldHeaderValue, v))
+}
+
+// HeaderValueGTE applies the GTE predicate on the "header_value" field.
+func HeaderValueGTE(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldGTE(FieldHeaderValue, v))
+}
+
+// HeaderValueLT applies the LT predicate on the "header_value" field.
+func HeaderValueLT(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldLT(FieldHeaderValue, v))
+}
+
+// HeaderValueLTE applies the LTE predicate on the "header_value" field.
+func HeaderValueLTE(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldLTE(FieldHeaderValue, v))
+}
+
+// HeaderValueContains applies the Contains predicate on the "header_value" field.
+func HeaderValueContains(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldContains(FieldHeaderValue, v))
+}
+
+// HeaderValueHasPrefix applies the HasPrefix predicate on the "header_value" field.
+func HeaderValueHasPrefix(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldHasPrefix(FieldHeaderValue, v))
+}
+
+// HeaderValueHasSuffix applies the HasSuffix predicate on the "header_value" field.
+func HeaderValueHasSuffix(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldHasSuffix(FieldHeaderValue, v))
+}
+
+// HeaderValueIsNil applies the IsNil predicate on the "header_value" field.
+func HeaderValueIsNil() predicate.MailClass {
+	return predicate.MailClass(sql.FieldIsNull(FieldHeaderValue))
+}
+
+// HeaderValueNotNil applies the NotNil predicate on the "header_value" field.
+func HeaderValueNotNil() predicate.MailClass {
+	return predicate.MailClass(sql.FieldNotNull(FieldHeaderValue))
+}
+
+// HeaderValueEqualFold applies the EqualFold predicate on the "header_value" field.
+func HeaderValueEqualFold(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldEqualFold(FieldHeaderValue, v))
+}
+
+// HeaderValueContainsFold applies the ContainsFold predicate on the "header_value" field.
+func HeaderValueContainsFold(v string) predicate.MailClass {
+	return predicate.MailClass(sql.FieldContainsFold(FieldHeaderValue, v))
 }
 
 // TargetKindEQ applies the EQ predicate on the "target_kind" field.

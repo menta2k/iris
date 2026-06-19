@@ -85,9 +85,6 @@ type GlobalSettings struct {
 	SpoolDir string
 	// PolicyVersion is a free-form tag that gets embedded as a comment.
 	PolicyVersion string
-	// MailClassHeader is the header inspected at message reception to look
-	// up a MailClass by name. Empty defaults to MailClassHeaderDefault.
-	MailClassHeader string
 
 	// EgressEhloDomain is the default outbound EHLO hostname (a FQDN).
 	// Rendered as the egress *path* ehlo_domain so all outbound mail
@@ -278,21 +275,20 @@ type VirtualMta struct {
 	ProviderProfile          string
 }
 
-// MailClass is a header-driven routing shortcut. The renderer emits a Lua
-// table keyed by class name plus a smtp_server_message_received hook that
-// reads the global header (default "X-Kumo-Mail-Class") and resolves the
-// class's target — either a VMTA (queue meta) or a VMTA group (resolved
-// through pick_vmta_group).
+// MailClass is a header-driven routing shortcut. Each class declares the
+// header NAME and VALUE that identify it; the renderer emits a
+// smtp_server_message_received hook that, for every distinct header name,
+// reads the message header once and matches its value to a class, then
+// resolves the class's target — either a VMTA (queue meta) or a VMTA group
+// (resolved through pick_vmta_group).
 type MailClass struct {
-	Name       string
-	Enabled    bool
-	TargetKind string // "vmta" | "vmta_group"
-	TargetRef  string
+	Name        string
+	Enabled     bool
+	HeaderName  string // e.g. "X-Campaign-Type"
+	HeaderValue string // e.g. "promotional"
+	TargetKind  string // "vmta" | "vmta_group"
+	TargetRef   string
 }
-
-// MailClassHeaderDefault is the global header name used to pick a class at
-// reception time. Operators can override via GlobalSettings.MailClassHeader.
-const MailClassHeaderDefault = "X-Kumo-Mail-Class"
 
 // RoutingRule is the output-friendly view of routing.
 type RoutingRule struct {
@@ -382,6 +378,13 @@ var reDiagFilter = regexp.MustCompile(`^[A-Za-z0-9_,=:.\[\]{} -]+$`)
 // rendered as Lua table keys (SOURCES[...], POOLS[...], etc.), so the
 // charset stays conservative.
 var reSafeName = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)
+
+// reHeaderName matches an RFC 7230 header field-name (token) up to 128 chars.
+var reHeaderName = regexp.MustCompile(`^[A-Za-z0-9!#$%&'*+.^_` + "`" + `|~-]{1,128}$`)
+
+// reHeaderValue matches a non-empty header value of printable ASCII (no
+// control chars, no CR/LF) up to 256 chars — enough to match on at reception.
+var reHeaderValue = regexp.MustCompile(`^[\x20-\x7E]{1,256}$`)
 
 // reListenerName is looser than reSafeName: a listener's name is a purely
 // iris-side label (it is never emitted into the rendered Lua), so operators
@@ -505,6 +508,14 @@ func (s *Snapshot) Validate() error {
 		}
 		if !m.Enabled {
 			continue
+		}
+		// Each class is matched by a (header name, header value) pair; both
+		// are required now that the single global header is gone.
+		if !reHeaderName.MatchString(m.HeaderName) {
+			push("mail_class[%d].header_name invalid: %q (RFC 7230 token, ≤128 chars)", i, m.HeaderName)
+		}
+		if !reHeaderValue.MatchString(m.HeaderValue) {
+			push("mail_class[%d].header_value invalid: %q (non-empty, no control chars, ≤256 chars)", i, m.HeaderValue)
 		}
 		if _, ok := mailClassTargets[m.TargetKind]; !ok {
 			push("mail_class[%d].target_kind invalid: %q (must be vmta or vmta_group)", i, m.TargetKind)

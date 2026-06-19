@@ -54,6 +54,34 @@ func (_c *MailClassCreate) SetNillableEnabled(v *bool) *MailClassCreate {
 	return _c
 }
 
+// SetHeaderName sets the "header_name" field.
+func (_c *MailClassCreate) SetHeaderName(v string) *MailClassCreate {
+	_c.mutation.SetHeaderName(v)
+	return _c
+}
+
+// SetNillableHeaderName sets the "header_name" field if the given value is not nil.
+func (_c *MailClassCreate) SetNillableHeaderName(v *string) *MailClassCreate {
+	if v != nil {
+		_c.SetHeaderName(*v)
+	}
+	return _c
+}
+
+// SetHeaderValue sets the "header_value" field.
+func (_c *MailClassCreate) SetHeaderValue(v string) *MailClassCreate {
+	_c.mutation.SetHeaderValue(v)
+	return _c
+}
+
+// SetNillableHeaderValue sets the "header_value" field if the given value is not nil.
+func (_c *MailClassCreate) SetNillableHeaderValue(v *string) *MailClassCreate {
+	if v != nil {
+		_c.SetHeaderValue(*v)
+	}
+	return _c
+}
+
 // SetTargetKind sets the "target_kind" field.
 func (_c *MailClassCreate) SetTargetKind(v string) *MailClassCreate {
 	_c.mutation.SetTargetKind(v)
@@ -177,6 +205,16 @@ func (_c *MailClassCreate) check() error {
 	if _, ok := _c.mutation.Enabled(); !ok {
 		return &ValidationError{Name: "enabled", err: errors.New(`ent: missing required field "MailClass.enabled"`)}
 	}
+	if v, ok := _c.mutation.HeaderName(); ok {
+		if err := mailclass.HeaderNameValidator(v); err != nil {
+			return &ValidationError{Name: "header_name", err: fmt.Errorf(`ent: validator failed for field "MailClass.header_name": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.HeaderValue(); ok {
+		if err := mailclass.HeaderValueValidator(v); err != nil {
+			return &ValidationError{Name: "header_value", err: fmt.Errorf(`ent: validator failed for field "MailClass.header_value": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.TargetKind(); ok {
 		if err := mailclass.TargetKindValidator(v); err != nil {
 			return &ValidationError{Name: "target_kind", err: fmt.Errorf(`ent: validator failed for field "MailClass.target_kind": %w`, err)}
@@ -230,6 +268,14 @@ func (_c *MailClassCreate) createSpec() (*MailClass, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Enabled(); ok {
 		_spec.SetField(mailclass.FieldEnabled, field.TypeBool, value)
 		_node.Enabled = value
+	}
+	if value, ok := _c.mutation.HeaderName(); ok {
+		_spec.SetField(mailclass.FieldHeaderName, field.TypeString, value)
+		_node.HeaderName = value
+	}
+	if value, ok := _c.mutation.HeaderValue(); ok {
+		_spec.SetField(mailclass.FieldHeaderValue, field.TypeString, value)
+		_node.HeaderValue = value
 	}
 	if value, ok := _c.mutation.TargetKind(); ok {
 		_spec.SetField(mailclass.FieldTargetKind, field.TypeString, value)

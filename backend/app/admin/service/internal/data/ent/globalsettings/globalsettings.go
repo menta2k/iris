@@ -27,8 +27,6 @@ const (
 	FieldBounceSenderDomains = "bounce_sender_domains"
 	// FieldBouncePrefix holds the string denoting the bounce_prefix field in the database.
 	FieldBouncePrefix = "bounce_prefix"
-	// FieldMailClassHeader holds the string denoting the mail_class_header field in the database.
-	FieldMailClassHeader = "mail_class_header"
 	// FieldEgressEhloDomain holds the string denoting the egress_ehlo_domain field in the database.
 	FieldEgressEhloDomain = "egress_ehlo_domain"
 	// FieldEgressRetryInterval holds the string denoting the egress_retry_interval field in the database.
@@ -65,7 +63,6 @@ var Columns = []string{
 	FieldBounceDomain,
 	FieldBounceSenderDomains,
 	FieldBouncePrefix,
-	FieldMailClassHeader,
 	FieldEgressEhloDomain,
 	FieldEgressRetryInterval,
 	FieldEgressMaxRetryInterval,
@@ -98,8 +95,6 @@ var (
 	BounceDomainValidator func(string) error
 	// BouncePrefixValidator is a validator for the "bounce_prefix" field. It is called by the builders before save.
 	BouncePrefixValidator func(string) error
-	// MailClassHeaderValidator is a validator for the "mail_class_header" field. It is called by the builders before save.
-	MailClassHeaderValidator func(string) error
 	// EgressEhloDomainValidator is a validator for the "egress_ehlo_domain" field. It is called by the builders before save.
 	EgressEhloDomainValidator func(string) error
 	// EgressRetryIntervalValidator is a validator for the "egress_retry_interval" field. It is called by the builders before save.
@@ -154,11 +149,6 @@ func ByBounceDomain(opts ...sql.OrderTermOption) OrderOption {
 // ByBouncePrefix orders the results by the bounce_prefix field.
 func ByBouncePrefix(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBouncePrefix, opts...).ToFunc()
-}
-
-// ByMailClassHeader orders the results by the mail_class_header field.
-func ByMailClassHeader(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldMailClassHeader, opts...).ToFunc()
 }
 
 // ByEgressEhloDomain orders the results by the egress_ehlo_domain field.
