@@ -54,6 +54,13 @@ type fakeReloader struct{ called bool; err error }
 
 func (f *fakeReloader) Reload(ctx context.Context) error { f.called = true; return f.err }
 
+type fakeRestarter struct {
+	called bool
+	err    error
+}
+
+func (f *fakeRestarter) Restart(ctx context.Context) error { f.called = true; return f.err }
+
 func goodSnap() *kumopolicy.Snapshot {
 	return &kumopolicy.Snapshot{
 		GlobalSettings: kumopolicy.GlobalSettings{
@@ -144,4 +151,43 @@ func TestApplyReloadFailureIsBestEffort(t *testing.T) {
 	_, _, err = svc.Apply(context.Background(), "x", 1, "alice")
 	require.NoError(t, err)
 	require.Equal(t, 1, hist.calls)
+}
+
+// TestApplyRestartsWhenWired: with a restarter set, Apply restarts kumomta
+// (the only way init/listener changes take effect) and skips the reload path.
+func TestApplyRestartsWhenWired(t *testing.T) {
+	dir := t.TempDir()
+	hist := &fakeHistory{}
+	rl := &fakeReloader{}
+	rs := &fakeRestarter{}
+	svc, err := NewPolicyService(&fakeProvider{snap: goodSnap()}, hist, rl, dir)
+	require.NoError(t, err)
+	svc.SetRestarter(rs)
+
+	_, _, err = svc.Apply(context.Background(), "deploy", 1, "alice")
+	require.NoError(t, err)
+	require.True(t, rs.called, "restarter must be invoked")
+	require.False(t, rl.called, "reload must be skipped when restarting")
+	require.Equal(t, 1, hist.calls)
+}
+
+// TestApplyRestartFailureSurfaces: a restart error is returned (so the
+// operator knows the daemon is still on the old config) but the history row
+// is still appended first — the policy is already on disk.
+func TestApplyRestartFailureSurfaces(t *testing.T) {
+	dir := t.TempDir()
+	hist := &fakeHistory{}
+	rs := &fakeRestarter{err: errors.New("sudo: a password is required")}
+	svc, err := NewPolicyService(&fakeProvider{snap: goodSnap()}, hist, &fakeReloader{}, dir)
+	require.NoError(t, err)
+	svc.SetRestarter(rs)
+
+	_, _, err = svc.Apply(context.Background(), "deploy", 1, "alice")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "restart failed")
+	require.Equal(t, 1, hist.calls, "history recorded even when restart fails")
+
+	// And the policy is on disk regardless.
+	_, statErr := os.Stat(filepath.Join(dir, "init.lua"))
+	require.NoError(t, statErr)
 }
