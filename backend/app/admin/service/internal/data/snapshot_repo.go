@@ -213,6 +213,7 @@ func (r *SnapshotRepo) CurrentSnapshot(ctx context.Context) (*kumopolicy.Snapsho
 		// set to '127.0.0.1:8025' (or similar) and align IRIS_KUMO_API_ENDPOINT.
 		KumoHTTPListen:   strings.TrimSpace(os.Getenv("IRIS_KUMO_HTTP_LISTEN")),
 		EsmtpListenAddr:  strings.TrimSpace(os.Getenv("IRIS_ESMTP_LISTEN")),
+		DiagLogFilter:    strings.TrimSpace(os.Getenv("IRIS_KUMO_DIAG_LOG_FILTER")),
 		TestDomainRoutes: parseTestDomainRoutes(),
 		QueuePerVmta:     parseBoolEnv("IRIS_QUEUE_PER_VMTA"),
 		// Async DSN ingestion. Empty BounceDomain disables the whole
