@@ -1,0 +1,14 @@
+# Rotate kumod's diagnostic log (see deploy/systemd/kumomta.service.d/
+# 10-iris-diag-log.conf). copytruncate avoids needing to signal/restart
+# kumod on rotation — the append fd keeps writing into the truncated file.
+#
+# Install: sudo install -Dm644 kumomta-diagnostic /etc/logrotate.d/kumomta-diagnostic
+/var/log/kumomta/diagnostic.log {
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    copytruncate
+}

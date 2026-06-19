@@ -438,6 +438,16 @@ func writeInit(b *strings.Builder, ls []Listener, gs GlobalSettings) {
 	}
 	fmt.Fprintf(b, "  kumo.configure_local_logs { log_dir = %s }\n", MustLuaString(logDir))
 
+	// Diagnostic (tracing) verbosity. These lines are kumomta's internal
+	// ERROR/WARN/INFO/DEBUG output to stderr/journald — distinct from the
+	// structured message logs above. Operators redirect stderr to a file at
+	// the systemd layer; here we only control how much detail is emitted.
+	diagFilter := gs.DiagLogFilter
+	if diagFilter == "" {
+		diagFilter = DiagLogFilterDefault
+	}
+	fmt.Fprintf(b, "  kumo.set_diagnostic_log_filter(%s)\n", MustLuaString(diagFilter))
+
 	// Listeners. If none are configured we emit a single default block
 	// whose listen address and relay_hosts both come from Global
 	// Settings (or fall back to the dev-friendly 0:2525 + RFC1918 +

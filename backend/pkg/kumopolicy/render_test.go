@@ -175,6 +175,27 @@ func TestRenderEmptySnapshotWorks(t *testing.T) {
 	require.Empty(t, Lint(out.Lua))
 }
 
+// TestRenderDiagLogFilter pins the diagnostic-verbosity emit: the default
+// fires when unset, an operator override is honored verbatim, and a filter
+// with shell metacharacters is rejected at validation.
+func TestRenderDiagLogFilter(t *testing.T) {
+	def := &Snapshot{GlobalSettings: GlobalSettings{LogDir: "/var/log/kumo", SpoolDir: "/var/spool/kumo"}}
+	out, err := Render(def, RenderOptions{})
+	require.NoError(t, err)
+	require.Contains(t, out.Lua, "kumo.set_diagnostic_log_filter(\""+DiagLogFilterDefault+"\")")
+
+	custom := &Snapshot{GlobalSettings: GlobalSettings{
+		LogDir: "/var/log/kumo", SpoolDir: "/var/spool/kumo",
+		DiagLogFilter: "kumod=debug",
+	}}
+	out, err = Render(custom, RenderOptions{})
+	require.NoError(t, err)
+	require.Contains(t, out.Lua, `kumo.set_diagnostic_log_filter("kumod=debug")`)
+
+	bad := &Snapshot{GlobalSettings: GlobalSettings{DiagLogFilter: "kumod=info; os.execute('x')"}}
+	require.Error(t, bad.Validate())
+}
+
 // TestRenderBounceSingleDomain pins the legacy single-domain mode shape:
 // every outbound funnels through one bounce domain via the fallback const,
 // the catcher accepts only that one domain.

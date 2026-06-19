@@ -74,6 +74,13 @@ type GlobalSettings struct {
 	// LogDir is the directory where kumomta will write its log stream. Must be
 	// an absolute path with no shell metacharacters.
 	LogDir string
+	// DiagLogFilter sets kumomta's diagnostic (tracing) log verbosity via
+	// kumo.set_diagnostic_log_filter. It accepts tracing-subscriber
+	// EnvFilter directives (e.g. "kumod=info,kumod::smtp_server=debug").
+	// These diagnostic lines go to stderr/journald, separate from the
+	// structured message logs under LogDir. Empty defaults to
+	// DiagLogFilterDefault.
+	DiagLogFilter string
 	// SpoolDir is the directory used for mail spooling.
 	SpoolDir string
 	// PolicyVersion is a free-form tag that gets embedded as a comment.
@@ -219,6 +226,13 @@ const (
 	BounceTokenTTLDefault  = "720h"             // 30 days
 	VerpSecretMinBytes     = 16
 	BouncePrefixDefault    = "bounces"
+
+	// DiagLogFilterDefault is the diagnostic (tracing) verbosity emitted
+	// when GlobalSettings.DiagLogFilter is empty. Global info with debug on
+	// the SMTP server and logging subsystems — the two places operators most
+	// often need detail (rejected SMTP commands, log-hook failures) — while
+	// keeping overall volume modest. Override via IRIS_KUMO_DIAG_LOG_FILTER.
+	DiagLogFilterDefault = "kumod=info,kumod::smtp_server=debug,kumod::logging=debug"
 )
 
 // Listener mirrors ListenerConfig but holds only what render needs.
@@ -352,6 +366,11 @@ var reSelector = regexp.MustCompile(`^[A-Za-z0-9_]([A-Za-z0-9._-]{0,62})?$`)
 // Forbids: spaces, $, `, ;, |, &, newlines, quotes, glob chars, '..'.
 var reSafePath = regexp.MustCompile(`^/[A-Za-z0-9._/-]+$`)
 
+// reDiagFilter matches tracing-subscriber EnvFilter directives:
+// comma-separated target=level pairs using identifiers, "::" path
+// separators, "[span]" qualifiers, and surrounding spaces.
+var reDiagFilter = regexp.MustCompile(`^[A-Za-z0-9_,=:.\[\]{} -]+$`)
+
 // reSafeName matches identifiers used as kumomta object names. These are
 // rendered as Lua table keys (SOURCES[...], POOLS[...], etc.), so the
 // charset stays conservative.
@@ -387,6 +406,12 @@ func (s *Snapshot) Validate() error {
 	}
 	if s.GlobalSettings.SpoolDir != "" && !reSafePath.MatchString(s.GlobalSettings.SpoolDir) {
 		push("global.spool_dir invalid: %q", s.GlobalSettings.SpoolDir)
+	}
+	// DiagLogFilter is emitted into a Lua string (MustLuaString escapes it),
+	// but we still constrain it to the tracing-subscriber EnvFilter alphabet
+	// so a typo can't smuggle anything unexpected into the policy.
+	if s.GlobalSettings.DiagLogFilter != "" && !reDiagFilter.MatchString(s.GlobalSettings.DiagLogFilter) {
+		push("global.diag_log_filter invalid: %q", s.GlobalSettings.DiagLogFilter)
 	}
 	// KumoHTTPListen flows straight into a Lua string in init.lua's
 	// kumo.start_http_listener block; net.SplitHostPort + the empty

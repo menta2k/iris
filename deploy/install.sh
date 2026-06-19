@@ -611,12 +611,42 @@ install_kumomta() {
         chmod 0775   /opt/kumomta/etc/policy /opt/kumomta/etc/dkim 2>/dev/null || true
     fi
 
+    # Capture kumod's diagnostic output (the ERROR/WARN/INFO lines — SMTP
+    # rejections, log-hook failures, etc.) to a rotated file in addition to
+    # journald. KumoMTA writes diagnostics to stderr; a systemd drop-in is
+    # the cleanest way to tee that to disk without touching the upstream unit.
+    # Verbosity itself is set in init.lua via kumo.set_diagnostic_log_filter
+    # (rendered by iris), so this only controls the *destination*.
+    mkdir -p /var/log/kumomta /etc/systemd/system/kumomta.service.d
+    cat > /etc/systemd/system/kumomta.service.d/10-iris-diag-log.conf <<'EOF'
+# Managed by iris install.sh — diagnostic log to file.
+[Service]
+StandardOutput=append:/var/log/kumomta/diagnostic.log
+StandardError=append:/var/log/kumomta/diagnostic.log
+EOF
+    cat > /etc/logrotate.d/kumomta-diagnostic <<'EOF'
+/var/log/kumomta/diagnostic.log {
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    copytruncate
+}
+EOF
+    systemctl daemon-reload
+
     systemctl enable --now kumomta.service
+    # daemon-reload above only rewrites the unit graph; a running kumod keeps
+    # its old stderr fd until restarted, so bounce it to pick up the new
+    # logging destination (no-op cost on first install where it just started).
+    systemctl try-restart kumomta.service || true
     # The package's default init.lua may not configure the HTTP listener
     # iris talks to (127.0.0.1:8025). Without it iris's queue-management
     # calls will fail until the operator hits "Apply policy". That's a
     # documented next step, not a script bug.
-    log "[4/6] KumoMTA running. (Use iris's UI 'Apply policy' to push a real init.lua.)"
+    log "[4/6] KumoMTA running, diagnostics → /var/log/kumomta/diagnostic.log. (Use iris's UI 'Apply policy' to push a real init.lua.)"
 }
 
 # ──────────────────────────────────────────────────────────────────────
