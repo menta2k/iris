@@ -74,11 +74,6 @@ func BouncePrefix(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldEQ(FieldBouncePrefix, v))
 }
 
-// MailClassHeader applies equality check predicate on the "mail_class_header" field. It's identical to MailClassHeaderEQ.
-func MailClassHeader(v string) predicate.GlobalSettings {
-	return predicate.GlobalSettings(sql.FieldEQ(FieldMailClassHeader, v))
-}
-
 // EgressEhloDomain applies equality check predicate on the "egress_ehlo_domain" field. It's identical to EgressEhloDomainEQ.
 func EgressEhloDomain(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldEQ(FieldEgressEhloDomain, v))
@@ -462,81 +457,6 @@ func BouncePrefixEqualFold(v string) predicate.GlobalSettings {
 // BouncePrefixContainsFold applies the ContainsFold predicate on the "bounce_prefix" field.
 func BouncePrefixContainsFold(v string) predicate.GlobalSettings {
 	return predicate.GlobalSettings(sql.FieldContainsFold(FieldBouncePrefix, v))
-}
-
-// MailClassHeaderEQ applies the EQ predicate on the "mail_class_header" field.
-func MailClassHeaderEQ(v string) predicate.GlobalSettings {
-	return predicate.GlobalSettings(sql.FieldEQ(FieldMailClassHeader, v))
-}
-
-// MailClassHeaderNEQ applies the NEQ predicate on the "mail_class_header" field.
-func MailClassHeaderNEQ(v string) predicate.GlobalSettings {
-	return predicate.GlobalSettings(sql.FieldNEQ(FieldMailClassHeader, v))
-}
-
-// MailClassHeaderIn applies the In predicate on the "mail_class_header" field.
-func MailClassHeaderIn(vs ...string) predicate.GlobalSettings {
-	return predicate.GlobalSettings(sql.FieldIn(FieldMailClassHeader, vs...))
-}
-
-// MailClassHeaderNotIn applies the NotIn predicate on the "mail_class_header" field.
-func MailClassHeaderNotIn(vs ...string) predicate.GlobalSettings {
-	return predicate.GlobalSettings(sql.FieldNotIn(FieldMailClassHeader, vs...))
-}
-
-// MailClassHeaderGT applies the GT predicate on the "mail_class_header" field.
-func MailClassHeaderGT(v string) predicate.GlobalSettings {
-	return predicate.GlobalSettings(sql.FieldGT(FieldMailClassHeader, v))
-}
-
-// MailClassHeaderGTE applies the GTE predicate on the "mail_class_header" field.
-func MailClassHeaderGTE(v string) predicate.GlobalSettings {
-	return predicate.GlobalSettings(sql.FieldGTE(FieldMailClassHeader, v))
-}
-
-// MailClassHeaderLT applies the LT predicate on the "mail_class_header" field.
-func MailClassHeaderLT(v string) predicate.GlobalSettings {
-	return predicate.GlobalSettings(sql.FieldLT(FieldMailClassHeader, v))
-}
-
-// MailClassHeaderLTE applies the LTE predicate on the "mail_class_header" field.
-func MailClassHeaderLTE(v string) predicate.GlobalSettings {
-	return predicate.GlobalSettings(sql.FieldLTE(FieldMailClassHeader, v))
-}
-
-// MailClassHeaderContains applies the Contains predicate on the "mail_class_header" field.
-func MailClassHeaderContains(v string) predicate.GlobalSettings {
-	return predicate.GlobalSettings(sql.FieldContains(FieldMailClassHeader, v))
-}
-
-// MailClassHeaderHasPrefix applies the HasPrefix predicate on the "mail_class_header" field.
-func MailClassHeaderHasPrefix(v string) predicate.GlobalSettings {
-	return predicate.GlobalSettings(sql.FieldHasPrefix(FieldMailClassHeader, v))
-}
-
-// MailClassHeaderHasSuffix applies the HasSuffix predicate on the "mail_class_header" field.
-func MailClassHeaderHasSuffix(v string) predicate.GlobalSettings {
-	return predicate.GlobalSettings(sql.FieldHasSuffix(FieldMailClassHeader, v))
-}
-
-// MailClassHeaderIsNil applies the IsNil predicate on the "mail_class_header" field.
-func MailClassHeaderIsNil() predicate.GlobalSettings {
-	return predicate.GlobalSettings(sql.FieldIsNull(FieldMailClassHeader))
-}
-
-// MailClassHeaderNotNil applies the NotNil predicate on the "mail_class_header" field.
-func MailClassHeaderNotNil() predicate.GlobalSettings {
-	return predicate.GlobalSettings(sql.FieldNotNull(FieldMailClassHeader))
-}
-
-// MailClassHeaderEqualFold applies the EqualFold predicate on the "mail_class_header" field.
-func MailClassHeaderEqualFold(v string) predicate.GlobalSettings {
-	return predicate.GlobalSettings(sql.FieldEqualFold(FieldMailClassHeader, v))
-}
-
-// MailClassHeaderContainsFold applies the ContainsFold predicate on the "mail_class_header" field.
-func MailClassHeaderContainsFold(v string) predicate.GlobalSettings {
-	return predicate.GlobalSettings(sql.FieldContainsFold(FieldMailClassHeader, v))
 }
 
 // EgressEhloDomainEQ applies the EQ predicate on the "egress_ehlo_domain" field.

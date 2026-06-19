@@ -21,7 +21,6 @@ type GlobalSettingsRow struct {
 	BounceDomain        string
 	BounceSenderDomains []string
 	BouncePrefix        string
-	MailClassHeader     string
 	EgressEhloDomain    string
 
 	EgressRetryInterval    string
@@ -207,7 +206,6 @@ func normaliseRow(r *GlobalSettingsRow) {
 	r.BounceDomain = strings.ToLower(strings.TrimSpace(r.BounceDomain))
 	r.BounceSenderDomains = dedupTrim(r.BounceSenderDomains, true)
 	r.BouncePrefix = strings.Trim(strings.ToLower(strings.TrimSpace(r.BouncePrefix)), ".")
-	r.MailClassHeader = strings.TrimSpace(r.MailClassHeader)
 	r.EgressEhloDomain = strings.ToLower(strings.TrimSpace(r.EgressEhloDomain))
 	r.EgressRetryInterval = strings.ToLower(strings.TrimSpace(r.EgressRetryInterval))
 	r.EgressMaxRetryInterval = strings.ToLower(strings.TrimSpace(r.EgressMaxRetryInterval))

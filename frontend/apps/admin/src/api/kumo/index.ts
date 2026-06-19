@@ -271,7 +271,6 @@ export interface GlobalSettings {
   bounce_domain: string;
   bounce_sender_domains: string[];
   bounce_prefix: string;
-  mail_class_header: string;
   egress_ehlo_domain: string;
   egress_retry_interval: string;
   egress_max_retry_interval: string;
@@ -630,14 +629,16 @@ export const listenerDomainsApi = {
 };
 
 // ─── Mail Classes ────────────────────────────────────────────────────────────
-// MailClass is a header-driven router: when an inbound message has the
-// configured global header (X-Kumo-Mail-Class by default) with a value
-// matching a class name, the message is routed to that class's target.
+// MailClass is a header-driven router: each class declares the header NAME
+// and VALUE that identify it. When an inbound message carries that
+// header=value, it is routed straight to the class's target.
 export interface MailClass {
   id: number;
   name: string;
   description?: string;
   enabled: boolean;
+  header_name: string;
+  header_value: string;
   target_kind: 'vmta' | 'vmta_group';
   target_ref: string;
 }
@@ -646,6 +647,8 @@ export interface MailClassInput {
   name: string;
   description?: string;
   enabled: boolean;
+  header_name: string;
+  header_value: string;
   target_kind: 'vmta' | 'vmta_group';
   target_ref: string;
 }

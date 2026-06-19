@@ -23,7 +23,6 @@ type httpGlobalSettings struct {
 	BounceDomain        string    `json:"bounce_domain"`
 	BounceSenderDomains []string  `json:"bounce_sender_domains"`
 	BouncePrefix        string    `json:"bounce_prefix"`
-	MailClassHeader        string `json:"mail_class_header"`
 	EgressEhloDomain       string `json:"egress_ehlo_domain"`
 	EgressRetryInterval    string `json:"egress_retry_interval"`
 	EgressMaxRetryInterval string `json:"egress_max_retry_interval"`
@@ -92,7 +91,6 @@ func rowToHTTP(r *service.GlobalSettingsRow) httpGlobalSettings {
 		BounceDomain:        r.BounceDomain,
 		BounceSenderDomains: append([]string{}, r.BounceSenderDomains...),
 		BouncePrefix:        r.BouncePrefix,
-		MailClassHeader:        r.MailClassHeader,
 		EgressEhloDomain:       r.EgressEhloDomain,
 		EgressRetryInterval:    r.EgressRetryInterval,
 		EgressMaxRetryInterval: r.EgressMaxRetryInterval,
@@ -117,7 +115,6 @@ func httpToRow(h httpGlobalSettings) service.GlobalSettingsRow {
 		BounceDomain:        h.BounceDomain,
 		BounceSenderDomains: append([]string(nil), h.BounceSenderDomains...),
 		BouncePrefix:        h.BouncePrefix,
-		MailClassHeader:        h.MailClassHeader,
 		EgressEhloDomain:       h.EgressEhloDomain,
 		EgressRetryInterval:    h.EgressRetryInterval,
 		EgressMaxRetryInterval: h.EgressMaxRetryInterval,

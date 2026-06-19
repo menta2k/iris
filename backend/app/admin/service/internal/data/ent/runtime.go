@@ -466,54 +466,50 @@ func init() {
 	globalsettingsDescBouncePrefix := globalsettingsFields[7].Descriptor()
 	// globalsettings.BouncePrefixValidator is a validator for the "bounce_prefix" field. It is called by the builders before save.
 	globalsettings.BouncePrefixValidator = globalsettingsDescBouncePrefix.Validators[0].(func(string) error)
-	// globalsettingsDescMailClassHeader is the schema descriptor for mail_class_header field.
-	globalsettingsDescMailClassHeader := globalsettingsFields[8].Descriptor()
-	// globalsettings.MailClassHeaderValidator is a validator for the "mail_class_header" field. It is called by the builders before save.
-	globalsettings.MailClassHeaderValidator = globalsettingsDescMailClassHeader.Validators[0].(func(string) error)
 	// globalsettingsDescEgressEhloDomain is the schema descriptor for egress_ehlo_domain field.
-	globalsettingsDescEgressEhloDomain := globalsettingsFields[9].Descriptor()
+	globalsettingsDescEgressEhloDomain := globalsettingsFields[8].Descriptor()
 	// globalsettings.EgressEhloDomainValidator is a validator for the "egress_ehlo_domain" field. It is called by the builders before save.
 	globalsettings.EgressEhloDomainValidator = globalsettingsDescEgressEhloDomain.Validators[0].(func(string) error)
 	// globalsettingsDescEgressRetryInterval is the schema descriptor for egress_retry_interval field.
-	globalsettingsDescEgressRetryInterval := globalsettingsFields[10].Descriptor()
+	globalsettingsDescEgressRetryInterval := globalsettingsFields[9].Descriptor()
 	// globalsettings.EgressRetryIntervalValidator is a validator for the "egress_retry_interval" field. It is called by the builders before save.
 	globalsettings.EgressRetryIntervalValidator = globalsettingsDescEgressRetryInterval.Validators[0].(func(string) error)
 	// globalsettingsDescEgressMaxRetryInterval is the schema descriptor for egress_max_retry_interval field.
-	globalsettingsDescEgressMaxRetryInterval := globalsettingsFields[11].Descriptor()
+	globalsettingsDescEgressMaxRetryInterval := globalsettingsFields[10].Descriptor()
 	// globalsettings.EgressMaxRetryIntervalValidator is a validator for the "egress_max_retry_interval" field. It is called by the builders before save.
 	globalsettings.EgressMaxRetryIntervalValidator = globalsettingsDescEgressMaxRetryInterval.Validators[0].(func(string) error)
 	// globalsettingsDescEgressMaxAge is the schema descriptor for egress_max_age field.
-	globalsettingsDescEgressMaxAge := globalsettingsFields[12].Descriptor()
+	globalsettingsDescEgressMaxAge := globalsettingsFields[11].Descriptor()
 	// globalsettings.EgressMaxAgeValidator is a validator for the "egress_max_age" field. It is called by the builders before save.
 	globalsettings.EgressMaxAgeValidator = globalsettingsDescEgressMaxAge.Validators[0].(func(string) error)
 	// globalsettingsDescRspamdMode is the schema descriptor for rspamd_mode field.
-	globalsettingsDescRspamdMode := globalsettingsFields[13].Descriptor()
+	globalsettingsDescRspamdMode := globalsettingsFields[12].Descriptor()
 	// globalsettings.RspamdModeValidator is a validator for the "rspamd_mode" field. It is called by the builders before save.
 	globalsettings.RspamdModeValidator = globalsettingsDescRspamdMode.Validators[0].(func(string) error)
 	// globalsettingsDescRspamdURL is the schema descriptor for rspamd_url field.
-	globalsettingsDescRspamdURL := globalsettingsFields[14].Descriptor()
+	globalsettingsDescRspamdURL := globalsettingsFields[13].Descriptor()
 	// globalsettings.RspamdURLValidator is a validator for the "rspamd_url" field. It is called by the builders before save.
 	globalsettings.RspamdURLValidator = globalsettingsDescRspamdURL.Validators[0].(func(string) error)
 	// globalsettingsDescHTTPSListen is the schema descriptor for https_listen field.
-	globalsettingsDescHTTPSListen := globalsettingsFields[15].Descriptor()
+	globalsettingsDescHTTPSListen := globalsettingsFields[14].Descriptor()
 	// globalsettings.HTTPSListenValidator is a validator for the "https_listen" field. It is called by the builders before save.
 	globalsettings.HTTPSListenValidator = globalsettingsDescHTTPSListen.Validators[0].(func(string) error)
 	// globalsettingsDescHTTPSCertPemPath is the schema descriptor for https_cert_pem_path field.
-	globalsettingsDescHTTPSCertPemPath := globalsettingsFields[16].Descriptor()
+	globalsettingsDescHTTPSCertPemPath := globalsettingsFields[15].Descriptor()
 	// globalsettings.HTTPSCertPemPathValidator is a validator for the "https_cert_pem_path" field. It is called by the builders before save.
 	globalsettings.HTTPSCertPemPathValidator = globalsettingsDescHTTPSCertPemPath.Validators[0].(func(string) error)
 	// globalsettingsDescHTTPSKeyPemPath is the schema descriptor for https_key_pem_path field.
-	globalsettingsDescHTTPSKeyPemPath := globalsettingsFields[17].Descriptor()
+	globalsettingsDescHTTPSKeyPemPath := globalsettingsFields[16].Descriptor()
 	// globalsettings.HTTPSKeyPemPathValidator is a validator for the "https_key_pem_path" field. It is called by the builders before save.
 	globalsettings.HTTPSKeyPemPathValidator = globalsettingsDescHTTPSKeyPemPath.Validators[0].(func(string) error)
 	// globalsettingsDescUpdatedAt is the schema descriptor for updated_at field.
-	globalsettingsDescUpdatedAt := globalsettingsFields[18].Descriptor()
+	globalsettingsDescUpdatedAt := globalsettingsFields[17].Descriptor()
 	// globalsettings.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	globalsettings.DefaultUpdatedAt = globalsettingsDescUpdatedAt.Default.(func() time.Time)
 	// globalsettings.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	globalsettings.UpdateDefaultUpdatedAt = globalsettingsDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// globalsettingsDescUpdatedBy is the schema descriptor for updated_by field.
-	globalsettingsDescUpdatedBy := globalsettingsFields[19].Descriptor()
+	globalsettingsDescUpdatedBy := globalsettingsFields[18].Descriptor()
 	// globalsettings.UpdatedByValidator is a validator for the "updated_by" field. It is called by the builders before save.
 	globalsettings.UpdatedByValidator = globalsettingsDescUpdatedBy.Validators[0].(func(string) error)
 	// globalsettingsDescID is the schema descriptor for id field.
@@ -762,20 +758,28 @@ func init() {
 	mailclassDescEnabled := mailclassFields[2].Descriptor()
 	// mailclass.DefaultEnabled holds the default value on creation for the enabled field.
 	mailclass.DefaultEnabled = mailclassDescEnabled.Default.(bool)
+	// mailclassDescHeaderName is the schema descriptor for header_name field.
+	mailclassDescHeaderName := mailclassFields[3].Descriptor()
+	// mailclass.HeaderNameValidator is a validator for the "header_name" field. It is called by the builders before save.
+	mailclass.HeaderNameValidator = mailclassDescHeaderName.Validators[0].(func(string) error)
+	// mailclassDescHeaderValue is the schema descriptor for header_value field.
+	mailclassDescHeaderValue := mailclassFields[4].Descriptor()
+	// mailclass.HeaderValueValidator is a validator for the "header_value" field. It is called by the builders before save.
+	mailclass.HeaderValueValidator = mailclassDescHeaderValue.Validators[0].(func(string) error)
 	// mailclassDescTargetKind is the schema descriptor for target_kind field.
-	mailclassDescTargetKind := mailclassFields[3].Descriptor()
+	mailclassDescTargetKind := mailclassFields[5].Descriptor()
 	// mailclass.TargetKindValidator is a validator for the "target_kind" field. It is called by the builders before save.
 	mailclass.TargetKindValidator = mailclassDescTargetKind.Validators[0].(func(string) error)
 	// mailclassDescTargetRef is the schema descriptor for target_ref field.
-	mailclassDescTargetRef := mailclassFields[4].Descriptor()
+	mailclassDescTargetRef := mailclassFields[6].Descriptor()
 	// mailclass.TargetRefValidator is a validator for the "target_ref" field. It is called by the builders before save.
 	mailclass.TargetRefValidator = mailclassDescTargetRef.Validators[0].(func(string) error)
 	// mailclassDescCreatedAt is the schema descriptor for created_at field.
-	mailclassDescCreatedAt := mailclassFields[5].Descriptor()
+	mailclassDescCreatedAt := mailclassFields[7].Descriptor()
 	// mailclass.DefaultCreatedAt holds the default value on creation for the created_at field.
 	mailclass.DefaultCreatedAt = mailclassDescCreatedAt.Default.(func() time.Time)
 	// mailclassDescUpdatedAt is the schema descriptor for updated_at field.
-	mailclassDescUpdatedAt := mailclassFields[6].Descriptor()
+	mailclassDescUpdatedAt := mailclassFields[8].Descriptor()
 	// mailclass.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	mailclass.DefaultUpdatedAt = mailclassDescUpdatedAt.Default.(func() time.Time)
 	// mailclass.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

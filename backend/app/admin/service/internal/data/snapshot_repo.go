@@ -168,10 +168,12 @@ func (r *SnapshotRepo) CurrentSnapshot(ctx context.Context) (*kumopolicy.Snapsho
 	}
 	for _, c := range classes {
 		snap.MailClasses = append(snap.MailClasses, kumopolicy.MailClass{
-			Name:       c.Name,
-			Enabled:    c.Enabled,
-			TargetKind: c.TargetKind,
-			TargetRef:  c.TargetRef,
+			Name:        c.Name,
+			Enabled:     c.Enabled,
+			HeaderName:  c.HeaderName,
+			HeaderValue: c.HeaderValue,
+			TargetKind:  c.TargetKind,
+			TargetRef:   c.TargetRef,
 		})
 	}
 	for _, ru := range rules {
@@ -205,7 +207,6 @@ func (r *SnapshotRepo) CurrentSnapshot(ctx context.Context) (*kumopolicy.Snapsho
 		LogStreamRedisURL: strings.TrimSpace(os.Getenv("IRIS_LOGSTREAM_REDIS_URL")),
 		LogStreamName:     strings.TrimSpace(os.Getenv("IRIS_LOGSTREAM_NAME")),
 		LogStreamMaxLen:   strings.TrimSpace(os.Getenv("IRIS_LOGSTREAM_MAXLEN")),
-		MailClassHeader:   strings.TrimSpace(os.Getenv("IRIS_MAIL_CLASS_HEADER")),
 		// KumoHTTPListen is the bind spec emitted into kumo.start_http_listener.
 		// In docker-compose admin-service reaches kumomta on the iris
 		// network so '0.0.0.0:8000' is fine. In a host-native install both
@@ -271,9 +272,6 @@ func (r *SnapshotRepo) applyGlobalSettings(ctx context.Context, snap *kumopolicy
 	}
 	if v := strings.TrimSpace(row.BouncePrefix); v != "" {
 		snap.GlobalSettings.BouncePrefix = v
-	}
-	if v := strings.TrimSpace(row.MailClassHeader); v != "" {
-		snap.GlobalSettings.MailClassHeader = v
 	}
 	if v := strings.TrimSpace(row.EgressEhloDomain); v != "" {
 		snap.GlobalSettings.EgressEhloDomain = v

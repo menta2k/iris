@@ -32,8 +32,6 @@ type GlobalSettings struct {
 	BounceSenderDomains []string `json:"bounce_sender_domains,omitempty"`
 	// BouncePrefix holds the value of the "bounce_prefix" field.
 	BouncePrefix string `json:"bounce_prefix,omitempty"`
-	// MailClassHeader holds the value of the "mail_class_header" field.
-	MailClassHeader string `json:"mail_class_header,omitempty"`
 	// EgressEhloDomain holds the value of the "egress_ehlo_domain" field.
 	EgressEhloDomain string `json:"egress_ehlo_domain,omitempty"`
 	// EgressRetryInterval holds the value of the "egress_retry_interval" field.
@@ -68,7 +66,7 @@ func (*GlobalSettings) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case globalsettings.FieldID:
 			values[i] = new(sql.NullInt64)
-		case globalsettings.FieldKumoHTTPListen, globalsettings.FieldEsmtpListenAddr, globalsettings.FieldBounceDomain, globalsettings.FieldBouncePrefix, globalsettings.FieldMailClassHeader, globalsettings.FieldEgressEhloDomain, globalsettings.FieldEgressRetryInterval, globalsettings.FieldEgressMaxRetryInterval, globalsettings.FieldEgressMaxAge, globalsettings.FieldRspamdMode, globalsettings.FieldRspamdURL, globalsettings.FieldHTTPSListen, globalsettings.FieldHTTPSCertPemPath, globalsettings.FieldHTTPSKeyPemPath, globalsettings.FieldUpdatedBy:
+		case globalsettings.FieldKumoHTTPListen, globalsettings.FieldEsmtpListenAddr, globalsettings.FieldBounceDomain, globalsettings.FieldBouncePrefix, globalsettings.FieldEgressEhloDomain, globalsettings.FieldEgressRetryInterval, globalsettings.FieldEgressMaxRetryInterval, globalsettings.FieldEgressMaxAge, globalsettings.FieldRspamdMode, globalsettings.FieldRspamdURL, globalsettings.FieldHTTPSListen, globalsettings.FieldHTTPSCertPemPath, globalsettings.FieldHTTPSKeyPemPath, globalsettings.FieldUpdatedBy:
 			values[i] = new(sql.NullString)
 		case globalsettings.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -140,12 +138,6 @@ func (_m *GlobalSettings) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field bounce_prefix", values[i])
 			} else if value.Valid {
 				_m.BouncePrefix = value.String
-			}
-		case globalsettings.FieldMailClassHeader:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field mail_class_header", values[i])
-			} else if value.Valid {
-				_m.MailClassHeader = value.String
 			}
 		case globalsettings.FieldEgressEhloDomain:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -269,9 +261,6 @@ func (_m *GlobalSettings) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("bounce_prefix=")
 	builder.WriteString(_m.BouncePrefix)
-	builder.WriteString(", ")
-	builder.WriteString("mail_class_header=")
-	builder.WriteString(_m.MailClassHeader)
 	builder.WriteString(", ")
 	builder.WriteString("egress_ehlo_domain=")
 	builder.WriteString(_m.EgressEhloDomain)

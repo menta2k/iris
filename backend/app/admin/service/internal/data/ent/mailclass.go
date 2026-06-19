@@ -23,6 +23,10 @@ type MailClass struct {
 	Description string `json:"description,omitempty"`
 	// Enabled holds the value of the "enabled" field.
 	Enabled bool `json:"enabled,omitempty"`
+	// HeaderName holds the value of the "header_name" field.
+	HeaderName string `json:"header_name,omitempty"`
+	// HeaderValue holds the value of the "header_value" field.
+	HeaderValue string `json:"header_value,omitempty"`
 	// TargetKind holds the value of the "target_kind" field.
 	TargetKind string `json:"target_kind,omitempty"`
 	// TargetRef holds the value of the "target_ref" field.
@@ -43,7 +47,7 @@ func (*MailClass) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case mailclass.FieldID:
 			values[i] = new(sql.NullInt64)
-		case mailclass.FieldName, mailclass.FieldDescription, mailclass.FieldTargetKind, mailclass.FieldTargetRef:
+		case mailclass.FieldName, mailclass.FieldDescription, mailclass.FieldHeaderName, mailclass.FieldHeaderValue, mailclass.FieldTargetKind, mailclass.FieldTargetRef:
 			values[i] = new(sql.NullString)
 		case mailclass.FieldCreatedAt, mailclass.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -85,6 +89,18 @@ func (_m *MailClass) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field enabled", values[i])
 			} else if value.Valid {
 				_m.Enabled = value.Bool
+			}
+		case mailclass.FieldHeaderName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field header_name", values[i])
+			} else if value.Valid {
+				_m.HeaderName = value.String
+			}
+		case mailclass.FieldHeaderValue:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field header_value", values[i])
+			} else if value.Valid {
+				_m.HeaderValue = value.String
 			}
 		case mailclass.FieldTargetKind:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -154,6 +170,12 @@ func (_m *MailClass) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("enabled=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Enabled))
+	builder.WriteString(", ")
+	builder.WriteString("header_name=")
+	builder.WriteString(_m.HeaderName)
+	builder.WriteString(", ")
+	builder.WriteString("header_value=")
+	builder.WriteString(_m.HeaderValue)
 	builder.WriteString(", ")
 	builder.WriteString("target_kind=")
 	builder.WriteString(_m.TargetKind)

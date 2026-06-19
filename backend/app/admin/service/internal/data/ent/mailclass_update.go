@@ -76,6 +76,46 @@ func (_u *MailClassUpdate) SetNillableEnabled(v *bool) *MailClassUpdate {
 	return _u
 }
 
+// SetHeaderName sets the "header_name" field.
+func (_u *MailClassUpdate) SetHeaderName(v string) *MailClassUpdate {
+	_u.mutation.SetHeaderName(v)
+	return _u
+}
+
+// SetNillableHeaderName sets the "header_name" field if the given value is not nil.
+func (_u *MailClassUpdate) SetNillableHeaderName(v *string) *MailClassUpdate {
+	if v != nil {
+		_u.SetHeaderName(*v)
+	}
+	return _u
+}
+
+// ClearHeaderName clears the value of the "header_name" field.
+func (_u *MailClassUpdate) ClearHeaderName() *MailClassUpdate {
+	_u.mutation.ClearHeaderName()
+	return _u
+}
+
+// SetHeaderValue sets the "header_value" field.
+func (_u *MailClassUpdate) SetHeaderValue(v string) *MailClassUpdate {
+	_u.mutation.SetHeaderValue(v)
+	return _u
+}
+
+// SetNillableHeaderValue sets the "header_value" field if the given value is not nil.
+func (_u *MailClassUpdate) SetNillableHeaderValue(v *string) *MailClassUpdate {
+	if v != nil {
+		_u.SetHeaderValue(*v)
+	}
+	return _u
+}
+
+// ClearHeaderValue clears the value of the "header_value" field.
+func (_u *MailClassUpdate) ClearHeaderValue() *MailClassUpdate {
+	_u.mutation.ClearHeaderValue()
+	return _u
+}
+
 // SetTargetKind sets the "target_kind" field.
 func (_u *MailClassUpdate) SetTargetKind(v string) *MailClassUpdate {
 	_u.mutation.SetTargetKind(v)
@@ -175,6 +215,16 @@ func (_u *MailClassUpdate) check() error {
 			return &ValidationError{Name: "description", err: fmt.Errorf(`ent: validator failed for field "MailClass.description": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.HeaderName(); ok {
+		if err := mailclass.HeaderNameValidator(v); err != nil {
+			return &ValidationError{Name: "header_name", err: fmt.Errorf(`ent: validator failed for field "MailClass.header_name": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.HeaderValue(); ok {
+		if err := mailclass.HeaderValueValidator(v); err != nil {
+			return &ValidationError{Name: "header_value", err: fmt.Errorf(`ent: validator failed for field "MailClass.header_value": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.TargetKind(); ok {
 		if err := mailclass.TargetKindValidator(v); err != nil {
 			return &ValidationError{Name: "target_kind", err: fmt.Errorf(`ent: validator failed for field "MailClass.target_kind": %w`, err)}
@@ -211,6 +261,18 @@ func (_u *MailClassUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Enabled(); ok {
 		_spec.SetField(mailclass.FieldEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.HeaderName(); ok {
+		_spec.SetField(mailclass.FieldHeaderName, field.TypeString, value)
+	}
+	if _u.mutation.HeaderNameCleared() {
+		_spec.ClearField(mailclass.FieldHeaderName, field.TypeString)
+	}
+	if value, ok := _u.mutation.HeaderValue(); ok {
+		_spec.SetField(mailclass.FieldHeaderValue, field.TypeString, value)
+	}
+	if _u.mutation.HeaderValueCleared() {
+		_spec.ClearField(mailclass.FieldHeaderValue, field.TypeString)
 	}
 	if value, ok := _u.mutation.TargetKind(); ok {
 		_spec.SetField(mailclass.FieldTargetKind, field.TypeString, value)
@@ -292,6 +354,46 @@ func (_u *MailClassUpdateOne) SetNillableEnabled(v *bool) *MailClassUpdateOne {
 	if v != nil {
 		_u.SetEnabled(*v)
 	}
+	return _u
+}
+
+// SetHeaderName sets the "header_name" field.
+func (_u *MailClassUpdateOne) SetHeaderName(v string) *MailClassUpdateOne {
+	_u.mutation.SetHeaderName(v)
+	return _u
+}
+
+// SetNillableHeaderName sets the "header_name" field if the given value is not nil.
+func (_u *MailClassUpdateOne) SetNillableHeaderName(v *string) *MailClassUpdateOne {
+	if v != nil {
+		_u.SetHeaderName(*v)
+	}
+	return _u
+}
+
+// ClearHeaderName clears the value of the "header_name" field.
+func (_u *MailClassUpdateOne) ClearHeaderName() *MailClassUpdateOne {
+	_u.mutation.ClearHeaderName()
+	return _u
+}
+
+// SetHeaderValue sets the "header_value" field.
+func (_u *MailClassUpdateOne) SetHeaderValue(v string) *MailClassUpdateOne {
+	_u.mutation.SetHeaderValue(v)
+	return _u
+}
+
+// SetNillableHeaderValue sets the "header_value" field if the given value is not nil.
+func (_u *MailClassUpdateOne) SetNillableHeaderValue(v *string) *MailClassUpdateOne {
+	if v != nil {
+		_u.SetHeaderValue(*v)
+	}
+	return _u
+}
+
+// ClearHeaderValue clears the value of the "header_value" field.
+func (_u *MailClassUpdateOne) ClearHeaderValue() *MailClassUpdateOne {
+	_u.mutation.ClearHeaderValue()
 	return _u
 }
 
@@ -407,6 +509,16 @@ func (_u *MailClassUpdateOne) check() error {
 			return &ValidationError{Name: "description", err: fmt.Errorf(`ent: validator failed for field "MailClass.description": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.HeaderName(); ok {
+		if err := mailclass.HeaderNameValidator(v); err != nil {
+			return &ValidationError{Name: "header_name", err: fmt.Errorf(`ent: validator failed for field "MailClass.header_name": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.HeaderValue(); ok {
+		if err := mailclass.HeaderValueValidator(v); err != nil {
+			return &ValidationError{Name: "header_value", err: fmt.Errorf(`ent: validator failed for field "MailClass.header_value": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.TargetKind(); ok {
 		if err := mailclass.TargetKindValidator(v); err != nil {
 			return &ValidationError{Name: "target_kind", err: fmt.Errorf(`ent: validator failed for field "MailClass.target_kind": %w`, err)}
@@ -460,6 +572,18 @@ func (_u *MailClassUpdateOne) sqlSave(ctx context.Context) (_node *MailClass, er
 	}
 	if value, ok := _u.mutation.Enabled(); ok {
 		_spec.SetField(mailclass.FieldEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.HeaderName(); ok {
+		_spec.SetField(mailclass.FieldHeaderName, field.TypeString, value)
+	}
+	if _u.mutation.HeaderNameCleared() {
+		_spec.ClearField(mailclass.FieldHeaderName, field.TypeString)
+	}
+	if value, ok := _u.mutation.HeaderValue(); ok {
+		_spec.SetField(mailclass.FieldHeaderValue, field.TypeString, value)
+	}
+	if _u.mutation.HeaderValueCleared() {
+		_spec.ClearField(mailclass.FieldHeaderValue, field.TypeString)
 	}
 	if value, ok := _u.mutation.TargetKind(); ok {
 		_spec.SetField(mailclass.FieldTargetKind, field.TypeString, value)

@@ -59,10 +59,6 @@ func (GlobalSettings) Fields() []ent.Field {
 		field.Strings("bounce_sender_domains").Optional(),
 		field.String("bounce_prefix").Optional().MaxLen(64),
 
-		// Header inspected by the mail-class router. Empty falls back
-		// to "X-Kumo-Mail-Class".
-		field.String("mail_class_header").Optional().MaxLen(128),
-
 		// Default outbound EHLO/HELO hostname (a FQDN, e.g.
 		// "mail.example.com"). Rendered as the egress *path* ehlo_domain so
 		// every outbound connection announces a resolvable name instead of

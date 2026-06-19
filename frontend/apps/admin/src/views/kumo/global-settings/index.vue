@@ -46,7 +46,6 @@ const form = reactive<GlobalSettings>({
   bounce_domain: '',
   bounce_sender_domains: [],
   bounce_prefix: '',
-  mail_class_header: '',
   egress_ehlo_domain: '',
   egress_retry_interval: '',
   egress_max_retry_interval: '',
@@ -425,17 +424,6 @@ onMounted(load);
       <!-- ───── Misc ───── -->
       <Card title="Other" :body-style="{ padding: '20px' }" class="mb-4">
         <Form :model="form" layout="vertical" :colon="false">
-          <FormItem
-            label="Mail-class header"
-            help="Header inspected by the mail-class router. Default 'X-Kumo-Mail-Class' fits the iris convention; override only when integrating with an existing system that uses a different header."
-          >
-            <Input
-              v-model:value="form.mail_class_header"
-              placeholder="X-Kumo-Mail-Class"
-              style="max-width: 320px"
-            />
-          </FormItem>
-
           <FormItem
             label="Outbound EHLO hostname"
             help="Default FQDN announced on outbound SMTP (EHLO). Set this to a resolvable name (e.g. mail.example.com) so receivers don't penalise the bare system hostname (rspamd HFILTER_HELO_5). A per-VMTA HELO name overrides this. Also used as the domain for any Message-ID iris adds. Leave blank to keep kumomta's default."

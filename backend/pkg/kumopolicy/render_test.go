@@ -31,6 +31,7 @@ func goodSnapshot() *Snapshot {
 		}},
 		MailClasses: []MailClass{{
 			Name: "transactional", Enabled: true,
+			HeaderName: "X-Kumo-Mail-Class", HeaderValue: "transactional",
 			TargetKind: "vmta", TargetRef: "egress-1",
 		}},
 		RoutingRules: []RoutingRule{{
@@ -95,6 +96,31 @@ func TestListenerRelayHosts(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, out.Lua, `relay_hosts = { "192.0.2.0/24" }`)
 	require.NotContains(t, out.Lua, "10.1.111.0/24")
+}
+
+// TestMailClassHeaderValueRouting pins the per-class (header, value) match:
+// each class emits a MAIL_CLASS_MATCH[header][value] = name entry, distinct
+// header names are collected in sorted order, and route_message walks them.
+func TestMailClassHeaderValueRouting(t *testing.T) {
+	snap := &Snapshot{
+		GlobalSettings: GlobalSettings{LogDir: "/var/log/kumo", SpoolDir: "/var/spool/kumo"},
+		MailClasses: []MailClass{
+			{Name: "promo", Enabled: true, HeaderName: "X-Campaign-Type", HeaderValue: "promotional", TargetKind: "vmta_group", TargetRef: "bulk"},
+			{Name: "gold", Enabled: true, HeaderName: "X-Tier", HeaderValue: "gold", TargetKind: "vmta", TargetRef: "vip"},
+			{Name: "off", Enabled: false, HeaderName: "X-Tier", HeaderValue: "silver", TargetKind: "vmta", TargetRef: "vip"},
+		},
+	}
+	out, err := Render(snap, RenderOptions{})
+	require.NoError(t, err)
+	require.Contains(t, out.Lua, `MAIL_CLASS_MATCH["X-Campaign-Type"]["promotional"] = "promo"`)
+	require.Contains(t, out.Lua, `MAIL_CLASS_MATCH["X-Tier"]["gold"] = "gold"`)
+	require.Contains(t, out.Lua, `CLASS_TO_POOL["promo"] = "bulk"`)
+	// Distinct header names collected; route_message walks them.
+	require.Contains(t, out.Lua, `MAIL_CLASS_HEADERS[#MAIL_CLASS_HEADERS+1] = "X-Campaign-Type"`)
+	require.Contains(t, out.Lua, "for _, hn in ipairs(MAIL_CLASS_HEADERS) do")
+	// Disabled class is skipped.
+	require.NotContains(t, out.Lua, `["silver"]`)
+	require.Empty(t, Lint(out.Lua))
 }
 
 func TestRenderIsDeterministic(t *testing.T) {

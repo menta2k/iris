@@ -66,7 +66,6 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in service.GlobalSettin
 		SetBounceDomain(in.BounceDomain).
 		SetBounceSenderDomains(append([]string(nil), in.BounceSenderDomains...)).
 		SetBouncePrefix(in.BouncePrefix).
-		SetMailClassHeader(in.MailClassHeader).
 		SetEgressEhloDomain(in.EgressEhloDomain).
 		SetEgressRetryInterval(in.EgressRetryInterval).
 		SetEgressMaxRetryInterval(in.EgressMaxRetryInterval).
@@ -96,7 +95,6 @@ func entToRow(g *ent.GlobalSettings) *service.GlobalSettingsRow {
 		BounceDomain:        g.BounceDomain,
 		BounceSenderDomains: append([]string(nil), g.BounceSenderDomains...),
 		BouncePrefix:        g.BouncePrefix,
-		MailClassHeader:        g.MailClassHeader,
 		EgressEhloDomain:       g.EgressEhloDomain,
 		EgressRetryInterval:    g.EgressRetryInterval,
 		EgressMaxRetryInterval: g.EgressMaxRetryInterval,

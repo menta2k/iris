@@ -8,10 +8,11 @@ import (
 	"entgo.io/ent/schema/index"
 )
 
-// MailClass is a header-driven routing shortcut. When a message arrives over
-// HTTP/SMTP, kumomta inspects the global header (X-Kumo-Mail-Class by
-// default) and uses its value to look up a class by name, then routes the
-// message to the configured VMTA or VMTA group.
+// MailClass is a header-driven routing shortcut. Each class declares the
+// header NAME and VALUE that identify it; when a message arrives over
+// HTTP/SMTP carrying that header=value, kumomta routes it to the class's
+// configured VMTA or VMTA group. (This replaces the earlier single global
+// header whose value matched a class by name.)
 //
 // The legacy throughput fields (priority, max_per_minute, max_concurrent)
 // were removed; that responsibility belongs on VMTAs / VMTA groups. Existing
@@ -24,6 +25,12 @@ func (MailClass) Fields() []ent.Field {
 		field.String("name").NotEmpty().MaxLen(64).Unique(),
 		field.String("description").Optional().MaxLen(512),
 		field.Bool("enabled").Default(true),
+		// header_name / header_value are the (header, value) pair that
+		// matches this class at reception. Optional at the column level so
+		// the migrator doesn't fail backfilling existing rows; the service
+		// layer enforces presence on create/update.
+		field.String("header_name").Optional().MaxLen(128),
+		field.String("header_value").Optional().MaxLen(256),
 		// target_kind is "vmta" or "vmta_group". Optional at the column
 		// level so the migrator doesn't fail on existing rows; the service
 		// layer enforces presence on create/update.

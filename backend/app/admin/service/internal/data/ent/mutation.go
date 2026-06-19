@@ -6927,7 +6927,6 @@ type GlobalSettingsMutation struct {
 	bounce_sender_domains       *[]string
 	appendbounce_sender_domains []string
 	bounce_prefix               *string
-	mail_class_header           *string
 	egress_ehlo_domain          *string
 	egress_retry_interval       *string
 	egress_max_retry_interval   *string
@@ -7438,55 +7437,6 @@ func (m *GlobalSettingsMutation) BouncePrefixCleared() bool {
 func (m *GlobalSettingsMutation) ResetBouncePrefix() {
 	m.bounce_prefix = nil
 	delete(m.clearedFields, globalsettings.FieldBouncePrefix)
-}
-
-// SetMailClassHeader sets the "mail_class_header" field.
-func (m *GlobalSettingsMutation) SetMailClassHeader(s string) {
-	m.mail_class_header = &s
-}
-
-// MailClassHeader returns the value of the "mail_class_header" field in the mutation.
-func (m *GlobalSettingsMutation) MailClassHeader() (r string, exists bool) {
-	v := m.mail_class_header
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldMailClassHeader returns the old "mail_class_header" field's value of the GlobalSettings entity.
-// If the GlobalSettings object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GlobalSettingsMutation) OldMailClassHeader(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldMailClassHeader is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldMailClassHeader requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldMailClassHeader: %w", err)
-	}
-	return oldValue.MailClassHeader, nil
-}
-
-// ClearMailClassHeader clears the value of the "mail_class_header" field.
-func (m *GlobalSettingsMutation) ClearMailClassHeader() {
-	m.mail_class_header = nil
-	m.clearedFields[globalsettings.FieldMailClassHeader] = struct{}{}
-}
-
-// MailClassHeaderCleared returns if the "mail_class_header" field was cleared in this mutation.
-func (m *GlobalSettingsMutation) MailClassHeaderCleared() bool {
-	_, ok := m.clearedFields[globalsettings.FieldMailClassHeader]
-	return ok
-}
-
-// ResetMailClassHeader resets all changes to the "mail_class_header" field.
-func (m *GlobalSettingsMutation) ResetMailClassHeader() {
-	m.mail_class_header = nil
-	delete(m.clearedFields, globalsettings.FieldMailClassHeader)
 }
 
 // SetEgressEhloDomain sets the "egress_ehlo_domain" field.
@@ -8049,7 +7999,7 @@ func (m *GlobalSettingsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GlobalSettingsMutation) Fields() []string {
-	fields := make([]string, 0, 19)
+	fields := make([]string, 0, 18)
 	if m.kumo_http_listen != nil {
 		fields = append(fields, globalsettings.FieldKumoHTTPListen)
 	}
@@ -8070,9 +8020,6 @@ func (m *GlobalSettingsMutation) Fields() []string {
 	}
 	if m.bounce_prefix != nil {
 		fields = append(fields, globalsettings.FieldBouncePrefix)
-	}
-	if m.mail_class_header != nil {
-		fields = append(fields, globalsettings.FieldMailClassHeader)
 	}
 	if m.egress_ehlo_domain != nil {
 		fields = append(fields, globalsettings.FieldEgressEhloDomain)
@@ -8129,8 +8076,6 @@ func (m *GlobalSettingsMutation) Field(name string) (ent.Value, bool) {
 		return m.BounceSenderDomains()
 	case globalsettings.FieldBouncePrefix:
 		return m.BouncePrefix()
-	case globalsettings.FieldMailClassHeader:
-		return m.MailClassHeader()
 	case globalsettings.FieldEgressEhloDomain:
 		return m.EgressEhloDomain()
 	case globalsettings.FieldEgressRetryInterval:
@@ -8176,8 +8121,6 @@ func (m *GlobalSettingsMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldBounceSenderDomains(ctx)
 	case globalsettings.FieldBouncePrefix:
 		return m.OldBouncePrefix(ctx)
-	case globalsettings.FieldMailClassHeader:
-		return m.OldMailClassHeader(ctx)
 	case globalsettings.FieldEgressEhloDomain:
 		return m.OldEgressEhloDomain(ctx)
 	case globalsettings.FieldEgressRetryInterval:
@@ -8257,13 +8200,6 @@ func (m *GlobalSettingsMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetBouncePrefix(v)
-		return nil
-	case globalsettings.FieldMailClassHeader:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetMailClassHeader(v)
 		return nil
 	case globalsettings.FieldEgressEhloDomain:
 		v, ok := value.(string)
@@ -8393,9 +8329,6 @@ func (m *GlobalSettingsMutation) ClearedFields() []string {
 	if m.FieldCleared(globalsettings.FieldBouncePrefix) {
 		fields = append(fields, globalsettings.FieldBouncePrefix)
 	}
-	if m.FieldCleared(globalsettings.FieldMailClassHeader) {
-		fields = append(fields, globalsettings.FieldMailClassHeader)
-	}
 	if m.FieldCleared(globalsettings.FieldEgressEhloDomain) {
 		fields = append(fields, globalsettings.FieldEgressEhloDomain)
 	}
@@ -8461,9 +8394,6 @@ func (m *GlobalSettingsMutation) ClearField(name string) error {
 	case globalsettings.FieldBouncePrefix:
 		m.ClearBouncePrefix()
 		return nil
-	case globalsettings.FieldMailClassHeader:
-		m.ClearMailClassHeader()
-		return nil
 	case globalsettings.FieldEgressEhloDomain:
 		m.ClearEgressEhloDomain()
 		return nil
@@ -8522,9 +8452,6 @@ func (m *GlobalSettingsMutation) ResetField(name string) error {
 		return nil
 	case globalsettings.FieldBouncePrefix:
 		m.ResetBouncePrefix()
-		return nil
-	case globalsettings.FieldMailClassHeader:
-		m.ResetMailClassHeader()
 		return nil
 	case globalsettings.FieldEgressEhloDomain:
 		m.ResetEgressEhloDomain()
@@ -12595,6 +12522,8 @@ type MailClassMutation struct {
 	name          *string
 	description   *string
 	enabled       *bool
+	header_name   *string
+	header_value  *string
 	target_kind   *string
 	target_ref    *string
 	created_at    *time.Time
@@ -12824,6 +12753,104 @@ func (m *MailClassMutation) ResetEnabled() {
 	m.enabled = nil
 }
 
+// SetHeaderName sets the "header_name" field.
+func (m *MailClassMutation) SetHeaderName(s string) {
+	m.header_name = &s
+}
+
+// HeaderName returns the value of the "header_name" field in the mutation.
+func (m *MailClassMutation) HeaderName() (r string, exists bool) {
+	v := m.header_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHeaderName returns the old "header_name" field's value of the MailClass entity.
+// If the MailClass object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MailClassMutation) OldHeaderName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHeaderName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHeaderName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHeaderName: %w", err)
+	}
+	return oldValue.HeaderName, nil
+}
+
+// ClearHeaderName clears the value of the "header_name" field.
+func (m *MailClassMutation) ClearHeaderName() {
+	m.header_name = nil
+	m.clearedFields[mailclass.FieldHeaderName] = struct{}{}
+}
+
+// HeaderNameCleared returns if the "header_name" field was cleared in this mutation.
+func (m *MailClassMutation) HeaderNameCleared() bool {
+	_, ok := m.clearedFields[mailclass.FieldHeaderName]
+	return ok
+}
+
+// ResetHeaderName resets all changes to the "header_name" field.
+func (m *MailClassMutation) ResetHeaderName() {
+	m.header_name = nil
+	delete(m.clearedFields, mailclass.FieldHeaderName)
+}
+
+// SetHeaderValue sets the "header_value" field.
+func (m *MailClassMutation) SetHeaderValue(s string) {
+	m.header_value = &s
+}
+
+// HeaderValue returns the value of the "header_value" field in the mutation.
+func (m *MailClassMutation) HeaderValue() (r string, exists bool) {
+	v := m.header_value
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHeaderValue returns the old "header_value" field's value of the MailClass entity.
+// If the MailClass object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MailClassMutation) OldHeaderValue(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHeaderValue is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHeaderValue requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHeaderValue: %w", err)
+	}
+	return oldValue.HeaderValue, nil
+}
+
+// ClearHeaderValue clears the value of the "header_value" field.
+func (m *MailClassMutation) ClearHeaderValue() {
+	m.header_value = nil
+	m.clearedFields[mailclass.FieldHeaderValue] = struct{}{}
+}
+
+// HeaderValueCleared returns if the "header_value" field was cleared in this mutation.
+func (m *MailClassMutation) HeaderValueCleared() bool {
+	_, ok := m.clearedFields[mailclass.FieldHeaderValue]
+	return ok
+}
+
+// ResetHeaderValue resets all changes to the "header_value" field.
+func (m *MailClassMutation) ResetHeaderValue() {
+	m.header_value = nil
+	delete(m.clearedFields, mailclass.FieldHeaderValue)
+}
+
 // SetTargetKind sets the "target_kind" field.
 func (m *MailClassMutation) SetTargetKind(s string) {
 	m.target_kind = &s
@@ -13028,7 +13055,7 @@ func (m *MailClassMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *MailClassMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 9)
 	if m.name != nil {
 		fields = append(fields, mailclass.FieldName)
 	}
@@ -13037,6 +13064,12 @@ func (m *MailClassMutation) Fields() []string {
 	}
 	if m.enabled != nil {
 		fields = append(fields, mailclass.FieldEnabled)
+	}
+	if m.header_name != nil {
+		fields = append(fields, mailclass.FieldHeaderName)
+	}
+	if m.header_value != nil {
+		fields = append(fields, mailclass.FieldHeaderValue)
 	}
 	if m.target_kind != nil {
 		fields = append(fields, mailclass.FieldTargetKind)
@@ -13064,6 +13097,10 @@ func (m *MailClassMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case mailclass.FieldEnabled:
 		return m.Enabled()
+	case mailclass.FieldHeaderName:
+		return m.HeaderName()
+	case mailclass.FieldHeaderValue:
+		return m.HeaderValue()
 	case mailclass.FieldTargetKind:
 		return m.TargetKind()
 	case mailclass.FieldTargetRef:
@@ -13087,6 +13124,10 @@ func (m *MailClassMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldDescription(ctx)
 	case mailclass.FieldEnabled:
 		return m.OldEnabled(ctx)
+	case mailclass.FieldHeaderName:
+		return m.OldHeaderName(ctx)
+	case mailclass.FieldHeaderValue:
+		return m.OldHeaderValue(ctx)
 	case mailclass.FieldTargetKind:
 		return m.OldTargetKind(ctx)
 	case mailclass.FieldTargetRef:
@@ -13124,6 +13165,20 @@ func (m *MailClassMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetEnabled(v)
+		return nil
+	case mailclass.FieldHeaderName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHeaderName(v)
+		return nil
+	case mailclass.FieldHeaderValue:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHeaderValue(v)
 		return nil
 	case mailclass.FieldTargetKind:
 		v, ok := value.(string)
@@ -13186,6 +13241,12 @@ func (m *MailClassMutation) ClearedFields() []string {
 	if m.FieldCleared(mailclass.FieldDescription) {
 		fields = append(fields, mailclass.FieldDescription)
 	}
+	if m.FieldCleared(mailclass.FieldHeaderName) {
+		fields = append(fields, mailclass.FieldHeaderName)
+	}
+	if m.FieldCleared(mailclass.FieldHeaderValue) {
+		fields = append(fields, mailclass.FieldHeaderValue)
+	}
 	if m.FieldCleared(mailclass.FieldTargetKind) {
 		fields = append(fields, mailclass.FieldTargetKind)
 	}
@@ -13209,6 +13270,12 @@ func (m *MailClassMutation) ClearField(name string) error {
 	case mailclass.FieldDescription:
 		m.ClearDescription()
 		return nil
+	case mailclass.FieldHeaderName:
+		m.ClearHeaderName()
+		return nil
+	case mailclass.FieldHeaderValue:
+		m.ClearHeaderValue()
+		return nil
 	case mailclass.FieldTargetKind:
 		m.ClearTargetKind()
 		return nil
@@ -13231,6 +13298,12 @@ func (m *MailClassMutation) ResetField(name string) error {
 		return nil
 	case mailclass.FieldEnabled:
 		m.ResetEnabled()
+		return nil
+	case mailclass.FieldHeaderName:
+		m.ResetHeaderName()
+		return nil
+	case mailclass.FieldHeaderValue:
+		m.ResetHeaderValue()
 		return nil
 	case mailclass.FieldTargetKind:
 		m.ResetTargetKind()
