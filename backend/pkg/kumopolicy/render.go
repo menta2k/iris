@@ -467,7 +467,7 @@ func writeInit(b *strings.Builder, ls []Listener, gs GlobalSettings) {
 `, MustLuaString(listen), luaCIDRList(gs.EsmtpRelayHosts))
 	} else {
 		for _, l := range ls {
-			writeOneListener(b, l)
+			writeOneListener(b, l, gs)
 		}
 	}
 
@@ -516,7 +516,7 @@ func writeInit(b *strings.Builder, ls []Listener, gs GlobalSettings) {
 	b.WriteString("end)\n\n")
 }
 
-func writeOneListener(b *strings.Builder, l Listener) {
+func writeOneListener(b *strings.Builder, l Listener, gs GlobalSettings) {
 	b.WriteString("  kumo.start_esmtp_listener {\n")
 	if l.ListenAddr != "" {
 		fmt.Fprintf(b, "    listen = %s,\n", MustLuaString(l.ListenAddr))
@@ -535,24 +535,18 @@ func writeOneListener(b *strings.Builder, l Listener) {
 	if l.MaxMessageSize > 0 {
 		fmt.Fprintf(b, "    max_message_size = %d,\n", l.MaxMessageSize)
 	}
-	// Relay hosts: derive from the listener's domains where RelayAllowed is true.
-	// kumomta also accepts CIDRs here; we let domains drive it for now.
-	relayHosts := []string{}
-	for _, d := range l.Domains {
-		if d.RelayAllowed {
-			relayHosts = append(relayHosts, d.Domain)
-		}
+	// relay_hosts is the CIDR/IP allowlist of CONNECTING CLIENTS permitted to
+	// relay to arbitrary destinations. It is NOT a list of domains — per
+	// recipient-domain relay is handled separately by RelayAllowed →
+	// get_listener_domain's relay_to. A listener that doesn't set its own
+	// allowlist falls back to the global EsmtpRelayHosts (and finally to the
+	// RFC1918 + loopback default via luaCIDRList), so a value configured in
+	// Global Settings still applies once an operator adds a listener row.
+	relayHosts := l.RelayHosts
+	if len(relayHosts) == 0 {
+		relayHosts = gs.EsmtpRelayHosts
 	}
-	if len(relayHosts) > 0 {
-		b.WriteString("    relay_hosts = { ")
-		for i, h := range relayHosts {
-			if i > 0 {
-				b.WriteString(", ")
-			}
-			b.WriteString(MustLuaString(h))
-		}
-		b.WriteString(" },\n")
-	}
+	fmt.Fprintf(b, "    relay_hosts = %s,\n", luaCIDRList(relayHosts))
 	b.WriteString("  }\n")
 }
 

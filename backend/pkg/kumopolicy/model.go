@@ -246,6 +246,13 @@ type Listener struct {
 	RequireAuth    bool
 	MaxMessageSize uint64
 	Domains        []ListenerDomain
+	// RelayHosts is the CIDR/IP allowlist of *connecting clients* permitted
+	// to relay through this listener to arbitrary destinations. This is the
+	// kumomta relay_hosts allowlist — distinct from ListenerDomain.RelayAllowed
+	// (which controls per-recipient-domain relay_to). Empty falls back to the
+	// global GlobalSettings.EsmtpRelayHosts so a value set in Global Settings
+	// isn't silently dropped the moment a listener row is added.
+	RelayHosts []string
 }
 
 type ListenerDomain struct {
