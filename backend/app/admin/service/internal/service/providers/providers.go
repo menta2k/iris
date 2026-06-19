@@ -418,6 +418,13 @@ func NewPolicyServiceProvider(p service.SnapshotProvider, h service.PolicyHistor
 	if m != nil {
 		svc.SetMetrics(policyMetricsAdapter{m: m})
 	}
+	// Restart-on-apply: kumomta only loads listeners/relay_hosts at init, so
+	// an epoch reload can't apply them. When IRIS_KUMO_RESTART_CMD is set
+	// (host-native installs, e.g. "sudo systemctl try-restart kumomta.service")
+	// Apply restarts the daemon. Unset (docker-compose) keeps the reload path.
+	if rst, ok := kumomta.NewCmdRestarter(getenv("IRIS_KUMO_RESTART_CMD")); ok {
+		svc.SetRestarter(rst)
+	}
 	return svc, nil
 }
 

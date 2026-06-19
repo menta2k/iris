@@ -41,11 +41,23 @@ type KumoReloader interface {
 	Reload(ctx context.Context) error
 }
 
+// KumoRestarter restarts the kumomta daemon. KumoMTA evaluates its init
+// handler — listeners, relay_hosts, spool, the log hook — only once at
+// process start, so an epoch reload cannot pick up changes there; a full
+// restart is the only way to apply them. Optional: it is nil in deployments
+// where iris cannot restart kumod (e.g. docker-compose), which fall back to
+// Reload + the daemon's epoch polling for the per-message config it can
+// hot-reload.
+type KumoRestarter interface {
+	Restart(ctx context.Context) error
+}
+
 // PolicyService renders, validates, applies, and lists historical policies.
 type PolicyService struct {
 	provider   SnapshotProvider
 	history    PolicyHistoryWriter
 	reloader   KumoReloader
+	restarter  KumoRestarter
 	policyDir  string
 	policyName string // e.g., "init.lua"
 	now        func() time.Time
@@ -67,6 +79,11 @@ type PolicyMetrics interface {
 
 // SetMetrics wires the metrics sink. Call once at boot.
 func (s *PolicyService) SetMetrics(m PolicyMetrics) { s.metrics = m }
+
+// SetRestarter wires the restart capability. Call once at boot. When set,
+// Apply restarts kumomta instead of issuing a best-effort reload, so
+// init-level changes (listeners, relay_hosts) take effect immediately.
+func (s *PolicyService) SetRestarter(r KumoRestarter) { s.restarter = r }
 
 // NewPolicyService constructs the service. policyDir must be an absolute
 // path on the same filesystem as the kumomta process.
@@ -162,20 +179,34 @@ func (s *PolicyService) Apply(ctx context.Context, note string, actorUserID uint
 	if err := s.atomicWrite(out.Lua); err != nil {
 		return "", time.Time{}, fmt.Errorf("policy: write: %w", err)
 	}
-	// Reload is best-effort. Modern kumomta builds drop the
-	// /api/admin/reload[-config]/v1 endpoints in favor of epoch-based
-	// polling — the daemon hashes init.lua every 10s and reloads on change.
-	// So an explicit reload failure is just an optimization miss, not a
-	// real apply failure: the on-disk write is the source of truth and
-	// kumomta will pick it up momentarily. We log and continue.
-	if s.reloader != nil {
-		if err := s.reloader.Reload(ctx); err != nil {
-			log.Printf("policy: kumomta reload signal failed (epoch poll will pick it up within ~10s): %v", err)
-		}
-	}
 	at = s.now().UTC()
+	// Record history before touching the daemon: the policy is already on
+	// disk (the source of truth), so the audit trail must exist even if the
+	// restart below fails and we return an error.
 	if err := s.history.Append(ctx, out.SHA256, note, out.Lua, actorUserID); err != nil {
 		return "", time.Time{}, fmt.Errorf("policy: record history: %w", err)
+	}
+	// Make the change live. kumomta evaluates its init handler (listeners,
+	// relay_hosts, spool, log hook) only at process start, so an epoch reload
+	// cannot apply those — a restart is required. When a restarter is wired
+	// (host-native installs) we restart; the spool persists across it so no
+	// mail is lost. A restart failure IS surfaced: the on-disk policy and the
+	// running daemon would otherwise silently diverge, which is exactly the
+	// bug this guards against.
+	if s.restarter != nil {
+		if err := s.restarter.Restart(ctx); err != nil {
+			return "", time.Time{}, fmt.Errorf("policy: written and recorded, but kumomta restart failed (daemon still on previous config): %w", err)
+		}
+		return out.SHA256, at, nil
+	}
+	// No restarter (e.g. docker-compose): fall back to a best-effort reload
+	// plus the daemon's 10s epoch poll. This covers per-message config but
+	// NOT init/listener changes — those need a manual `systemctl restart
+	// kumomta` or a container restart in that topology.
+	if s.reloader != nil {
+		if err := s.reloader.Reload(ctx); err != nil {
+			log.Printf("policy: kumomta reload signal failed (epoch poll will pick up per-message config within ~10s; init/listener changes need a manual restart): %v", err)
+		}
 	}
 	return out.SHA256, at, nil
 }

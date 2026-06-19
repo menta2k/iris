@@ -746,6 +746,33 @@ configure_iris_env() {
         printf '\n# Local Prometheus, scraped by Iris dashboard endpoints.\nIRIS_PROMETHEUS_URL=http://127.0.0.1:9090\n' >> "$env"
     fi
 
+    # Restart-on-apply. kumomta loads listeners/relay_hosts only at init, so
+    # "Apply policy" must restart the daemon for those to take effect. iris
+    # runs as a non-root user; the scoped sudoers grant below lets it. The
+    # absolute systemctl path keeps the command line matching the sudoers
+    # Cmnd exactly.
+    local systemctl_bin
+    systemctl_bin=$(command -v systemctl || echo /usr/bin/systemctl)
+    if ! grep -qE '^IRIS_KUMO_RESTART_CMD=' "$env"; then
+        printf '\n# Restart kumomta on policy apply so listener/relay_hosts changes load.\nIRIS_KUMO_RESTART_CMD=sudo %s try-restart kumomta.service\n' "$systemctl_bin" >> "$env"
+    fi
+    # Scoped, password-less sudo for exactly the two restart verbs iris needs.
+    # visudo -cf validates before we install it so a bad rule can't lock sudo.
+    local sudoers=/etc/sudoers.d/iris-kumomta
+    local tmp_sudoers
+    tmp_sudoers=$(mktemp)
+    cat > "$tmp_sudoers" <<EOF
+# Managed by iris install.sh. Lets the iris service restart kumomta when a
+# policy is applied (listeners/relay_hosts only load at kumod init).
+iris ALL=(root) NOPASSWD: ${systemctl_bin} try-restart kumomta.service, ${systemctl_bin} restart kumomta.service
+EOF
+    if visudo -cf "$tmp_sudoers" >/dev/null 2>&1; then
+        install -m 0440 -o root -g root "$tmp_sudoers" "$sudoers"
+    else
+        warn "sudoers grant for iris→kumomta failed validation; skipping. Apply-restart will fail until granted manually."
+    fi
+    rm -f "$tmp_sudoers"
+
     # Lock down — env file holds JWT secrets.
     chown root:iris "$env" 2>/dev/null || true
     chmod 0640 "$env"
