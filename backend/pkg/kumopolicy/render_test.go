@@ -69,6 +69,34 @@ func TestRenderProducesValidLua(t *testing.T) {
 	require.Empty(t, Lint(out.Lua))
 }
 
+// TestListenerRelayHosts pins the relay_hosts semantics: it is a connecting-
+// client CIDR allowlist, never a list of domains. A listener with no own
+// allowlist inherits GlobalSettings.EsmtpRelayHosts; RelayAllowed domains must
+// not leak into relay_hosts (they drive per-domain relay_to instead).
+func TestListenerRelayHosts(t *testing.T) {
+	// Global EsmtpRelayHosts applies to a listener row that sets none of its own.
+	snap := &Snapshot{
+		GlobalSettings: GlobalSettings{EsmtpRelayHosts: []string{"10.1.111.0/24"}},
+		Listeners: []Listener{{
+			Name: "mx", ListenAddr: "0.0.0.0:25", Hostname: "server-lab.info",
+			Domains: []ListenerDomain{{Domain: "server-lab.info", RelayAllowed: true}},
+		}},
+	}
+	out, err := Render(snap, RenderOptions{})
+	require.NoError(t, err)
+	require.Contains(t, out.Lua, `relay_hosts = { "10.1.111.0/24" }`)
+	// The RelayAllowed domain must NOT appear as a relay host.
+	require.NotContains(t, out.Lua, `relay_hosts = { "server-lab.info"`)
+	require.Empty(t, Lint(out.Lua))
+
+	// A listener's own RelayHosts wins over the global value.
+	snap.Listeners[0].RelayHosts = []string{"192.0.2.0/24"}
+	out, err = Render(snap, RenderOptions{})
+	require.NoError(t, err)
+	require.Contains(t, out.Lua, `relay_hosts = { "192.0.2.0/24" }`)
+	require.NotContains(t, out.Lua, "10.1.111.0/24")
+}
+
 func TestRenderIsDeterministic(t *testing.T) {
 	snap := goodSnapshot()
 	at := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
