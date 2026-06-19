@@ -484,10 +484,22 @@ func writeInit(b *strings.Builder, ls []Listener, gs GlobalSettings) {
 	// Log hook: kumomta only allows ONE kumo.on('init', ...) handler — if
 	// the Redis stream is enabled we register the log_hook here rather than
 	// in a separate init block so the policy still parses.
+	//
+	// per_record disables Rejection records for the *hook* only. The log hook
+	// builds a synthetic Message per record, setting its envelope sender from
+	// the originating message; a Rejection (4xx/5xx to an incoming SMTP
+	// command, e.g. a malformed MAIL FROM) has no sender, so the rfc5321
+	// mailbox parser is handed an empty string and kumod spams
+	// "failed to log: ... in mailbox, got empty input". Excluding Rejection
+	// from the hook silences that noise while configure_local_logs still
+	// records rejections to disk for abuse/probe visibility.
 	if gs.LogStreamRedisURL != "" {
 		b.WriteString(`  kumo.configure_log_hook {
     name = LOGSTREAM_TRACKER,
     headers = { 'Subject', 'X-Kumo-Mail-Class', 'X-Customer-ID', 'X-Campaign-ID' },
+    per_record = {
+      Rejection = { enable = false },
+    },
   }
 `)
 	}
