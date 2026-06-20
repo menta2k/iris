@@ -342,7 +342,7 @@ func (c *RedisConsumer) processEntry(ctx context.Context, entry redisStreamEntry
 		return
 	}
 	c.stats.Processed.Add(1)
-	c.recordProcessed(eventType, mailClassFromHeaders(entry.record.Headers))
+	c.recordProcessed(eventType, entry.record.MailClass())
 	c.observeDuration(eventType, start)
 }
 
@@ -369,39 +369,6 @@ func (c *RedisConsumer) pendingGaugeLoop(ctx context.Context, wg *sync.WaitGroup
 			c.cfg.Metrics.LogStreamPending.Set(float64(res.Count))
 		}
 	}
-}
-
-// mailClassFromHeaders extracts the X-Kumo-Mail-Class header value
-// from the kumomta log record. Kumomta hands us the header map in
-// canonical case; we accept either the canonical form or a
-// lower-cased fallback to be defensive against future changes.
-//
-// Returns "" when the header is absent — that's the legitimate
-// "unclassified" bucket and shows up in metrics with empty label.
-func mailClassFromHeaders(h map[string]any) string {
-	const canon = "X-Kumo-Mail-Class"
-	if v, ok := h[canon]; ok {
-		return headerStr(v)
-	}
-	if v, ok := h["x-kumo-mail-class"]; ok {
-		return headerStr(v)
-	}
-	return ""
-}
-
-func headerStr(v any) string {
-	switch x := v.(type) {
-	case string:
-		return strings.TrimSpace(x)
-	case []any:
-		if len(x) == 0 {
-			return ""
-		}
-		if s, ok := x[0].(string); ok {
-			return strings.TrimSpace(s)
-		}
-	}
-	return ""
 }
 
 // recordProcessed increments the per-event counter. Splits the metric

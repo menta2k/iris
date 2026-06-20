@@ -62,11 +62,11 @@ func (p *LogstreamPersister) InsertLog(ctx context.Context, lr *logstream.RedisL
 	if lr.EgressSource != "" {
 		create.SetVmta(clip(lr.EgressSource, 64))
 	}
-	// Mail-class: kumomta's log_hook ships headers verbatim but only a
-	// curated allowlist of metas, so the X-Kumo-Mail-Class header is the
-	// source of truth here. Fall back to lr.Meta["mailclass"] in case a
-	// future kumomta version expands the meta serializer.
-	if mc := mailClassFromRecord(lr); mc != "" {
+	// Mail-class: route_message records the matched class name in the
+	// 'mailclass' meta, which the log hook allow-lists (see configure_log_hook
+	// in the rendered policy). RedisLogRecord.MailClass prefers that meta and
+	// falls back to the legacy X-Kumo-Mail-Class header.
+	if mc := lr.MailClass(); mc != "" {
 		create.SetMailClass(clip(mc, 64))
 	}
 	if _, err := create.Save(ctx); err != nil {
@@ -198,33 +198,6 @@ func normalizeAddr(addr string) string {
 	s = strings.TrimPrefix(s, "<")
 	s = strings.TrimSuffix(s, ">")
 	return strings.ToLower(strings.TrimSpace(s))
-}
-
-// mailClassFromRecord extracts the X-Kumo-Mail-Class value from the
-// log_record. kumomta serializes headers in the `headers` map; the value
-// can be a bare string (when the header appeared once) or a list of
-// strings (when it appeared multiple times). We accept both shapes and
-// fall back to the meta map for forward-compat with future kumomta
-// versions that may include user-set metas in the log_record.
-func mailClassFromRecord(lr *logstream.RedisLogRecord) string {
-	if lr == nil {
-		return ""
-	}
-	const headerName = "X-Kumo-Mail-Class"
-	if v, ok := lr.Headers[headerName]; ok {
-		if s, ok := v.(string); ok && s != "" {
-			return strings.TrimSpace(s)
-		}
-		if arr, ok := v.([]any); ok && len(arr) > 0 {
-			if s, ok := arr[0].(string); ok && s != "" {
-				return strings.TrimSpace(s)
-			}
-		}
-	}
-	if mc, ok := lr.Meta["mailclass"].(string); ok && mc != "" {
-		return strings.TrimSpace(mc)
-	}
-	return ""
 }
 
 // parseFlexibleTime accepts a few timestamp formats kumomta and ARF reports

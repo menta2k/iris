@@ -507,6 +507,11 @@ func writeInit(b *strings.Builder, ls []Listener, gs GlobalSettings) {
 		b.WriteString(`  kumo.configure_log_hook {
     name = LOGSTREAM_TRACKER,
     headers = { 'Subject', 'X-Kumo-Mail-Class', 'X-Customer-ID', 'X-Campaign-ID' },
+    -- 'mailclass' carries the matched mail-class NAME (route_message sets it).
+    -- It is now the source of truth for the Logs UI Class column, since a
+    -- class matches on an arbitrary header rather than X-Kumo-Mail-Class. The
+    -- log hook only serializes metas listed here, so it must be allow-listed.
+    meta = { 'mailclass' },
     per_record = {
       Rejection = { enable = false },
     },
