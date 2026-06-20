@@ -2,6 +2,7 @@ package logstream
 
 import (
 	"encoding/json"
+	"strings"
 	"sync/atomic"
 	"time"
 )
@@ -37,6 +38,36 @@ type RedisLogRecord struct {
 	Headers        map[string]any      `json:"headers,omitempty"`
 	Meta           map[string]any      `json:"meta,omitempty"`
 	FeedbackReport *RedisFeedbackBlock `json:"feedback_report,omitempty"`
+}
+
+// MailClass resolves the matched mail-class name for this record. A class now
+// matches on an arbitrary (header, value) pair and route_message records the
+// resulting class NAME in the 'mailclass' meta, so that is the source of truth
+// and is checked first. Falls back to the legacy X-Kumo-Mail-Class header (a
+// bare string or a list of strings) for records produced before that change
+// or by other injectors. Returns "" for the legitimate unclassified bucket.
+func (r *RedisLogRecord) MailClass() string {
+	if r == nil {
+		return ""
+	}
+	if mc, ok := r.Meta["mailclass"].(string); ok {
+		if s := strings.TrimSpace(mc); s != "" {
+			return s
+		}
+	}
+	if v, ok := r.Headers["X-Kumo-Mail-Class"]; ok {
+		switch x := v.(type) {
+		case string:
+			return strings.TrimSpace(x)
+		case []any:
+			if len(x) > 0 {
+				if s, ok := x[0].(string); ok {
+					return strings.TrimSpace(s)
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // RedisPeerAddress decodes either {name, addr} (the modern shape kumomta
