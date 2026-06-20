@@ -746,32 +746,34 @@ configure_iris_env() {
         printf '\n# Local Prometheus, scraped by Iris dashboard endpoints.\nIRIS_PROMETHEUS_URL=http://127.0.0.1:9090\n' >> "$env"
     fi
 
-    # Restart-on-apply. kumomta loads listeners/relay_hosts only at init, so
-    # "Apply policy" must restart the daemon for those to take effect. iris
-    # runs as a non-root user; the scoped sudoers grant below lets it. The
-    # absolute systemctl path keeps the command line matching the sudoers
-    # Cmnd exactly.
-    local systemctl_bin
-    systemctl_bin=$(command -v systemctl || echo /usr/bin/systemctl)
+    # Restart-on-apply. kumomta loads listeners/relay_hosts and the log hook
+    # only at init, so "Apply policy" must restart the daemon for those to
+    # take effect. iris runs as a non-root, NoNewPrivileges=true unit, so sudo
+    # (setuid) cannot escalate — we use plain `systemctl`, which only sends a
+    # D-Bus request to PID 1; a polkit rule authorizes it by uid. No privilege
+    # is gained inside the iris process, so this works under the hardened unit.
     if ! grep -qE '^IRIS_KUMO_RESTART_CMD=' "$env"; then
-        printf '\n# Restart kumomta on policy apply so listener/relay_hosts changes load.\nIRIS_KUMO_RESTART_CMD=sudo %s try-restart kumomta.service\n' "$systemctl_bin" >> "$env"
+        printf '\n# Restart kumomta on policy apply so init-level changes (listeners,\n# relay_hosts, log hook) load. Authorized by the polkit rule below.\nIRIS_KUMO_RESTART_CMD=systemctl try-restart kumomta.service\n' >> "$env"
     fi
-    # Scoped, password-less sudo for exactly the two restart verbs iris needs.
-    # visudo -cf validates before we install it so a bad rule can't lock sudo.
-    local sudoers=/etc/sudoers.d/iris-kumomta
-    local tmp_sudoers
-    tmp_sudoers=$(mktemp)
-    cat > "$tmp_sudoers" <<EOF
-# Managed by iris install.sh. Lets the iris service restart kumomta when a
-# policy is applied (listeners/relay_hosts only load at kumod init).
-iris ALL=(root) NOPASSWD: ${systemctl_bin} try-restart kumomta.service, ${systemctl_bin} restart kumomta.service
+    # polkit rule: let the iris user manage ONLY kumomta.service, non-interactively.
+    local polkit_rule=/etc/polkit-1/rules.d/49-iris-kumomta.rules
+    mkdir -p /etc/polkit-1/rules.d
+    cat > "$polkit_rule" <<'EOF'
+// Managed by iris install.sh. Lets the iris service restart kumomta when a
+// policy is applied (init-level changes only load at kumod start). Scoped to
+// exactly kumomta.service and the iris user.
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.systemd1.manage-units" &&
+        action.lookup("unit") == "kumomta.service" &&
+        subject.user == "iris") {
+        return polkit.Result.YES;
+    }
+});
 EOF
-    if visudo -cf "$tmp_sudoers" >/dev/null 2>&1; then
-        install -m 0440 -o root -g root "$tmp_sudoers" "$sudoers"
-    else
-        warn "sudoers grant for iris→kumomta failed validation; skipping. Apply-restart will fail until granted manually."
-    fi
-    rm -f "$tmp_sudoers"
+    chmod 0644 "$polkit_rule"
+    # Pick up the new rule (polkit reloads rules.d on restart; reload is a no-op
+    # if the daemon isn't running yet — it reads the dir on first start).
+    systemctl restart polkit 2>/dev/null || systemctl restart polkitd 2>/dev/null || true
 
     # Lock down — env file holds JWT secrets.
     chown root:iris "$env" 2>/dev/null || true

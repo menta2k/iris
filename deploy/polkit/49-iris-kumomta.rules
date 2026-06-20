@@ -1,0 +1,23 @@
+// Let the iris service restart kumomta when a policy is applied.
+//
+// KumoMTA loads init-level config (listeners, relay_hosts, the log hook) only
+// at process start, so iris must restart kumod on "Apply policy". The iris
+// unit runs as a non-root user with NoNewPrivileges=true, which breaks sudo
+// (setuid can't escalate). Plain `systemctl try-restart kumomta.service` only
+// sends a D-Bus request to PID 1; this rule authorizes it by uid, so no
+// privilege is gained inside the iris process.
+//
+// Paired with IRIS_KUMO_RESTART_CMD=systemctl try-restart kumomta.service in
+// /etc/iris/iris.env. Scoped to exactly kumomta.service and the iris user.
+//
+// Install:
+//   sudo install -Dm644 49-iris-kumomta.rules \
+//     /etc/polkit-1/rules.d/49-iris-kumomta.rules
+//   sudo systemctl restart polkit   # or polkitd
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.systemd1.manage-units" &&
+        action.lookup("unit") == "kumomta.service" &&
+        subject.user == "iris") {
+        return polkit.Result.YES;
+    }
+});
