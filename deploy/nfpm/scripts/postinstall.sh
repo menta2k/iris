@@ -24,6 +24,32 @@ chmod 0750 /etc/iris 2>/dev/null || true
 chmod 0640 /etc/iris/iris.yaml 2>/dev/null || true
 chown -R iris:iris /var/lib/iris 2>/dev/null || true
 
+# Grant kumod read access to the generated KumoMTA policy.
+#
+# Iris writes /opt/kumomta/etc/policy/iris_generated.lua as iris:iris 0640 (it
+# holds secrets, so it is not world-readable). kumomta starts as root and drops
+# to the kumod *user* keeping only its primary group, so adding kumod to the
+# iris group does NOT help — the daemon never has it. A default ACL granting the
+# kumod user read makes every file Iris writes there (temp-file + rename)
+# readable, and survives regeneration. Best-effort: skipped silently when the
+# dir doesn't exist (kumomta not installed yet), setfacl is unavailable, or the
+# filesystem lacks ACL support. NOTE: keyed to the default config_path; if you
+# set kumomta.config_path elsewhere, apply the same ACL to that directory.
+POLICY_DIR=/opt/kumomta/etc/policy
+if [ -d "$POLICY_DIR" ] && getent passwd kumod >/dev/null 2>&1; then
+    if command -v setfacl >/dev/null 2>&1; then
+        setfacl -m u:kumod:rx "$POLICY_DIR" 2>/dev/null || true
+        setfacl -m d:u:kumod:rx "$POLICY_DIR" 2>/dev/null || true
+        if [ -f "$POLICY_DIR/iris_generated.lua" ]; then
+            setfacl -m u:kumod:r "$POLICY_DIR/iris_generated.lua" 2>/dev/null || true
+        fi
+    else
+        echo "iris: 'setfacl' not found — install the 'acl' package, then run:" >&2
+        echo "  setfacl -m d:u:kumod:rx $POLICY_DIR" >&2
+        echo "so kumod can read the generated policy." >&2
+    fi
+fi
+
 # Reload systemd so it sees the new unit. Don't auto-start — the operator must
 # fill in /etc/iris/iris.env first.
 if command -v systemctl >/dev/null 2>&1; then
