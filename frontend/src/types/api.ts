@@ -449,6 +449,11 @@ export interface GlobalSettings {
   autoSuppressHardBounces: boolean
   softBounceThreshold: number
   fblDomain: string
+  adminHttpAddr: string
+  adminTlsEnabled: boolean
+  adminTlsCertDomain: string
+  acmeRenewInterval: string
+  acmeRenewBefore: string
   updatedAt?: string
   updatedBy?: string
 }
@@ -467,6 +472,11 @@ export interface UpdateGlobalSettingsRequest {
   auto_suppress_hard_bounces: boolean
   soft_bounce_threshold: number
   fbl_domain: string
+  admin_http_addr: string
+  admin_tls_enabled: boolean
+  admin_tls_cert_domain: string
+  acme_renew_interval: string
+  acme_renew_before: string
 }
 
 export interface KumoConfigApplyResponse {

@@ -23,7 +23,8 @@ const globalSettingsCols = `rspamd_mode, rspamd_url, egress_ehlo_domain,
 	log_stream_redis_url, esmtp_listen, http_listen,
 	egress_retry_interval, egress_max_retry_interval, egress_max_age,
 	bounce_domain, auto_suppress_hard_bounces, soft_bounce_threshold,
-	fbl_domain, updated_at, updated_by`
+	fbl_domain, admin_http_addr, admin_tls_enabled, admin_tls_cert_domain,
+	acme_renew_interval, acme_renew_before, updated_at, updated_by`
 
 // scanGlobalSettings scans a row in globalSettingsCols order.
 func scanGlobalSettings(row interface{ Scan(...any) error }) (*biz.GlobalSettings, error) {
@@ -32,7 +33,8 @@ func scanGlobalSettings(row interface{ Scan(...any) error }) (*biz.GlobalSetting
 		&out.LogStreamRedisURL, &out.EsmtpListen, &out.HTTPListen,
 		&out.EgressRetryInterval, &out.EgressMaxRetryInterval, &out.EgressMaxAge,
 		&out.BounceDomain, &out.AutoSuppressHardBounces, &out.SoftBounceThreshold,
-		&out.FBLDomain, &out.UpdatedAt, &out.UpdatedBy)
+		&out.FBLDomain, &out.AdminHTTPAddr, &out.AdminTLSEnabled, &out.AdminTLSCertDomain,
+		&out.AcmeRenewInterval, &out.AcmeRenewBefore, &out.UpdatedAt, &out.UpdatedBy)
 	return out, err
 }
 
@@ -60,15 +62,17 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in *biz.GlobalSettings,
 			log_stream_redis_url = $4, esmtp_listen = $5, http_listen = $6,
 			egress_retry_interval = $7, egress_max_retry_interval = $8, egress_max_age = $9,
 			bounce_domain = $10, auto_suppress_hard_bounces = $11, soft_bounce_threshold = $12,
-			fbl_domain = $13,
-			updated_at = now(), updated_by = $14
+			fbl_domain = $13, admin_http_addr = $14, admin_tls_enabled = $15,
+			admin_tls_cert_domain = $16, acme_renew_interval = $17, acme_renew_before = $18,
+			updated_at = now(), updated_by = $19
 		WHERE id = 1
 		RETURNING `+globalSettingsCols,
 		in.RspamdMode, in.RspamdURL, in.EgressEHLODomain,
 		in.LogStreamRedisURL, in.EsmtpListen, in.HTTPListen,
 		in.EgressRetryInterval, in.EgressMaxRetryInterval, in.EgressMaxAge,
 		in.BounceDomain, in.AutoSuppressHardBounces, in.SoftBounceThreshold,
-		in.FBLDomain, actor))
+		in.FBLDomain, in.AdminHTTPAddr, in.AdminTLSEnabled, in.AdminTLSCertDomain,
+		in.AcmeRenewInterval, in.AcmeRenewBefore, actor))
 	if err != nil {
 		return nil, mapConstraint(err, "global_settings")
 	}

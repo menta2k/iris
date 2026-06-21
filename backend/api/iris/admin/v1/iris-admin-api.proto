@@ -830,6 +830,15 @@ message GlobalSettings {
   int32 soft_bounce_threshold = 12;
   // FBL/ARF feedback domain (log_arf): kumod parses ARF reports here.
   string fbl_domain = 13;
+  // Iris admin server (applied on restart). admin_http_addr overrides the HTTP
+  // bind; admin_tls_enabled serves HTTPS using the issued cert whose domain is
+  // admin_tls_cert_domain.
+  string admin_http_addr = 14;
+  bool admin_tls_enabled = 15;
+  string admin_tls_cert_domain = 16;
+  // ACME auto-renew schedule (duration form, e.g. "12h", "30d").
+  string acme_renew_interval = 17;
+  string acme_renew_before = 18;
   string updated_at = 20;
   string updated_by = 21;
 }
@@ -848,4 +857,9 @@ message UpdateGlobalSettingsRequest {
   bool auto_suppress_hard_bounces = 11;
   int32 soft_bounce_threshold = 12;
   string fbl_domain = 13;
+  string admin_http_addr = 14;
+  bool admin_tls_enabled = 15;
+  string admin_tls_cert_domain = 16;
+  string acme_renew_interval = 17;
+  string acme_renew_before = 18;
 }

@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -166,7 +167,8 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		LogStreamRedisURL: logStreamRedisURL,
 		LogStreamName:     data.StreamMailEvents,
 	}
-	settingsUC := biz.NewGlobalSettingsUsecase(data.NewGlobalSettingsRepo(db), auditor, settingsDefaults)
+	settingsRepo := data.NewGlobalSettingsRepo(db)
+	settingsUC := biz.NewGlobalSettingsUsecase(settingsRepo, auditor, settingsDefaults)
 	kumoConfigUC := biz.NewKumoConfigUsecase(
 		data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo), kumo, mailOpsRepo, auditor, settingsUC)
 
@@ -181,6 +183,35 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	acmeRepo := data.NewAcmeRepo(db)
 	acmeCertDir := envOr("IRIS_ACME_CERT_DIR", "/opt/kumomta/etc/tls")
 	acmeUC := biz.NewAcmeUsecase(acmeRepo, acmeRepo, acmeRepo, acmeTokens, acmeCertDir, auditor)
+
+	// Operator-configurable admin server + renew schedule, read from global
+	// settings at startup (a restart applies changes). Global settings may
+	// override the HTTP bind and enable HTTPS using an issued certificate;
+	// unreadable cert config falls back to plain HTTP rather than failing boot.
+	adminServerConf := cfg.Server
+	var adminTLS *tls.Config
+	renewInterval := envDuration("IRIS_ACME_RENEW_INTERVAL", 12*time.Hour)
+	renewBefore := envDuration("IRIS_ACME_RENEW_BEFORE", 30*24*time.Hour)
+	if gs, gerr := settingsRepo.Get(ctx); gerr == nil {
+		if gs.AdminHTTPAddr != "" {
+			adminServerConf.HTTP.Addr = gs.AdminHTTPAddr
+		}
+		if gs.AdminTLSEnabled && gs.AdminTLSCertDomain != "" {
+			if tc, terr := loadAdminTLS(ctx, acmeRepo, gs.AdminTLSCertDomain); terr != nil {
+				log.Error("admin TLS disabled: certificate could not be loaded; serving plain HTTP",
+					"domain", gs.AdminTLSCertDomain, "error", terr.Error())
+			} else {
+				adminTLS = tc
+				log.Info("admin HTTPS enabled", "domain", gs.AdminTLSCertDomain, "addr", adminServerConf.HTTP.Addr)
+			}
+		}
+		if d, ok := biz.ParseFlexDuration(gs.AcmeRenewInterval); ok {
+			renewInterval = d
+		}
+		if d, ok := biz.ParseFlexDuration(gs.AcmeRenewBefore); ok {
+			renewBefore = d
+		}
+	}
 
 	deps := service.Deps{
 		Log:          log,
@@ -212,12 +243,12 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	startWorker(ctx, log, "dsn", worker.NewDSNWorker(streams, mailOpsRepo, domainSafetyRepo, biz.DSNStreamName, log).Run)
 	// ACME: HTTP-01 challenge listener (default off) + periodic renewer.
 	startWorker(ctx, log, "acme-challenge", worker.NewAcmeChallengeWorker(acmeTokens, envOr("IRIS_ACME_HTTP_BIND", "off"), log).Run)
-	startWorker(ctx, log, "acme-renewer", worker.NewAcmeRenewerWorker(acmeUC, envDuration("IRIS_ACME_RENEW_INTERVAL", 12*time.Hour), envDuration("IRIS_ACME_RENEW_BEFORE", 30*24*time.Hour), log).Run)
+	startWorker(ctx, log, "acme-renewer", worker.NewAcmeRenewerWorker(acmeUC, renewInterval, renewBefore, log).Run)
 
 	authMW := service.AuthMiddleware(cfg.Auth, authUC)
 	checks := []server.ReadinessChecker{db, streams}
 
-	httpSrv := server.NewHTTPServer(cfg.Server, svc, adminv1.OpenAPISpec, checks, authMW)
+	httpSrv := server.NewHTTPServer(adminServerConf, svc, adminv1.OpenAPISpec, checks, adminTLS, authMW)
 	grpcSrv := server.NewGRPCServer(cfg.Server, svc, authMW)
 
 	app := kratos.New(
@@ -267,6 +298,27 @@ func bootstrapAdmin(ctx context.Context, repo biz.IdentityRepo, log *slog.Logger
 	}
 	log.Info("bootstrap admin created", "email", user.Email)
 	return nil
+}
+
+// loadAdminTLS builds a TLS config for the admin server from the issued
+// certificate whose domain matches. It errors (rather than panics) so the
+// caller can fall back to plain HTTP.
+func loadAdminTLS(ctx context.Context, repo biz.AcmeCertificateRepo, domain string) (*tls.Config, error) {
+	cert, err := repo.GetCertificateByDomain(ctx, domain)
+	if err != nil {
+		return nil, err
+	}
+	if cert == nil {
+		return nil, fmt.Errorf("no issued certificate for domain %q", domain)
+	}
+	if cert.CertPath == "" || cert.KeyPath == "" {
+		return nil, fmt.Errorf("certificate for %q has no on-disk paths", domain)
+	}
+	pair, err := tls.LoadX509KeyPair(cert.CertPath, cert.KeyPath)
+	if err != nil {
+		return nil, err
+	}
+	return &tls.Config{Certificates: []tls.Certificate{pair}, MinVersion: tls.VersionTLS12}, nil
 }
 
 // startWorker launches a background worker goroutine, logging unexpected exits

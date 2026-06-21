@@ -9,10 +9,14 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useToast } from '@/composables/useToast'
 import { settingsService } from '@/services'
+import { acmeService } from '@/services/acme'
 import { ApiError } from '@/services/http'
-import type { GlobalSettings } from '@/types'
+import type { AcmeCertificate, GlobalSettings } from '@/types'
 
 const { toast } = useToast()
+
+// Issued certificates available to serve the admin UI over HTTPS.
+const issuedCerts = ref<AcmeCertificate[]>([])
 
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -35,6 +39,11 @@ const form = ref({
   auto_suppress_hard_bounces: true,
   soft_bounce_threshold: 0,
   fbl_domain: '',
+  admin_http_addr: '',
+  admin_tls_enabled: false,
+  admin_tls_cert_domain: '',
+  acme_renew_interval: '',
+  acme_renew_before: '',
 })
 
 function apply(s: GlobalSettings) {
@@ -52,6 +61,11 @@ function apply(s: GlobalSettings) {
     auto_suppress_hard_bounces: s.autoSuppressHardBounces ?? true,
     soft_bounce_threshold: s.softBounceThreshold ?? 0,
     fbl_domain: s.fblDomain || '',
+    admin_http_addr: s.adminHttpAddr || '',
+    admin_tls_enabled: s.adminTlsEnabled ?? false,
+    admin_tls_cert_domain: s.adminTlsCertDomain || '',
+    acme_renew_interval: s.acmeRenewInterval || '',
+    acme_renew_before: s.acmeRenewBefore || '',
   }
   updatedBy.value = s.updatedBy || ''
   updatedAt.value = s.updatedAt || ''
@@ -63,6 +77,13 @@ async function load() {
   notImplemented.value = false
   try {
     apply(await settingsService.getSettings())
+    // Best-effort: the cert dropdown for admin HTTPS.
+    try {
+      const certs = await acmeService.listCertificates()
+      issuedCerts.value = (certs.items ?? []).filter((c) => c.status === 'issued')
+    } catch {
+      issuedCerts.value = []
+    }
   } catch (err) {
     if (err instanceof ApiError && err.notImplemented) notImplemented.value = true
     else if (err instanceof ApiError && err.status === 0)
@@ -77,7 +98,12 @@ async function save() {
   saving.value = true
   try {
     apply(await settingsService.updateSettings({ ...form.value }))
-    toast({ title: 'Settings saved', description: 'Applies on the next KumoMTA config apply.', variant: 'success' })
+    toast({
+      title: 'Settings saved',
+      description:
+        'KumoMTA settings apply on the next config apply; admin server / renew changes apply on service restart.',
+      variant: 'success',
+    })
   } catch (err) {
     const msg = err instanceof ApiError ? err.message : 'Failed to save settings.'
     toast({ title: 'Save failed', description: msg, variant: 'destructive' })
@@ -244,6 +270,73 @@ onMounted(load)
             <div class="space-y-1.5">
               <Label for="http">HTTP listen (host:port)</Label>
               <Input id="http" v-model="form.http_listen" placeholder="0.0.0.0:8000" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Iris admin server (this UI)</CardTitle>
+            <CardDescription>
+              The address Iris serves this console + API on, and optional HTTPS. Changes apply on a
+              service restart (the listening socket is bound at startup).
+            </CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <div class="space-y-1.5">
+              <Label for="admin-addr">Admin bind (host:port)</Label>
+              <Input id="admin-addr" v-model="form.admin_http_addr" placeholder=":8080" />
+              <p class="text-xs text-muted-foreground">
+                Overrides the configured HTTP bind. Leave blank to keep the startup config.
+              </p>
+            </div>
+            <div class="flex items-start gap-2">
+              <input
+                id="admin-tls"
+                v-model="form.admin_tls_enabled"
+                type="checkbox"
+                class="mt-1"
+                data-testid="admin-tls-enabled"
+              />
+              <Label for="admin-tls" class="font-normal">
+                Serve HTTPS using an issued certificate
+              </Label>
+            </div>
+            <div v-if="form.admin_tls_enabled" class="space-y-1.5">
+              <Label for="admin-cert">Certificate</Label>
+              <Select id="admin-cert" v-model="form.admin_tls_cert_domain" data-testid="admin-cert">
+                <option value="" disabled>
+                  {{ issuedCerts.length ? 'Select a certificate…' : 'No issued certificates' }}
+                </option>
+                <option v-for="c in issuedCerts" :key="c.id" :value="c.domain">
+                  {{ c.domain }}<span v-if="c.expiresAt"> (expires {{ c.expiresAt }})</span>
+                </option>
+              </Select>
+              <p class="text-xs text-muted-foreground">
+                Issue certificates under TLS Certificates (ACME) first. If the selected cert can't be
+                loaded at startup, Iris falls back to plain HTTP (so a bad pick won't lock you out).
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>ACME auto-renew</CardTitle>
+            <CardDescription>
+              Certificates auto-renew in the background. Tune the schedule here (duration form, e.g.
+              <code>12h</code>, <code>30d</code>); applies on a service restart. Blank uses the
+              defaults (scan every 12h, renew within 30d of expiry).
+            </CardDescription>
+          </CardHeader>
+          <CardContent class="grid gap-4 sm:grid-cols-2">
+            <div class="space-y-1.5">
+              <Label for="renew-interval">Scan interval</Label>
+              <Input id="renew-interval" v-model="form.acme_renew_interval" placeholder="12h" />
+            </div>
+            <div class="space-y-1.5">
+              <Label for="renew-before">Renew before expiry</Label>
+              <Input id="renew-before" v-model="form.acme_renew_before" placeholder="30d" />
             </div>
           </CardContent>
         </Card>

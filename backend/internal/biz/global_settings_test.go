@@ -78,3 +78,41 @@ func TestEffectiveMergesOverDefaults(t *testing.T) {
 		t.Fatalf("empty stored field should fall back to default: %+v", eff)
 	}
 }
+
+func TestParseFlexDuration(t *testing.T) {
+	ok := map[string]string{"12h": "12h0m0s", "30d": "720h0m0s", "1h30m": "1h30m0s", "90s": "1m30s"}
+	for in, want := range ok {
+		d, valid := ParseFlexDuration(in)
+		if !valid || d.String() != want {
+			t.Errorf("ParseFlexDuration(%q) = %v,%v want %s", in, d, valid, want)
+		}
+	}
+	for _, bad := range []string{"", "banana", "10", "5x", "h"} {
+		if _, valid := ParseFlexDuration(bad); valid {
+			t.Errorf("ParseFlexDuration(%q) should be invalid", bad)
+		}
+	}
+}
+
+func TestAdminSettingsValidation(t *testing.T) {
+	// TLS enabled without a cert domain is rejected.
+	s := &GlobalSettings{AdminTLSEnabled: true}
+	if err := s.Validate(); err == nil {
+		t.Fatal("expected error: TLS enabled without cert domain")
+	}
+	// Bad bind address rejected.
+	s = &GlobalSettings{AdminHTTPAddr: "not-a-host-port"}
+	if err := s.Validate(); err == nil {
+		t.Fatal("expected error: bad admin_http_addr")
+	}
+	// Bad renew duration rejected.
+	s = &GlobalSettings{AcmeRenewInterval: "soon"}
+	if err := s.Validate(); err == nil {
+		t.Fatal("expected error: bad acme_renew_interval")
+	}
+	// Valid config accepted.
+	s = &GlobalSettings{AdminHTTPAddr: ":8080", AdminTLSEnabled: true, AdminTLSCertDomain: "*.kmx.jobs.bg", AcmeRenewInterval: "12h", AcmeRenewBefore: "30d"}
+	if err := s.Validate(); err != nil {
+		t.Fatalf("expected valid, got %v", err)
+	}
+}

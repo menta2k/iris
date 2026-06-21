@@ -1555,6 +1555,21 @@ components:
                 fbl_domain:
                     type: string
                     description: 'FBL/ARF feedback domain (log_arf): kumod parses ARF reports here.'
+                admin_http_addr:
+                    type: string
+                    description: |-
+                        Iris admin server (applied on restart). admin_http_addr overrides the HTTP
+                         bind; admin_tls_enabled serves HTTPS using the issued cert whose domain is
+                         admin_tls_cert_domain.
+                admin_tls_enabled:
+                    type: boolean
+                admin_tls_cert_domain:
+                    type: string
+                acme_renew_interval:
+                    type: string
+                    description: ACME auto-renew schedule (duration form, e.g. "12h", "30d").
+                acme_renew_before:
+                    type: string
                 updated_at:
                     type: string
                 updated_by:
@@ -2036,6 +2051,16 @@ components:
                     type: integer
                     format: int32
                 fbl_domain:
+                    type: string
+                admin_http_addr:
+                    type: string
+                admin_tls_enabled:
+                    type: boolean
+                admin_tls_cert_domain:
+                    type: string
+                acme_renew_interval:
+                    type: string
+                acme_renew_before:
                     type: string
         UpdateListenerRequest:
             type: object
