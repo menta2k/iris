@@ -62,6 +62,15 @@ func nullableUUID(id string) any {
 	return id
 }
 
+// nullableText returns the string as a query argument, or nil when empty so an
+// optional column is stored as NULL rather than an empty string.
+func nullableText(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
+}
+
 // Health verifies database connectivity for readiness checks.
 func (d *DB) Health(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)

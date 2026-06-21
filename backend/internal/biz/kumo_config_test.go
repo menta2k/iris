@@ -381,6 +381,48 @@ func TestMailClassification(t *testing.T) {
 	}
 }
 
+func TestSenderIPClassification(t *testing.T) {
+	// A sender_ip rule assigns a mailclass to mail with no mailclass header,
+	// based on the connecting client's IP/CIDR. Delivery then follows the
+	// mailclass rule for that class.
+	snap := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "pool-x", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+		Routes: []*RoutingRule{
+			{ID: "r1", Name: "test-class-route", MatchType: MatchMailclass, MatchHeader: "X-Mail-Class", MatchValue: "test-class",
+				Priority: 100, TargetType: TargetVMTA, TargetID: "v1", Status: RoutingStatusActive},
+			{ID: "r2", Name: "lab-subnet", MatchType: MatchSenderIP, MatchValue: "10.1.111.0/24",
+				AssignMailclass: "test-class", Priority: 200, Status: RoutingStatusActive},
+			{ID: "r3", Name: "single-ip", MatchType: MatchSenderIP, MatchValue: "10.1.111.5",
+				AssignMailclass: "test-class", Priority: 150, Status: RoutingStatusActive},
+		},
+		LogStreamRedisURL: "redis://redis:6379",
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil || !r.Valid {
+		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	// The SENDER_IP_CLASSES table carries CIDR/IP → class, highest priority first.
+	if !strings.Contains(r.Content, `{ cidr = "10.1.111.0/24", mailclass = "test-class" }`) ||
+		!strings.Contains(r.Content, `{ cidr = "10.1.111.5", mailclass = "test-class" }`) {
+		t.Fatalf("SENDER_IP_CLASSES not emitted as expected:\n%s", r.Content)
+	}
+	// The classifier and CIDR matcher are wired in and consulted as a fallback.
+	if !strings.Contains(r.Content, "local function classify_by_sender_ip(msg)") ||
+		!strings.Contains(r.Content, "class = classify_by_sender_ip(msg)") ||
+		!strings.Contains(r.Content, "local function _ip_matches(ip, spec)") {
+		t.Fatalf("sender-ip classification not wired into reception:\n%s", r.Content)
+	}
+	// select_pool takes the resolved class so an assigned class routes to its pool.
+	if !strings.Contains(r.Content, "local function select_pool(msg, recipient, class)") ||
+		!strings.Contains(r.Content, "(class ~= nil and class == route.match_value)") {
+		t.Fatalf("select_pool must route by the resolved class:\n%s", r.Content)
+	}
+	// sender_ip rules must NOT appear as ROUTES entries (they have no pool).
+	if strings.Contains(r.Content, `match_type = "sender_ip"`) {
+		t.Fatalf("sender_ip rules must not be emitted into ROUTES:\n%s", r.Content)
+	}
+}
+
 func TestLogHookHeadersAreDynamic(t *testing.T) {
 	snap := ConfigSnapshot{
 		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},

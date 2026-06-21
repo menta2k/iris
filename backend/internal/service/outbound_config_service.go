@@ -130,13 +130,14 @@ func (s *Service) CreateRoutingRule(ctx context.Context, req *adminv1.CreateRout
 		return nil, notImplemented("CreateRoutingRule")
 	}
 	out, err := s.outbound.CreateRoutingRule(ctx, &biz.RoutingRule{
-		Name:        req.GetName(),
-		MatchType:   req.GetMatchType(),
-		MatchHeader: req.GetMatchHeader(),
-		MatchValue:  req.GetMatchValue(),
-		Priority:    int(req.GetPriority()),
-		TargetType:  req.GetTargetType(),
-		TargetID:    req.GetTargetId(),
+		Name:            req.GetName(),
+		MatchType:       req.GetMatchType(),
+		MatchHeader:     req.GetMatchHeader(),
+		MatchValue:      req.GetMatchValue(),
+		Priority:        int(req.GetPriority()),
+		TargetType:      req.GetTargetType(),
+		TargetID:        req.GetTargetId(),
+		AssignMailclass: req.GetAssignMailclass(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "CreateRoutingRule", err)
@@ -150,14 +151,15 @@ func (s *Service) UpdateRoutingRule(ctx context.Context, req *adminv1.UpdateRout
 		return nil, notImplemented("UpdateRoutingRule")
 	}
 	out, err := s.outbound.UpdateRoutingRule(ctx, req.GetId(), &biz.RoutingRule{
-		Name:        req.GetName(),
-		MatchType:   req.GetMatchType(),
-		MatchHeader: req.GetMatchHeader(),
-		MatchValue:  req.GetMatchValue(),
-		Priority:    int(req.GetPriority()),
-		TargetType:  req.GetTargetType(),
-		TargetID:    req.GetTargetId(),
-		Status:      req.GetStatus(),
+		Name:            req.GetName(),
+		MatchType:       req.GetMatchType(),
+		MatchHeader:     req.GetMatchHeader(),
+		MatchValue:      req.GetMatchValue(),
+		Priority:        int(req.GetPriority()),
+		TargetType:      req.GetTargetType(),
+		TargetID:        req.GetTargetId(),
+		AssignMailclass: req.GetAssignMailclass(),
+		Status:          req.GetStatus(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "UpdateRoutingRule", err)
@@ -248,6 +250,7 @@ func groupToProto(g *biz.VMTAGroup) *adminv1.VMTAGroup {
 func routingToProto(r *biz.RoutingRule) *adminv1.RoutingRule {
 	return &adminv1.RoutingRule{
 		Id: r.ID, Name: r.Name, MatchType: r.MatchType, MatchHeader: r.MatchHeader, MatchValue: r.MatchValue,
-		Priority: int32(r.Priority), TargetType: r.TargetType, TargetId: r.TargetID, Status: r.Status,
+		Priority: int32(r.Priority), TargetType: r.TargetType, TargetId: r.TargetID,
+		AssignMailclass: r.AssignMailclass, Status: r.Status,
 	}
 }

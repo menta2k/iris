@@ -270,12 +270,15 @@ func (uc *OutboundConfigUsecase) CreateRoutingRule(ctx context.Context, rule *Ro
 	if err := rule.Validate(); err != nil {
 		return nil, err
 	}
-	ok, err := uc.repo.TargetExists(ctx, rule.TargetType, rule.TargetID)
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		return nil, Invalid("ROUTING_TARGET_MISSING", "routing target %q %q does not exist", rule.TargetType, rule.TargetID)
+	// sender_ip rules carry no VMTA/group target; skip the existence check.
+	if rule.MatchType != MatchSenderIP {
+		ok, err := uc.repo.TargetExists(ctx, rule.TargetType, rule.TargetID)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, Invalid("ROUTING_TARGET_MISSING", "routing target %q %q does not exist", rule.TargetType, rule.TargetID)
+		}
 	}
 	out, err := uc.repo.CreateRoutingRule(ctx, rule)
 	if err != nil {
@@ -301,12 +304,15 @@ func (uc *OutboundConfigUsecase) UpdateRoutingRule(ctx context.Context, id strin
 	if err := rule.Validate(); err != nil {
 		return nil, err
 	}
-	ok, err := uc.repo.TargetExists(ctx, rule.TargetType, rule.TargetID)
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		return nil, Invalid("ROUTING_TARGET_MISSING", "routing target %q %q does not exist", rule.TargetType, rule.TargetID)
+	// sender_ip rules carry no VMTA/group target; skip the existence check.
+	if rule.MatchType != MatchSenderIP {
+		ok, err := uc.repo.TargetExists(ctx, rule.TargetType, rule.TargetID)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, Invalid("ROUTING_TARGET_MISSING", "routing target %q %q does not exist", rule.TargetType, rule.TargetID)
+		}
 	}
 	out, err := uc.repo.UpdateRoutingRule(ctx, id, rule)
 	if err != nil {

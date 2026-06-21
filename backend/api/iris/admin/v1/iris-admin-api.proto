@@ -304,6 +304,9 @@ message RoutingRule {
   // match_header is the header NAME for a mailclass match (e.g. "X-Mail-Class").
   // Empty for recipient matches.
   string match_header = 9;
+  // assign_mailclass is the class applied by a sender_ip rule (match_value is
+  // then an IP or CIDR). Empty for other match types, which use target instead.
+  string assign_mailclass = 10;
 }
 
 message ListVMTAsRequest {
@@ -361,6 +364,7 @@ message CreateRoutingRuleRequest {
   string target_type = 5;
   string target_id = 6;
   string match_header = 7;
+  string assign_mailclass = 8;
 }
 message UpdateRoutingRuleRequest {
   string id = 1;
@@ -372,6 +376,7 @@ message UpdateRoutingRuleRequest {
   string target_id = 7;
   string status = 8;
   string match_header = 9;
+  string assign_mailclass = 10;
 }
 
 // Mail operations -----------------------------------------------------------
