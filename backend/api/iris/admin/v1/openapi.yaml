@@ -1,0 +1,2006 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: IrisAdminService API
+    version: 0.0.1
+paths:
+    /v1/acme/account:
+        get:
+            tags:
+                - IrisAdminService
+            description: ACME (Let's Encrypt) -------------------------------------------------------
+            operationId: IrisAdminService_GetAcmeAccount
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AcmeAccount'
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_SaveAcmeAccount
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/SaveAcmeAccountRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AcmeAccount'
+    /v1/acme/certificates:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListAcmeCertificates
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListAcmeCertificatesReply'
+        post:
+            tags:
+                - IrisAdminService
+            description: |-
+                RequestAcmeCertificate issues (or re-issues) a certificate via HTTP-01.
+                 Synchronous: blocks for the ACME handshake.
+            operationId: IrisAdminService_RequestAcmeCertificate
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RequestAcmeCertificateRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AcmeCertificate'
+    /v1/acme/certificates/{id}:
+        delete:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_DeleteAcmeCertificate
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteAcmeCertificateReply'
+    /v1/audit-entries:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListAuditEntries
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListAuditEntriesReply'
+    /v1/bounces:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListBounces
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListBouncesReply'
+    /v1/dashboard/summary:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_GetDashboardSummary
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DashboardSummary'
+    /v1/dkim-domains:
+        get:
+            tags:
+                - IrisAdminService
+            description: Domain & recipient safety ------------------------------------------------
+            operationId: IrisAdminService_ListDKIMDomains
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListDKIMDomainsReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateDKIMDomain
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateDKIMDomainRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DKIMDomain'
+    /v1/dkim-domains/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateDKIMDomain
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateDKIMDomainRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DKIMDomain'
+    /v1/dkim-domains:generate-key:
+        post:
+            tags:
+                - IrisAdminService
+            description: |-
+                Generate a fresh DKIM key pair. Returns the private key (to save on the
+                 domain) and the public DNS TXT record to publish; nothing is persisted.
+            operationId: IrisAdminService_GenerateDKIMKey
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/GenerateDKIMKeyRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GenerateDKIMKeyReply'
+    /v1/feedback-reports:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListFeedbackReports
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListFeedbackReportsReply'
+    /v1/kumomta/config:apply:
+        post:
+            tags:
+                - IrisAdminService
+            description: |-
+                ApplyKumoConfig renders the configuration, writes it to KumoMTA, and
+                 reloads the service. High-risk: requires confirmation and is audited.
+            operationId: IrisAdminService_ApplyKumoConfig
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApplyKumoConfigRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApplyKumoConfigReply'
+    /v1/kumomta/config:generate:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                GenerateKumoConfig renders the current Iris configuration into KumoMTA
+                 policy without applying it (a preview/diff).
+            operationId: IrisAdminService_GenerateKumoConfig
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/KumoConfig'
+    /v1/kumomta/config:status:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                KumoConfigStatus reports whether the current configuration has drifted from
+                 the last applied policy (a regenerate/apply is pending).
+            operationId: IrisAdminService_KumoConfigStatus
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/KumoConfigStatusReply'
+    /v1/kumomta:service-control:
+        post:
+            tags:
+                - IrisAdminService
+            description: KumoMTA service & configuration ------------------------------------------
+            operationId: IrisAdminService_RequestServiceControl
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RequestServiceControlRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ServiceControlRequest'
+    /v1/listeners:
+        get:
+            tags:
+                - IrisAdminService
+            description: Listeners (ESMTP) --------------------------------------------------------
+            operationId: IrisAdminService_ListListeners
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListListenersReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateListener
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateListenerRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Listener'
+    /v1/listeners/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateListener
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateListenerRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Listener'
+    /v1/mail-records:
+        get:
+            tags:
+                - IrisAdminService
+            description: Mail operations ----------------------------------------------------------
+            operationId: IrisAdminService_ListMailRecords
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+                - name: mailclass
+                  in: query
+                  schema:
+                    type: string
+                - name: sender
+                  in: query
+                  schema:
+                    type: string
+                - name: recipient
+                  in: query
+                  schema:
+                    type: string
+                - name: vmta_id
+                  in: query
+                  schema:
+                    type: string
+                - name: from_time
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: to_time
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListMailRecordsReply'
+    /v1/mfa:confirm:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ConfirmMFA
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ConfirmMFARequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConfirmMFAReply'
+    /v1/mfa:disable:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_DisableMFA
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/DisableMFARequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DisableMFAReply'
+    /v1/mfa:enroll:
+        post:
+            tags:
+                - IrisAdminService
+            description: MFA enrollment for the calling user (TOTP).
+            operationId: IrisAdminService_EnrollMFA
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/EnrollMFARequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/EnrollMFAReply'
+    /v1/queues:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListQueues
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListQueuesReply'
+    /v1/queues/{mailclass}:action:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_RequestQueueAction
+            parameters:
+                - name: mailclass
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RequestQueueActionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/QueueActionReply'
+    /v1/routing-rules:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListRoutingRules
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+                - name: match_type
+                  in: query
+                  schema:
+                    type: string
+                - name: match_value
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListRoutingRulesReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateRoutingRule
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateRoutingRuleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RoutingRule'
+    /v1/routing-rules/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateRoutingRule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateRoutingRuleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RoutingRule'
+    /v1/rspamd-results:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListRspamdResults
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListRspamdResultsReply'
+    /v1/settings:
+        get:
+            tags:
+                - IrisAdminService
+            description: Global settings (deployment-level policy knobs editable in the UI).
+            operationId: IrisAdminService_GetGlobalSettings
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GlobalSettings'
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateGlobalSettings
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateGlobalSettingsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GlobalSettings'
+    /v1/suppressions:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListSuppressions
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListSuppressionsReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateSuppression
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateSuppressionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Suppression'
+    /v1/suppressions/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateSuppression
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateSuppressionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Suppression'
+    /v1/users:
+        get:
+            tags:
+                - IrisAdminService
+            description: Security administration --------------------------------------------------
+            operationId: IrisAdminService_ListUsers
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListUsersReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateUser
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateUserRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/User'
+    /v1/users/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateUser
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateUserRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/User'
+    /v1/vmta-groups:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListVMTAGroups
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListVMTAGroupsReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateVMTAGroups
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateVMTAGroupRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/VMTAGroup'
+    /v1/vmta-groups/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateVMTAGroup
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateVMTAGroupRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/VMTAGroup'
+    /v1/vmtas:
+        get:
+            tags:
+                - IrisAdminService
+            description: Outbound configuration ---------------------------------------------------
+            operationId: IrisAdminService_ListVMTAs
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListVMTAsReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateVMTA
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateVMTARequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/VMTA'
+    /v1/vmtas/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateVMTA
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateVMTARequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/VMTA'
+    /v1/webhook-deliveries:
+        get:
+            tags:
+                - IrisAdminService
+            description: Webhook delivery events (the outcomes of webhook fan-out).
+            operationId: IrisAdminService_ListWebhookDeliveries
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListWebhookDeliveriesReply'
+    /v1/webhook-rules:
+        get:
+            tags:
+                - IrisAdminService
+            description: Inbound automation -------------------------------------------------------
+            operationId: IrisAdminService_ListWebhookRules
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListWebhookRulesReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateWebhookRule
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateWebhookRuleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/WebhookRule'
+    /v1/webhook-rules/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateWebhookRule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateWebhookRuleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/WebhookRule'
+components:
+    schemas:
+        AcmeAccount:
+            type: object
+            properties:
+                email:
+                    type: string
+                server_url:
+                    type: string
+                configured:
+                    type: boolean
+                registered:
+                    type: boolean
+                updated_at:
+                    type: string
+        AcmeCertificate:
+            type: object
+            properties:
+                id:
+                    type: string
+                domain:
+                    type: string
+                alt_names:
+                    type: array
+                    items:
+                        type: string
+                challenge_type:
+                    type: string
+                cert_path:
+                    type: string
+                key_path:
+                    type: string
+                expires_at:
+                    type: string
+                last_renewed_at:
+                    type: string
+                status:
+                    type: string
+                last_error:
+                    type: string
+        ApplyKumoConfigReply:
+            type: object
+            properties:
+                request_id:
+                    type: string
+                status:
+                    type: string
+                checksum:
+                    type: string
+                applied_path:
+                    type: string
+                result_summary:
+                    type: string
+                restarted:
+                    type: boolean
+                    description: restarted is true when KumoMTA was restarted (init change) rather than reloaded.
+        ApplyKumoConfigRequest:
+            type: object
+            properties:
+                confirmation_id:
+                    type: string
+        AuditEntry:
+            type: object
+            properties:
+                id:
+                    type: string
+                occurred_at:
+                    type: string
+                actor_user_id:
+                    type: string
+                operation:
+                    type: string
+                target_type:
+                    type: string
+                target_id:
+                    type: string
+                outcome:
+                    type: string
+                ip_address:
+                    type: string
+        Bounce:
+            type: object
+            properties:
+                id:
+                    type: string
+                event_time:
+                    type: string
+                    format: date-time
+                recipient:
+                    type: string
+                mailclass:
+                    type: string
+                smtp_status:
+                    type: string
+                bounce_type:
+                    type: string
+                diagnostic:
+                    type: string
+                processing_state:
+                    type: string
+        ConfirmMFAReply:
+            type: object
+            properties:
+                enrolled:
+                    type: boolean
+        ConfirmMFARequest:
+            type: object
+            properties:
+                code:
+                    type: string
+        CreateDKIMDomainRequest:
+            type: object
+            properties:
+                domain:
+                    type: string
+                selector:
+                    type: string
+                public_key_fingerprint:
+                    type: string
+                private_key_ref:
+                    type: string
+        CreateListenerRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                ip_address:
+                    type: string
+                port:
+                    type: integer
+                    format: int32
+                hostname:
+                    type: string
+                tls_enabled:
+                    type: boolean
+                tls_cert_path:
+                    type: string
+                tls_key_path:
+                    type: string
+                require_auth:
+                    type: boolean
+                max_message_size:
+                    type: string
+                relay_hosts:
+                    type: array
+                    items:
+                        type: string
+        CreateRoutingRuleRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                match_type:
+                    type: string
+                match_value:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                target_type:
+                    type: string
+                target_id:
+                    type: string
+                match_header:
+                    type: string
+        CreateSuppressionRequest:
+            type: object
+            properties:
+                type:
+                    type: string
+                value:
+                    type: string
+                reason:
+                    type: string
+        CreateUserRequest:
+            type: object
+            properties:
+                email:
+                    type: string
+                display_name:
+                    type: string
+                mfa_required:
+                    type: boolean
+                roles:
+                    type: array
+                    items:
+                        type: string
+        CreateVMTAGroupRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                members:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/VMTAGroupMember'
+        CreateVMTARequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                listener_id:
+                    type: string
+                max_connections:
+                    type: integer
+                    format: int32
+        CreateWebhookRuleRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                match_type:
+                    type: string
+                match_value:
+                    type: string
+                destination_url:
+                    type: string
+                secret_ref:
+                    type: string
+                timeout_seconds:
+                    type: integer
+                    format: int32
+        DKIMDomain:
+            type: object
+            properties:
+                id:
+                    type: string
+                domain:
+                    type: string
+                selector:
+                    type: string
+                public_key_fingerprint:
+                    type: string
+                status:
+                    type: string
+            description: Domain & recipient safety -------------------------------------------------
+        DashboardSummary:
+            type: object
+            properties:
+                service_state:
+                    type: string
+                queued_messages:
+                    type: string
+                recent_mail_events:
+                    type: string
+                recent_audit_events:
+                    type: string
+        DeleteAcmeCertificateReply:
+            type: object
+            properties: {}
+        DisableMFAReply:
+            type: object
+            properties: {}
+        DisableMFARequest:
+            type: object
+            properties: {}
+        EnrollMFAReply:
+            type: object
+            properties:
+                secret:
+                    type: string
+                    description: The shared secret and the otpauth:// URI to render as a QR code. Shown once.
+                otpauth_uri:
+                    type: string
+        EnrollMFARequest:
+            type: object
+            properties: {}
+        FeedbackReport:
+            type: object
+            properties:
+                id:
+                    type: string
+                received_at:
+                    type: string
+                    format: date-time
+                source:
+                    type: string
+                report_type:
+                    type: string
+                recipient:
+                    type: string
+                processing_state:
+                    type: string
+        GenerateDKIMKeyReply:
+            type: object
+            properties:
+                private_key_pem:
+                    type: string
+                    description: PEM private key to store on the domain (save it on the DKIM record).
+                record_name:
+                    type: string
+                    description: 'DNS TXT record to publish: name and value.'
+                record_value:
+                    type: string
+                public_key_fingerprint:
+                    type: string
+        GenerateDKIMKeyRequest:
+            type: object
+            properties:
+                domain:
+                    type: string
+                selector:
+                    type: string
+        GlobalSettings:
+            type: object
+            properties:
+                rspamd_mode:
+                    type: string
+                    description: 'rspamd inbound spam filtering: "off" | "tag" | "enforce".'
+                rspamd_url:
+                    type: string
+                egress_ehlo_domain:
+                    type: string
+                    description: Default outbound EHLO hostname.
+                log_stream_redis_url:
+                    type: string
+                    description: Redis URL embedded in the policy log_hook (what KumoMTA reaches Redis at).
+                esmtp_listen:
+                    type: string
+                    description: Default listener binds (host:port) emitted in the policy init.
+                http_listen:
+                    type: string
+                egress_retry_interval:
+                    type: string
+                    description: 'Delivery rates: the outbound retry schedule (KumoMTA duration form).'
+                egress_max_retry_interval:
+                    type: string
+                egress_max_age:
+                    type: string
+                bounce_domain:
+                    type: string
+                    description: Bounce / DSN pipeline.
+                auto_suppress_hard_bounces:
+                    type: boolean
+                soft_bounce_threshold:
+                    type: integer
+                    format: int32
+                fbl_domain:
+                    type: string
+                    description: 'FBL/ARF feedback domain (log_arf): kumod parses ARF reports here.'
+                updated_at:
+                    type: string
+                updated_by:
+                    type: string
+            description: Global settings — deployment-level policy knobs an operator edits in the UI.
+        KumoConfig:
+            type: object
+            properties:
+                content:
+                    type: string
+                    description: The rendered KumoMTA policy (Lua).
+                vmta_count:
+                    type: integer
+                    description: Counts summarizing what the config contains.
+                    format: int32
+                pool_count:
+                    type: integer
+                    format: int32
+                route_count:
+                    type: integer
+                    format: int32
+                dkim_count:
+                    type: integer
+                    format: int32
+                suppression_count:
+                    type: integer
+                    format: int32
+                checksum:
+                    type: string
+                    description: Hash of the rendered content for change detection.
+                valid:
+                    type: boolean
+                    description: valid is true when the rendered policy passed the Lua syntax lint.
+                lint_issues:
+                    type: array
+                    items:
+                        type: string
+                    description: lint_issues holds any syntax problems found while linting the policy.
+        KumoConfigStatusReply:
+            type: object
+            properties:
+                drift:
+                    type: boolean
+                    description: |-
+                        drift is true when the current configuration differs from the last applied
+                         policy (i.e. a regenerate/apply is pending).
+                never_applied:
+                    type: boolean
+                    description: never_applied is true when no policy has been applied yet.
+                current_checksum:
+                    type: string
+                applied_checksum:
+                    type: string
+                applied_at:
+                    type: string
+                restart_required:
+                    type: boolean
+                    description: |-
+                        restart_required is true when the pending change touches the init block
+                         (listeners/spool/log hook), which needs a KumoMTA restart, not a reload.
+        ListAcmeCertificatesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/AcmeCertificate'
+        ListAuditEntriesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/AuditEntry'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListBouncesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Bounce'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListDKIMDomainsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DKIMDomain'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListFeedbackReportsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/FeedbackReport'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListListenersReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Listener'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListMailRecordsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/MailRecord'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListQueuesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Queue'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListRoutingRulesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/RoutingRule'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListRspamdResultsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/RspamdResult'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListSuppressionsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Suppression'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListUsersReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/User'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListVMTAGroupsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/VMTAGroup'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListVMTAsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/VMTA'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListWebhookDeliveriesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/WebhookDeliveryEvent'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListWebhookRulesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/WebhookRule'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        Listener:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                ip_address:
+                    type: string
+                port:
+                    type: integer
+                    format: int32
+                hostname:
+                    type: string
+                tls_enabled:
+                    type: boolean
+                tls_cert_path:
+                    type: string
+                tls_key_path:
+                    type: string
+                require_auth:
+                    type: boolean
+                max_message_size:
+                    type: string
+                relay_hosts:
+                    type: array
+                    items:
+                        type: string
+                status:
+                    type: string
+            description: |-
+                Outbound configuration ----------------------------------------------------
+                 Listener is an ESMTP listener: IP + port + EHLO hostname + TLS/relay config.
+        MailRecord:
+            type: object
+            properties:
+                id:
+                    type: string
+                message_id:
+                    type: string
+                event_time:
+                    type: string
+                    format: date-time
+                mailclass:
+                    type: string
+                sender:
+                    type: string
+                recipient:
+                    type: string
+                recipient_domain:
+                    type: string
+                vmta_id:
+                    type: string
+                status:
+                    type: string
+            description: Mail operations -----------------------------------------------------------
+        PageReply:
+            type: object
+            properties:
+                next_page_token:
+                    type: string
+        Queue:
+            type: object
+            properties:
+                mailclass:
+                    type: string
+                state:
+                    type: string
+                depth:
+                    type: string
+                oldest_message_age_seconds:
+                    type: string
+        QueueActionReply:
+            type: object
+            properties:
+                request_id:
+                    type: string
+                status:
+                    type: string
+        RequestAcmeCertificateRequest:
+            type: object
+            properties:
+                domain:
+                    type: string
+                alt_names:
+                    type: array
+                    items:
+                        type: string
+        RequestQueueActionRequest:
+            type: object
+            properties:
+                mailclass:
+                    type: string
+                action:
+                    type: string
+                confirmation_id:
+                    type: string
+        RequestServiceControlRequest:
+            type: object
+            properties:
+                operation:
+                    type: string
+                confirmation_id:
+                    type: string
+            description: KumoMTA service & configuration -------------------------------------------
+        RoutingRule:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                match_type:
+                    type: string
+                match_value:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                target_type:
+                    type: string
+                target_id:
+                    type: string
+                status:
+                    type: string
+                match_header:
+                    type: string
+                    description: |-
+                        match_header is the header NAME for a mailclass match (e.g. "X-Mail-Class").
+                         Empty for recipient matches.
+        RspamdResult:
+            type: object
+            properties:
+                id:
+                    type: string
+                event_time:
+                    type: string
+                    format: date-time
+                mail_record_id:
+                    type: string
+                action:
+                    type: string
+                score:
+                    type: number
+                    format: double
+                symbols:
+                    type: array
+                    items:
+                        type: string
+                reason:
+                    type: string
+        SaveAcmeAccountRequest:
+            type: object
+            properties:
+                email:
+                    type: string
+                server_url:
+                    type: string
+        ServiceControlRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                operation:
+                    type: string
+                status:
+                    type: string
+        Suppression:
+            type: object
+            properties:
+                id:
+                    type: string
+                type:
+                    type: string
+                value:
+                    type: string
+                reason:
+                    type: string
+                source:
+                    type: string
+                status:
+                    type: string
+        UpdateDKIMDomainRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                selector:
+                    type: string
+                public_key_fingerprint:
+                    type: string
+                private_key_ref:
+                    type: string
+                    description: PEM-encoded RSA private key; empty preserves the stored key.
+                status:
+                    type: string
+        UpdateGlobalSettingsRequest:
+            type: object
+            properties:
+                rspamd_mode:
+                    type: string
+                rspamd_url:
+                    type: string
+                egress_ehlo_domain:
+                    type: string
+                log_stream_redis_url:
+                    type: string
+                esmtp_listen:
+                    type: string
+                http_listen:
+                    type: string
+                egress_retry_interval:
+                    type: string
+                egress_max_retry_interval:
+                    type: string
+                egress_max_age:
+                    type: string
+                bounce_domain:
+                    type: string
+                auto_suppress_hard_bounces:
+                    type: boolean
+                soft_bounce_threshold:
+                    type: integer
+                    format: int32
+                fbl_domain:
+                    type: string
+        UpdateListenerRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                ip_address:
+                    type: string
+                port:
+                    type: integer
+                    format: int32
+                hostname:
+                    type: string
+                tls_enabled:
+                    type: boolean
+                tls_cert_path:
+                    type: string
+                tls_key_path:
+                    type: string
+                require_auth:
+                    type: boolean
+                max_message_size:
+                    type: string
+                relay_hosts:
+                    type: array
+                    items:
+                        type: string
+                status:
+                    type: string
+        UpdateRoutingRuleRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                match_type:
+                    type: string
+                match_value:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                target_type:
+                    type: string
+                target_id:
+                    type: string
+                status:
+                    type: string
+                match_header:
+                    type: string
+        UpdateSuppressionRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                reason:
+                    type: string
+                status:
+                    type: string
+        UpdateUserRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                display_name:
+                    type: string
+                status:
+                    type: string
+                mfa_required:
+                    type: boolean
+                roles:
+                    type: array
+                    items:
+                        type: string
+        UpdateVMTAGroupRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                status:
+                    type: string
+                members:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/VMTAGroupMember'
+        UpdateVMTARequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                listener_id:
+                    type: string
+                max_connections:
+                    type: integer
+                    format: int32
+                status:
+                    type: string
+                notes:
+                    type: string
+        UpdateWebhookRuleRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                match_type:
+                    type: string
+                match_value:
+                    type: string
+                destination_url:
+                    type: string
+                secret_ref:
+                    type: string
+                timeout_seconds:
+                    type: integer
+                    format: int32
+                status:
+                    type: string
+        User:
+            type: object
+            properties:
+                id:
+                    type: string
+                email:
+                    type: string
+                display_name:
+                    type: string
+                status:
+                    type: string
+                mfa_required:
+                    type: boolean
+                roles:
+                    type: array
+                    items:
+                        type: string
+            description: Security administration ---------------------------------------------------
+        VMTA:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                ip_address:
+                    type: string
+                ehlo_name:
+                    type: string
+                status:
+                    type: string
+                notes:
+                    type: string
+                listener_id:
+                    type: string
+                listener_name:
+                    type: string
+                max_connections:
+                    type: integer
+                    format: int32
+            description: |-
+                VMTA attaches to a listener; ip_address/ehlo_name/listener_name are resolved
+                 (read-only) from the attached listener.
+        VMTAGroup:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                status:
+                    type: string
+                members:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/VMTAGroupMember'
+        VMTAGroupMember:
+            type: object
+            properties:
+                vmta_id:
+                    type: string
+                weight:
+                    type: integer
+                    format: int32
+        WebhookDeliveryEvent:
+            type: object
+            properties:
+                id:
+                    type: string
+                event_time:
+                    type: string
+                webhook_rule_id:
+                    type: string
+                webhook_name:
+                    type: string
+                mail_record_id:
+                    type: string
+                recipient:
+                    type: string
+                attempt:
+                    type: integer
+                    format: int32
+                status:
+                    type: string
+                response_code:
+                    type: integer
+                    format: int32
+                error_summary:
+                    type: string
+        WebhookRule:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                match_type:
+                    type: string
+                match_value:
+                    type: string
+                destination_url:
+                    type: string
+                status:
+                    type: string
+                timeout_seconds:
+                    type: integer
+                    format: int32
+            description: Inbound automation --------------------------------------------------------
+tags:
+    - name: IrisAdminService

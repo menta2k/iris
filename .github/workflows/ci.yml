@@ -1,0 +1,105 @@
+# CI — runs on every push to main and on every pull request.
+#
+# Adapted from the v1 (menta2k/iris) CI for the v2 stack: Go backend + an
+# npm/Vite Vue frontend. Backend, frontend, and the "generated policy loads in a
+# real kumod" check run in parallel. Image builds are the release workflow's job.
+
+name: CI
+
+on:
+  push:
+    branches: [main, v2.0.0]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (Go)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    # Postgres (TimescaleDB) + Redis so the DB/Redis-backed contract and
+    # integration tests run, not just the pure-unit subset.
+    services:
+      timescaledb:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_USER: iris
+          POSTGRES_PASSWORD: iris
+          POSTGRES_DB: iris
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U iris -d iris"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      IRIS_TEST_DSN: postgres://iris:iris@127.0.0.1:5432/iris?sslmode=disable
+      IRIS_DATABASE_DSN: postgres://iris:iris@127.0.0.1:5432/iris?sslmode=disable
+      IRIS_TEST_REDIS: 127.0.0.1:6379
+      IRIS_REDIS_ADDR: 127.0.0.1:6379
+      IRIS_AUTH_DEV_BYPASS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - run: go mod download
+      - name: go vet
+        run: go vet ./...
+      - name: go build
+        run: go build ./...
+      # The DB-backed packages share one database, so -p 1 serialises them.
+      - name: go test (race + cover)
+        run: go test -race -p 1 -count=1 -cover ./...
+
+  frontend:
+    name: Frontend (Node, npm)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      # `npm run build` runs vue-tsc first, so it covers typecheck + bundle.
+      - name: typecheck + build
+        run: npm run build
+        env:
+          NODE_OPTIONS: '--max-old-space-size=8192'
+      - name: unit tests
+        run: npm run test:unit
+
+  policy-load:
+    name: Generated policy loads in kumod (L1)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      # Loads the full rendered policy into a real kumod via `kumod --validate`
+      # — catches divergence the unit tests and gopher-lua lint cannot.
+      - name: Validate generated policy in kumod
+        run: make test-policy-load

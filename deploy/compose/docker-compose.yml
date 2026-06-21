@@ -1,0 +1,77 @@
+# Local development services for the Iris KumoMTA Admin UI backend.
+#
+# Usage:
+#   docker compose -f deploy/compose/docker-compose.yml up -d
+#
+# These provide the TimescaleDB (PostgreSQL + timescaledb) and Redis (with
+# Streams) dependencies the backend expects. The backend itself is run
+# separately (e.g. `cd backend && go run ./cmd/iris`) pointing at these.
+name: iris-dev
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: iris-timescaledb
+    environment:
+      POSTGRES_USER: iris
+      POSTGRES_PASSWORD: iris
+      POSTGRES_DB: iris
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iris -d iris"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: iris-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  # KumoMTA under the "e2e" profile: only started for the live config-behavior
+  # test suite (`make test-e2e`). It is NOT part of the default dev stack.
+  #
+  #   docker compose -f deploy/compose/docker-compose.yml --profile e2e up -d
+  #
+  # The generated iris policy is mounted at the path kumod loads; the E2E
+  # harness writes the policy there before reloading. host.docker.internal lets
+  # kumod reach the in-process SMTP sink and DNS stub the tests run on the host
+  # (see specs/001-kumomta-admin-ui/e2e-test-plan.md).
+  kumod:
+    image: ${IRIS_E2E_KUMO_IMAGE:-ghcr.io/kumocorp/kumomta:latest}
+    container_name: iris-kumod
+    profiles: ["e2e"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "2525:2525" # ESMTP listener
+      - "8000:8000" # KumoMTA HTTP admin
+    volumes:
+      - kumod-policy:/opt/kumomta/etc/policy
+    # Loaded policy path. The harness writes iris_generated.lua here; a thin
+    # init shim require()s it so kumod has a stable --policy entrypoint.
+    command: ["kumod", "--policy", "/opt/kumomta/etc/policy/init.lua", "--user", "kumod"]
+    restart: unless-stopped
+
+volumes:
+  timescaledb-data:
+  redis-data:
+  kumod-policy:
