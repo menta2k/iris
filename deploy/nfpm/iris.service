@@ -39,5 +39,17 @@ ProtectHome=true
 PrivateTmp=true
 ReadWritePaths=/var/lib/iris
 
+# Iris talks to PostgreSQL and Redis over TCP, and Kratos enumerates network
+# interfaces (via a netlink socket) to pick its advertised endpoint. Some
+# hardened hosts set a restrictive DefaultRestrictAddressFamilies in
+# system.conf, which would make socket(AF_INET/AF_NETLINK, ...) fail with
+# EAFNOSUPPORT ("address family not supported by protocol") for any unit that
+# doesn't opt in. Declare the families we need so the service works regardless
+# of the host default:
+#   AF_UNIX    — local sockets (journal, etc.)
+#   AF_INET(6) — TCP to PostgreSQL / Redis and the HTTP/gRPC listeners
+#   AF_NETLINK — interface enumeration during server startup
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
 [Install]
 WantedBy=multi-user.target
