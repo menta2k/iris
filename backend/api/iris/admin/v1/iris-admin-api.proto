@@ -198,6 +198,19 @@ service IrisAdminService {
   rpc DeleteAcmeCertificate(DeleteAcmeCertificateRequest) returns (DeleteAcmeCertificateReply) {
     option (google.api.http) = { delete: "/v1/acme/certificates/{id}" };
   }
+  // ACME DNS-01 challenge provider configuration.
+  rpc ListAcmeDnsProviders(ListAcmeDnsProvidersRequest) returns (ListAcmeDnsProvidersReply) {
+    option (google.api.http) = { get: "/v1/acme/dns-providers" };
+  }
+  rpc GetAcmeDnsProvider(GetAcmeDnsProviderRequest) returns (AcmeDnsProvider) {
+    option (google.api.http) = { get: "/v1/acme/dns-provider" };
+  }
+  rpc SetAcmeDnsProvider(SetAcmeDnsProviderRequest) returns (AcmeDnsProvider) {
+    option (google.api.http) = { put: "/v1/acme/dns-provider" body: "*" };
+  }
+  rpc ClearAcmeDnsProvider(ClearAcmeDnsProviderRequest) returns (AcmeDnsProvider) {
+    option (google.api.http) = { delete: "/v1/acme/dns-provider" };
+  }
 
   rpc GetDashboardSummary(GetDashboardSummaryRequest) returns (DashboardSummary) {
     option (google.api.http) = { get: "/v1/dashboard/summary" };
@@ -747,6 +760,30 @@ message RequestAcmeCertificateRequest {
 }
 message DeleteAcmeCertificateRequest { string id = 1; }
 message DeleteAcmeCertificateReply {}
+
+// DNS-01 provider registry metadata (drives the dynamic credentials form).
+message AcmeDnsProviderInfo {
+  string name = 1;
+  string description = 2;
+  repeated string required_fields = 3;
+  repeated string optional_fields = 4;
+}
+message ListAcmeDnsProvidersRequest {}
+message ListAcmeDnsProvidersReply { repeated AcmeDnsProviderInfo items = 1; }
+
+// The configured DNS-01 provider. On read, config values are redacted to
+// "[stored]" (keys reveal which fields are set); on write, send real values.
+message AcmeDnsProvider {
+  string provider = 1;
+  map<string, string> config = 2;
+  string updated_at = 3;
+}
+message GetAcmeDnsProviderRequest {}
+message SetAcmeDnsProviderRequest {
+  string provider = 1;
+  map<string, string> config = 2;
+}
+message ClearAcmeDnsProviderRequest {}
 
 message KumoConfigStatusRequest {}
 message KumoConfigStatusReply {

@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -19,7 +20,58 @@ func NewAcmeRepo(db *DB) *AcmeRepo { return &AcmeRepo{db: db} }
 var (
 	_ biz.AcmeAccountRepo     = (*AcmeRepo)(nil)
 	_ biz.AcmeCertificateRepo = (*AcmeRepo)(nil)
+	_ biz.AcmeDnsProviderRepo = (*AcmeRepo)(nil)
 )
+
+// --- DNS-01 provider (singleton) ---
+
+// GetDnsProvider returns the configured DNS-01 provider and its credentials.
+func (r *AcmeRepo) GetDnsProvider(ctx context.Context) (*biz.AcmeDnsProvider, error) {
+	var provider, configJSON string
+	var updatedAt time.Time
+	err := r.db.Pool.QueryRow(ctx,
+		`SELECT provider, config_json, updated_at FROM acme_dns_provider WHERE id = 1`).
+		Scan(&provider, &configJSON, &updatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("get acme dns provider: %w", err)
+	}
+	config := map[string]string{}
+	if configJSON != "" {
+		if err := json.Unmarshal([]byte(configJSON), &config); err != nil {
+			config = map[string]string{}
+		}
+	}
+	return &biz.AcmeDnsProvider{Provider: provider, Config: config, UpdatedAt: updatedAt}, nil
+}
+
+// SaveDnsProvider upserts the provider name and credentials map.
+func (r *AcmeRepo) SaveDnsProvider(ctx context.Context, provider string, config map[string]string, by string) error {
+	raw, err := json.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("marshal acme dns config: %w", err)
+	}
+	_, err = r.db.Pool.Exec(ctx, `
+		INSERT INTO acme_dns_provider (id, provider, config_json, updated_at, updated_by)
+		VALUES (1, $1, $2, now(), $3)
+		ON CONFLICT (id) DO UPDATE SET
+			provider = EXCLUDED.provider, config_json = EXCLUDED.config_json,
+			updated_at = now(), updated_by = EXCLUDED.updated_by`,
+		provider, string(raw), by)
+	if err != nil {
+		return fmt.Errorf("save acme dns provider: %w", err)
+	}
+	return nil
+}
+
+// ClearDnsProvider resets the DNS-01 provider (issuance falls back to HTTP-01).
+func (r *AcmeRepo) ClearDnsProvider(ctx context.Context, by string) error {
+	_, err := r.db.Pool.Exec(ctx,
+		`UPDATE acme_dns_provider SET provider = '', config_json = '{}', updated_at = now(), updated_by = $1 WHERE id = 1`, by)
+	if err != nil {
+		return fmt.Errorf("clear acme dns provider: %w", err)
+	}
+	return nil
+}
 
 // --- account ---
 
