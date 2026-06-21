@@ -1,0 +1,87 @@
+# nfpm — packaging recipe for the Iris admin backend (v2).
+#
+# Used by the release workflow (.github/workflows/release.yml) to build deb +
+# rpm packages out of the same static binary the docker image embeds. The CI
+# job exports VERSION=${GITHUB_REF_NAME#v} (so v2.0.0 → 2.0.0) and stages the
+# binary — extracted from the freshly-built image — into ./pkg-staging/iris.
+#
+# Run locally for sanity (after staging a binary at ./pkg-staging/iris):
+#   VERSION=0.0.0-dev nfpm package -p deb -f deploy/nfpm/nfpm.yaml -t /tmp
+#   VERSION=0.0.0-dev nfpm package -p rpm -f deploy/nfpm/nfpm.yaml -t /tmp
+#
+# All `src:` paths resolve relative to THIS file's directory (deploy/nfpm/).
+
+name: iris
+arch: amd64
+platform: linux
+version: ${VERSION}
+section: net
+priority: optional
+maintainer: "menta2k <noreply@github.com>"
+description: |
+  Iris — operator console for KumoMTA.
+  Single static binary that serves the operator UI and the admin API on one
+  port (:8080, gRPC :9090); manages DKIM, VMTAs, mail classes, routing rules,
+  listeners, and suppressions; renders kumomta policy from PostgreSQL/
+  TimescaleDB. Database migrations are embedded and applied on first start.
+vendor: menta2k
+homepage: https://github.com/menta2k/iris
+license: TBD
+
+# We don't pin OS deps:
+#   - kumomta is installed from kumocorp's apt/yum repo, not a standard distro
+#     package — declaring it here would block install on hosts that already
+#     have it via the upstream channel.
+#   - postgres/redis can be local, remote, or Docker — operator's choice.
+# Declared deps stay empty deliberately.
+
+contents:
+  # The static binary (staged from the release image into ./pkg-staging/iris).
+  - src: ./pkg-staging/iris
+    dst: /usr/local/bin/iris
+    file_info:
+      mode: 0o755
+
+  # Main config — marked "config|noreplace" so packagers don't overwrite
+  # operator edits on upgrade. Secrets are supplied via the env file below
+  # (IRIS_* overrides), not committed here.
+  - src: ./configs/iris.yaml
+    dst: /etc/iris/iris.yaml
+    type: config|noreplace
+
+  # Env file — shipped as a *template* under iris.env.example. postinstall
+  # copies it to iris.env on first install only and never overwrites an
+  # existing one. Standard way to distribute "fill in your secrets" without
+  # clobbering rotations.
+  - src: ./iris.env.example
+    dst: /etc/iris/iris.env.example
+    type: config|noreplace
+
+  # systemd unit. /usr/lib/systemd/system/ works on both Debian (which
+  # symlinks /lib → /usr/lib) and RHEL families.
+  - src: ./iris.service
+    dst: /usr/lib/systemd/system/iris.service
+
+  # Stateful directory — empty, owned by the package, populated at runtime
+  # (e.g. ACME cert mirror) if/when needed.
+  - dst: /var/lib/iris
+    type: dir
+    file_info:
+      mode: 0o750
+      owner: iris
+      group: iris
+
+# Lifecycle scripts. Same scripts for both formats; nfpm wraps them into the
+# right rpm/deb conventions (preinst/postinst vs %pre/%post).
+scripts:
+  postinstall: ./scripts/postinstall.sh
+  preremove: ./scripts/preremove.sh
+  postremove: ./scripts/postremove.sh
+
+rpm:
+  group: Applications/Internet
+  compression: zstd
+
+deb:
+  fields:
+    Origin: menta2k
