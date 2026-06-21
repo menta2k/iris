@@ -39,6 +39,11 @@ func (s *Service) UpdateGlobalSettings(ctx context.Context, req *adminv1.UpdateG
 		AutoSuppressHardBounces: req.GetAutoSuppressHardBounces(),
 		SoftBounceThreshold:     int(req.GetSoftBounceThreshold()),
 		FBLDomain:               req.GetFblDomain(),
+		AdminHTTPAddr:           req.GetAdminHttpAddr(),
+		AdminTLSEnabled:         req.GetAdminTlsEnabled(),
+		AdminTLSCertDomain:      req.GetAdminTlsCertDomain(),
+		AcmeRenewInterval:       req.GetAcmeRenewInterval(),
+		AcmeRenewBefore:         req.GetAcmeRenewBefore(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "UpdateGlobalSettings", err)
@@ -65,6 +70,11 @@ func settingsToProto(g *biz.GlobalSettings) *adminv1.GlobalSettings {
 		AutoSuppressHardBounces: g.AutoSuppressHardBounces,
 		SoftBounceThreshold:     int32(g.SoftBounceThreshold),
 		FblDomain:               g.FBLDomain,
+		AdminHttpAddr:           g.AdminHTTPAddr,
+		AdminTlsEnabled:         g.AdminTLSEnabled,
+		AdminTlsCertDomain:      g.AdminTLSCertDomain,
+		AcmeRenewInterval:       g.AcmeRenewInterval,
+		AcmeRenewBefore:         g.AcmeRenewBefore,
 		UpdatedAt:               updatedAt,
 		UpdatedBy:               g.UpdatedBy,
 	}

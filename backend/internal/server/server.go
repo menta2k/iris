@@ -4,6 +4,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"net/http"
 
@@ -24,8 +25,9 @@ type ReadinessChecker interface {
 }
 
 // NewHTTPServer builds the HTTP transport, registers the admin service, and
-// exposes health/readiness endpoints plus the OpenAPI document.
-func NewHTTPServer(c conf.Server, svc adminv1.IrisAdminServiceHTTPServer, openapi []byte, checks []ReadinessChecker, mws ...middleware.Middleware) *kratoshttp.Server {
+// exposes health/readiness endpoints plus the OpenAPI document. When tlsConf is
+// non-nil the server serves HTTPS on the same address.
+func NewHTTPServer(c conf.Server, svc adminv1.IrisAdminServiceHTTPServer, openapi []byte, checks []ReadinessChecker, tlsConf *tls.Config, mws ...middleware.Middleware) *kratoshttp.Server {
 	opts := []kratoshttp.ServerOption{
 		kratoshttp.Middleware(append([]middleware.Middleware{recovery.Recovery()}, mws...)...),
 	}
@@ -34,6 +36,9 @@ func NewHTTPServer(c conf.Server, svc adminv1.IrisAdminServiceHTTPServer, openap
 	}
 	if c.HTTP.Timeout > 0 {
 		opts = append(opts, kratoshttp.Timeout(c.HTTP.Timeout))
+	}
+	if tlsConf != nil {
+		opts = append(opts, kratoshttp.TLSConfig(tlsConf))
 	}
 	srv := kratoshttp.NewServer(opts...)
 

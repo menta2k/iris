@@ -6836,11 +6836,20 @@ type GlobalSettings struct {
 	AutoSuppressHardBounces bool   `protobuf:"varint,11,opt,name=auto_suppress_hard_bounces,json=autoSuppressHardBounces,proto3" json:"auto_suppress_hard_bounces,omitempty"`
 	SoftBounceThreshold     int32  `protobuf:"varint,12,opt,name=soft_bounce_threshold,json=softBounceThreshold,proto3" json:"soft_bounce_threshold,omitempty"`
 	// FBL/ARF feedback domain (log_arf): kumod parses ARF reports here.
-	FblDomain     string `protobuf:"bytes,13,opt,name=fbl_domain,json=fblDomain,proto3" json:"fbl_domain,omitempty"`
-	UpdatedAt     string `protobuf:"bytes,20,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	UpdatedBy     string `protobuf:"bytes,21,opt,name=updated_by,json=updatedBy,proto3" json:"updated_by,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	FblDomain string `protobuf:"bytes,13,opt,name=fbl_domain,json=fblDomain,proto3" json:"fbl_domain,omitempty"`
+	// Iris admin server (applied on restart). admin_http_addr overrides the HTTP
+	// bind; admin_tls_enabled serves HTTPS using the issued cert whose domain is
+	// admin_tls_cert_domain.
+	AdminHttpAddr      string `protobuf:"bytes,14,opt,name=admin_http_addr,json=adminHttpAddr,proto3" json:"admin_http_addr,omitempty"`
+	AdminTlsEnabled    bool   `protobuf:"varint,15,opt,name=admin_tls_enabled,json=adminTlsEnabled,proto3" json:"admin_tls_enabled,omitempty"`
+	AdminTlsCertDomain string `protobuf:"bytes,16,opt,name=admin_tls_cert_domain,json=adminTlsCertDomain,proto3" json:"admin_tls_cert_domain,omitempty"`
+	// ACME auto-renew schedule (duration form, e.g. "12h", "30d").
+	AcmeRenewInterval string `protobuf:"bytes,17,opt,name=acme_renew_interval,json=acmeRenewInterval,proto3" json:"acme_renew_interval,omitempty"`
+	AcmeRenewBefore   string `protobuf:"bytes,18,opt,name=acme_renew_before,json=acmeRenewBefore,proto3" json:"acme_renew_before,omitempty"`
+	UpdatedAt         string `protobuf:"bytes,20,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	UpdatedBy         string `protobuf:"bytes,21,opt,name=updated_by,json=updatedBy,proto3" json:"updated_by,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *GlobalSettings) Reset() {
@@ -6964,6 +6973,41 @@ func (x *GlobalSettings) GetFblDomain() string {
 	return ""
 }
 
+func (x *GlobalSettings) GetAdminHttpAddr() string {
+	if x != nil {
+		return x.AdminHttpAddr
+	}
+	return ""
+}
+
+func (x *GlobalSettings) GetAdminTlsEnabled() bool {
+	if x != nil {
+		return x.AdminTlsEnabled
+	}
+	return false
+}
+
+func (x *GlobalSettings) GetAdminTlsCertDomain() string {
+	if x != nil {
+		return x.AdminTlsCertDomain
+	}
+	return ""
+}
+
+func (x *GlobalSettings) GetAcmeRenewInterval() string {
+	if x != nil {
+		return x.AcmeRenewInterval
+	}
+	return ""
+}
+
+func (x *GlobalSettings) GetAcmeRenewBefore() string {
+	if x != nil {
+		return x.AcmeRenewBefore
+	}
+	return ""
+}
+
 func (x *GlobalSettings) GetUpdatedAt() string {
 	if x != nil {
 		return x.UpdatedAt
@@ -7029,6 +7073,11 @@ type UpdateGlobalSettingsRequest struct {
 	AutoSuppressHardBounces bool                   `protobuf:"varint,11,opt,name=auto_suppress_hard_bounces,json=autoSuppressHardBounces,proto3" json:"auto_suppress_hard_bounces,omitempty"`
 	SoftBounceThreshold     int32                  `protobuf:"varint,12,opt,name=soft_bounce_threshold,json=softBounceThreshold,proto3" json:"soft_bounce_threshold,omitempty"`
 	FblDomain               string                 `protobuf:"bytes,13,opt,name=fbl_domain,json=fblDomain,proto3" json:"fbl_domain,omitempty"`
+	AdminHttpAddr           string                 `protobuf:"bytes,14,opt,name=admin_http_addr,json=adminHttpAddr,proto3" json:"admin_http_addr,omitempty"`
+	AdminTlsEnabled         bool                   `protobuf:"varint,15,opt,name=admin_tls_enabled,json=adminTlsEnabled,proto3" json:"admin_tls_enabled,omitempty"`
+	AdminTlsCertDomain      string                 `protobuf:"bytes,16,opt,name=admin_tls_cert_domain,json=adminTlsCertDomain,proto3" json:"admin_tls_cert_domain,omitempty"`
+	AcmeRenewInterval       string                 `protobuf:"bytes,17,opt,name=acme_renew_interval,json=acmeRenewInterval,proto3" json:"acme_renew_interval,omitempty"`
+	AcmeRenewBefore         string                 `protobuf:"bytes,18,opt,name=acme_renew_before,json=acmeRenewBefore,proto3" json:"acme_renew_before,omitempty"`
 	unknownFields           protoimpl.UnknownFields
 	sizeCache               protoimpl.SizeCache
 }
@@ -7150,6 +7199,41 @@ func (x *UpdateGlobalSettingsRequest) GetSoftBounceThreshold() int32 {
 func (x *UpdateGlobalSettingsRequest) GetFblDomain() string {
 	if x != nil {
 		return x.FblDomain
+	}
+	return ""
+}
+
+func (x *UpdateGlobalSettingsRequest) GetAdminHttpAddr() string {
+	if x != nil {
+		return x.AdminHttpAddr
+	}
+	return ""
+}
+
+func (x *UpdateGlobalSettingsRequest) GetAdminTlsEnabled() bool {
+	if x != nil {
+		return x.AdminTlsEnabled
+	}
+	return false
+}
+
+func (x *UpdateGlobalSettingsRequest) GetAdminTlsCertDomain() string {
+	if x != nil {
+		return x.AdminTlsCertDomain
+	}
+	return ""
+}
+
+func (x *UpdateGlobalSettingsRequest) GetAcmeRenewInterval() string {
+	if x != nil {
+		return x.AcmeRenewInterval
+	}
+	return ""
+}
+
+func (x *UpdateGlobalSettingsRequest) GetAcmeRenewBefore() string {
+	if x != nil {
+		return x.AcmeRenewBefore
 	}
 	return ""
 }
@@ -7708,7 +7792,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\rservice_state\x18\x01 \x01(\tR\fserviceState\x12'\n" +
 	"\x0fqueued_messages\x18\x02 \x01(\x03R\x0equeuedMessages\x12,\n" +
 	"\x12recent_mail_events\x18\x03 \x01(\x03R\x10recentMailEvents\x12.\n" +
-	"\x13recent_audit_events\x18\x04 \x01(\x03R\x11recentAuditEvents\"\xfb\x04\n" +
+	"\x13recent_audit_events\x18\x04 \x01(\x03R\x11recentAuditEvents\"\xde\x06\n" +
 	"\x0eGlobalSettings\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -7727,12 +7811,17 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x1aauto_suppress_hard_bounces\x18\v \x01(\bR\x17autoSuppressHardBounces\x122\n" +
 	"\x15soft_bounce_threshold\x18\f \x01(\x05R\x13softBounceThreshold\x12\x1d\n" +
 	"\n" +
-	"fbl_domain\x18\r \x01(\tR\tfblDomain\x12\x1d\n" +
+	"fbl_domain\x18\r \x01(\tR\tfblDomain\x12&\n" +
+	"\x0fadmin_http_addr\x18\x0e \x01(\tR\radminHttpAddr\x12*\n" +
+	"\x11admin_tls_enabled\x18\x0f \x01(\bR\x0fadminTlsEnabled\x121\n" +
+	"\x15admin_tls_cert_domain\x18\x10 \x01(\tR\x12adminTlsCertDomain\x12.\n" +
+	"\x13acme_renew_interval\x18\x11 \x01(\tR\x11acmeRenewInterval\x12*\n" +
+	"\x11acme_renew_before\x18\x12 \x01(\tR\x0facmeRenewBefore\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\x14 \x01(\tR\tupdatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_by\x18\x15 \x01(\tR\tupdatedBy\"\x1a\n" +
-	"\x18GetGlobalSettingsRequest\"\xca\x04\n" +
+	"\x18GetGlobalSettingsRequest\"\xad\x06\n" +
 	"\x1bUpdateGlobalSettingsRequest\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -7751,7 +7840,12 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x1aauto_suppress_hard_bounces\x18\v \x01(\bR\x17autoSuppressHardBounces\x122\n" +
 	"\x15soft_bounce_threshold\x18\f \x01(\x05R\x13softBounceThreshold\x12\x1d\n" +
 	"\n" +
-	"fbl_domain\x18\r \x01(\tR\tfblDomain2\xa15\n" +
+	"fbl_domain\x18\r \x01(\tR\tfblDomain\x12&\n" +
+	"\x0fadmin_http_addr\x18\x0e \x01(\tR\radminHttpAddr\x12*\n" +
+	"\x11admin_tls_enabled\x18\x0f \x01(\bR\x0fadminTlsEnabled\x121\n" +
+	"\x15admin_tls_cert_domain\x18\x10 \x01(\tR\x12adminTlsCertDomain\x12.\n" +
+	"\x13acme_renew_interval\x18\x11 \x01(\tR\x11acmeRenewInterval\x12*\n" +
+	"\x11acme_renew_before\x18\x12 \x01(\tR\x0facmeRenewBefore2\xa15\n" +
 	"\x10IrisAdminService\x12n\n" +
 	"\rListListeners\x12#.iris.admin.v1.ListListenersRequest\x1a!.iris.admin.v1.ListListenersReply\"\x15\x82\xd3\xe4\x93\x02\x0f\x12\r/v1/listeners\x12i\n" +
 	"\x0eCreateListener\x12$.iris.admin.v1.CreateListenerRequest\x1a\x17.iris.admin.v1.Listener\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/v1/listeners\x12n\n" +

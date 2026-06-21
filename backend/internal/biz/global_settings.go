@@ -43,6 +43,20 @@ type GlobalSettings struct {
 	// kumod emits Feedback log records for the feedback consumer.
 	FBLDomain string
 
+	// Iris admin server (applied on restart — the listening socket is bound at
+	// startup). AdminHTTPAddr overrides the configured HTTP bind when set. When
+	// AdminTLSEnabled, the server serves HTTPS on that address using the issued
+	// certificate whose domain is AdminTLSCertDomain; it falls back to plain
+	// HTTP if the certificate can't be loaded.
+	AdminHTTPAddr      string
+	AdminTLSEnabled    bool
+	AdminTLSCertDomain string
+
+	// ACME auto-renew schedule (Go/KumoMTA duration form, e.g. "12h", "30d").
+	// Empty uses the env/default (12h scan, renew within 30d of expiry).
+	AcmeRenewInterval string
+	AcmeRenewBefore   string
+
 	UpdatedAt time.Time
 	UpdatedBy string
 }
@@ -109,7 +123,61 @@ func (g *GlobalSettings) Validate() error {
 	if g.SoftBounceThreshold < 0 || g.SoftBounceThreshold > 1000 {
 		return Invalid("SETTINGS_SOFT_THRESHOLD_RANGE", "soft_bounce_threshold must be between 0 and 1000")
 	}
+
+	// Iris admin server.
+	g.AdminHTTPAddr = strings.TrimSpace(g.AdminHTTPAddr)
+	if g.AdminHTTPAddr != "" {
+		if _, _, err := net.SplitHostPort(g.AdminHTTPAddr); err != nil {
+			return Invalid("SETTINGS_ADMIN_ADDR_INVALID", "admin_http_addr must be host:port (e.g. :8080)")
+		}
+	}
+	g.AdminTLSCertDomain = strings.ToLower(strings.TrimSpace(g.AdminTLSCertDomain))
+	if g.AdminTLSEnabled && g.AdminTLSCertDomain == "" {
+		return Invalid("SETTINGS_ADMIN_TLS_CERT_REQUIRED", "admin_tls_cert_domain is required when admin TLS is enabled")
+	}
+
+	// ACME renew schedule.
+	g.AcmeRenewInterval = strings.TrimSpace(g.AcmeRenewInterval)
+	g.AcmeRenewBefore = strings.TrimSpace(g.AcmeRenewBefore)
+	for field, v := range map[string]string{
+		"acme_renew_interval": g.AcmeRenewInterval,
+		"acme_renew_before":   g.AcmeRenewBefore,
+	} {
+		if v != "" && !kumoDurationRe.MatchString(v) {
+			return Invalid("SETTINGS_DURATION_INVALID", "%s %q is not a valid duration (e.g. 12h, 30d)", field, v)
+		}
+	}
 	return nil
+}
+
+// ParseFlexDuration parses a duration in Go/KumoMTA form, additionally
+// supporting a "d" (day = 24h) unit that time.ParseDuration rejects. Empty or
+// invalid input returns (0, false).
+func ParseFlexDuration(s string) (time.Duration, bool) {
+	s = strings.TrimSpace(s)
+	if s == "" || !kumoDurationRe.MatchString(s) {
+		return 0, false
+	}
+	var total time.Duration
+	num := 0
+	seen := false
+	for _, r := range s {
+		switch {
+		case r >= '0' && r <= '9':
+			num = num*10 + int(r-'0')
+			seen = true
+		default:
+			unit := map[rune]time.Duration{
+				's': time.Second, 'm': time.Minute, 'h': time.Hour, 'd': 24 * time.Hour,
+			}[r]
+			total += time.Duration(num) * unit
+			num = 0
+		}
+	}
+	if !seen {
+		return 0, false
+	}
+	return total, true
 }
 
 // kumoDurationRe matches a KumoMTA/Go-ish duration: one or more <number><unit>
