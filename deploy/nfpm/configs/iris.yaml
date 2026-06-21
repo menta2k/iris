@@ -1,0 +1,63 @@
+# Iris backend configuration installed by the deb/rpm package to
+# /etc/iris/iris.yaml. Production-leaning defaults; secrets are supplied via
+# /etc/iris/iris.env (IRIS_* overrides) rather than committed here.
+
+server:
+  http:
+    addr: ":8080"
+    timeout: 30s
+  grpc:
+    addr: ":9090"
+    timeout: 30s
+
+data:
+  database:
+    # Overridden by IRIS_DATABASE_DSN in /etc/iris/iris.env.
+    dsn: "postgres://iris:iris@localhost:5432/iris?sslmode=disable"
+    max_conns: 10
+    min_conns: 2
+    conn_max_lifetime: 1h
+    # Embedded migrations are applied on start.
+    migrate_on_start: true
+  redis:
+    # Overridden by IRIS_REDIS_ADDR / IRIS_REDIS_PASSWORD.
+    addr: "localhost:6379"
+    password: ""
+    db: 0
+    dial_timeout: 5s
+    read_timeout: 3s
+    write_timeout: 3s
+    consumer_name: "iris-1"
+
+auth:
+  session_ttl: 12h
+  # Overridden by IRIS_SESSION_SECRET — set a real secret there.
+  session_token_secret: "change-me-in-production"
+  mfa_required: true
+  # Never enable in production. For local dev only.
+  dev_bypass: false
+
+kumomta:
+  base_url: "http://localhost:8000"
+  timeout: 10s
+  # Real KumoMTA integration: write the generated policy and reload.
+  stub: false
+  config_path: "/opt/kumomta/etc/policy/iris_generated.lua"
+  # Reload KumoMTA after writing the policy. Use ONE of reload_command /
+  # reload_url; leave both empty to let KumoMTA pick up its own config epoch.
+  reload_command: ""
+  reload_url: ""
+  # Redis URL embedded in the generated policy's log_hook. Empty derives
+  # "redis://<data.redis.addr>".
+  log_stream_redis_url: ""
+
+rspamd:
+  base_url: "http://localhost:11334"
+  timeout: 10s
+  stub: false
+  # "" / "off" — disabled; "tag" — scan + headers only; "enforce" — honor
+  # rspamd's reject/greylist verdict.
+  mode: ""
+
+log:
+  level: "info"

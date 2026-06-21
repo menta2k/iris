@@ -1,0 +1,43 @@
+# systemd unit for the Iris admin backend.
+#
+# Installed to /usr/lib/systemd/system/iris.service by the deb/rpm package.
+# Enable + start with:
+#   systemctl enable --now iris
+#
+# Secrets and overrides live in /etc/iris/iris.env (created from
+# iris.env.example on first install). The non-secret config is
+# /etc/iris/iris.yaml.
+
+[Unit]
+Description=Iris — KumoMTA operator console
+Documentation=https://github.com/menta2k/iris
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=iris
+Group=iris
+
+# IRIS_* variables here override values in iris.yaml (see conf.applyEnv):
+# IRIS_DATABASE_DSN, IRIS_REDIS_ADDR, IRIS_REDIS_PASSWORD,
+# IRIS_SESSION_SECRET, IRIS_HTTP_ADDR, IRIS_GRPC_ADDR, IRIS_LOG_LEVEL, etc.
+EnvironmentFile=/etc/iris/iris.env
+
+ExecStart=/usr/local/bin/iris -config /etc/iris/iris.yaml
+
+Restart=on-failure
+RestartSec=5s
+
+# Hardening — the service only needs to read its config and write its own
+# state directory.
+StateDirectory=iris
+WorkingDirectory=/var/lib/iris
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/iris
+
+[Install]
+WantedBy=multi-user.target
