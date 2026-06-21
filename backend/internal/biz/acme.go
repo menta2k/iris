@@ -10,6 +10,7 @@ import (
 	legoreg "github.com/go-acme/lego/v4/registration"
 
 	"github.com/menta2k/iris/backend/internal/acme"
+	"github.com/menta2k/iris/backend/internal/acmedns"
 )
 
 // ACME certificate status values.
@@ -42,7 +43,7 @@ type AcmeCertificate struct {
 	ID            string
 	Domain        string
 	AltNames      []string
-	ChallengeType string // "http-01" (dns-01 is a planned follow-up)
+	ChallengeType string // "dns-01" or "http-01"
 	CertPEM       string // leaf + chain (public)
 	KeyPEM        string // private key (secret — never returned over the API)
 	CertPath      string
@@ -71,23 +72,161 @@ type AcmeCertificateRepo interface {
 	MarkCertStatus(ctx context.Context, id, status, lastErr string) error
 }
 
+// AcmeDnsProvider is the configured DNS-01 challenge provider (singleton).
+type AcmeDnsProvider struct {
+	Provider  string            // registry key, e.g. "cloudflare"; empty = unset
+	Config    map[string]string // provider-specific credentials/tunables
+	UpdatedAt time.Time
+}
+
+// Configured reports whether a DNS-01 provider is set.
+func (p *AcmeDnsProvider) Configured() bool { return p != nil && p.Provider != "" }
+
+// AcmeDnsProviderRepo persists the singleton DNS-01 provider config.
+type AcmeDnsProviderRepo interface {
+	GetDnsProvider(ctx context.Context) (*AcmeDnsProvider, error)
+	SaveDnsProvider(ctx context.Context, provider string, config map[string]string, by string) error
+	ClearDnsProvider(ctx context.Context, by string) error
+}
+
+// AcmeDnsProviderInfo is registry metadata for one DNS provider, surfaced to
+// the UI so it can render a dynamic credentials form.
+type AcmeDnsProviderInfo struct {
+	Name           string
+	Description    string
+	RequiredFields []string
+	OptionalFields []string
+}
+
 // AcmeUsecase manages the ACME account and issues/renews certificates via the
-// lego-backed issuer. HTTP-01 only in this phase.
+// lego-backed issuer. It prefers DNS-01 when a provider is configured, falling
+// back to the HTTP-01 in-process solver.
 type AcmeUsecase struct {
 	accounts AcmeAccountRepo
 	certs    AcmeCertificateRepo
+	dns      AcmeDnsProviderRepo
 	tokens   *acme.TokenStore
 	certDir  string
 	auditor  *Auditor
 }
 
 // NewAcmeUsecase constructs the usecase. certDir is where issued PEMs are
-// mirrored for KumoMTA to read (referenced by listener TLS paths).
-func NewAcmeUsecase(accounts AcmeAccountRepo, certs AcmeCertificateRepo, tokens *acme.TokenStore, certDir string, auditor *Auditor) *AcmeUsecase {
+// mirrored for KumoMTA to read (referenced by listener TLS paths). dns may be
+// nil to disable DNS-01 (HTTP-01 only).
+func NewAcmeUsecase(accounts AcmeAccountRepo, certs AcmeCertificateRepo, dns AcmeDnsProviderRepo, tokens *acme.TokenStore, certDir string, auditor *Auditor) *AcmeUsecase {
 	if certDir == "" {
 		certDir = "/opt/kumomta/etc/tls"
 	}
-	return &AcmeUsecase{accounts: accounts, certs: certs, tokens: tokens, certDir: certDir, auditor: auditor}
+	return &AcmeUsecase{accounts: accounts, certs: certs, dns: dns, tokens: tokens, certDir: certDir, auditor: auditor}
+}
+
+// ListDnsProviders returns the registry of supported DNS-01 providers and the
+// fields each needs, so the UI can render a credentials form.
+func (uc *AcmeUsecase) ListDnsProviders(ctx context.Context) ([]*AcmeDnsProviderInfo, error) {
+	if _, err := RequirePermission(ctx, PermServiceControl); err != nil {
+		return nil, err
+	}
+	infos := acmedns.AllProviderInfo()
+	out := make([]*AcmeDnsProviderInfo, 0, len(infos))
+	for _, i := range infos {
+		out = append(out, &AcmeDnsProviderInfo{
+			Name: i.Name, Description: i.Description,
+			RequiredFields: i.RequiredFields, OptionalFields: i.OptionalFields,
+		})
+	}
+	return out, nil
+}
+
+// GetDnsProvider returns the configured DNS-01 provider with credential VALUES
+// redacted (only which keys are set is revealed).
+func (uc *AcmeUsecase) GetDnsProvider(ctx context.Context) (*AcmeDnsProvider, error) {
+	if _, err := RequirePermission(ctx, PermServiceControl); err != nil {
+		return nil, err
+	}
+	if uc.dns == nil {
+		return &AcmeDnsProvider{}, nil
+	}
+	p, err := uc.dns.GetDnsProvider(ctx)
+	if err != nil {
+		return nil, err
+	}
+	redacted := map[string]string{}
+	for k := range p.Config {
+		redacted[k] = "[stored]"
+	}
+	return &AcmeDnsProvider{Provider: p.Provider, Config: redacted, UpdatedAt: p.UpdatedAt}, nil
+}
+
+// SetDnsProvider validates and stores the DNS-01 provider credentials. The
+// config is validated by constructing the lego provider (catches missing
+// required fields and malformed values before persistence).
+func (uc *AcmeUsecase) SetDnsProvider(ctx context.Context, provider string, config map[string]string) error {
+	id, err := RequirePermission(ctx, PermServiceControl)
+	if err != nil {
+		return err
+	}
+	if uc.dns == nil {
+		return FailedPrecondition("ACME_DNS_UNAVAILABLE", "dns-01 provider storage is not available")
+	}
+	provider = strings.TrimSpace(provider)
+	if !acmedns.IsRegistered(provider) {
+		return Invalid("ACME_DNS_PROVIDER_UNKNOWN", "dns provider %q is not supported", provider)
+	}
+	if _, err := acmedns.GetProvider(provider, config); err != nil {
+		return Invalid("ACME_DNS_CONFIG_INVALID", "%s", err.Error())
+	}
+	if err := uc.dns.SaveDnsProvider(ctx, provider, config, id.UserID); err != nil {
+		return err
+	}
+	uc.audit(ctx, "acme.dns_provider.save", "acme_dns_provider", provider, AuditSuccess, map[string]any{"provider": provider})
+	return nil
+}
+
+// ClearDnsProvider removes the DNS-01 provider so issuance falls back to HTTP-01.
+func (uc *AcmeUsecase) ClearDnsProvider(ctx context.Context) error {
+	id, err := RequirePermission(ctx, PermServiceControl)
+	if err != nil {
+		return err
+	}
+	if uc.dns == nil {
+		return nil
+	}
+	if err := uc.dns.ClearDnsProvider(ctx, id.UserID); err != nil {
+		return err
+	}
+	uc.audit(ctx, "acme.dns_provider.clear", "acme_dns_provider", "", AuditSuccess, nil)
+	return nil
+}
+
+// challengeLabel reports the challenge type issuance would use ("dns-01" when a
+// provider is configured, else "http-01"), without constructing the provider.
+func (uc *AcmeUsecase) challengeLabel(ctx context.Context) string {
+	if uc.dns != nil {
+		if p, err := uc.dns.GetDnsProvider(ctx); err == nil && p.Configured() {
+			return "dns-01"
+		}
+	}
+	return "http-01"
+}
+
+// dnsChallenger returns a constructed DNS-01 provider when one is configured, or
+// (nil, nil) when DNS-01 is not set up.
+func (uc *AcmeUsecase) dnsChallenger(ctx context.Context) (acmedns.ACMEChallenger, error) {
+	if uc.dns == nil {
+		return nil, nil
+	}
+	p, err := uc.dns.GetDnsProvider(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !p.Configured() {
+		return nil, nil
+	}
+	prov, err := acmedns.GetProvider(p.Provider, p.Config)
+	if err != nil {
+		return nil, Internal(err, "build dns-01 provider")
+	}
+	return prov, nil
 }
 
 // GetAccount returns the account with secrets stripped.
@@ -145,7 +284,7 @@ func (uc *AcmeUsecase) RequestCertificate(ctx context.Context, domain string, al
 	if err != nil {
 		// Persist the failure so the UI can show last_error.
 		_, _ = uc.certs.UpsertCertificate(ctx, &AcmeCertificate{
-			Domain: domain, AltNames: altNames, ChallengeType: "http-01",
+			Domain: domain, AltNames: altNames, ChallengeType: uc.challengeLabel(ctx),
 			Status: AcmeStatusFailed, LastError: err.Error(),
 		})
 		uc.audit(ctx, "acme.cert.request", "acme_certificate", domain, AuditFailure, map[string]any{"domain": domain})
@@ -158,18 +297,31 @@ func (uc *AcmeUsecase) RequestCertificate(ctx context.Context, domain string, al
 	return out, nil
 }
 
-// issue performs the lego flow and persists the result.
+// issue performs the lego flow and persists the result. DNS-01 is used when a
+// provider is configured; otherwise it falls back to the HTTP-01 solver.
 func (uc *AcmeUsecase) issue(ctx context.Context, domain string, altNames []string) (*AcmeCertificate, error) {
-	if uc.tokens == nil {
-		return nil, FailedPrecondition("ACME_HTTP01_UNAVAILABLE", "http-01 challenge solver is not running")
-	}
 	issuer, err := uc.issuerFor(ctx)
 	if err != nil {
 		return nil, err
 	}
-	res, err := issuer.Issue(acme.IssueOptions{
-		PrimaryDomain: domain, AltNames: altNames, Provider: uc.tokens, UseHTTP01: true,
-	})
+
+	dnsProv, err := uc.dnsChallenger(ctx)
+	if err != nil {
+		return nil, err
+	}
+	opts := acme.IssueOptions{PrimaryDomain: domain, AltNames: altNames}
+	challengeType := "dns-01"
+	switch {
+	case dnsProv != nil:
+		opts.Provider, opts.UseHTTP01 = dnsProv, false
+	case uc.tokens != nil:
+		opts.Provider, opts.UseHTTP01, challengeType = uc.tokens, true, "http-01"
+	default:
+		return nil, FailedPrecondition("ACME_NO_SOLVER",
+			"no challenge solver available: configure a DNS-01 provider or enable the HTTP-01 listener")
+	}
+
+	res, err := issuer.Issue(opts)
 	if err != nil {
 		return nil, Internal(err, "acme issue")
 	}
@@ -180,7 +332,7 @@ func (uc *AcmeUsecase) issue(ctx context.Context, domain string, altNames []stri
 	now := time.Now().UTC()
 	expiry := acme.ParseExpiry(res.Certificate)
 	cert := &AcmeCertificate{
-		Domain: domain, AltNames: altNames, ChallengeType: "http-01",
+		Domain: domain, AltNames: altNames, ChallengeType: challengeType,
 		CertPEM: string(res.Certificate), KeyPEM: string(res.PrivateKey),
 		CertPath: certPath, KeyPath: keyPath,
 		ExpiresAt: timePtrOrNil(expiry), LastRenewedAt: &now,

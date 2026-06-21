@@ -508,6 +508,27 @@ export interface RequestAcmeCertificateRequest {
   alt_names: string[]
 }
 
+// DNS-01 provider registry metadata (drives the dynamic credentials form).
+export interface AcmeDnsProviderInfo {
+  name: string
+  description: string
+  requiredFields?: string[]
+  optionalFields?: string[]
+}
+
+// Configured DNS-01 provider. On read, config values are redacted to
+// "[stored]"; on write, send real credential values.
+export interface AcmeDnsProvider {
+  provider: string
+  config: Record<string, string>
+  updatedAt: string
+}
+
+export interface SetAcmeDnsProviderRequest {
+  provider: string
+  config: Record<string, string>
+}
+
 export interface KumoConfigStatus {
   drift: boolean
   neverApplied: boolean

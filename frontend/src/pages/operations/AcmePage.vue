@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -18,9 +18,36 @@ import { Select } from '@/components/ui/select'
 import { useToast } from '@/composables/useToast'
 import { acmeService } from '@/services/acme'
 import { ApiError } from '@/services/http'
-import type { AcmeAccount, AcmeCertificate } from '@/types'
+import type { AcmeAccount, AcmeCertificate, AcmeDnsProviderInfo } from '@/types'
 
 const { toast } = useToast()
+
+// --- DNS-01 provider ---
+const dnsProviders = ref<AcmeDnsProviderInfo[]>([])
+const currentDnsProvider = ref('') // the provider currently saved server-side
+const selectedProvider = ref('')
+const dnsConfig = ref<Record<string, string>>({})
+const savingDns = ref(false)
+
+const selectedInfo = computed(() =>
+  dnsProviders.value.find((p) => p.name === selectedProvider.value),
+)
+
+// Heuristic: render credential-ish fields as password inputs.
+function isSecretField(field: string): boolean {
+  return /token|key|password|secret|credentials/i.test(field)
+}
+
+// Reset the dynamic config inputs when the provider changes. We never prefill
+// stored secrets (the server redacts them); the operator re-enters to change.
+function onProviderChange() {
+  const info = selectedInfo.value
+  const next: Record<string, string> = {}
+  for (const f of [...(info?.requiredFields ?? []), ...(info?.optionalFields ?? [])]) {
+    next[f] = ''
+  }
+  dnsConfig.value = next
+}
 
 const DIRECTORIES = [
   { label: "Let's Encrypt (production)", url: 'https://acme-v02.api.letsencrypt.org/directory' },
@@ -46,8 +73,47 @@ async function load() {
     if (account.value.serverUrl) form.value.server_url = account.value.serverUrl
     const list = await acmeService.listCertificates()
     certs.value = list.items ?? []
+
+    const providers = await acmeService.listDnsProviders()
+    dnsProviders.value = providers.items ?? []
+    const current = await acmeService.getDnsProvider()
+    currentDnsProvider.value = current.provider
+    selectedProvider.value = current.provider || dnsProviders.value[0]?.name || ''
+    onProviderChange()
   } catch (err) {
     toast({ title: 'Failed to load ACME', description: msg(err), variant: 'destructive' })
+  }
+}
+
+async function saveDns() {
+  if (!selectedProvider.value) return
+  savingDns.value = true
+  try {
+    // Send only fields the operator filled in.
+    const config: Record<string, string> = {}
+    for (const [k, v] of Object.entries(dnsConfig.value)) {
+      if (v.trim() !== '') config[k] = v.trim()
+    }
+    await acmeService.setDnsProvider({ provider: selectedProvider.value, config })
+    toast({ title: 'DNS provider saved', description: selectedProvider.value, variant: 'success' })
+    await load()
+  } catch (err) {
+    toast({ title: 'Save failed', description: msg(err), variant: 'destructive' })
+  } finally {
+    savingDns.value = false
+  }
+}
+
+async function clearDns() {
+  savingDns.value = true
+  try {
+    await acmeService.clearDnsProvider()
+    toast({ title: 'DNS provider cleared', description: 'Issuance falls back to HTTP-01.', variant: 'success' })
+    await load()
+  } catch (err) {
+    toast({ title: 'Clear failed', description: msg(err), variant: 'destructive' })
+  } finally {
+    savingDns.value = false
   }
 }
 
@@ -101,7 +167,7 @@ onMounted(load)
   <div>
     <PageHeader
       title="TLS Certificates (ACME)"
-      description="Issue and auto-renew Let's Encrypt certificates for listener TLS via HTTP-01."
+      description="Issue and auto-renew Let's Encrypt certificates for listener TLS. DNS-01 is used when a provider is configured below; otherwise HTTP-01."
     />
 
     <Card class="mb-4 max-w-2xl">
@@ -138,8 +204,82 @@ onMounted(load)
 
     <Card class="mb-4 max-w-2xl">
       <CardHeader>
+        <CardTitle>DNS-01 challenge provider</CardTitle>
+        <CardDescription>
+          Preferred for mail TLS: validates via a DNS TXT record, so it needs no inbound port 80
+          and supports wildcards. Configure your DNS provider's API credentials. While set, every
+          issue/renew uses DNS-01.
+        </CardDescription>
+      </CardHeader>
+      <CardContent class="space-y-4">
+        <div
+          class="flex items-center gap-2 text-sm"
+          :class="currentDnsProvider ? 'text-foreground' : 'text-muted-foreground'"
+        >
+          <StatusBadge :status="currentDnsProvider ? 'active' : 'unknown'" />
+          <span v-if="currentDnsProvider">
+            Active provider: <span class="font-mono">{{ currentDnsProvider }}</span>
+          </span>
+          <span v-else>No DNS provider configured — issuance uses HTTP-01.</span>
+        </div>
+
+        <div class="space-y-1.5">
+          <Label for="dns-provider">Provider</Label>
+          <Select id="dns-provider" v-model="selectedProvider" @change="onProviderChange">
+            <option v-for="p in dnsProviders" :key="p.name" :value="p.name">
+              {{ p.name }} — {{ p.description }}
+            </option>
+          </Select>
+        </div>
+
+        <div v-if="selectedInfo" class="space-y-3">
+          <div v-for="f in selectedInfo.requiredFields ?? []" :key="f" class="space-y-1.5">
+            <Label :for="`dns-${f}`">{{ f }} <span class="text-destructive">*</span></Label>
+            <Input
+              :id="`dns-${f}`"
+              v-model="dnsConfig[f]"
+              :type="isSecretField(f) ? 'password' : 'text'"
+              :placeholder="currentDnsProvider === selectedProvider ? '(stored — re-enter to change)' : ''"
+            />
+          </div>
+          <details v-if="(selectedInfo.optionalFields ?? []).length" class="rounded-md border p-3">
+            <summary class="cursor-pointer text-sm text-muted-foreground">Optional settings</summary>
+            <div class="mt-3 space-y-3">
+              <div v-for="f in selectedInfo.optionalFields ?? []" :key="f" class="space-y-1.5">
+                <Label :for="`dns-${f}`">{{ f }}</Label>
+                <Input
+                  :id="`dns-${f}`"
+                  v-model="dnsConfig[f]"
+                  :type="isSecretField(f) ? 'password' : 'text'"
+                />
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <Button :disabled="savingDns || !selectedProvider" @click="saveDns">
+            {{ savingDns ? 'Saving…' : 'Save DNS provider' }}
+          </Button>
+          <Button
+            v-if="currentDnsProvider"
+            variant="outline"
+            :disabled="savingDns"
+            @click="clearDns"
+          >
+            Clear (use HTTP-01)
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+
+    <Card class="mb-4 max-w-2xl">
+      <CardHeader>
         <CardTitle>Request a certificate</CardTitle>
-        <CardDescription>Issues immediately via HTTP-01 and mirrors the PEMs to disk for KumoMTA.</CardDescription>
+        <CardDescription>
+          Issues immediately (DNS-01 when a provider is configured above, else HTTP-01) and mirrors
+          the PEMs to disk for KumoMTA.
+        </CardDescription>
       </CardHeader>
       <CardContent class="space-y-4">
         <div class="space-y-1.5">

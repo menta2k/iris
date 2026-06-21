@@ -2,9 +2,12 @@ import { http } from './http'
 import type {
   AcmeAccount,
   AcmeCertificate,
+  AcmeDnsProvider,
+  AcmeDnsProviderInfo,
   ListResponse,
   RequestAcmeCertificateRequest,
   SaveAcmeAccountRequest,
+  SetAcmeDnsProviderRequest,
 } from '@/types'
 
 export const acmeService = {
@@ -22,5 +25,18 @@ export const acmeService = {
   },
   deleteCertificate(id: string) {
     return http.delete<Record<string, never>>(`/acme/certificates/${id}`)
+  },
+  // DNS-01 provider configuration.
+  listDnsProviders() {
+    return http.get<ListResponse<AcmeDnsProviderInfo>>('/acme/dns-providers')
+  },
+  getDnsProvider() {
+    return http.get<AcmeDnsProvider>('/acme/dns-provider')
+  },
+  setDnsProvider(body: SetAcmeDnsProviderRequest) {
+    return http.put<AcmeDnsProvider>('/acme/dns-provider', body)
+  },
+  clearDnsProvider() {
+    return http.delete<AcmeDnsProvider>('/acme/dns-provider')
   },
 }
