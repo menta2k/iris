@@ -6,10 +6,24 @@ declare module 'vue-router' {
   interface RouteMeta {
     permission?: Permission
     title?: string
+    // Routes reachable without an authenticated session (login, MFA steps).
+    public?: boolean
   }
 }
 
 export const routes: RouteRecordRaw[] = [
+  {
+    path: '/login',
+    name: 'login',
+    component: () => import('@/pages/auth/LoginPage.vue'),
+    meta: { title: 'Sign in', public: true },
+  },
+  {
+    path: '/mfa',
+    name: 'mfa',
+    component: () => import('@/pages/auth/MfaPage.vue'),
+    meta: { title: 'Two-factor authentication', public: true },
+  },
   {
     path: '/',
     component: AdminLayout,

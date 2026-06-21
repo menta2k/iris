@@ -108,6 +108,34 @@ service IrisAdminService {
     option (google.api.http) = { get: "/v1/rspamd-results" };
   }
 
+  // Authentication -----------------------------------------------------------
+  // Login exchanges email + password for a session token. It is exempt from the
+  // auth middleware (the operation name contains "Login"). When MFA is required
+  // the reply carries a partially-authenticated token plus a status indicating
+  // the next step (verify an existing enrollment, or enroll first).
+  rpc Login(LoginRequest) returns (LoginReply) {
+    option (google.api.http) = { post: "/v1/auth:login" body: "*" };
+  }
+  // VerifyMFA completes a login by validating a TOTP code, upgrading the
+  // partially-authenticated session token to a fully-authenticated one.
+  rpc VerifyMFA(VerifyMFARequest) returns (LoginReply) {
+    option (google.api.http) = { post: "/v1/auth:verify-mfa" body: "*" };
+  }
+  // CurrentUser returns the calling user's profile and effective permissions;
+  // the SPA calls it on load to restore a session from a stored token.
+  rpc CurrentUser(CurrentUserRequest) returns (CurrentUserReply) {
+    option (google.api.http) = { get: "/v1/auth:me" };
+  }
+  // ChangePassword updates the calling user's own password.
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordReply) {
+    option (google.api.http) = { post: "/v1/auth:change-password" body: "*" };
+  }
+  // Logout is a no-op server-side for stateless tokens; provided so clients can
+  // signal intent and the action is audited.
+  rpc Logout(LogoutRequest) returns (LogoutReply) {
+    option (google.api.http) = { post: "/v1/auth:logout" body: "*" };
+  }
+
   // Security administration --------------------------------------------------
   rpc ListUsers(ListUsersRequest) returns (ListUsersReply) {
     option (google.api.http) = { get: "/v1/users" };
@@ -571,6 +599,36 @@ message AuditEntry {
   string ip_address = 8;
 }
 
+// Login status values carried in LoginReply.status:
+//   "authenticated"           — token is fully usable; proceed into the app.
+//   "mfa_required"            — credentials OK but a TOTP code is needed; call
+//                               VerifyMFA with the returned (partial) token.
+//   "mfa_enrollment_required" — credentials OK but the user must enroll MFA
+//                               first; call EnrollMFA/ConfirmMFA with the token.
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+message LoginReply {
+  string token = 1;
+  string status = 2;
+  User user = 3;
+  repeated string permissions = 4;
+}
+message VerifyMFARequest { string code = 1; }
+message CurrentUserRequest {}
+message CurrentUserReply {
+  User user = 1;
+  repeated string permissions = 2;
+}
+message ChangePasswordRequest {
+  string current_password = 1;
+  string new_password = 2;
+}
+message ChangePasswordReply {}
+message LogoutRequest {}
+message LogoutReply {}
+
 message EnrollMFARequest {}
 message EnrollMFAReply {
   // The shared secret and the otpauth:// URI to render as a QR code. Shown once.
@@ -578,7 +636,12 @@ message EnrollMFAReply {
   string otpauth_uri = 2;
 }
 message ConfirmMFARequest { string code = 1; }
-message ConfirmMFAReply { bool enrolled = 1; }
+// On success a fresh, fully-authenticated session token is returned so the
+// client can complete a first-login enrollment without a second round-trip.
+message ConfirmMFAReply {
+  bool enrolled = 1;
+  string token = 2;
+}
 message DisableMFARequest {}
 message DisableMFAReply {}
 message ListUsersRequest { PageRequest page = 1; }
@@ -591,6 +654,9 @@ message CreateUserRequest {
   string display_name = 2;
   bool mfa_required = 3;
   repeated string roles = 4;
+  // Initial password. If empty the account is created without a usable
+  // password (login disabled until one is set).
+  string password = 5;
 }
 message UpdateUserRequest {
   string id = 1;

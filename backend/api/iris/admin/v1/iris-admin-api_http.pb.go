@@ -20,6 +20,7 @@ var _ = binding.EncodeURL
 const _ = http.SupportPackageIsVersion1
 
 const OperationIrisAdminServiceApplyKumoConfig = "/iris.admin.v1.IrisAdminService/ApplyKumoConfig"
+const OperationIrisAdminServiceChangePassword = "/iris.admin.v1.IrisAdminService/ChangePassword"
 const OperationIrisAdminServiceConfirmMFA = "/iris.admin.v1.IrisAdminService/ConfirmMFA"
 const OperationIrisAdminServiceCreateDKIMDomain = "/iris.admin.v1.IrisAdminService/CreateDKIMDomain"
 const OperationIrisAdminServiceCreateListener = "/iris.admin.v1.IrisAdminService/CreateListener"
@@ -29,6 +30,7 @@ const OperationIrisAdminServiceCreateUser = "/iris.admin.v1.IrisAdminService/Cre
 const OperationIrisAdminServiceCreateVMTA = "/iris.admin.v1.IrisAdminService/CreateVMTA"
 const OperationIrisAdminServiceCreateVMTAGroups = "/iris.admin.v1.IrisAdminService/CreateVMTAGroups"
 const OperationIrisAdminServiceCreateWebhookRule = "/iris.admin.v1.IrisAdminService/CreateWebhookRule"
+const OperationIrisAdminServiceCurrentUser = "/iris.admin.v1.IrisAdminService/CurrentUser"
 const OperationIrisAdminServiceDeleteAcmeCertificate = "/iris.admin.v1.IrisAdminService/DeleteAcmeCertificate"
 const OperationIrisAdminServiceDisableMFA = "/iris.admin.v1.IrisAdminService/DisableMFA"
 const OperationIrisAdminServiceEnrollMFA = "/iris.admin.v1.IrisAdminService/EnrollMFA"
@@ -54,6 +56,8 @@ const OperationIrisAdminServiceListVMTAGroups = "/iris.admin.v1.IrisAdminService
 const OperationIrisAdminServiceListVMTAs = "/iris.admin.v1.IrisAdminService/ListVMTAs"
 const OperationIrisAdminServiceListWebhookDeliveries = "/iris.admin.v1.IrisAdminService/ListWebhookDeliveries"
 const OperationIrisAdminServiceListWebhookRules = "/iris.admin.v1.IrisAdminService/ListWebhookRules"
+const OperationIrisAdminServiceLogin = "/iris.admin.v1.IrisAdminService/Login"
+const OperationIrisAdminServiceLogout = "/iris.admin.v1.IrisAdminService/Logout"
 const OperationIrisAdminServiceRequestAcmeCertificate = "/iris.admin.v1.IrisAdminService/RequestAcmeCertificate"
 const OperationIrisAdminServiceRequestQueueAction = "/iris.admin.v1.IrisAdminService/RequestQueueAction"
 const OperationIrisAdminServiceRequestServiceControl = "/iris.admin.v1.IrisAdminService/RequestServiceControl"
@@ -67,11 +71,14 @@ const OperationIrisAdminServiceUpdateUser = "/iris.admin.v1.IrisAdminService/Upd
 const OperationIrisAdminServiceUpdateVMTA = "/iris.admin.v1.IrisAdminService/UpdateVMTA"
 const OperationIrisAdminServiceUpdateVMTAGroup = "/iris.admin.v1.IrisAdminService/UpdateVMTAGroup"
 const OperationIrisAdminServiceUpdateWebhookRule = "/iris.admin.v1.IrisAdminService/UpdateWebhookRule"
+const OperationIrisAdminServiceVerifyMFA = "/iris.admin.v1.IrisAdminService/VerifyMFA"
 
 type IrisAdminServiceHTTPServer interface {
 	// ApplyKumoConfig ApplyKumoConfig renders the configuration, writes it to KumoMTA, and
 	// reloads the service. High-risk: requires confirmation and is audited.
 	ApplyKumoConfig(context.Context, *ApplyKumoConfigRequest) (*ApplyKumoConfigReply, error)
+	// ChangePassword ChangePassword updates the calling user's own password.
+	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordReply, error)
 	ConfirmMFA(context.Context, *ConfirmMFARequest) (*ConfirmMFAReply, error)
 	CreateDKIMDomain(context.Context, *CreateDKIMDomainRequest) (*DKIMDomain, error)
 	CreateListener(context.Context, *CreateListenerRequest) (*Listener, error)
@@ -81,6 +88,9 @@ type IrisAdminServiceHTTPServer interface {
 	CreateVMTA(context.Context, *CreateVMTARequest) (*VMTA, error)
 	CreateVMTAGroups(context.Context, *CreateVMTAGroupRequest) (*VMTAGroup, error)
 	CreateWebhookRule(context.Context, *CreateWebhookRuleRequest) (*WebhookRule, error)
+	// CurrentUser CurrentUser returns the calling user's profile and effective permissions;
+	// the SPA calls it on load to restore a session from a stored token.
+	CurrentUser(context.Context, *CurrentUserRequest) (*CurrentUserReply, error)
 	DeleteAcmeCertificate(context.Context, *DeleteAcmeCertificateRequest) (*DeleteAcmeCertificateReply, error)
 	DisableMFA(context.Context, *DisableMFARequest) (*DisableMFAReply, error)
 	// EnrollMFA MFA enrollment for the calling user (TOTP).
@@ -122,6 +132,15 @@ type IrisAdminServiceHTTPServer interface {
 	ListWebhookDeliveries(context.Context, *ListWebhookDeliveriesRequest) (*ListWebhookDeliveriesReply, error)
 	// ListWebhookRules Inbound automation -------------------------------------------------------
 	ListWebhookRules(context.Context, *ListWebhookRulesRequest) (*ListWebhookRulesReply, error)
+	// Login Authentication -----------------------------------------------------------
+	// Login exchanges email + password for a session token. It is exempt from the
+	// auth middleware (the operation name contains "Login"). When MFA is required
+	// the reply carries a partially-authenticated token plus a status indicating
+	// the next step (verify an existing enrollment, or enroll first).
+	Login(context.Context, *LoginRequest) (*LoginReply, error)
+	// Logout Logout is a no-op server-side for stateless tokens; provided so clients can
+	// signal intent and the action is audited.
+	Logout(context.Context, *LogoutRequest) (*LogoutReply, error)
 	// RequestAcmeCertificate RequestAcmeCertificate issues (or re-issues) a certificate via HTTP-01.
 	// Synchronous: blocks for the ACME handshake.
 	RequestAcmeCertificate(context.Context, *RequestAcmeCertificateRequest) (*AcmeCertificate, error)
@@ -138,6 +157,9 @@ type IrisAdminServiceHTTPServer interface {
 	UpdateVMTA(context.Context, *UpdateVMTARequest) (*VMTA, error)
 	UpdateVMTAGroup(context.Context, *UpdateVMTAGroupRequest) (*VMTAGroup, error)
 	UpdateWebhookRule(context.Context, *UpdateWebhookRuleRequest) (*WebhookRule, error)
+	// VerifyMFA VerifyMFA completes a login by validating a TOTP code, upgrading the
+	// partially-authenticated session token to a fully-authenticated one.
+	VerifyMFA(context.Context, *VerifyMFARequest) (*LoginReply, error)
 }
 
 func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTPServer) {
@@ -171,6 +193,11 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.PUT("/v1/webhook-rules/{id}", _IrisAdminService_UpdateWebhookRule0_HTTP_Handler(srv))
 	r.GET("/v1/webhook-deliveries", _IrisAdminService_ListWebhookDeliveries0_HTTP_Handler(srv))
 	r.GET("/v1/rspamd-results", _IrisAdminService_ListRspamdResults0_HTTP_Handler(srv))
+	r.POST("/v1/auth:login", _IrisAdminService_Login0_HTTP_Handler(srv))
+	r.POST("/v1/auth:verify-mfa", _IrisAdminService_VerifyMFA0_HTTP_Handler(srv))
+	r.GET("/v1/auth:me", _IrisAdminService_CurrentUser0_HTTP_Handler(srv))
+	r.POST("/v1/auth:change-password", _IrisAdminService_ChangePassword0_HTTP_Handler(srv))
+	r.POST("/v1/auth:logout", _IrisAdminService_Logout0_HTTP_Handler(srv))
 	r.GET("/v1/users", _IrisAdminService_ListUsers0_HTTP_Handler(srv))
 	r.POST("/v1/users", _IrisAdminService_CreateUser0_HTTP_Handler(srv))
 	r.PUT("/v1/users/{id}", _IrisAdminService_UpdateUser0_HTTP_Handler(srv))
@@ -815,6 +842,113 @@ func _IrisAdminService_ListRspamdResults0_HTTP_Handler(srv IrisAdminServiceHTTPS
 	}
 }
 
+func _IrisAdminService_Login0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in LoginRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceLogin)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.Login(ctx, req.(*LoginRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*LoginReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_VerifyMFA0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in VerifyMFARequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceVerifyMFA)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.VerifyMFA(ctx, req.(*VerifyMFARequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*LoginReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CurrentUser0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CurrentUserRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCurrentUser)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CurrentUser(ctx, req.(*CurrentUserRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CurrentUserReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ChangePassword0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ChangePasswordRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceChangePassword)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ChangePassword(ctx, req.(*ChangePasswordRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ChangePasswordReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_Logout0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in LogoutRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceLogout)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.Logout(ctx, req.(*LogoutRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*LogoutReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_ListUsers0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in ListUsersRequest
@@ -1216,6 +1350,8 @@ type IrisAdminServiceHTTPClient interface {
 	// ApplyKumoConfig ApplyKumoConfig renders the configuration, writes it to KumoMTA, and
 	// reloads the service. High-risk: requires confirmation and is audited.
 	ApplyKumoConfig(ctx context.Context, req *ApplyKumoConfigRequest, opts ...http.CallOption) (rsp *ApplyKumoConfigReply, err error)
+	// ChangePassword ChangePassword updates the calling user's own password.
+	ChangePassword(ctx context.Context, req *ChangePasswordRequest, opts ...http.CallOption) (rsp *ChangePasswordReply, err error)
 	ConfirmMFA(ctx context.Context, req *ConfirmMFARequest, opts ...http.CallOption) (rsp *ConfirmMFAReply, err error)
 	CreateDKIMDomain(ctx context.Context, req *CreateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
 	CreateListener(ctx context.Context, req *CreateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
@@ -1225,6 +1361,9 @@ type IrisAdminServiceHTTPClient interface {
 	CreateVMTA(ctx context.Context, req *CreateVMTARequest, opts ...http.CallOption) (rsp *VMTA, err error)
 	CreateVMTAGroups(ctx context.Context, req *CreateVMTAGroupRequest, opts ...http.CallOption) (rsp *VMTAGroup, err error)
 	CreateWebhookRule(ctx context.Context, req *CreateWebhookRuleRequest, opts ...http.CallOption) (rsp *WebhookRule, err error)
+	// CurrentUser CurrentUser returns the calling user's profile and effective permissions;
+	// the SPA calls it on load to restore a session from a stored token.
+	CurrentUser(ctx context.Context, req *CurrentUserRequest, opts ...http.CallOption) (rsp *CurrentUserReply, err error)
 	DeleteAcmeCertificate(ctx context.Context, req *DeleteAcmeCertificateRequest, opts ...http.CallOption) (rsp *DeleteAcmeCertificateReply, err error)
 	DisableMFA(ctx context.Context, req *DisableMFARequest, opts ...http.CallOption) (rsp *DisableMFAReply, err error)
 	// EnrollMFA MFA enrollment for the calling user (TOTP).
@@ -1266,6 +1405,15 @@ type IrisAdminServiceHTTPClient interface {
 	ListWebhookDeliveries(ctx context.Context, req *ListWebhookDeliveriesRequest, opts ...http.CallOption) (rsp *ListWebhookDeliveriesReply, err error)
 	// ListWebhookRules Inbound automation -------------------------------------------------------
 	ListWebhookRules(ctx context.Context, req *ListWebhookRulesRequest, opts ...http.CallOption) (rsp *ListWebhookRulesReply, err error)
+	// Login Authentication -----------------------------------------------------------
+	// Login exchanges email + password for a session token. It is exempt from the
+	// auth middleware (the operation name contains "Login"). When MFA is required
+	// the reply carries a partially-authenticated token plus a status indicating
+	// the next step (verify an existing enrollment, or enroll first).
+	Login(ctx context.Context, req *LoginRequest, opts ...http.CallOption) (rsp *LoginReply, err error)
+	// Logout Logout is a no-op server-side for stateless tokens; provided so clients can
+	// signal intent and the action is audited.
+	Logout(ctx context.Context, req *LogoutRequest, opts ...http.CallOption) (rsp *LogoutReply, err error)
 	// RequestAcmeCertificate RequestAcmeCertificate issues (or re-issues) a certificate via HTTP-01.
 	// Synchronous: blocks for the ACME handshake.
 	RequestAcmeCertificate(ctx context.Context, req *RequestAcmeCertificateRequest, opts ...http.CallOption) (rsp *AcmeCertificate, err error)
@@ -1282,6 +1430,9 @@ type IrisAdminServiceHTTPClient interface {
 	UpdateVMTA(ctx context.Context, req *UpdateVMTARequest, opts ...http.CallOption) (rsp *VMTA, err error)
 	UpdateVMTAGroup(ctx context.Context, req *UpdateVMTAGroupRequest, opts ...http.CallOption) (rsp *VMTAGroup, err error)
 	UpdateWebhookRule(ctx context.Context, req *UpdateWebhookRuleRequest, opts ...http.CallOption) (rsp *WebhookRule, err error)
+	// VerifyMFA VerifyMFA completes a login by validating a TOTP code, upgrading the
+	// partially-authenticated session token to a fully-authenticated one.
+	VerifyMFA(ctx context.Context, req *VerifyMFARequest, opts ...http.CallOption) (rsp *LoginReply, err error)
 }
 
 type IrisAdminServiceHTTPClientImpl struct {
@@ -1299,6 +1450,20 @@ func (c *IrisAdminServiceHTTPClientImpl) ApplyKumoConfig(ctx context.Context, in
 	pattern := "/v1/kumomta/config:apply"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceApplyKumoConfig))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ChangePassword ChangePassword updates the calling user's own password.
+func (c *IrisAdminServiceHTTPClientImpl) ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...http.CallOption) (*ChangePasswordReply, error) {
+	var out ChangePasswordReply
+	pattern := "/v1/auth:change-password"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceChangePassword))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -1418,6 +1583,21 @@ func (c *IrisAdminServiceHTTPClientImpl) CreateWebhookRule(ctx context.Context, 
 	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateWebhookRule))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// CurrentUser CurrentUser returns the calling user's profile and effective permissions;
+// the SPA calls it on load to restore a session from a stored token.
+func (c *IrisAdminServiceHTTPClientImpl) CurrentUser(ctx context.Context, in *CurrentUserRequest, opts ...http.CallOption) (*CurrentUserReply, error) {
+	var out CurrentUserReply
+	pattern := "/v1/auth:me"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCurrentUser))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1765,6 +1945,39 @@ func (c *IrisAdminServiceHTTPClientImpl) ListWebhookRules(ctx context.Context, i
 	return &out, nil
 }
 
+// Login Authentication -----------------------------------------------------------
+// Login exchanges email + password for a session token. It is exempt from the
+// auth middleware (the operation name contains "Login"). When MFA is required
+// the reply carries a partially-authenticated token plus a status indicating
+// the next step (verify an existing enrollment, or enroll first).
+func (c *IrisAdminServiceHTTPClientImpl) Login(ctx context.Context, in *LoginRequest, opts ...http.CallOption) (*LoginReply, error) {
+	var out LoginReply
+	pattern := "/v1/auth:login"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceLogin))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// Logout Logout is a no-op server-side for stateless tokens; provided so clients can
+// signal intent and the action is audited.
+func (c *IrisAdminServiceHTTPClientImpl) Logout(ctx context.Context, in *LogoutRequest, opts ...http.CallOption) (*LogoutReply, error) {
+	var out LogoutReply
+	pattern := "/v1/auth:logout"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceLogout))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // RequestAcmeCertificate RequestAcmeCertificate issues (or re-issues) a certificate via HTTP-01.
 // Synchronous: blocks for the ACME handshake.
 func (c *IrisAdminServiceHTTPClientImpl) RequestAcmeCertificate(ctx context.Context, in *RequestAcmeCertificateRequest, opts ...http.CallOption) (*AcmeCertificate, error) {
@@ -1931,6 +2144,21 @@ func (c *IrisAdminServiceHTTPClientImpl) UpdateWebhookRule(ctx context.Context, 
 	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateWebhookRule))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// VerifyMFA VerifyMFA completes a login by validating a TOTP code, upgrading the
+// partially-authenticated session token to a fully-authenticated one.
+func (c *IrisAdminServiceHTTPClientImpl) VerifyMFA(ctx context.Context, in *VerifyMFARequest, opts ...http.CallOption) (*LoginReply, error) {
+	var out LoginReply
+	pattern := "/v1/auth:verify-mfa"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceVerifyMFA))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

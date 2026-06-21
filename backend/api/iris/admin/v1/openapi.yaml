@@ -108,6 +108,106 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ListAuditEntriesReply'
+    /v1/auth:change-password:
+        post:
+            tags:
+                - IrisAdminService
+            description: ChangePassword updates the calling user's own password.
+            operationId: IrisAdminService_ChangePassword
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ChangePasswordRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ChangePasswordReply'
+    /v1/auth:login:
+        post:
+            tags:
+                - IrisAdminService
+            description: |-
+                Authentication -----------------------------------------------------------
+                 Login exchanges email + password for a session token. It is exempt from the
+                 auth middleware (the operation name contains "Login"). When MFA is required
+                 the reply carries a partially-authenticated token plus a status indicating
+                 the next step (verify an existing enrollment, or enroll first).
+            operationId: IrisAdminService_Login
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/LoginRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/LoginReply'
+    /v1/auth:logout:
+        post:
+            tags:
+                - IrisAdminService
+            description: |-
+                Logout is a no-op server-side for stateless tokens; provided so clients can
+                 signal intent and the action is audited.
+            operationId: IrisAdminService_Logout
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/LogoutRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/LogoutReply'
+    /v1/auth:me:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                CurrentUser returns the calling user's profile and effective permissions;
+                 the SPA calls it on load to restore a session from a stored token.
+            operationId: IrisAdminService_CurrentUser
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/CurrentUserReply'
+    /v1/auth:verify-mfa:
+        post:
+            tags:
+                - IrisAdminService
+            description: |-
+                VerifyMFA completes a login by validating a TOTP code, upgrading the
+                 partially-authenticated session token to a fully-authenticated one.
+            operationId: IrisAdminService_VerifyMFA
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/VerifyMFARequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/LoginReply'
     /v1/bounces:
         get:
             tags:
@@ -1101,11 +1201,26 @@ components:
                     type: string
                 processing_state:
                     type: string
+        ChangePasswordReply:
+            type: object
+            properties: {}
+        ChangePasswordRequest:
+            type: object
+            properties:
+                current_password:
+                    type: string
+                new_password:
+                    type: string
         ConfirmMFAReply:
             type: object
             properties:
                 enrolled:
                     type: boolean
+                token:
+                    type: string
+            description: |-
+                On success a fresh, fully-authenticated session token is returned so the
+                 client can complete a first-login enrollment without a second round-trip.
         ConfirmMFARequest:
             type: object
             properties:
@@ -1188,6 +1303,11 @@ components:
                     type: array
                     items:
                         type: string
+                password:
+                    type: string
+                    description: |-
+                        Initial password. If empty the account is created without a usable
+                         password (login disabled until one is set).
         CreateVMTAGroupRequest:
             type: object
             properties:
@@ -1223,6 +1343,15 @@ components:
                 timeout_seconds:
                     type: integer
                     format: int32
+        CurrentUserReply:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/User'
+                permissions:
+                    type: array
+                    items:
+                        type: string
         DKIMDomain:
             type: object
             properties:
@@ -1576,6 +1705,39 @@ components:
             description: |-
                 Outbound configuration ----------------------------------------------------
                  Listener is an ESMTP listener: IP + port + EHLO hostname + TLS/relay config.
+        LoginReply:
+            type: object
+            properties:
+                token:
+                    type: string
+                status:
+                    type: string
+                user:
+                    $ref: '#/components/schemas/User'
+                permissions:
+                    type: array
+                    items:
+                        type: string
+        LoginRequest:
+            type: object
+            properties:
+                email:
+                    type: string
+                password:
+                    type: string
+            description: |-
+                Login status values carried in LoginReply.status:
+                   "authenticated"           — token is fully usable; proceed into the app.
+                   "mfa_required"            — credentials OK but a TOTP code is needed; call
+                                               VerifyMFA with the returned (partial) token.
+                   "mfa_enrollment_required" — credentials OK but the user must enroll MFA
+                                               first; call EnrollMFA/ConfirmMFA with the token.
+        LogoutReply:
+            type: object
+            properties: {}
+        LogoutRequest:
+            type: object
+            properties: {}
         MailRecord:
             type: object
             properties:
@@ -1958,6 +2120,11 @@ components:
                 weight:
                     type: integer
                     format: int32
+        VerifyMFARequest:
+            type: object
+            properties:
+                code:
+                    type: string
         WebhookDeliveryEvent:
             type: object
             properties:

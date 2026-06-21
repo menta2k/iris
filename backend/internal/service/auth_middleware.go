@@ -56,7 +56,11 @@ func AuthMiddleware(cfg conf.Auth, resolver SessionResolver) middleware.Middlewa
 			if ok {
 				id = enrichIdentity(id, tr)
 			}
-			if cfg.MFARequired && !id.MFAVerified {
+			// Gate on MFA unless this is a step that completes MFA (verify or
+			// first-login enrollment) or the caller's own profile/logout — those
+			// must be reachable with a partially-authenticated token.
+			needMFA := cfg.MFARequired || id.MFARequired
+			if needMFA && !id.MFAVerified && !(ok && isMFAStepOperation(tr.Operation())) {
 				return nil, mapError(biz.Forbidden("MFA_REQUIRED", "multi-factor authentication required"))
 			}
 			ctx = biz.WithIdentity(ctx, id)
@@ -65,10 +69,26 @@ func AuthMiddleware(cfg conf.Auth, resolver SessionResolver) middleware.Middlewa
 	}
 }
 
-// isPublicOperation exempts health, readiness, and auth bootstrap endpoints.
+// isPublicOperation exempts health/readiness and the login endpoint (which
+// exchanges credentials for a token and therefore cannot require one).
 func isPublicOperation(op string) bool {
-	return strings.Contains(op, "Health") || strings.Contains(op, "Login") ||
-		strings.Contains(op, "Auth")
+	return strings.Contains(op, "Health") || strings.Contains(op, "Login")
+}
+
+// isMFAStepOperation lists operations reachable with a valid but not-yet-MFA-
+// verified token: completing the MFA challenge, first-login enrollment, reading
+// one's own identity, and logging out.
+func isMFAStepOperation(op string) bool {
+	switch {
+	case strings.HasSuffix(op, "/VerifyMFA"),
+		strings.HasSuffix(op, "/EnrollMFA"),
+		strings.HasSuffix(op, "/ConfirmMFA"),
+		strings.HasSuffix(op, "/CurrentUser"),
+		strings.HasSuffix(op, "/Logout"):
+		return true
+	default:
+		return false
+	}
 }
 
 func bearerToken(tr transport.Transporter, ok bool) string {

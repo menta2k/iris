@@ -28,10 +28,10 @@ func (r *IdentityRepo) CreateUser(ctx context.Context, u *biz.IrisUser) (*biz.Ir
 	out := &biz.IrisUser{}
 	err := r.db.InTx(ctx, func(tx pgx.Tx) error {
 		row := tx.QueryRow(ctx, `
-			INSERT INTO iris_users (email, display_name, status, mfa_required)
-			VALUES ($1, $2, $3, $4)
+			INSERT INTO iris_users (email, display_name, status, mfa_required, password_hash)
+			VALUES ($1, $2, $3, $4, $5)
 			RETURNING id, email, display_name, status, mfa_required`,
-			u.Email, u.DisplayName, u.Status, u.MFARequired)
+			u.Email, u.DisplayName, u.Status, u.MFARequired, u.PasswordHash)
 		if err := row.Scan(&out.ID, &out.Email, &out.DisplayName, &out.Status, &out.MFARequired); err != nil {
 			return mapConstraint(err, "user")
 		}
@@ -77,18 +77,19 @@ func (r *IdentityRepo) ListUsers(ctx context.Context, page biz.Page) ([]*biz.Iri
 	return out, rows.Err()
 }
 
-// FindUserByEmail loads a single active user and its roles for authentication.
+// FindUserByEmail loads a single user, its roles, and password hash for
+// authentication.
 func (r *IdentityRepo) FindUserByEmail(ctx context.Context, email string) (*biz.IrisUser, error) {
 	u := &biz.IrisUser{}
 	err := r.db.Pool.QueryRow(ctx, `
-		SELECT u.id, u.email, u.display_name, u.status, u.mfa_required,
+		SELECT u.id, u.email, u.display_name, u.status, u.mfa_required, u.password_hash,
 		       coalesce(array_agg(r.name) FILTER (WHERE r.name IS NOT NULL), '{}')
 		FROM iris_users u
 		LEFT JOIN user_roles ur ON ur.user_id = u.id
 		LEFT JOIN roles r ON r.id = ur.role_id
 		WHERE u.email = $1
 		GROUP BY u.id`, email).
-		Scan(&u.ID, &u.Email, &u.DisplayName, &u.Status, &u.MFARequired, &u.Roles)
+		Scan(&u.ID, &u.Email, &u.DisplayName, &u.Status, &u.MFARequired, &u.PasswordHash, &u.Roles)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, biz.NotFound("USER_NOT_FOUND", "user not found")
@@ -96,6 +97,28 @@ func (r *IdentityRepo) FindUserByEmail(ctx context.Context, email string) (*biz.
 		return nil, fmt.Errorf("find user: %w", err)
 	}
 	return u, nil
+}
+
+// SetPassword stores a new bcrypt hash for the user.
+func (r *IdentityRepo) SetPassword(ctx context.Context, id, passwordHash string) error {
+	tag, err := r.db.Pool.Exec(ctx,
+		`UPDATE iris_users SET password_hash = $2, updated_at = now() WHERE id = $1`, id, passwordHash)
+	if err != nil {
+		return fmt.Errorf("set password: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return biz.NotFound("USER_NOT_FOUND", "user not found")
+	}
+	return nil
+}
+
+// CountUsers returns the total number of users.
+func (r *IdentityRepo) CountUsers(ctx context.Context) (int, error) {
+	var n int
+	if err := r.db.Pool.QueryRow(ctx, `SELECT count(*) FROM iris_users`).Scan(&n); err != nil {
+		return 0, fmt.Errorf("count users: %w", err)
+	}
+	return n, nil
 }
 
 // SetUserStatus updates a user's status.

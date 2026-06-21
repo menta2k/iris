@@ -48,6 +48,11 @@ const (
 	IrisAdminService_UpdateWebhookRule_FullMethodName      = "/iris.admin.v1.IrisAdminService/UpdateWebhookRule"
 	IrisAdminService_ListWebhookDeliveries_FullMethodName  = "/iris.admin.v1.IrisAdminService/ListWebhookDeliveries"
 	IrisAdminService_ListRspamdResults_FullMethodName      = "/iris.admin.v1.IrisAdminService/ListRspamdResults"
+	IrisAdminService_Login_FullMethodName                  = "/iris.admin.v1.IrisAdminService/Login"
+	IrisAdminService_VerifyMFA_FullMethodName              = "/iris.admin.v1.IrisAdminService/VerifyMFA"
+	IrisAdminService_CurrentUser_FullMethodName            = "/iris.admin.v1.IrisAdminService/CurrentUser"
+	IrisAdminService_ChangePassword_FullMethodName         = "/iris.admin.v1.IrisAdminService/ChangePassword"
+	IrisAdminService_Logout_FullMethodName                 = "/iris.admin.v1.IrisAdminService/Logout"
 	IrisAdminService_ListUsers_FullMethodName              = "/iris.admin.v1.IrisAdminService/ListUsers"
 	IrisAdminService_CreateUser_FullMethodName             = "/iris.admin.v1.IrisAdminService/CreateUser"
 	IrisAdminService_UpdateUser_FullMethodName             = "/iris.admin.v1.IrisAdminService/UpdateUser"
@@ -110,6 +115,23 @@ type IrisAdminServiceClient interface {
 	// Webhook delivery events (the outcomes of webhook fan-out).
 	ListWebhookDeliveries(ctx context.Context, in *ListWebhookDeliveriesRequest, opts ...grpc.CallOption) (*ListWebhookDeliveriesReply, error)
 	ListRspamdResults(ctx context.Context, in *ListRspamdResultsRequest, opts ...grpc.CallOption) (*ListRspamdResultsReply, error)
+	// Authentication -----------------------------------------------------------
+	// Login exchanges email + password for a session token. It is exempt from the
+	// auth middleware (the operation name contains "Login"). When MFA is required
+	// the reply carries a partially-authenticated token plus a status indicating
+	// the next step (verify an existing enrollment, or enroll first).
+	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginReply, error)
+	// VerifyMFA completes a login by validating a TOTP code, upgrading the
+	// partially-authenticated session token to a fully-authenticated one.
+	VerifyMFA(ctx context.Context, in *VerifyMFARequest, opts ...grpc.CallOption) (*LoginReply, error)
+	// CurrentUser returns the calling user's profile and effective permissions;
+	// the SPA calls it on load to restore a session from a stored token.
+	CurrentUser(ctx context.Context, in *CurrentUserRequest, opts ...grpc.CallOption) (*CurrentUserReply, error)
+	// ChangePassword updates the calling user's own password.
+	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordReply, error)
+	// Logout is a no-op server-side for stateless tokens; provided so clients can
+	// signal intent and the action is audited.
+	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutReply, error)
 	// Security administration --------------------------------------------------
 	ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersReply, error)
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*User, error)
@@ -442,6 +464,56 @@ func (c *irisAdminServiceClient) ListRspamdResults(ctx context.Context, in *List
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LoginReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_Login_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) VerifyMFA(ctx context.Context, in *VerifyMFARequest, opts ...grpc.CallOption) (*LoginReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LoginReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_VerifyMFA_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) CurrentUser(ctx context.Context, in *CurrentUserRequest, opts ...grpc.CallOption) (*CurrentUserReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CurrentUserReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_CurrentUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChangePasswordReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ChangePassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogoutReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_Logout_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListUsersReply)
@@ -673,6 +745,23 @@ type IrisAdminServiceServer interface {
 	// Webhook delivery events (the outcomes of webhook fan-out).
 	ListWebhookDeliveries(context.Context, *ListWebhookDeliveriesRequest) (*ListWebhookDeliveriesReply, error)
 	ListRspamdResults(context.Context, *ListRspamdResultsRequest) (*ListRspamdResultsReply, error)
+	// Authentication -----------------------------------------------------------
+	// Login exchanges email + password for a session token. It is exempt from the
+	// auth middleware (the operation name contains "Login"). When MFA is required
+	// the reply carries a partially-authenticated token plus a status indicating
+	// the next step (verify an existing enrollment, or enroll first).
+	Login(context.Context, *LoginRequest) (*LoginReply, error)
+	// VerifyMFA completes a login by validating a TOTP code, upgrading the
+	// partially-authenticated session token to a fully-authenticated one.
+	VerifyMFA(context.Context, *VerifyMFARequest) (*LoginReply, error)
+	// CurrentUser returns the calling user's profile and effective permissions;
+	// the SPA calls it on load to restore a session from a stored token.
+	CurrentUser(context.Context, *CurrentUserRequest) (*CurrentUserReply, error)
+	// ChangePassword updates the calling user's own password.
+	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordReply, error)
+	// Logout is a no-op server-side for stateless tokens; provided so clients can
+	// signal intent and the action is audited.
+	Logout(context.Context, *LogoutRequest) (*LogoutReply, error)
 	// Security administration --------------------------------------------------
 	ListUsers(context.Context, *ListUsersRequest) (*ListUsersReply, error)
 	CreateUser(context.Context, *CreateUserRequest) (*User, error)
@@ -801,6 +890,21 @@ func (UnimplementedIrisAdminServiceServer) ListWebhookDeliveries(context.Context
 }
 func (UnimplementedIrisAdminServiceServer) ListRspamdResults(context.Context, *ListRspamdResultsRequest) (*ListRspamdResultsReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRspamdResults not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) Login(context.Context, *LoginRequest) (*LoginReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method Login not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) VerifyMFA(context.Context, *VerifyMFARequest) (*LoginReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method VerifyMFA not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) CurrentUser(context.Context, *CurrentUserRequest) (*CurrentUserReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method CurrentUser not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ChangePassword not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) Logout(context.Context, *LogoutRequest) (*LogoutReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method Logout not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) ListUsers(context.Context, *ListUsersRequest) (*ListUsersReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListUsers not implemented")
@@ -1402,6 +1506,96 @@ func _IrisAdminService_ListRspamdResults_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).Login(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_Login_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).Login(ctx, req.(*LoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_VerifyMFA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerifyMFARequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).VerifyMFA(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_VerifyMFA_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).VerifyMFA(ctx, req.(*VerifyMFARequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_CurrentUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CurrentUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).CurrentUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_CurrentUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).CurrentUser(ctx, req.(*CurrentUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ChangePassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChangePasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ChangePassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ChangePassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ChangePassword(ctx, req.(*ChangePasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogoutRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).Logout(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_Logout_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).Logout(ctx, req.(*LogoutRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_ListUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListUsersRequest)
 	if err := dec(in); err != nil {
@@ -1866,6 +2060,26 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListRspamdResults",
 			Handler:    _IrisAdminService_ListRspamdResults_Handler,
+		},
+		{
+			MethodName: "Login",
+			Handler:    _IrisAdminService_Login_Handler,
+		},
+		{
+			MethodName: "VerifyMFA",
+			Handler:    _IrisAdminService_VerifyMFA_Handler,
+		},
+		{
+			MethodName: "CurrentUser",
+			Handler:    _IrisAdminService_CurrentUser_Handler,
+		},
+		{
+			MethodName: "ChangePassword",
+			Handler:    _IrisAdminService_ChangePassword_Handler,
+		},
+		{
+			MethodName: "Logout",
+			Handler:    _IrisAdminService_Logout_Handler,
 		},
 		{
 			MethodName: "ListUsers",

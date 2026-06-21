@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -83,6 +84,12 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		}
 	}
 
+	// Real auth requires a signing secret for session tokens. Fail fast rather
+	// than mint tokens an attacker could forge with an empty key.
+	if !cfg.Auth.DevBypass && cfg.Auth.SessionToken == "" {
+		return nil, nil, fmt.Errorf("auth.session_token_secret (IRIS_SESSION_SECRET) must be set when dev_bypass is disabled")
+	}
+
 	db, dbCleanup, err := data.NewDB(ctx, cfg.Data.Database)
 	if err != nil {
 		cleanup()
@@ -124,7 +131,18 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 
 	// US3 identity & audit: repository, MFA provider, use case, session resolver.
 	identityRepo := data.NewIdentityRepo(db, auditRepo)
-	identityUC := biz.NewIdentityUsecase(identityRepo, biz.NewTOTPMFA(identityRepo, "Iris"), auditor)
+	mfaProvider := biz.NewTOTPMFA(identityRepo, "Iris")
+	identityUC := biz.NewIdentityUsecase(identityRepo, mfaProvider, auditor)
+
+	// Authentication: signed session tokens, password login, MFA-gated sessions.
+	sessions := biz.NewSessionManager(cfg.Auth.SessionToken, cfg.Auth.SessionTTL)
+	authUC := biz.NewAuthUsecase(identityRepo, mfaProvider, sessions, auditor, cfg.Auth.MFARequired)
+
+	// Optionally seed the first admin from the environment on an empty database.
+	if err := bootstrapAdmin(ctx, identityRepo, log); err != nil {
+		cleanup()
+		return nil, nil, err
+	}
 
 	// US1/US4 shared repositories.
 	outboundRepo := data.NewOutboundConfigRepo(db)
@@ -170,6 +188,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		Outbound:     outboundUC,
 		MailOps:      biz.NewMailOpsUsecase(mailOpsRepo, opsProducer, auditor),
 		Identity:     identityUC,
+		Auth:         authUC,
 		DomainSafety: domainSafetyUC,
 		Inbound:      inboundUC,
 		Dashboard:    biz.NewDashboardUsecase(data.NewDashboardRepo(db)),
@@ -195,7 +214,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	startWorker(ctx, log, "acme-challenge", worker.NewAcmeChallengeWorker(acmeTokens, envOr("IRIS_ACME_HTTP_BIND", "off"), log).Run)
 	startWorker(ctx, log, "acme-renewer", worker.NewAcmeRenewerWorker(acmeUC, envDuration("IRIS_ACME_RENEW_INTERVAL", 12*time.Hour), envDuration("IRIS_ACME_RENEW_BEFORE", 30*24*time.Hour), log).Run)
 
-	authMW := service.AuthMiddleware(cfg.Auth, identityUC)
+	authMW := service.AuthMiddleware(cfg.Auth, authUC)
 	checks := []server.ReadinessChecker{db, streams}
 
 	httpSrv := server.NewHTTPServer(cfg.Server, svc, adminv1.OpenAPISpec, checks, authMW)
@@ -207,6 +226,47 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		kratos.Server([]transport.Server{httpSrv, grpcSrv}...),
 	)
 	return app, cleanup, nil
+}
+
+// bootstrapAdmin seeds the first administrator from the environment when the
+// user table is empty. It is a no-op unless BOTH IRIS_BOOTSTRAP_ADMIN_EMAIL and
+// IRIS_BOOTSTRAP_ADMIN_PASSWORD are set, and it never overwrites an existing
+// install. The account is created active with the owner role and no MFA
+// enrollment yet — the first login drives MFA enrollment when required.
+func bootstrapAdmin(ctx context.Context, repo biz.IdentityRepo, log *slog.Logger) error {
+	email := os.Getenv("IRIS_BOOTSTRAP_ADMIN_EMAIL")
+	password := os.Getenv("IRIS_BOOTSTRAP_ADMIN_PASSWORD")
+	if email == "" || password == "" {
+		return nil
+	}
+	n, err := repo.CountUsers(ctx)
+	if err != nil {
+		return fmt.Errorf("bootstrap admin: count users: %w", err)
+	}
+	if n > 0 {
+		log.Info("bootstrap admin skipped; users already exist")
+		return nil
+	}
+	hash, err := biz.HashPassword(password)
+	if err != nil {
+		return fmt.Errorf("bootstrap admin: %w", err)
+	}
+	user := &biz.IrisUser{
+		Email:        email,
+		DisplayName:  "Administrator",
+		Status:       biz.UserActive,
+		MFARequired:  false,
+		Roles:        []string{biz.RoleOwner},
+		PasswordHash: hash,
+	}
+	if err := user.Validate(); err != nil {
+		return fmt.Errorf("bootstrap admin: %w", err)
+	}
+	if _, err := repo.CreateUser(ctx, user); err != nil {
+		return fmt.Errorf("bootstrap admin: create user: %w", err)
+	}
+	log.Info("bootstrap admin created", "email", user.Email)
+	return nil
 }
 
 // startWorker launches a background worker goroutine, logging unexpected exits

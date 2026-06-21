@@ -23,6 +23,7 @@ type Service struct {
 	outbound     *biz.OutboundConfigUsecase
 	mailOps      *biz.MailOpsUsecase
 	identity     *biz.IdentityUsecase
+	auth         *biz.AuthUsecase
 	domainSafety *biz.DomainSafetyUsecase
 	inbound      *biz.InboundUsecase
 	dashboard    *biz.DashboardUsecase
@@ -39,6 +40,7 @@ type Deps struct {
 	Outbound     *biz.OutboundConfigUsecase
 	MailOps      *biz.MailOpsUsecase
 	Identity     *biz.IdentityUsecase
+	Auth         *biz.AuthUsecase
 	DomainSafety *biz.DomainSafetyUsecase
 	Inbound      *biz.InboundUsecase
 	Dashboard    *biz.DashboardUsecase
@@ -59,6 +61,7 @@ func NewService(d Deps) *Service {
 		outbound:     d.Outbound,
 		mailOps:      d.MailOps,
 		identity:     d.Identity,
+		auth:         d.Auth,
 		domainSafety: d.DomainSafety,
 		inbound:      d.Inbound,
 		dashboard:    d.Dashboard,
