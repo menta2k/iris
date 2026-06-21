@@ -86,6 +86,59 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/DeleteAcmeCertificateReply'
+    /v1/acme/dns-provider:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_GetAcmeDnsProvider
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AcmeDnsProvider'
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_SetAcmeDnsProvider
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/SetAcmeDnsProviderRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AcmeDnsProvider'
+        delete:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ClearAcmeDnsProvider
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AcmeDnsProvider'
+    /v1/acme/dns-providers:
+        get:
+            tags:
+                - IrisAdminService
+            description: ACME DNS-01 challenge provider configuration.
+            operationId: IrisAdminService_ListAcmeDnsProviders
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListAcmeDnsProvidersReply'
     /v1/audit-entries:
         get:
             tags:
@@ -1141,6 +1194,36 @@ components:
                     type: string
                 last_error:
                     type: string
+        AcmeDnsProvider:
+            type: object
+            properties:
+                provider:
+                    type: string
+                config:
+                    type: object
+                    additionalProperties:
+                        type: string
+                updated_at:
+                    type: string
+            description: |-
+                The configured DNS-01 provider. On read, config values are redacted to
+                 "[stored]" (keys reveal which fields are set); on write, send real values.
+        AcmeDnsProviderInfo:
+            type: object
+            properties:
+                name:
+                    type: string
+                description:
+                    type: string
+                required_fields:
+                    type: array
+                    items:
+                        type: string
+                optional_fields:
+                    type: array
+                    items:
+                        type: string
+            description: DNS-01 provider registry metadata (drives the dynamic credentials form).
         ApplyKumoConfigReply:
             type: object
             properties:
@@ -1539,6 +1622,13 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/AcmeCertificate'
+        ListAcmeDnsProvidersReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/AcmeDnsProviderInfo'
         ListAuditEntriesReply:
             type: object
             properties:
@@ -1879,6 +1969,15 @@ components:
                     type: string
                 status:
                     type: string
+        SetAcmeDnsProviderRequest:
+            type: object
+            properties:
+                provider:
+                    type: string
+                config:
+                    type: object
+                    additionalProperties:
+                        type: string
         Suppression:
             type: object
             properties:

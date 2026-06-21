@@ -21,6 +21,7 @@ const _ = http.SupportPackageIsVersion1
 
 const OperationIrisAdminServiceApplyKumoConfig = "/iris.admin.v1.IrisAdminService/ApplyKumoConfig"
 const OperationIrisAdminServiceChangePassword = "/iris.admin.v1.IrisAdminService/ChangePassword"
+const OperationIrisAdminServiceClearAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/ClearAcmeDnsProvider"
 const OperationIrisAdminServiceConfirmMFA = "/iris.admin.v1.IrisAdminService/ConfirmMFA"
 const OperationIrisAdminServiceCreateDKIMDomain = "/iris.admin.v1.IrisAdminService/CreateDKIMDomain"
 const OperationIrisAdminServiceCreateListener = "/iris.admin.v1.IrisAdminService/CreateListener"
@@ -37,10 +38,12 @@ const OperationIrisAdminServiceEnrollMFA = "/iris.admin.v1.IrisAdminService/Enro
 const OperationIrisAdminServiceGenerateDKIMKey = "/iris.admin.v1.IrisAdminService/GenerateDKIMKey"
 const OperationIrisAdminServiceGenerateKumoConfig = "/iris.admin.v1.IrisAdminService/GenerateKumoConfig"
 const OperationIrisAdminServiceGetAcmeAccount = "/iris.admin.v1.IrisAdminService/GetAcmeAccount"
+const OperationIrisAdminServiceGetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/GetAcmeDnsProvider"
 const OperationIrisAdminServiceGetDashboardSummary = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
 const OperationIrisAdminServiceGetGlobalSettings = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
 const OperationIrisAdminServiceKumoConfigStatus = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
 const OperationIrisAdminServiceListAcmeCertificates = "/iris.admin.v1.IrisAdminService/ListAcmeCertificates"
+const OperationIrisAdminServiceListAcmeDnsProviders = "/iris.admin.v1.IrisAdminService/ListAcmeDnsProviders"
 const OperationIrisAdminServiceListAuditEntries = "/iris.admin.v1.IrisAdminService/ListAuditEntries"
 const OperationIrisAdminServiceListBounces = "/iris.admin.v1.IrisAdminService/ListBounces"
 const OperationIrisAdminServiceListDKIMDomains = "/iris.admin.v1.IrisAdminService/ListDKIMDomains"
@@ -62,6 +65,7 @@ const OperationIrisAdminServiceRequestAcmeCertificate = "/iris.admin.v1.IrisAdmi
 const OperationIrisAdminServiceRequestQueueAction = "/iris.admin.v1.IrisAdminService/RequestQueueAction"
 const OperationIrisAdminServiceRequestServiceControl = "/iris.admin.v1.IrisAdminService/RequestServiceControl"
 const OperationIrisAdminServiceSaveAcmeAccount = "/iris.admin.v1.IrisAdminService/SaveAcmeAccount"
+const OperationIrisAdminServiceSetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
 const OperationIrisAdminServiceUpdateDKIMDomain = "/iris.admin.v1.IrisAdminService/UpdateDKIMDomain"
 const OperationIrisAdminServiceUpdateGlobalSettings = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
 const OperationIrisAdminServiceUpdateListener = "/iris.admin.v1.IrisAdminService/UpdateListener"
@@ -79,6 +83,7 @@ type IrisAdminServiceHTTPServer interface {
 	ApplyKumoConfig(context.Context, *ApplyKumoConfigRequest) (*ApplyKumoConfigReply, error)
 	// ChangePassword ChangePassword updates the calling user's own password.
 	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordReply, error)
+	ClearAcmeDnsProvider(context.Context, *ClearAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	ConfirmMFA(context.Context, *ConfirmMFARequest) (*ConfirmMFAReply, error)
 	CreateDKIMDomain(context.Context, *CreateDKIMDomainRequest) (*DKIMDomain, error)
 	CreateListener(context.Context, *CreateListenerRequest) (*Listener, error)
@@ -103,6 +108,7 @@ type IrisAdminServiceHTTPServer interface {
 	GenerateKumoConfig(context.Context, *GenerateKumoConfigRequest) (*KumoConfig, error)
 	// GetAcmeAccount ACME (Let's Encrypt) -------------------------------------------------------
 	GetAcmeAccount(context.Context, *GetAcmeAccountRequest) (*AcmeAccount, error)
+	GetAcmeDnsProvider(context.Context, *GetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	GetDashboardSummary(context.Context, *GetDashboardSummaryRequest) (*DashboardSummary, error)
 	// GetGlobalSettings Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error)
@@ -110,6 +116,8 @@ type IrisAdminServiceHTTPServer interface {
 	// the last applied policy (a regenerate/apply is pending).
 	KumoConfigStatus(context.Context, *KumoConfigStatusRequest) (*KumoConfigStatusReply, error)
 	ListAcmeCertificates(context.Context, *ListAcmeCertificatesRequest) (*ListAcmeCertificatesReply, error)
+	// ListAcmeDnsProviders ACME DNS-01 challenge provider configuration.
+	ListAcmeDnsProviders(context.Context, *ListAcmeDnsProvidersRequest) (*ListAcmeDnsProvidersReply, error)
 	ListAuditEntries(context.Context, *ListAuditEntriesRequest) (*ListAuditEntriesReply, error)
 	ListBounces(context.Context, *ListBouncesRequest) (*ListBouncesReply, error)
 	// ListDKIMDomains Domain & recipient safety ------------------------------------------------
@@ -148,6 +156,7 @@ type IrisAdminServiceHTTPServer interface {
 	// RequestServiceControl KumoMTA service & configuration ------------------------------------------
 	RequestServiceControl(context.Context, *RequestServiceControlRequest) (*ServiceControlRequest, error)
 	SaveAcmeAccount(context.Context, *SaveAcmeAccountRequest) (*AcmeAccount, error)
+	SetAcmeDnsProvider(context.Context, *SetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	UpdateDKIMDomain(context.Context, *UpdateDKIMDomainRequest) (*DKIMDomain, error)
 	UpdateGlobalSettings(context.Context, *UpdateGlobalSettingsRequest) (*GlobalSettings, error)
 	UpdateListener(context.Context, *UpdateListenerRequest) (*Listener, error)
@@ -214,6 +223,10 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.GET("/v1/acme/certificates", _IrisAdminService_ListAcmeCertificates0_HTTP_Handler(srv))
 	r.POST("/v1/acme/certificates", _IrisAdminService_RequestAcmeCertificate0_HTTP_Handler(srv))
 	r.DELETE("/v1/acme/certificates/{id}", _IrisAdminService_DeleteAcmeCertificate0_HTTP_Handler(srv))
+	r.GET("/v1/acme/dns-providers", _IrisAdminService_ListAcmeDnsProviders0_HTTP_Handler(srv))
+	r.GET("/v1/acme/dns-provider", _IrisAdminService_GetAcmeDnsProvider0_HTTP_Handler(srv))
+	r.PUT("/v1/acme/dns-provider", _IrisAdminService_SetAcmeDnsProvider0_HTTP_Handler(srv))
+	r.DELETE("/v1/acme/dns-provider", _IrisAdminService_ClearAcmeDnsProvider0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/summary", _IrisAdminService_GetDashboardSummary0_HTTP_Handler(srv))
 	r.GET("/v1/settings", _IrisAdminService_GetGlobalSettings0_HTTP_Handler(srv))
 	r.PUT("/v1/settings", _IrisAdminService_UpdateGlobalSettings0_HTTP_Handler(srv))
@@ -1286,6 +1299,85 @@ func _IrisAdminService_DeleteAcmeCertificate0_HTTP_Handler(srv IrisAdminServiceH
 	}
 }
 
+func _IrisAdminService_ListAcmeDnsProviders0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListAcmeDnsProvidersRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListAcmeDnsProviders)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListAcmeDnsProviders(ctx, req.(*ListAcmeDnsProvidersRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListAcmeDnsProvidersReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_GetAcmeDnsProvider0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetAcmeDnsProviderRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetAcmeDnsProvider)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetAcmeDnsProvider(ctx, req.(*GetAcmeDnsProviderRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AcmeDnsProvider)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_SetAcmeDnsProvider0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SetAcmeDnsProviderRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceSetAcmeDnsProvider)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SetAcmeDnsProvider(ctx, req.(*SetAcmeDnsProviderRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AcmeDnsProvider)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ClearAcmeDnsProvider0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ClearAcmeDnsProviderRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceClearAcmeDnsProvider)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ClearAcmeDnsProvider(ctx, req.(*ClearAcmeDnsProviderRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AcmeDnsProvider)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_GetDashboardSummary0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetDashboardSummaryRequest
@@ -1352,6 +1444,7 @@ type IrisAdminServiceHTTPClient interface {
 	ApplyKumoConfig(ctx context.Context, req *ApplyKumoConfigRequest, opts ...http.CallOption) (rsp *ApplyKumoConfigReply, err error)
 	// ChangePassword ChangePassword updates the calling user's own password.
 	ChangePassword(ctx context.Context, req *ChangePasswordRequest, opts ...http.CallOption) (rsp *ChangePasswordReply, err error)
+	ClearAcmeDnsProvider(ctx context.Context, req *ClearAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	ConfirmMFA(ctx context.Context, req *ConfirmMFARequest, opts ...http.CallOption) (rsp *ConfirmMFAReply, err error)
 	CreateDKIMDomain(ctx context.Context, req *CreateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
 	CreateListener(ctx context.Context, req *CreateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
@@ -1376,6 +1469,7 @@ type IrisAdminServiceHTTPClient interface {
 	GenerateKumoConfig(ctx context.Context, req *GenerateKumoConfigRequest, opts ...http.CallOption) (rsp *KumoConfig, err error)
 	// GetAcmeAccount ACME (Let's Encrypt) -------------------------------------------------------
 	GetAcmeAccount(ctx context.Context, req *GetAcmeAccountRequest, opts ...http.CallOption) (rsp *AcmeAccount, err error)
+	GetAcmeDnsProvider(ctx context.Context, req *GetAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	GetDashboardSummary(ctx context.Context, req *GetDashboardSummaryRequest, opts ...http.CallOption) (rsp *DashboardSummary, err error)
 	// GetGlobalSettings Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(ctx context.Context, req *GetGlobalSettingsRequest, opts ...http.CallOption) (rsp *GlobalSettings, err error)
@@ -1383,6 +1477,8 @@ type IrisAdminServiceHTTPClient interface {
 	// the last applied policy (a regenerate/apply is pending).
 	KumoConfigStatus(ctx context.Context, req *KumoConfigStatusRequest, opts ...http.CallOption) (rsp *KumoConfigStatusReply, err error)
 	ListAcmeCertificates(ctx context.Context, req *ListAcmeCertificatesRequest, opts ...http.CallOption) (rsp *ListAcmeCertificatesReply, err error)
+	// ListAcmeDnsProviders ACME DNS-01 challenge provider configuration.
+	ListAcmeDnsProviders(ctx context.Context, req *ListAcmeDnsProvidersRequest, opts ...http.CallOption) (rsp *ListAcmeDnsProvidersReply, err error)
 	ListAuditEntries(ctx context.Context, req *ListAuditEntriesRequest, opts ...http.CallOption) (rsp *ListAuditEntriesReply, err error)
 	ListBounces(ctx context.Context, req *ListBouncesRequest, opts ...http.CallOption) (rsp *ListBouncesReply, err error)
 	// ListDKIMDomains Domain & recipient safety ------------------------------------------------
@@ -1421,6 +1517,7 @@ type IrisAdminServiceHTTPClient interface {
 	// RequestServiceControl KumoMTA service & configuration ------------------------------------------
 	RequestServiceControl(ctx context.Context, req *RequestServiceControlRequest, opts ...http.CallOption) (rsp *ServiceControlRequest, err error)
 	SaveAcmeAccount(ctx context.Context, req *SaveAcmeAccountRequest, opts ...http.CallOption) (rsp *AcmeAccount, err error)
+	SetAcmeDnsProvider(ctx context.Context, req *SetAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	UpdateDKIMDomain(ctx context.Context, req *UpdateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
 	UpdateGlobalSettings(ctx context.Context, req *UpdateGlobalSettingsRequest, opts ...http.CallOption) (rsp *GlobalSettings, err error)
 	UpdateListener(ctx context.Context, req *UpdateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
@@ -1466,6 +1563,19 @@ func (c *IrisAdminServiceHTTPClientImpl) ChangePassword(ctx context.Context, in 
 	opts = append(opts, http.Operation(OperationIrisAdminServiceChangePassword))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) ClearAcmeDnsProvider(ctx context.Context, in *ClearAcmeDnsProviderRequest, opts ...http.CallOption) (*AcmeDnsProvider, error) {
+	var out AcmeDnsProvider
+	pattern := "/v1/acme/dns-provider"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceClearAcmeDnsProvider))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1688,6 +1798,19 @@ func (c *IrisAdminServiceHTTPClientImpl) GetAcmeAccount(ctx context.Context, in 
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) GetAcmeDnsProvider(ctx context.Context, in *GetAcmeDnsProviderRequest, opts ...http.CallOption) (*AcmeDnsProvider, error) {
+	var out AcmeDnsProvider
+	pattern := "/v1/acme/dns-provider"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetAcmeDnsProvider))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) GetDashboardSummary(ctx context.Context, in *GetDashboardSummaryRequest, opts ...http.CallOption) (*DashboardSummary, error) {
 	var out DashboardSummary
 	pattern := "/v1/dashboard/summary"
@@ -1735,6 +1858,20 @@ func (c *IrisAdminServiceHTTPClientImpl) ListAcmeCertificates(ctx context.Contex
 	pattern := "/v1/acme/certificates"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListAcmeCertificates))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListAcmeDnsProviders ACME DNS-01 challenge provider configuration.
+func (c *IrisAdminServiceHTTPClientImpl) ListAcmeDnsProviders(ctx context.Context, in *ListAcmeDnsProvidersRequest, opts ...http.CallOption) (*ListAcmeDnsProvidersReply, error) {
+	var out ListAcmeDnsProvidersReply
+	pattern := "/v1/acme/dns-providers"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListAcmeDnsProviders))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -2025,6 +2162,19 @@ func (c *IrisAdminServiceHTTPClientImpl) SaveAcmeAccount(ctx context.Context, in
 	pattern := "/v1/acme/account"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceSaveAcmeAccount))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) SetAcmeDnsProvider(ctx context.Context, in *SetAcmeDnsProviderRequest, opts ...http.CallOption) (*AcmeDnsProvider, error) {
+	var out AcmeDnsProvider
+	pattern := "/v1/acme/dns-provider"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceSetAcmeDnsProvider))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {
