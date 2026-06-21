@@ -118,3 +118,16 @@ func selfSigned(t *testing.T, cn string) (certPEM, keyPEM []byte, notAfter time.
 	keyPEM = pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
 	return certPEM, keyPEM, notAfter
 }
+
+func TestSanitizeDomainDir(t *testing.T) {
+	cases := map[string]string{
+		"*.kmx.example.com":     "star.kmx.example.com",
+		"mail.kmx.example.com":  "mail.kmx.example.com",
+		"*.a.b.example.com": "star.a.b.example.com",
+	}
+	for in, want := range cases {
+		if got := sanitizeDomainDir(in); got != want {
+			t.Errorf("sanitizeDomainDir(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
