@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-acme/lego/v4/certificate"
@@ -139,7 +140,7 @@ func WriteCertFiles(baseDir, domain string, res *certificate.Resource) (certPath
 	if domain == "" {
 		return "", "", errors.New("acme: empty domain")
 	}
-	domainDir := filepath.Join(baseDir, domain)
+	domainDir := filepath.Join(baseDir, sanitizeDomainDir(domain))
 	if err := os.MkdirAll(domainDir, 0o750); err != nil {
 		return "", "", fmt.Errorf("acme: mkdir %s: %w", domainDir, err)
 	}
@@ -152,4 +153,11 @@ func WriteCertFiles(baseDir, domain string, res *certificate.Resource) (certPath
 		return "", "", fmt.Errorf("acme: write %s: %w", keyPath, err)
 	}
 	return certPath, keyPath, nil
+}
+
+// sanitizeDomainDir makes a domain safe to use as a directory name. A wildcard
+// "*.example.com" becomes "star.example.com" — a literal "*" in a path is a
+// shell glob and breaks tooling that lists or references the cert directory.
+func sanitizeDomainDir(domain string) string {
+	return strings.ReplaceAll(domain, "*", "star")
 }
