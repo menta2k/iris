@@ -21,6 +21,9 @@ type IrisUser struct {
 	Status      string
 	MFARequired bool
 	Roles       []string
+	// PasswordHash is the bcrypt digest used for login. It is internal-only and
+	// never copied into API responses (see userToProto).
+	PasswordHash string
 }
 
 // CanAuthenticate reports whether the user is permitted to authenticate.

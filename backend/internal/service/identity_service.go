@@ -19,7 +19,9 @@ func (s *Service) EnrollMFA(ctx context.Context, _ *adminv1.EnrollMFARequest) (*
 	return &adminv1.EnrollMFAReply{Secret: out.Secret, OtpauthUri: out.URI}, nil
 }
 
-// ConfirmMFA verifies a TOTP code and activates MFA for the calling user.
+// ConfirmMFA verifies a TOTP code and activates MFA for the calling user. On
+// success it also mints a fully-authenticated session token so a first-login
+// enrollment completes without a second round-trip.
 func (s *Service) ConfirmMFA(ctx context.Context, req *adminv1.ConfirmMFARequest) (*adminv1.ConfirmMFAReply, error) {
 	if s.identity == nil {
 		return nil, notImplemented("ConfirmMFA")
@@ -27,7 +29,15 @@ func (s *Service) ConfirmMFA(ctx context.Context, req *adminv1.ConfirmMFARequest
 	if err := s.identity.ConfirmMFA(ctx, req.GetCode()); err != nil {
 		return nil, s.fail(ctx, "ConfirmMFA", err)
 	}
-	return &adminv1.ConfirmMFAReply{Enrolled: true}, nil
+	reply := &adminv1.ConfirmMFAReply{Enrolled: true}
+	if s.auth != nil {
+		token, err := s.auth.IssueVerifiedToken(ctx)
+		if err != nil {
+			return nil, s.fail(ctx, "ConfirmMFA", err)
+		}
+		reply.Token = token
+	}
+	return reply, nil
 }
 
 // DisableMFA clears the calling user's MFA enrollment.
@@ -68,7 +78,7 @@ func (s *Service) CreateUser(ctx context.Context, req *adminv1.CreateUserRequest
 		DisplayName: req.GetDisplayName(),
 		MFARequired: req.GetMfaRequired(),
 		Roles:       req.GetRoles(),
-	})
+	}, req.GetPassword())
 	if err != nil {
 		return nil, s.fail(ctx, "CreateUser", err)
 	}

@@ -60,6 +60,13 @@ func VerifyTOTP(secret, code string, t time.Time) bool {
 	return false
 }
 
+// GenerateTOTP returns the valid TOTP code for the secret at time t. It is the
+// counterpart to VerifyTOTP, used by tests and any first-party client that
+// needs to produce a current code.
+func GenerateTOTP(secret string, t time.Time) string {
+	return hotp(secret, uint64(t.Unix())/totpPeriod)
+}
+
 // hotp computes the HOTP value (RFC 4226) for the secret and counter.
 func hotp(secret string, counter uint64) string {
 	key, err := base32NoPad.DecodeString(strings.ToUpper(strings.TrimSpace(secret)))

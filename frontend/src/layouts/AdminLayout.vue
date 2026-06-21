@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import { RouterView, useRouter } from 'vue-router'
 import SidebarNav from '@/components/navigation/SidebarNav.vue'
 import ConfigDriftBanner from '@/components/common/ConfigDriftBanner.vue'
 import { Toaster } from '@/components/ui/toast'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '@/composables/useAuth'
-import type { Role } from '@/types'
 
-const { user, role, setRole } = useAuth()
+const { user, role, logout } = useAuth()
+const router = useRouter()
 
-const roles: Role[] = ['admin', 'operator', 'viewer']
-
-function onRoleChange(e: Event) {
-  setRole((e.target as HTMLSelectElement).value as Role)
+async function onLogout() {
+  await logout()
+  router.replace({ name: 'login' })
 }
 </script>
 
@@ -34,20 +34,11 @@ function onRoleChange(e: Event) {
       </div>
 
       <div class="flex items-center gap-4">
-        <label class="flex items-center gap-2 text-xs text-muted-foreground">
-          Role
-          <select
-            :value="role"
-            class="h-7 rounded-md border border-input bg-background px-2 text-xs"
-            @change="onRoleChange"
-          >
-            <option v-for="r in roles" :key="r" :value="r">{{ r }}</option>
-          </select>
-        </label>
         <div class="text-right leading-tight">
-          <p class="text-xs font-medium">{{ user.display_name }}</p>
-          <p class="text-[10px] text-muted-foreground">{{ user.email }}</p>
+          <p class="text-xs font-medium">{{ user?.displayName || user?.email }}</p>
+          <p class="text-[10px] uppercase tracking-wide text-muted-foreground">{{ role }}</p>
         </div>
+        <Button variant="outline" size="sm" @click="onLogout">Sign out</Button>
       </div>
     </header>
 

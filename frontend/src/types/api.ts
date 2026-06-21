@@ -244,11 +244,36 @@ export interface EnrollMfaReply {
   otpauthUri: string
 }
 
+export interface ConfirmMfaReply {
+  enrolled: boolean
+  // A fresh, fully-authenticated token issued when a first-login enrollment
+  // is confirmed.
+  token?: string
+}
+
+// Login status values returned by the auth endpoints.
+export type LoginStatus = 'authenticated' | 'mfa_required' | 'mfa_enrollment_required' | string
+
+// Response: proto-JSON camelCase.
+export interface LoginReply {
+  token: string
+  status: LoginStatus
+  user: User
+  permissions: string[]
+}
+
+export interface CurrentUserReply {
+  user: User
+  permissions: string[]
+}
+
 export interface CreateUserRequest {
   email: string
   display_name: string
   mfa_required: boolean
   roles: string[]
+  // Optional initial password; empty leaves login disabled for the account.
+  password?: string
 }
 
 // Email is immutable on edit, so it is not part of the update body.

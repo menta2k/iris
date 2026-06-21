@@ -9,6 +9,9 @@ type Identity struct {
 	Email       string
 	Roles       []string
 	Permissions PermissionSet
+	// MFARequired records whether this user must clear MFA; combined with the
+	// deployment-wide requirement by the auth middleware.
+	MFARequired bool
 	MFAVerified bool
 	IPAddress   string
 	UserAgent   string

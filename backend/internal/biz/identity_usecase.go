@@ -2,7 +2,6 @@ package biz
 
 import (
 	"context"
-	"strings"
 )
 
 // IdentityRepo is the persistence boundary for users, roles, and audit reads.
@@ -10,8 +9,13 @@ type IdentityRepo interface {
 	CreateUser(ctx context.Context, u *IrisUser) (*IrisUser, error)
 	UpdateUser(ctx context.Context, id string, u *IrisUser) (*IrisUser, error)
 	ListUsers(ctx context.Context, page Page) ([]*IrisUser, error)
+	// FindUserByEmail loads a user including PasswordHash for authentication.
 	FindUserByEmail(ctx context.Context, email string) (*IrisUser, error)
 	SetUserStatus(ctx context.Context, id, status string) error
+	// SetPassword stores a new bcrypt hash for the user.
+	SetPassword(ctx context.Context, id, passwordHash string) error
+	// CountUsers reports the total number of users (used by admin bootstrap).
+	CountUsers(ctx context.Context) (int, error)
 	ListAuditEntries(ctx context.Context, page Page) ([]*AuditEntry, error)
 }
 
@@ -36,13 +40,22 @@ func (uc *IdentityUsecase) ListUsers(ctx context.Context, page Page) ([]*IrisUse
 	return uc.repo.ListUsers(ctx, page)
 }
 
-// CreateUser validates and persists a new user, auditing the change.
-func (uc *IdentityUsecase) CreateUser(ctx context.Context, u *IrisUser) (*IrisUser, error) {
+// CreateUser validates and persists a new user, auditing the change. A
+// non-empty password is hashed and stored so the account can log in; an empty
+// password leaves login disabled until one is set.
+func (uc *IdentityUsecase) CreateUser(ctx context.Context, u *IrisUser, password string) (*IrisUser, error) {
 	if _, err := RequirePermission(ctx, PermUserWrite); err != nil {
 		return nil, err
 	}
 	if err := u.Validate(); err != nil {
 		return nil, err
+	}
+	if password != "" {
+		hash, err := HashPassword(password)
+		if err != nil {
+			return nil, err
+		}
+		u.PasswordHash = hash
 	}
 	out, err := uc.repo.CreateUser(ctx, u)
 	if err != nil {
@@ -103,39 +116,6 @@ func (uc *IdentityUsecase) ListAuditEntries(ctx context.Context, page Page) ([]*
 		return nil, err
 	}
 	return uc.repo.ListAuditEntries(ctx, page)
-}
-
-// Resolve implements a simple session-token scheme for the auth middleware: the
-// token is the user's email. The user must be active; permissions are derived
-// from the user's roles. MFA enrollment is consulted to set MFAVerified. This
-// is intentionally pluggable so a real token/session store can replace it
-// without changing the middleware.
-func (uc *IdentityUsecase) Resolve(ctx context.Context, token string) (*Identity, error) {
-	email := strings.ToLower(strings.TrimSpace(token))
-	if email == "" {
-		return nil, Unauthorized("UNAUTHENTICATED", "empty session token")
-	}
-	user, err := uc.repo.FindUserByEmail(ctx, email)
-	if err != nil {
-		return nil, Unauthorized("UNAUTHENTICATED", "invalid session")
-	}
-	if !user.CanAuthenticate() {
-		return nil, Unauthorized("USER_NOT_ACTIVE", "user is not permitted to authenticate")
-	}
-	enrolled, err := uc.mfa.Enrolled(ctx, user.ID)
-	if err != nil {
-		return nil, Internal(err, "check mfa enrollment")
-	}
-	return &Identity{
-		UserID:      user.ID,
-		Email:       user.Email,
-		Roles:       user.Roles,
-		Permissions: ResolvePermissions(user.Roles, nil),
-		// MFA is considered verified for this session if the user has enrolled
-		// or does not require MFA. Real challenge/response is handled by the
-		// MFA provider during login.
-		MFAVerified: enrolled || !user.MFARequired,
-	}, nil
 }
 
 // EnrollMFA begins TOTP enrollment for the calling user, returning the secret

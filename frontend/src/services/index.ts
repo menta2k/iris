@@ -1,4 +1,5 @@
 export * from './http'
+export { authService } from './auth'
 export { outboundConfigService } from './outbound-config'
 export { mailOperationsService } from './mail-operations'
 export { identityAuditService } from './identity-audit'
