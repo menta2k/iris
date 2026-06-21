@@ -1,0 +1,127 @@
+package biz
+
+import (
+	"net"
+	"net/url"
+	"regexp"
+	"strings"
+	"time"
+)
+
+// Rspamd modes for inbound spam filtering.
+const (
+	RspamdOff     = "off"
+	RspamdTag     = "tag"
+	RspamdEnforce = "enforce"
+)
+
+// GlobalSettings are the operator-editable, deployment-level policy knobs the
+// KumoMTA config generator consumes. They are a singleton (one row). Validation
+// is permissive — every field is optional because the generator falls back on
+// built-in defaults; the UI is for narrowing those defaults, not re-providing
+// them.
+type GlobalSettings struct {
+	RspamdMode        string
+	RspamdURL         string
+	EgressEHLODomain  string
+	LogStreamRedisURL string
+	EsmtpListen       string
+	HTTPListen        string
+
+	// Delivery rates: the outbound retry schedule (KumoMTA duration form, e.g.
+	// "20m", "4h", "7d"). Empty leaves KumoMTA's defaults.
+	EgressRetryInterval    string
+	EgressMaxRetryInterval string
+	EgressMaxAge           string
+
+	// Bounce / DSN pipeline.
+	BounceDomain            string
+	AutoSuppressHardBounces bool
+	SoftBounceThreshold     int
+
+	// FBLDomain enables ARF feedback-report parsing (log_arf) at this domain so
+	// kumod emits Feedback log records for the feedback consumer.
+	FBLDomain string
+
+	UpdatedAt time.Time
+	UpdatedBy string
+}
+
+// Validate normalizes and checks the settings before persistence.
+func (g *GlobalSettings) Validate() error {
+	g.RspamdMode = strings.ToLower(strings.TrimSpace(g.RspamdMode))
+	g.RspamdURL = strings.TrimSpace(g.RspamdURL)
+	g.EgressEHLODomain = strings.ToLower(strings.TrimSpace(g.EgressEHLODomain))
+	g.LogStreamRedisURL = strings.TrimSpace(g.LogStreamRedisURL)
+	g.EsmtpListen = strings.TrimSpace(g.EsmtpListen)
+	g.HTTPListen = strings.TrimSpace(g.HTTPListen)
+
+	switch g.RspamdMode {
+	case "", RspamdOff, RspamdTag, RspamdEnforce:
+	default:
+		return Invalid("SETTINGS_RSPAMD_MODE_INVALID", "rspamd_mode must be off, tag, or enforce")
+	}
+	if g.RspamdMode == RspamdTag || g.RspamdMode == RspamdEnforce {
+		if !isHTTPURL(g.RspamdURL) {
+			return Invalid("SETTINGS_RSPAMD_URL_INVALID", "rspamd_url must be an http(s):// URL when rspamd is enabled")
+		}
+	}
+	if g.EgressEHLODomain != "" && (len(g.EgressEHLODomain) > 253 || !dnsNameRe.MatchString(g.EgressEHLODomain)) {
+		return Invalid("SETTINGS_EHLO_INVALID", "egress_ehlo_domain %q is not a valid DNS name", g.EgressEHLODomain)
+	}
+	if g.LogStreamRedisURL != "" && !isRedisURL(g.LogStreamRedisURL) {
+		return Invalid("SETTINGS_REDIS_URL_INVALID", "log_stream_redis_url must be a redis:// or rediss:// URL")
+	}
+	if g.EsmtpListen != "" {
+		if _, _, err := net.SplitHostPort(g.EsmtpListen); err != nil {
+			return Invalid("SETTINGS_ESMTP_LISTEN_INVALID", "esmtp_listen must be host:port")
+		}
+	}
+	if g.HTTPListen != "" {
+		if _, _, err := net.SplitHostPort(g.HTTPListen); err != nil {
+			return Invalid("SETTINGS_HTTP_LISTEN_INVALID", "http_listen must be host:port")
+		}
+	}
+
+	// Delivery rates: validate each duration (KumoMTA form).
+	g.EgressRetryInterval = strings.TrimSpace(g.EgressRetryInterval)
+	g.EgressMaxRetryInterval = strings.TrimSpace(g.EgressMaxRetryInterval)
+	g.EgressMaxAge = strings.TrimSpace(g.EgressMaxAge)
+	for field, v := range map[string]string{
+		"egress_retry_interval":     g.EgressRetryInterval,
+		"egress_max_retry_interval": g.EgressMaxRetryInterval,
+		"egress_max_age":            g.EgressMaxAge,
+	} {
+		if v != "" && !kumoDurationRe.MatchString(v) {
+			return Invalid("SETTINGS_DURATION_INVALID", "%s %q is not a valid duration (e.g. 20m, 4h, 7d)", field, v)
+		}
+	}
+
+	// Bounce / DSN pipeline.
+	g.BounceDomain = strings.ToLower(strings.TrimSpace(g.BounceDomain))
+	if g.BounceDomain != "" && (len(g.BounceDomain) > 253 || !dnsNameRe.MatchString(g.BounceDomain)) {
+		return Invalid("SETTINGS_BOUNCE_DOMAIN_INVALID", "bounce_domain %q is not a valid DNS name", g.BounceDomain)
+	}
+	g.FBLDomain = strings.ToLower(strings.TrimSpace(g.FBLDomain))
+	if g.FBLDomain != "" && (len(g.FBLDomain) > 253 || !dnsNameRe.MatchString(g.FBLDomain)) {
+		return Invalid("SETTINGS_FBL_DOMAIN_INVALID", "fbl_domain %q is not a valid DNS name", g.FBLDomain)
+	}
+	if g.SoftBounceThreshold < 0 || g.SoftBounceThreshold > 1000 {
+		return Invalid("SETTINGS_SOFT_THRESHOLD_RANGE", "soft_bounce_threshold must be between 0 and 1000")
+	}
+	return nil
+}
+
+// kumoDurationRe matches a KumoMTA/Go-ish duration: one or more <number><unit>
+// segments where unit is s, m, h, or d (e.g. "20m", "4h", "7d", "1h30m").
+var kumoDurationRe = regexp.MustCompile(`^(\d+(s|m|h|d))+$`)
+
+func isHTTPURL(s string) bool {
+	u, err := url.Parse(s)
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
+}
+
+func isRedisURL(s string) bool {
+	u, err := url.Parse(s)
+	return err == nil && (u.Scheme == "redis" || u.Scheme == "rediss") && u.Host != ""
+}

@@ -1,0 +1,517 @@
+package biz
+
+import (
+	"strings"
+	"testing"
+)
+
+// testDKIMKeyPEM is a real RSA key for render tests: the renderer re-validates
+// the snapshot (including DKIM key material), so a parseable key is required.
+// Live signing/verification is exercised by the e2e DKIM test.
+var testDKIMKeyPEM = func() string {
+	pem, err := GenerateDKIMPrivateKey()
+	if err != nil {
+		panic(err)
+	}
+	return pem
+}()
+
+func TestRenderKumoConfig(t *testing.T) {
+	snap := ConfigSnapshot{
+		VMTAs: []*VMTA{
+			{ID: "v1", Name: "vmta-a", ListenerID: "lst-1", IPAddress: "203.0.113.10", EHLOName: "a.example.com", Status: VMTAStatusActive},
+			{ID: "v2", Name: "vmta-b", ListenerID: "lst-1", IPAddress: "203.0.113.11", EHLOName: "b.example.com", Status: VMTAStatusActive},
+			{ID: "v3", Name: "vmta-off", ListenerID: "lst-1", IPAddress: "203.0.113.12", EHLOName: "c.example.com", Status: VMTAStatusDisabled},
+		},
+		Groups: []*VMTAGroup{
+			{ID: "g1", Name: "bulk-pool", Status: VMTAGroupStatusActive, Members: []VMTAGroupMember{
+				{VMTAID: "v1", Weight: 70}, {VMTAID: "v2", Weight: 30},
+			}},
+		},
+		Routes: []*RoutingRule{
+			{ID: "r1", Name: "bulk", MatchType: MatchMailclass, MatchValue: "bulk", Priority: 100, TargetType: TargetVMTAGroup, TargetID: "g1", Status: RoutingStatusActive},
+			{ID: "r2", Name: "vip", MatchType: MatchRecipientDomain, MatchValue: "vip.example", Priority: 10, TargetType: TargetVMTA, TargetID: "v1", Status: RoutingStatusActive},
+		},
+		DKIM: []*DKIMDomain{
+			{ID: "d1", Domain: "example.com", Selector: "s1", PrivateKeyRef: testDKIMKeyPEM, Status: DKIMReady},
+			{ID: "d2", Domain: "pending.com", Selector: "s1", PrivateKeyRef: testDKIMKeyPEM, Status: DKIMNeedsAttention},
+		},
+		Suppressions: []*SuppressionEntry{
+			{ID: "s1", Type: SuppressEmail, Value: "blocked@example.com", Status: SuppressActive},
+			{ID: "s2", Type: SuppressDomain, Value: "blocked.example", Status: SuppressActive},
+			{ID: "s3", Type: SuppressEmail, Value: "old@example.com", Status: SuppressDisabled},
+		},
+	}
+
+	r, err := RenderKumoConfig(snap)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	// The rendered policy must be syntactically valid Lua.
+	if !r.Valid {
+		t.Fatalf("rendered policy failed lint: %v\n%s", r.LintIssues, r.Content)
+	}
+
+	// Only active VMTAs become egress sources.
+	if r.VMTACount != 2 {
+		t.Fatalf("expected 2 egress sources, got %d", r.VMTACount)
+	}
+	if !strings.Contains(r.Content, `SOURCES["vmta-a"] = { source_address = "203.0.113.10", ehlo_domain = "a.example.com" }`) {
+		t.Fatalf("missing egress source for vmta-a:\n%s", r.Content)
+	}
+	if strings.Contains(r.Content, "vmta-off") {
+		t.Fatal("disabled VMTA must not appear in config")
+	}
+	if !strings.Contains(r.Content, "kumo.make_egress_source") || !strings.Contains(r.Content, "get_queue_config") {
+		t.Fatal("policy must use the real KumoMTA callback API")
+	}
+
+	// Weighted group pool.
+	if r.PoolCount != 1 || !strings.Contains(r.Content, `POOLS["bulk-pool"] = { entries = { { name = "vmta-a", weight = 70 }, { name = "vmta-b", weight = 30 } } }`) {
+		t.Fatalf("missing weighted pool:\n%s", r.Content)
+	}
+
+	// Routes ordered by DESCENDING priority (higher wins): bulk (100) before
+	// vip (10). The mailclass rule carries its configured header name.
+	if r.RouteCount != 2 {
+		t.Fatalf("expected 2 routes, got %d", r.RouteCount)
+	}
+	bulkIdx := strings.Index(r.Content, `match_value = "bulk"`)
+	vipIdx := strings.Index(r.Content, `"vip.example"`)
+	if bulkIdx < 0 || vipIdx < 0 || bulkIdx > vipIdx {
+		t.Fatalf("routes not ordered by descending priority:\n%s", r.Content)
+	}
+	if !strings.Contains(r.Content, `match_type = "mailclass", match_header = "X-Mail-Class", match_value = "bulk"`) {
+		t.Fatalf("mailclass route should carry its header name:\n%s", r.Content)
+	}
+
+	// Only ready DKIM signers. The key is emitted inline as KeySource key_data.
+	if r.DKIMCount != 1 ||
+		!strings.Contains(r.Content, `DKIM_BY_DOMAIN["example.com"] = { selector = "s1", key = { key_data = `) ||
+		!strings.Contains(r.Content, `}, algo = "sha256" }`) {
+		t.Fatalf("expected one ready DKIM signer with inline key_data:\n%s", r.Content)
+	}
+	if strings.Contains(r.Content, `DKIM_BY_DOMAIN["pending.com"]`) {
+		t.Fatal("non-ready DKIM domain must not be a signer")
+	}
+
+	// Only active suppressions.
+	if r.SuppressionCount != 2 ||
+		!strings.Contains(r.Content, `SUPPRESSED_EMAILS["blocked@example.com"] = true`) ||
+		!strings.Contains(r.Content, `SUPPRESSED_DOMAINS["blocked.example"] = true`) {
+		t.Fatalf("missing suppression entries:\n%s", r.Content)
+	}
+	if strings.Contains(r.Content, "old@example.com") {
+		t.Fatal("disabled suppression must not appear")
+	}
+
+	if r.Checksum == "" {
+		t.Fatal("expected a checksum")
+	}
+	// Determinism.
+	r2, _ := RenderKumoConfig(snap)
+	if r.Checksum != r2.Checksum {
+		t.Fatal("render should be deterministic")
+	}
+}
+
+func TestDrainingVMTADroppedFromGroupPool(t *testing.T) {
+	// A draining VMTA keeps its own source/singleton pool (so in-flight queued
+	// mail can drain) but is dropped from group pool entries (so weighting stops
+	// routing NEW mail to it). A disabled VMTA is excluded everywhere.
+	snap := ConfigSnapshot{
+		VMTAs: []*VMTA{
+			{ID: "v1", Name: "vmta-a", ListenerID: "l1", IPAddress: "203.0.113.1", EHLOName: "a.example.com", Status: VMTAStatusActive},
+			{ID: "v2", Name: "vmta-drain", ListenerID: "l1", IPAddress: "203.0.113.2", EHLOName: "b.example.com", Status: VMTAStatusDraining},
+			{ID: "v3", Name: "vmta-off", ListenerID: "l1", IPAddress: "203.0.113.3", EHLOName: "c.example.com", Status: VMTAStatusDisabled},
+		},
+		Groups: []*VMTAGroup{
+			{ID: "g1", Name: "pool", Status: VMTAGroupStatusActive, Members: []VMTAGroupMember{
+				{VMTAID: "v1", Weight: 50}, {VMTAID: "v2", Weight: 50}, {VMTAID: "v3", Weight: 50},
+			}},
+		},
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil || !r.Valid {
+		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+
+	// The draining VMTA still has its own source + singleton pool (drains).
+	if !strings.Contains(r.Content, `SOURCES["vmta-drain"]`) ||
+		!strings.Contains(r.Content, `POOLS["vmta-drain"] = { entries = { { name = "vmta-drain" } } }`) {
+		t.Fatalf("draining VMTA must keep its own source/pool:\n%s", r.Content)
+	}
+	// The group pool contains only the active member.
+	if !strings.Contains(r.Content, `POOLS["pool"] = { entries = { { name = "vmta-a", weight = 50 } } }`) {
+		t.Fatalf("group pool must include only active members:\n%s", r.Content)
+	}
+	// Neither draining nor disabled appears as a group entry.
+	if strings.Contains(r.Content, `{ name = "vmta-drain", weight`) || strings.Contains(r.Content, `{ name = "vmta-off", weight`) {
+		t.Fatalf("draining/disabled VMTAs must not be weighted group entries:\n%s", r.Content)
+	}
+	// The disabled VMTA is absent entirely (no source).
+	if strings.Contains(r.Content, "vmta-off") {
+		t.Fatalf("disabled VMTA must not appear at all:\n%s", r.Content)
+	}
+}
+
+func TestRenderDefinesSpoolsAndLocalLogs(t *testing.T) {
+	// kumod refuses to start without a spool ("No spools have been defined").
+	// Since the generated policy is the standalone --policy entrypoint (it
+	// defines its own init + listeners), it must define the spools and local
+	// logs itself. Regression guard for the e2e "policy fails to start" find.
+	r, err := RenderKumoConfig(ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "l1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+	})
+	if err != nil || !r.Valid {
+		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	for _, want := range []string{
+		`kumo.define_spool { name = 'data', path = '/var/spool/kumomta/data' }`,
+		`kumo.define_spool { name = 'meta', path = '/var/spool/kumomta/meta' }`,
+		`kumo.configure_local_logs { log_dir = '/var/log/kumomta' }`,
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Fatalf("generated init must contain %q:\n%s", want, r.Content)
+		}
+	}
+}
+
+func TestRenderDKIMSigningWiring(t *testing.T) {
+	// DKIM signing must use the real KumoMTA API, verified end-to-end against a
+	// live kumod: signing happens on reception (there is no
+	// smtp_client_message_sending event), via kumo.dkim.rsa_sha256_signer (not
+	// rsa_sha256), with the required `headers` list. Regression guard for the
+	// three signing bugs the e2e DKIM test surfaced.
+	r, err := RenderKumoConfig(ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "l1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+		DKIM:  []*DKIMDomain{{ID: "d1", Domain: "signed.example", Selector: "s1", PrivateKeyRef: testDKIMKeyPEM, Status: DKIMReady}},
+	})
+	if err != nil || !r.Valid {
+		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	if strings.Contains(r.Content, "smtp_client_message_sending") {
+		t.Fatal("DKIM must not use the non-existent smtp_client_message_sending event")
+	}
+	for _, want := range []string{
+		"local function iris_dkim_sign(msg)",
+		"kumo.dkim.rsa_sha256_signer(params)",
+		"kumo.dkim.ed25519_signer(params)",
+		"headers = { 'From', 'To', 'Subject', 'Date', 'MIME-Version', 'Content-Type', 'Sender' }",
+		"kumo.on('http_message_generated', function(msg)",
+		"iris_dkim_sign(msg)", // called from the reception hook
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Fatalf("DKIM signing must contain %q:\n%s", want, r.Content)
+		}
+	}
+}
+
+func TestRenderRspamdAndLogHook(t *testing.T) {
+	base := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+		DKIM:  []*DKIMDomain{{ID: "d1", Domain: "hosted.example", Selector: "s1", PrivateKeyRef: testDKIMKeyPEM, Status: DKIMReady}},
+	}
+
+	// Disabled by default: rspamd is a no-op stub, log hook absent.
+	off, err := RenderKumoConfig(base)
+	if err != nil || !off.Valid {
+		t.Fatalf("render off: err=%v valid=%v issues=%v", err, off.Valid, off.LintIssues)
+	}
+	if !strings.Contains(off.Content, "local function iris_rspamd_scan(_msg) end") {
+		t.Fatal("expected rspamd no-op stub when disabled")
+	}
+	if strings.Contains(off.Content, "configure_log_hook") {
+		t.Fatal("log hook must be absent when log stream is disabled")
+	}
+
+	// Enabled: rspamd enforce + log stream.
+	on := base
+	on.RspamdMode = "enforce"
+	on.RspamdURL = "http://rspamd:11334"
+	on.LogStreamRedisURL = "redis://redis:6379"
+	on.LogStreamName = "iris.mail.events"
+	r, err := RenderKumoConfig(on)
+	if err != nil || !r.Valid {
+		t.Fatalf("render on: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	// rspamd is scoped to hosted domains and enforced; called at reception.
+	if !strings.Contains(r.Content, `HOSTED_DOMAINS["hosted.example"] = true`) {
+		t.Fatalf("hosted domain not emitted:\n%s", r.Content)
+	}
+	if !strings.Contains(r.Content, "RSPAMD_ENFORCE = true") ||
+		!strings.Contains(r.Content, "/checkv2") ||
+		!strings.Contains(r.Content, "iris_rspamd_scan(msg)") {
+		t.Fatalf("rspamd scan not wired into reception:\n%s", r.Content)
+	}
+	// log hook: configure_log_hook in init + XADD constructor + tracker queue.
+	if !strings.Contains(r.Content, "configure_log_hook") ||
+		!strings.Contains(r.Content, "make.redis_tracker") ||
+		!strings.Contains(r.Content, "'XADD'") ||
+		!strings.Contains(r.Content, "domain == LOGSTREAM_TRACKER") {
+		t.Fatalf("log hook not fully wired:\n%s", r.Content)
+	}
+}
+
+func TestRenderDeliveryRatesAndBouncePipeline(t *testing.T) {
+	base := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+	}
+
+	// Delivery-rate knobs flow onto the default egress queue's retry schedule.
+	rates := base
+	rates.EgressRetryInterval = "20m"
+	rates.EgressMaxRetryInterval = "2h"
+	rates.EgressMaxAge = "1d"
+	r, err := RenderKumoConfig(rates)
+	if err != nil || !r.Valid {
+		t.Fatalf("render rates: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	if !strings.Contains(r.Content, `retry_interval = "20m"`) ||
+		!strings.Contains(r.Content, `max_retry_interval = "2h"`) ||
+		!strings.Contains(r.Content, `max_age = "1d"`) {
+		t.Fatalf("delivery-rate retry params not emitted on the default queue:\n%s", r.Content)
+	}
+
+	// Bounce pipeline disabled unless both bounce domain AND log-stream Redis set.
+	half := base
+	half.BounceDomain = "bounce.example.com"
+	off, err := RenderKumoConfig(half)
+	if err != nil || !off.Valid {
+		t.Fatalf("render bounce-half: err=%v valid=%v issues=%v", err, off.Valid, off.LintIssues)
+	}
+	if strings.Contains(off.Content, "make.dsn_xadd") || strings.Contains(off.Content, `DSN_TRACKER   = "iris_dsn_catcher"`) {
+		t.Fatalf("bounce pipeline must stay disabled without a log-stream Redis URL:\n%s", off.Content)
+	}
+
+	// Fully enabled: DSN catcher relay + XADD constructor + bounce-domain consts.
+	on := base
+	on.BounceDomain = "Bounce.Example.com"
+	on.LogStreamRedisURL = "redis://redis:6379"
+	on.LogStreamName = "iris.mail.events"
+	rb, err := RenderKumoConfig(on)
+	if err != nil || !rb.Valid {
+		t.Fatalf("render bounce: err=%v valid=%v issues=%v", err, rb.Valid, rb.LintIssues)
+	}
+	// Bounce domain is normalized to lower-case and the DSN stream is named.
+	if !strings.Contains(rb.Content, `local BOUNCE_DOMAIN = "bounce.example.com"`) ||
+		!strings.Contains(rb.Content, `local DSN_TRACKER   = "iris_dsn_catcher"`) ||
+		!strings.Contains(rb.Content, `local DSN_STREAM    = "`+DSNStreamName+`"`) {
+		t.Fatalf("bounce/DSN constants not emitted:\n%s", rb.Content)
+	}
+	// The reception hook routes bounce-domain mail to the DSN tracker queue, and
+	// the custom_lua queue XADDs onto the DSN stream.
+	if !strings.Contains(rb.Content, "make.dsn_xadd") ||
+		!strings.Contains(rb.Content, "msg:set_meta('queue', DSN_TRACKER)") ||
+		!strings.Contains(rb.Content, "domain == DSN_TRACKER") {
+		t.Fatalf("DSN catcher not wired into reception/queue:\n%s", rb.Content)
+	}
+}
+
+func TestRenderFBLListenerDomain(t *testing.T) {
+	// The FBL pipeline enables log_arf for the configured domain so kumod parses
+	// ARF reports and emits Feedback records. Verified end-to-end against a live
+	// kumod (TestFeedbackReportAutoSuppresses).
+	base := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "l1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+	}
+
+	// Disabled: no listener-domain handler, FBL_DOMAIN empty.
+	off, err := RenderKumoConfig(base)
+	if err != nil || !off.Valid {
+		t.Fatalf("render off: err=%v valid=%v issues=%v", err, off.Valid, off.LintIssues)
+	}
+	if strings.Contains(off.Content, "log_arf") || strings.Contains(off.Content, "get_listener_domain") {
+		t.Fatalf("FBL/listener-domain must be absent when unconfigured:\n%s", off.Content)
+	}
+
+	// Enabled: single get_listener_domain handler with log_arf for the FBL domain.
+	on := base
+	on.FBLDomain = "fbl.example.com"
+	r, err := RenderKumoConfig(on)
+	if err != nil || !r.Valid {
+		t.Fatalf("render on: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	if !strings.Contains(r.Content, `local FBL_DOMAIN    = "fbl.example.com"`) ||
+		!strings.Contains(r.Content, "kumo.on('get_listener_domain'") ||
+		!strings.Contains(r.Content, "log_arf = 'LogThenDrop'") {
+		t.Fatalf("FBL log_arf not wired:\n%s", r.Content)
+	}
+	// Exactly one get_listener_domain handler (the event may be defined once).
+	if n := strings.Count(r.Content, "kumo.on('get_listener_domain'"); n != 1 {
+		t.Fatalf("expected exactly 1 get_listener_domain handler, got %d", n)
+	}
+}
+
+func TestMailClassification(t *testing.T) {
+	// Classification (what class a mail IS) is independent of routing (where it
+	// goes): a recipient rule can win the route while the mail is still tagged
+	// with its class from the configured mailclass header.
+	snap := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+		Routes: []*RoutingRule{
+			{ID: "r1", Name: "by-recipient", MatchType: MatchRecipientEmail, MatchValue: "vip@x.example",
+				Priority: 200, TargetType: TargetVMTA, TargetID: "v1", Status: RoutingStatusActive},
+			{ID: "r2", Name: "promo", MatchType: MatchMailclass, MatchHeader: "X-Campaign-Type", MatchValue: "promo",
+				Priority: 100, TargetType: TargetVMTA, TargetID: "v1", Status: RoutingStatusActive},
+			{ID: "r3", Name: "bulk", MatchType: MatchMailclass, MatchHeader: "X-Mail-Class", MatchValue: "bulk",
+				Priority: 90, TargetType: TargetVMTA, TargetID: "v1", Status: RoutingStatusActive},
+		},
+		LogStreamRedisURL: "redis://redis:6379",
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil || !r.Valid {
+		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	// The MAIL_CLASSES table maps header -> value -> class label.
+	if !strings.Contains(r.Content, `["X-Campaign-Type"] = { ["promo"] = "promo", }`) ||
+		!strings.Contains(r.Content, `["X-Mail-Class"] = { ["bulk"] = "bulk", }`) {
+		t.Fatalf("MAIL_CLASSES table not emitted as expected:\n%s", r.Content)
+	}
+	// The reception hook classifies and sets the mailclass meta.
+	if !strings.Contains(r.Content, "local function classify_mail(msg)") ||
+		!strings.Contains(r.Content, "local class = classify_mail(msg)") ||
+		!strings.Contains(r.Content, "msg:set_meta('mailclass', class)") {
+		t.Fatalf("classification not wired into reception:\n%s", r.Content)
+	}
+	// The log hook serializes the mailclass meta so the consumer can read it.
+	if !strings.Contains(r.Content, "meta = { 'tenant', 'mailclass' }") {
+		t.Fatalf("log hook must serialize the mailclass meta:\n%s", r.Content)
+	}
+}
+
+func TestLogHookHeadersAreDynamic(t *testing.T) {
+	snap := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+		Routes: []*RoutingRule{
+			{ID: "r1", Name: "promo", MatchType: MatchMailclass, MatchHeader: "X-Campaign-Type", MatchValue: "promo",
+				Priority: 100, TargetType: TargetVMTA, TargetID: "v1", Status: RoutingStatusActive},
+			{ID: "r2", Name: "bulk", MatchType: MatchMailclass, MatchHeader: "X-Mail-Class", MatchValue: "bulk",
+				Priority: 90, TargetType: TargetVMTA, TargetID: "v1", Status: RoutingStatusActive},
+			// A recipient rule contributes no header; a disabled mailclass rule
+			// is excluded.
+			{ID: "r3", Name: "rcpt", MatchType: MatchRecipientDomain, MatchValue: "x.example",
+				Priority: 80, TargetType: TargetVMTA, TargetID: "v1", Status: RoutingStatusActive},
+			{ID: "r4", Name: "off", MatchType: MatchMailclass, MatchHeader: "X-Secret", MatchValue: "z",
+				Priority: 70, TargetType: TargetVMTA, TargetID: "v1", Status: RoutingStatusDisabled},
+		},
+		LogStreamRedisURL: "redis://redis:6379",
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil || !r.Valid {
+		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	// The configured mailclass headers are in the log-hook allow-list.
+	if !strings.Contains(r.Content, `headers = { "Subject", "X-Campaign-Type", "X-Mail-Class" }`) {
+		t.Fatalf("log hook headers not dynamic:\n%s", r.Content)
+	}
+	// The hardcoded X-Kumo-Mail-Class is gone, and the disabled rule's header
+	// is not leaked into the allow-list.
+	if strings.Contains(r.Content, "X-Kumo-Mail-Class") {
+		t.Fatal("stale hardcoded X-Kumo-Mail-Class header must not appear")
+	}
+	if strings.Contains(r.Content, `"X-Secret"`) {
+		t.Fatal("disabled mailclass rule header must not be in the log-hook allow-list")
+	}
+}
+
+func TestLuaStringEscaping(t *testing.T) {
+	// Quotes and backslashes are escaped; output is double-quoted.
+	got, err := LuaString(`a"b\c` + "\n")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != `"a\"b\\c\n"` {
+		t.Fatalf("unexpected escaping: %s", got)
+	}
+	// NUL and invalid UTF-8 are rejected.
+	if _, err := LuaString("a\x00b"); err == nil {
+		t.Fatal("NUL must be rejected")
+	}
+	if _, err := LuaString("\xff\xfe"); err == nil {
+		t.Fatal("invalid UTF-8 must be rejected")
+	}
+}
+
+func TestLuaIdent(t *testing.T) {
+	if _, err := LuaIdent("egress_pool"); err != nil {
+		t.Fatalf("valid identifier rejected: %v", err)
+	}
+	if _, err := LuaIdent("end"); err == nil {
+		t.Fatal("reserved word must be rejected")
+	}
+	if _, err := LuaIdent("1abc"); err == nil {
+		t.Fatal("leading digit must be rejected")
+	}
+	if _, err := LuaIdent("a-b"); err == nil {
+		t.Fatal("hyphen must be rejected")
+	}
+}
+
+func TestLintLuaCatchesSyntaxError(t *testing.T) {
+	if issues := LintLua("local x = {"); len(issues) == 0 {
+		t.Fatal("expected a lint issue for invalid Lua")
+	}
+	if issues := LintLua("local x = 1\nreturn x\n"); len(issues) != 0 {
+		t.Fatalf("valid Lua should lint clean, got %v", issues)
+	}
+}
+
+func TestInitChecksumDistinguishesReloadFromRestart(t *testing.T) {
+	// The init checksum must change only for init-block changes (listeners, log
+	// hook, spool) — which need a KumoMTA restart — and stay stable for
+	// callback-only changes (VMTAs, suppressions, routing) which a reload picks up.
+	base := func() ConfigSnapshot {
+		return ConfigSnapshot{
+			Listeners: []*Listener{{ID: "l1", Name: "edge", IPAddress: "203.0.113.1", Port: 2525, Hostname: "mx.example.com", Status: ListenerStatusActive}},
+			VMTAs:     []*VMTA{{ID: "v1", Name: "vmta-a", ListenerID: "l1", IPAddress: "203.0.113.10", EHLOName: "a.example.com", Status: VMTAStatusActive}},
+			Routes: []*RoutingRule{
+				{ID: "r1", Name: "bulk", MatchType: MatchMailclass, MatchHeader: "X-Mail-Class", MatchValue: "bulk", Priority: 100, TargetType: TargetVMTA, TargetID: "v1", Status: RoutingStatusActive},
+			},
+			LogStreamRedisURL: "redis://redis:6379",
+		}
+	}
+	initOf := func(s ConfigSnapshot) string {
+		r, err := RenderKumoConfig(s)
+		if err != nil || !r.Valid {
+			t.Fatalf("render: err=%v valid=%v", err, r.Valid)
+		}
+		return r.InitChecksum
+	}
+	ref := initOf(base())
+
+	// Callback-only changes → SAME init checksum (reload suffices).
+	withVMTA := base()
+	withVMTA.VMTAs = append(withVMTA.VMTAs, &VMTA{ID: "v2", Name: "vmta-b", ListenerID: "l1", IPAddress: "203.0.113.11", EHLOName: "b.example.com", Status: VMTAStatusActive})
+	if initOf(withVMTA) != ref {
+		t.Error("adding a VMTA must not change the init checksum (reload-safe)")
+	}
+	withSupp := base()
+	withSupp.Suppressions = []*SuppressionEntry{{ID: "s1", Type: SuppressEmail, Value: "x@y.example", Status: SuppressActive}}
+	if initOf(withSupp) != ref {
+		t.Error("adding a suppression must not change the init checksum (reload-safe)")
+	}
+	withRcptRoute := base()
+	withRcptRoute.Routes = append(withRcptRoute.Routes, &RoutingRule{ID: "r2", Name: "rcpt", MatchType: MatchRecipientDomain, MatchValue: "x.example", Priority: 50, TargetType: TargetVMTA, TargetID: "v1", Status: RoutingStatusActive})
+	if initOf(withRcptRoute) != ref {
+		t.Error("a recipient-domain route adds no log-hook header → init checksum must be stable")
+	}
+
+	// Init-block changes → DIFFERENT init checksum (restart required).
+	withListener := base()
+	withListener.Listeners = append(withListener.Listeners, &Listener{ID: "l2", Name: "submission", IPAddress: "203.0.113.2", Port: 2587, Hostname: "submit.example.com", Status: ListenerStatusActive})
+	if initOf(withListener) == ref {
+		t.Error("adding a listener must change the init checksum (restart required)")
+	}
+	withMailclassHeader := base()
+	withMailclassHeader.Routes = append(withMailclassHeader.Routes, &RoutingRule{ID: "r3", Name: "promo", MatchType: MatchMailclass, MatchHeader: "X-Campaign-Type", MatchValue: "promo", Priority: 90, TargetType: TargetVMTA, TargetID: "v1", Status: RoutingStatusActive})
+	if initOf(withMailclassHeader) == ref {
+		t.Error("a new mailclass header changes the log-hook allow-list → init checksum must change (restart)")
+	}
+	noLogStream := base()
+	noLogStream.LogStreamRedisURL = ""
+	if initOf(noLogStream) == ref {
+		t.Error("toggling the log hook must change the init checksum (restart required)")
+	}
+}

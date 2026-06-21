@@ -1,0 +1,47 @@
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# --- secrets / local env ---
+.env
+.env.*
+!.env.example
+*.local
+
+# --- Go (backend) ---
+/backend/bin/
+*.test
+*.out
+coverage.out
+coverage.html
+# Built frontend embedded into the binary for `-tags embed_ui` builds.
+/backend/internal/webui/dist/
+
+# --- Node (frontend) ---
+node_modules/
+/frontend/dist/
+/frontend/dist-ssr/
+/frontend/coverage/
+/frontend/test-results/
+/frontend/playwright-report/
+
+# --- deploy / build output ---
+/deploy/out/
+
+# --- logs / tmp ---
+*.log
+tmp/
+
+# --- agent / spec-kit / tooling scaffolding (not part of the v2 product) ---
+/.agents/
+/agent/
+/.specify/
+/.codex/
+/specs/
+/AGENTS.md
+/skills-lock.json

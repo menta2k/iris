@@ -1,0 +1,743 @@
+syntax = "proto3";
+
+package iris.admin.v1;
+
+option go_package = "github.com/menta2k/iris/backend/api/iris/admin/v1;adminv1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service IrisAdminService {
+  // Listeners (ESMTP) --------------------------------------------------------
+  rpc ListListeners(ListListenersRequest) returns (ListListenersReply) {
+    option (google.api.http) = { get: "/v1/listeners" };
+  }
+  rpc CreateListener(CreateListenerRequest) returns (Listener) {
+    option (google.api.http) = { post: "/v1/listeners" body: "*" };
+  }
+  rpc UpdateListener(UpdateListenerRequest) returns (Listener) {
+    option (google.api.http) = { put: "/v1/listeners/{id}" body: "*" };
+  }
+
+  // Outbound configuration ---------------------------------------------------
+  rpc ListVMTAs(ListVMTAsRequest) returns (ListVMTAsReply) {
+    option (google.api.http) = { get: "/v1/vmtas" };
+  }
+  rpc CreateVMTA(CreateVMTARequest) returns (VMTA) {
+    option (google.api.http) = { post: "/v1/vmtas" body: "*" };
+  }
+  rpc UpdateVMTA(UpdateVMTARequest) returns (VMTA) {
+    option (google.api.http) = { put: "/v1/vmtas/{id}" body: "*" };
+  }
+  rpc ListVMTAGroups(ListVMTAGroupsRequest) returns (ListVMTAGroupsReply) {
+    option (google.api.http) = { get: "/v1/vmta-groups" };
+  }
+  rpc CreateVMTAGroups(CreateVMTAGroupRequest) returns (VMTAGroup) {
+    option (google.api.http) = { post: "/v1/vmta-groups" body: "*" };
+  }
+  rpc UpdateVMTAGroup(UpdateVMTAGroupRequest) returns (VMTAGroup) {
+    option (google.api.http) = { put: "/v1/vmta-groups/{id}" body: "*" };
+  }
+  rpc ListRoutingRules(ListRoutingRulesRequest) returns (ListRoutingRulesReply) {
+    option (google.api.http) = { get: "/v1/routing-rules" };
+  }
+  rpc CreateRoutingRule(CreateRoutingRuleRequest) returns (RoutingRule) {
+    option (google.api.http) = { post: "/v1/routing-rules" body: "*" };
+  }
+  rpc UpdateRoutingRule(UpdateRoutingRuleRequest) returns (RoutingRule) {
+    option (google.api.http) = { put: "/v1/routing-rules/{id}" body: "*" };
+  }
+
+  // Mail operations ----------------------------------------------------------
+  rpc ListMailRecords(ListMailRecordsRequest) returns (ListMailRecordsReply) {
+    option (google.api.http) = { get: "/v1/mail-records" };
+  }
+  rpc ListBounces(ListBouncesRequest) returns (ListBouncesReply) {
+    option (google.api.http) = { get: "/v1/bounces" };
+  }
+  rpc ListFeedbackReports(ListFeedbackReportsRequest) returns (ListFeedbackReportsReply) {
+    option (google.api.http) = { get: "/v1/feedback-reports" };
+  }
+  rpc ListQueues(ListQueuesRequest) returns (ListQueuesReply) {
+    option (google.api.http) = { get: "/v1/queues" };
+  }
+  rpc RequestQueueAction(RequestQueueActionRequest) returns (QueueActionReply) {
+    option (google.api.http) = { post: "/v1/queues/{mailclass}:action" body: "*" };
+  }
+
+  // Domain & recipient safety ------------------------------------------------
+  rpc ListDKIMDomains(ListDKIMDomainsRequest) returns (ListDKIMDomainsReply) {
+    option (google.api.http) = { get: "/v1/dkim-domains" };
+  }
+  rpc CreateDKIMDomain(CreateDKIMDomainRequest) returns (DKIMDomain) {
+    option (google.api.http) = { post: "/v1/dkim-domains" body: "*" };
+  }
+  rpc UpdateDKIMDomain(UpdateDKIMDomainRequest) returns (DKIMDomain) {
+    option (google.api.http) = { put: "/v1/dkim-domains/{id}" body: "*" };
+  }
+  // Generate a fresh DKIM key pair. Returns the private key (to save on the
+  // domain) and the public DNS TXT record to publish; nothing is persisted.
+  rpc GenerateDKIMKey(GenerateDKIMKeyRequest) returns (GenerateDKIMKeyReply) {
+    option (google.api.http) = { post: "/v1/dkim-domains:generate-key" body: "*" };
+  }
+  rpc ListSuppressions(ListSuppressionsRequest) returns (ListSuppressionsReply) {
+    option (google.api.http) = { get: "/v1/suppressions" };
+  }
+  rpc CreateSuppression(CreateSuppressionRequest) returns (Suppression) {
+    option (google.api.http) = { post: "/v1/suppressions" body: "*" };
+  }
+  rpc UpdateSuppression(UpdateSuppressionRequest) returns (Suppression) {
+    option (google.api.http) = { put: "/v1/suppressions/{id}" body: "*" };
+  }
+
+  // Inbound automation -------------------------------------------------------
+  rpc ListWebhookRules(ListWebhookRulesRequest) returns (ListWebhookRulesReply) {
+    option (google.api.http) = { get: "/v1/webhook-rules" };
+  }
+  rpc CreateWebhookRule(CreateWebhookRuleRequest) returns (WebhookRule) {
+    option (google.api.http) = { post: "/v1/webhook-rules" body: "*" };
+  }
+  rpc UpdateWebhookRule(UpdateWebhookRuleRequest) returns (WebhookRule) {
+    option (google.api.http) = { put: "/v1/webhook-rules/{id}" body: "*" };
+  }
+  // Webhook delivery events (the outcomes of webhook fan-out).
+  rpc ListWebhookDeliveries(ListWebhookDeliveriesRequest) returns (ListWebhookDeliveriesReply) {
+    option (google.api.http) = { get: "/v1/webhook-deliveries" };
+  }
+  rpc ListRspamdResults(ListRspamdResultsRequest) returns (ListRspamdResultsReply) {
+    option (google.api.http) = { get: "/v1/rspamd-results" };
+  }
+
+  // Security administration --------------------------------------------------
+  rpc ListUsers(ListUsersRequest) returns (ListUsersReply) {
+    option (google.api.http) = { get: "/v1/users" };
+  }
+  rpc CreateUser(CreateUserRequest) returns (User) {
+    option (google.api.http) = { post: "/v1/users" body: "*" };
+  }
+  rpc UpdateUser(UpdateUserRequest) returns (User) {
+    option (google.api.http) = { put: "/v1/users/{id}" body: "*" };
+  }
+  // MFA enrollment for the calling user (TOTP).
+  rpc EnrollMFA(EnrollMFARequest) returns (EnrollMFAReply) {
+    option (google.api.http) = { post: "/v1/mfa:enroll" body: "*" };
+  }
+  rpc ConfirmMFA(ConfirmMFARequest) returns (ConfirmMFAReply) {
+    option (google.api.http) = { post: "/v1/mfa:confirm" body: "*" };
+  }
+  rpc DisableMFA(DisableMFARequest) returns (DisableMFAReply) {
+    option (google.api.http) = { post: "/v1/mfa:disable" body: "*" };
+  }
+  rpc ListAuditEntries(ListAuditEntriesRequest) returns (ListAuditEntriesReply) {
+    option (google.api.http) = { get: "/v1/audit-entries" };
+  }
+
+  // KumoMTA service & configuration ------------------------------------------
+  rpc RequestServiceControl(RequestServiceControlRequest) returns (ServiceControlRequest) {
+    option (google.api.http) = { post: "/v1/kumomta:service-control" body: "*" };
+  }
+  // GenerateKumoConfig renders the current Iris configuration into KumoMTA
+  // policy without applying it (a preview/diff).
+  rpc GenerateKumoConfig(GenerateKumoConfigRequest) returns (KumoConfig) {
+    option (google.api.http) = { get: "/v1/kumomta/config:generate" };
+  }
+  // ApplyKumoConfig renders the configuration, writes it to KumoMTA, and
+  // reloads the service. High-risk: requires confirmation and is audited.
+  rpc ApplyKumoConfig(ApplyKumoConfigRequest) returns (ApplyKumoConfigReply) {
+    option (google.api.http) = { post: "/v1/kumomta/config:apply" body: "*" };
+  }
+  // KumoConfigStatus reports whether the current configuration has drifted from
+  // the last applied policy (a regenerate/apply is pending).
+  rpc KumoConfigStatus(KumoConfigStatusRequest) returns (KumoConfigStatusReply) {
+    option (google.api.http) = { get: "/v1/kumomta/config:status" };
+  }
+
+  // ACME (Let's Encrypt) -------------------------------------------------------
+  rpc GetAcmeAccount(GetAcmeAccountRequest) returns (AcmeAccount) {
+    option (google.api.http) = { get: "/v1/acme/account" };
+  }
+  rpc SaveAcmeAccount(SaveAcmeAccountRequest) returns (AcmeAccount) {
+    option (google.api.http) = { put: "/v1/acme/account" body: "*" };
+  }
+  rpc ListAcmeCertificates(ListAcmeCertificatesRequest) returns (ListAcmeCertificatesReply) {
+    option (google.api.http) = { get: "/v1/acme/certificates" };
+  }
+  // RequestAcmeCertificate issues (or re-issues) a certificate via HTTP-01.
+  // Synchronous: blocks for the ACME handshake.
+  rpc RequestAcmeCertificate(RequestAcmeCertificateRequest) returns (AcmeCertificate) {
+    option (google.api.http) = { post: "/v1/acme/certificates" body: "*" };
+  }
+  rpc DeleteAcmeCertificate(DeleteAcmeCertificateRequest) returns (DeleteAcmeCertificateReply) {
+    option (google.api.http) = { delete: "/v1/acme/certificates/{id}" };
+  }
+
+  rpc GetDashboardSummary(GetDashboardSummaryRequest) returns (DashboardSummary) {
+    option (google.api.http) = { get: "/v1/dashboard/summary" };
+  }
+
+  // Global settings (deployment-level policy knobs editable in the UI).
+  rpc GetGlobalSettings(GetGlobalSettingsRequest) returns (GlobalSettings) {
+    option (google.api.http) = { get: "/v1/settings" };
+  }
+  rpc UpdateGlobalSettings(UpdateGlobalSettingsRequest) returns (GlobalSettings) {
+    option (google.api.http) = { put: "/v1/settings" body: "*" };
+  }
+}
+
+// Pagination ----------------------------------------------------------------
+message PageRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+message PageReply {
+  string next_page_token = 1;
+}
+
+// Outbound configuration ----------------------------------------------------
+// Listener is an ESMTP listener: IP + port + EHLO hostname + TLS/relay config.
+message Listener {
+  string id = 1;
+  string name = 2;
+  string ip_address = 3;
+  int32 port = 4;
+  string hostname = 5;
+  bool tls_enabled = 6;
+  string tls_cert_path = 7;
+  string tls_key_path = 8;
+  bool require_auth = 9;
+  int64 max_message_size = 10;
+  repeated string relay_hosts = 11;
+  string status = 12;
+}
+message ListListenersRequest { PageRequest page = 1; }
+message ListListenersReply {
+  repeated Listener items = 1;
+  PageReply page = 2;
+}
+message CreateListenerRequest {
+  string name = 1;
+  string ip_address = 2;
+  int32 port = 3;
+  string hostname = 4;
+  bool tls_enabled = 5;
+  string tls_cert_path = 6;
+  string tls_key_path = 7;
+  bool require_auth = 8;
+  int64 max_message_size = 9;
+  repeated string relay_hosts = 10;
+}
+message UpdateListenerRequest {
+  string id = 1;
+  string name = 2;
+  string ip_address = 3;
+  int32 port = 4;
+  string hostname = 5;
+  bool tls_enabled = 6;
+  string tls_cert_path = 7;
+  string tls_key_path = 8;
+  bool require_auth = 9;
+  int64 max_message_size = 10;
+  repeated string relay_hosts = 11;
+  string status = 12;
+}
+
+// VMTA attaches to a listener; ip_address/ehlo_name/listener_name are resolved
+// (read-only) from the attached listener.
+message VMTA {
+  string id = 1;
+  string name = 2;
+  string ip_address = 3;
+  string ehlo_name = 4;
+  string status = 5;
+  string notes = 6;
+  string listener_id = 7;
+  string listener_name = 8;
+  int32 max_connections = 9;
+}
+message VMTAGroup {
+  string id = 1;
+  string name = 2;
+  string status = 3;
+  repeated VMTAGroupMember members = 4;
+}
+message VMTAGroupMember {
+  string vmta_id = 1;
+  int32 weight = 2;
+}
+message RoutingRule {
+  string id = 1;
+  string name = 2;
+  string match_type = 3;
+  string match_value = 4;
+  int32 priority = 5;
+  string target_type = 6;
+  string target_id = 7;
+  string status = 8;
+  // match_header is the header NAME for a mailclass match (e.g. "X-Mail-Class").
+  // Empty for recipient matches.
+  string match_header = 9;
+}
+
+message ListVMTAsRequest {
+  PageRequest page = 1;
+  string status = 2;
+}
+message ListVMTAsReply {
+  repeated VMTA items = 1;
+  PageReply page = 2;
+}
+message CreateVMTARequest {
+  string name = 1;
+  string listener_id = 2;
+  int32 max_connections = 3;
+}
+message UpdateVMTARequest {
+  string id = 1;
+  string name = 2;
+  string listener_id = 3;
+  int32 max_connections = 4;
+  string status = 5;
+  string notes = 6;
+}
+message ListVMTAGroupsRequest {
+  PageRequest page = 1;
+}
+message ListVMTAGroupsReply {
+  repeated VMTAGroup items = 1;
+  PageReply page = 2;
+}
+message CreateVMTAGroupRequest {
+  string name = 1;
+  repeated VMTAGroupMember members = 2;
+}
+message UpdateVMTAGroupRequest {
+  string id = 1;
+  string name = 2;
+  string status = 3;
+  repeated VMTAGroupMember members = 4;
+}
+message ListRoutingRulesRequest {
+  PageRequest page = 1;
+  string match_type = 2;
+  string match_value = 3;
+}
+message ListRoutingRulesReply {
+  repeated RoutingRule items = 1;
+  PageReply page = 2;
+}
+message CreateRoutingRuleRequest {
+  string name = 1;
+  string match_type = 2;
+  string match_value = 3;
+  int32 priority = 4;
+  string target_type = 5;
+  string target_id = 6;
+  string match_header = 7;
+}
+message UpdateRoutingRuleRequest {
+  string id = 1;
+  string name = 2;
+  string match_type = 3;
+  string match_value = 4;
+  int32 priority = 5;
+  string target_type = 6;
+  string target_id = 7;
+  string status = 8;
+  string match_header = 9;
+}
+
+// Mail operations -----------------------------------------------------------
+message MailRecord {
+  string id = 1;
+  string message_id = 2;
+  google.protobuf.Timestamp event_time = 3;
+  string mailclass = 4;
+  string sender = 5;
+  string recipient = 6;
+  string recipient_domain = 7;
+  string vmta_id = 8;
+  string status = 9;
+}
+message Bounce {
+  string id = 1;
+  google.protobuf.Timestamp event_time = 2;
+  string recipient = 3;
+  string mailclass = 4;
+  string smtp_status = 5;
+  string bounce_type = 6;
+  string diagnostic = 7;
+  string processing_state = 8;
+}
+message FeedbackReport {
+  string id = 1;
+  google.protobuf.Timestamp received_at = 2;
+  string source = 3;
+  string report_type = 4;
+  string recipient = 5;
+  string processing_state = 6;
+}
+message Queue {
+  string mailclass = 1;
+  string state = 2;
+  int64 depth = 3;
+  int64 oldest_message_age_seconds = 4;
+}
+
+message ListMailRecordsRequest {
+  PageRequest page = 1;
+  string mailclass = 2;
+  string sender = 3;
+  string recipient = 4;
+  string vmta_id = 5;
+  google.protobuf.Timestamp from_time = 6;
+  google.protobuf.Timestamp to_time = 7;
+}
+message ListMailRecordsReply {
+  repeated MailRecord items = 1;
+  PageReply page = 2;
+}
+message ListBouncesRequest { PageRequest page = 1; }
+message ListBouncesReply {
+  repeated Bounce items = 1;
+  PageReply page = 2;
+}
+message ListFeedbackReportsRequest { PageRequest page = 1; }
+message ListFeedbackReportsReply {
+  repeated FeedbackReport items = 1;
+  PageReply page = 2;
+}
+message ListQueuesRequest { PageRequest page = 1; }
+message ListQueuesReply {
+  repeated Queue items = 1;
+  PageReply page = 2;
+}
+message RequestQueueActionRequest {
+  string mailclass = 1;
+  string action = 2;
+  string confirmation_id = 3;
+}
+message QueueActionReply {
+  string request_id = 1;
+  string status = 2;
+}
+
+// Domain & recipient safety -------------------------------------------------
+message DKIMDomain {
+  string id = 1;
+  string domain = 2;
+  string selector = 3;
+  string public_key_fingerprint = 4;
+  string status = 5;
+}
+message Suppression {
+  string id = 1;
+  string type = 2;
+  string value = 3;
+  string reason = 4;
+  string source = 5;
+  string status = 6;
+}
+
+message ListDKIMDomainsRequest { PageRequest page = 1; }
+message ListDKIMDomainsReply {
+  repeated DKIMDomain items = 1;
+  PageReply page = 2;
+}
+message CreateDKIMDomainRequest {
+  string domain = 1;
+  string selector = 2;
+  string public_key_fingerprint = 3;
+  string private_key_ref = 4;
+}
+message UpdateDKIMDomainRequest {
+  string id = 1;
+  string selector = 2;
+  string public_key_fingerprint = 3;
+  // PEM-encoded RSA private key; empty preserves the stored key.
+  string private_key_ref = 4;
+  string status = 5;
+}
+message GenerateDKIMKeyRequest {
+  string domain = 1;
+  string selector = 2;
+}
+message GenerateDKIMKeyReply {
+  // PEM private key to store on the domain (save it on the DKIM record).
+  string private_key_pem = 1;
+  // DNS TXT record to publish: name and value.
+  string record_name = 2;
+  string record_value = 3;
+  string public_key_fingerprint = 4;
+}
+message ListSuppressionsRequest { PageRequest page = 1; }
+message ListSuppressionsReply {
+  repeated Suppression items = 1;
+  PageReply page = 2;
+}
+message CreateSuppressionRequest {
+  string type = 1;
+  string value = 2;
+  string reason = 3;
+}
+message UpdateSuppressionRequest {
+  string id = 1;
+  string reason = 2;
+  string status = 3;
+}
+
+// Inbound automation --------------------------------------------------------
+message WebhookRule {
+  string id = 1;
+  string name = 2;
+  string match_type = 3;
+  string match_value = 4;
+  string destination_url = 5;
+  string status = 6;
+  int32 timeout_seconds = 7;
+}
+message RspamdResult {
+  string id = 1;
+  google.protobuf.Timestamp event_time = 2;
+  string mail_record_id = 3;
+  string action = 4;
+  double score = 5;
+  repeated string symbols = 6;
+  string reason = 7;
+}
+
+message WebhookDeliveryEvent {
+  string id = 1;
+  string event_time = 2;
+  string webhook_rule_id = 3;
+  string webhook_name = 4;
+  string mail_record_id = 5;
+  string recipient = 6;
+  int32 attempt = 7;
+  string status = 8;
+  int32 response_code = 9;
+  string error_summary = 10;
+}
+message ListWebhookDeliveriesRequest { PageRequest page = 1; }
+message ListWebhookDeliveriesReply {
+  repeated WebhookDeliveryEvent items = 1;
+  PageReply page = 2;
+}
+message ListWebhookRulesRequest { PageRequest page = 1; }
+message ListWebhookRulesReply {
+  repeated WebhookRule items = 1;
+  PageReply page = 2;
+}
+message CreateWebhookRuleRequest {
+  string name = 1;
+  string match_type = 2;
+  string match_value = 3;
+  string destination_url = 4;
+  string secret_ref = 5;
+  int32 timeout_seconds = 6;
+}
+message UpdateWebhookRuleRequest {
+  string id = 1;
+  string name = 2;
+  string match_type = 3;
+  string match_value = 4;
+  string destination_url = 5;
+  string secret_ref = 6;
+  int32 timeout_seconds = 7;
+  string status = 8;
+}
+message ListRspamdResultsRequest { PageRequest page = 1; }
+message ListRspamdResultsReply {
+  repeated RspamdResult items = 1;
+  PageReply page = 2;
+}
+
+// Security administration ---------------------------------------------------
+message User {
+  string id = 1;
+  string email = 2;
+  string display_name = 3;
+  string status = 4;
+  bool mfa_required = 5;
+  repeated string roles = 6;
+}
+message AuditEntry {
+  string id = 1;
+  string occurred_at = 2;
+  string actor_user_id = 3;
+  string operation = 4;
+  string target_type = 5;
+  string target_id = 6;
+  string outcome = 7;
+  string ip_address = 8;
+}
+
+message EnrollMFARequest {}
+message EnrollMFAReply {
+  // The shared secret and the otpauth:// URI to render as a QR code. Shown once.
+  string secret = 1;
+  string otpauth_uri = 2;
+}
+message ConfirmMFARequest { string code = 1; }
+message ConfirmMFAReply { bool enrolled = 1; }
+message DisableMFARequest {}
+message DisableMFAReply {}
+message ListUsersRequest { PageRequest page = 1; }
+message ListUsersReply {
+  repeated User items = 1;
+  PageReply page = 2;
+}
+message CreateUserRequest {
+  string email = 1;
+  string display_name = 2;
+  bool mfa_required = 3;
+  repeated string roles = 4;
+}
+message UpdateUserRequest {
+  string id = 1;
+  string display_name = 2;
+  string status = 3;
+  bool mfa_required = 4;
+  repeated string roles = 5;
+}
+message ListAuditEntriesRequest { PageRequest page = 1; }
+message ListAuditEntriesReply {
+  repeated AuditEntry items = 1;
+  PageReply page = 2;
+}
+
+// KumoMTA service & configuration -------------------------------------------
+message RequestServiceControlRequest {
+  string operation = 1;
+  string confirmation_id = 2;
+}
+message ServiceControlRequest {
+  string id = 1;
+  string operation = 2;
+  string status = 3;
+}
+message GenerateKumoConfigRequest {}
+message KumoConfig {
+  // The rendered KumoMTA policy (Lua).
+  string content = 1;
+  // Counts summarizing what the config contains.
+  int32 vmta_count = 2;
+  int32 pool_count = 3;
+  int32 route_count = 4;
+  int32 dkim_count = 5;
+  int32 suppression_count = 6;
+  // Hash of the rendered content for change detection.
+  string checksum = 7;
+  // valid is true when the rendered policy passed the Lua syntax lint.
+  bool valid = 8;
+  // lint_issues holds any syntax problems found while linting the policy.
+  repeated string lint_issues = 9;
+}
+message ApplyKumoConfigRequest {
+  string confirmation_id = 1;
+}
+message ApplyKumoConfigReply {
+  string request_id = 1;
+  string status = 2;
+  string checksum = 3;
+  string applied_path = 4;
+  string result_summary = 5;
+  // restarted is true when KumoMTA was restarted (init change) rather than reloaded.
+  bool restarted = 6;
+}
+message GetAcmeAccountRequest {}
+message SaveAcmeAccountRequest {
+  string email = 1;
+  string server_url = 2;
+}
+message AcmeAccount {
+  string email = 1;
+  string server_url = 2;
+  bool configured = 3;
+  bool registered = 4;
+  string updated_at = 5;
+}
+message AcmeCertificate {
+  string id = 1;
+  string domain = 2;
+  repeated string alt_names = 3;
+  string challenge_type = 4;
+  string cert_path = 5;
+  string key_path = 6;
+  string expires_at = 7;
+  string last_renewed_at = 8;
+  string status = 9;
+  string last_error = 10;
+}
+message ListAcmeCertificatesRequest {}
+message ListAcmeCertificatesReply { repeated AcmeCertificate items = 1; }
+message RequestAcmeCertificateRequest {
+  string domain = 1;
+  repeated string alt_names = 2;
+}
+message DeleteAcmeCertificateRequest { string id = 1; }
+message DeleteAcmeCertificateReply {}
+
+message KumoConfigStatusRequest {}
+message KumoConfigStatusReply {
+  // drift is true when the current configuration differs from the last applied
+  // policy (i.e. a regenerate/apply is pending).
+  bool drift = 1;
+  // never_applied is true when no policy has been applied yet.
+  bool never_applied = 2;
+  string current_checksum = 3;
+  string applied_checksum = 4;
+  string applied_at = 5;
+  // restart_required is true when the pending change touches the init block
+  // (listeners/spool/log hook), which needs a KumoMTA restart, not a reload.
+  bool restart_required = 6;
+}
+
+message GetDashboardSummaryRequest {}
+message DashboardSummary {
+  string service_state = 1;
+  int64 queued_messages = 2;
+  int64 recent_mail_events = 3;
+  int64 recent_audit_events = 4;
+}
+
+// Global settings — deployment-level policy knobs an operator edits in the UI.
+message GlobalSettings {
+  // rspamd inbound spam filtering: "off" | "tag" | "enforce".
+  string rspamd_mode = 1;
+  string rspamd_url = 2;
+  // Default outbound EHLO hostname.
+  string egress_ehlo_domain = 3;
+  // Redis URL embedded in the policy log_hook (what KumoMTA reaches Redis at).
+  string log_stream_redis_url = 4;
+  // Default listener binds (host:port) emitted in the policy init.
+  string esmtp_listen = 5;
+  string http_listen = 6;
+  // Delivery rates: the outbound retry schedule (KumoMTA duration form).
+  string egress_retry_interval = 7;
+  string egress_max_retry_interval = 8;
+  string egress_max_age = 9;
+  // Bounce / DSN pipeline.
+  string bounce_domain = 10;
+  bool auto_suppress_hard_bounces = 11;
+  int32 soft_bounce_threshold = 12;
+  // FBL/ARF feedback domain (log_arf): kumod parses ARF reports here.
+  string fbl_domain = 13;
+  string updated_at = 20;
+  string updated_by = 21;
+}
+message GetGlobalSettingsRequest {}
+message UpdateGlobalSettingsRequest {
+  string rspamd_mode = 1;
+  string rspamd_url = 2;
+  string egress_ehlo_domain = 3;
+  string log_stream_redis_url = 4;
+  string esmtp_listen = 5;
+  string http_listen = 6;
+  string egress_retry_interval = 7;
+  string egress_max_retry_interval = 8;
+  string egress_max_age = 9;
+  string bounce_domain = 10;
+  bool auto_suppress_hard_bounces = 11;
+  int32 soft_bounce_threshold = 12;
+  string fbl_domain = 13;
+}

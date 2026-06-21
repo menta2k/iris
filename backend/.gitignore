@@ -1,0 +1,9 @@
+# Compiled binaries.
+/bin/
+# Built frontend copied in for `-tags embed_ui` builds (a build artifact).
+/internal/webui/dist/
+# Go test / coverage artifacts.
+*.test
+*.out
+coverage.out
+coverage.html
