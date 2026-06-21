@@ -269,16 +269,27 @@ func (uc *AcmeUsecase) SaveAccount(ctx context.Context, email, serverURL string)
 	return nil
 }
 
-// RequestCertificate issues (or re-issues) a certificate for the domain via
-// HTTP-01. It registers the account on first use. Synchronous: the call blocks
+// RequestCertificate issues (or re-issues) a certificate for the domain. It
+// uses DNS-01 when a provider is configured (required for wildcards), else
+// HTTP-01, registering the account on first use. Synchronous: the call blocks
 // for the ACME handshake.
 func (uc *AcmeUsecase) RequestCertificate(ctx context.Context, domain string, altNames []string) (*AcmeCertificate, error) {
 	if _, err := RequirePermission(ctx, PermServiceControl); err != nil {
 		return nil, err
 	}
 	domain = strings.ToLower(strings.TrimSpace(domain))
-	if domain == "" || len(domain) > 253 || !dnsNameRe.MatchString(domain) {
-		return nil, Invalid("ACME_DOMAIN_INVALID", "domain %q is not a valid DNS name", domain)
+	if err := validateAcmeDomain(domain); err != nil {
+		return nil, err
+	}
+	for _, an := range altNames {
+		if err := validateAcmeDomain(strings.ToLower(strings.TrimSpace(an))); err != nil {
+			return nil, err
+		}
+	}
+	// Wildcards can only be validated via DNS-01 (Let's Encrypt requirement).
+	if isWildcardDomain(domain) && uc.challengeLabel(ctx) != "dns-01" {
+		return nil, FailedPrecondition("ACME_WILDCARD_NEEDS_DNS01",
+			"wildcard certificates require a DNS-01 provider; configure one under the DNS-01 provider section first")
 	}
 	out, err := uc.issue(ctx, domain, altNames)
 	if err != nil {
@@ -465,4 +476,22 @@ func timePtrOrNil(t time.Time) *time.Time {
 		return nil
 	}
 	return &t
+}
+
+// isWildcardDomain reports whether name is a wildcard (e.g. "*.example.com").
+func isWildcardDomain(name string) bool {
+	return strings.HasPrefix(name, "*.")
+}
+
+// validateAcmeDomain validates a certificate domain, allowing a single leading
+// "*." wildcard label (the remainder must be a valid DNS name). Wildcards are
+// only issuable via DNS-01; the caller enforces that separately.
+func validateAcmeDomain(domain string) error {
+	if domain == "" || len(domain) > 253 {
+		return Invalid("ACME_DOMAIN_INVALID", "domain %q is not a valid DNS name", domain)
+	}
+	if !dnsNameRe.MatchString(strings.TrimPrefix(domain, "*.")) {
+		return Invalid("ACME_DOMAIN_INVALID", "domain %q is not a valid DNS name", domain)
+	}
+	return nil
 }
