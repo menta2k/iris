@@ -69,6 +69,10 @@ const (
 	IrisAdminService_ListAcmeCertificates_FullMethodName   = "/iris.admin.v1.IrisAdminService/ListAcmeCertificates"
 	IrisAdminService_RequestAcmeCertificate_FullMethodName = "/iris.admin.v1.IrisAdminService/RequestAcmeCertificate"
 	IrisAdminService_DeleteAcmeCertificate_FullMethodName  = "/iris.admin.v1.IrisAdminService/DeleteAcmeCertificate"
+	IrisAdminService_ListAcmeDnsProviders_FullMethodName   = "/iris.admin.v1.IrisAdminService/ListAcmeDnsProviders"
+	IrisAdminService_GetAcmeDnsProvider_FullMethodName     = "/iris.admin.v1.IrisAdminService/GetAcmeDnsProvider"
+	IrisAdminService_SetAcmeDnsProvider_FullMethodName     = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
+	IrisAdminService_ClearAcmeDnsProvider_FullMethodName   = "/iris.admin.v1.IrisAdminService/ClearAcmeDnsProvider"
 	IrisAdminService_GetDashboardSummary_FullMethodName    = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
 	IrisAdminService_GetGlobalSettings_FullMethodName      = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
 	IrisAdminService_UpdateGlobalSettings_FullMethodName   = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
@@ -160,6 +164,11 @@ type IrisAdminServiceClient interface {
 	// Synchronous: blocks for the ACME handshake.
 	RequestAcmeCertificate(ctx context.Context, in *RequestAcmeCertificateRequest, opts ...grpc.CallOption) (*AcmeCertificate, error)
 	DeleteAcmeCertificate(ctx context.Context, in *DeleteAcmeCertificateRequest, opts ...grpc.CallOption) (*DeleteAcmeCertificateReply, error)
+	// ACME DNS-01 challenge provider configuration.
+	ListAcmeDnsProviders(ctx context.Context, in *ListAcmeDnsProvidersRequest, opts ...grpc.CallOption) (*ListAcmeDnsProvidersReply, error)
+	GetAcmeDnsProvider(ctx context.Context, in *GetAcmeDnsProviderRequest, opts ...grpc.CallOption) (*AcmeDnsProvider, error)
+	SetAcmeDnsProvider(ctx context.Context, in *SetAcmeDnsProviderRequest, opts ...grpc.CallOption) (*AcmeDnsProvider, error)
+	ClearAcmeDnsProvider(ctx context.Context, in *ClearAcmeDnsProviderRequest, opts ...grpc.CallOption) (*AcmeDnsProvider, error)
 	GetDashboardSummary(ctx context.Context, in *GetDashboardSummaryRequest, opts ...grpc.CallOption) (*DashboardSummary, error)
 	// Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(ctx context.Context, in *GetGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error)
@@ -674,6 +683,46 @@ func (c *irisAdminServiceClient) DeleteAcmeCertificate(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) ListAcmeDnsProviders(ctx context.Context, in *ListAcmeDnsProvidersRequest, opts ...grpc.CallOption) (*ListAcmeDnsProvidersReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAcmeDnsProvidersReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListAcmeDnsProviders_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) GetAcmeDnsProvider(ctx context.Context, in *GetAcmeDnsProviderRequest, opts ...grpc.CallOption) (*AcmeDnsProvider, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AcmeDnsProvider)
+	err := c.cc.Invoke(ctx, IrisAdminService_GetAcmeDnsProvider_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) SetAcmeDnsProvider(ctx context.Context, in *SetAcmeDnsProviderRequest, opts ...grpc.CallOption) (*AcmeDnsProvider, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AcmeDnsProvider)
+	err := c.cc.Invoke(ctx, IrisAdminService_SetAcmeDnsProvider_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ClearAcmeDnsProvider(ctx context.Context, in *ClearAcmeDnsProviderRequest, opts ...grpc.CallOption) (*AcmeDnsProvider, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AcmeDnsProvider)
+	err := c.cc.Invoke(ctx, IrisAdminService_ClearAcmeDnsProvider_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) GetDashboardSummary(ctx context.Context, in *GetDashboardSummaryRequest, opts ...grpc.CallOption) (*DashboardSummary, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DashboardSummary)
@@ -790,6 +839,11 @@ type IrisAdminServiceServer interface {
 	// Synchronous: blocks for the ACME handshake.
 	RequestAcmeCertificate(context.Context, *RequestAcmeCertificateRequest) (*AcmeCertificate, error)
 	DeleteAcmeCertificate(context.Context, *DeleteAcmeCertificateRequest) (*DeleteAcmeCertificateReply, error)
+	// ACME DNS-01 challenge provider configuration.
+	ListAcmeDnsProviders(context.Context, *ListAcmeDnsProvidersRequest) (*ListAcmeDnsProvidersReply, error)
+	GetAcmeDnsProvider(context.Context, *GetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
+	SetAcmeDnsProvider(context.Context, *SetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
+	ClearAcmeDnsProvider(context.Context, *ClearAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	GetDashboardSummary(context.Context, *GetDashboardSummaryRequest) (*DashboardSummary, error)
 	// Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error)
@@ -953,6 +1007,18 @@ func (UnimplementedIrisAdminServiceServer) RequestAcmeCertificate(context.Contex
 }
 func (UnimplementedIrisAdminServiceServer) DeleteAcmeCertificate(context.Context, *DeleteAcmeCertificateRequest) (*DeleteAcmeCertificateReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteAcmeCertificate not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListAcmeDnsProviders(context.Context, *ListAcmeDnsProvidersRequest) (*ListAcmeDnsProvidersReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListAcmeDnsProviders not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) GetAcmeDnsProvider(context.Context, *GetAcmeDnsProviderRequest) (*AcmeDnsProvider, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAcmeDnsProvider not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) SetAcmeDnsProvider(context.Context, *SetAcmeDnsProviderRequest) (*AcmeDnsProvider, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetAcmeDnsProvider not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ClearAcmeDnsProvider(context.Context, *ClearAcmeDnsProviderRequest) (*AcmeDnsProvider, error) {
+	return nil, status.Error(codes.Unimplemented, "method ClearAcmeDnsProvider not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) GetDashboardSummary(context.Context, *GetDashboardSummaryRequest) (*DashboardSummary, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetDashboardSummary not implemented")
@@ -1884,6 +1950,78 @@ func _IrisAdminService_DeleteAcmeCertificate_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_ListAcmeDnsProviders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAcmeDnsProvidersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListAcmeDnsProviders(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListAcmeDnsProviders_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListAcmeDnsProviders(ctx, req.(*ListAcmeDnsProvidersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_GetAcmeDnsProvider_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAcmeDnsProviderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).GetAcmeDnsProvider(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_GetAcmeDnsProvider_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).GetAcmeDnsProvider(ctx, req.(*GetAcmeDnsProviderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_SetAcmeDnsProvider_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetAcmeDnsProviderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).SetAcmeDnsProvider(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_SetAcmeDnsProvider_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).SetAcmeDnsProvider(ctx, req.(*SetAcmeDnsProviderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ClearAcmeDnsProvider_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClearAcmeDnsProviderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ClearAcmeDnsProvider(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ClearAcmeDnsProvider_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ClearAcmeDnsProvider(ctx, req.(*ClearAcmeDnsProviderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_GetDashboardSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetDashboardSummaryRequest)
 	if err := dec(in); err != nil {
@@ -2144,6 +2282,22 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteAcmeCertificate",
 			Handler:    _IrisAdminService_DeleteAcmeCertificate_Handler,
+		},
+		{
+			MethodName: "ListAcmeDnsProviders",
+			Handler:    _IrisAdminService_ListAcmeDnsProviders_Handler,
+		},
+		{
+			MethodName: "GetAcmeDnsProvider",
+			Handler:    _IrisAdminService_GetAcmeDnsProvider_Handler,
+		},
+		{
+			MethodName: "SetAcmeDnsProvider",
+			Handler:    _IrisAdminService_SetAcmeDnsProvider_Handler,
+		},
+		{
+			MethodName: "ClearAcmeDnsProvider",
+			Handler:    _IrisAdminService_ClearAcmeDnsProvider_Handler,
 		},
 		{
 			MethodName: "GetDashboardSummary",

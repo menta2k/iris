@@ -180,7 +180,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	acmeTokens := acme.NewTokenStore()
 	acmeRepo := data.NewAcmeRepo(db)
 	acmeCertDir := envOr("IRIS_ACME_CERT_DIR", "/opt/kumomta/etc/tls")
-	acmeUC := biz.NewAcmeUsecase(acmeRepo, acmeRepo, acmeTokens, acmeCertDir, auditor)
+	acmeUC := biz.NewAcmeUsecase(acmeRepo, acmeRepo, acmeRepo, acmeTokens, acmeCertDir, auditor)
 
 	deps := service.Deps{
 		Log:          log,

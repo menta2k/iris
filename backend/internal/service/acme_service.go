@@ -82,6 +82,79 @@ func (s *Service) DeleteAcmeCertificate(ctx context.Context, req *adminv1.Delete
 	return &adminv1.DeleteAcmeCertificateReply{}, nil
 }
 
+// ListAcmeDnsProviders returns the supported DNS-01 providers and their fields.
+func (s *Service) ListAcmeDnsProviders(ctx context.Context, _ *adminv1.ListAcmeDnsProvidersRequest) (*adminv1.ListAcmeDnsProvidersReply, error) {
+	if s.acme == nil {
+		return nil, notImplemented("ListAcmeDnsProviders")
+	}
+	infos, err := s.acme.ListDnsProviders(ctx)
+	if err != nil {
+		return nil, s.fail(ctx, "ListAcmeDnsProviders", err)
+	}
+	out := &adminv1.ListAcmeDnsProvidersReply{}
+	for _, i := range infos {
+		out.Items = append(out.Items, &adminv1.AcmeDnsProviderInfo{
+			Name: i.Name, Description: i.Description,
+			RequiredFields: i.RequiredFields, OptionalFields: i.OptionalFields,
+		})
+	}
+	return out, nil
+}
+
+// GetAcmeDnsProvider returns the configured DNS-01 provider (values redacted).
+func (s *Service) GetAcmeDnsProvider(ctx context.Context, _ *adminv1.GetAcmeDnsProviderRequest) (*adminv1.AcmeDnsProvider, error) {
+	if s.acme == nil {
+		return nil, notImplemented("GetAcmeDnsProvider")
+	}
+	p, err := s.acme.GetDnsProvider(ctx)
+	if err != nil {
+		return nil, s.fail(ctx, "GetAcmeDnsProvider", err)
+	}
+	return acmeDnsProviderToProto(p), nil
+}
+
+// SetAcmeDnsProvider stores the DNS-01 provider credentials.
+func (s *Service) SetAcmeDnsProvider(ctx context.Context, req *adminv1.SetAcmeDnsProviderRequest) (*adminv1.AcmeDnsProvider, error) {
+	if s.acme == nil {
+		return nil, notImplemented("SetAcmeDnsProvider")
+	}
+	if err := s.acme.SetDnsProvider(ctx, req.GetProvider(), req.GetConfig()); err != nil {
+		return nil, s.fail(ctx, "SetAcmeDnsProvider", err)
+	}
+	p, err := s.acme.GetDnsProvider(ctx)
+	if err != nil {
+		return nil, s.fail(ctx, "SetAcmeDnsProvider", err)
+	}
+	return acmeDnsProviderToProto(p), nil
+}
+
+// ClearAcmeDnsProvider removes the DNS-01 provider (falls back to HTTP-01).
+func (s *Service) ClearAcmeDnsProvider(ctx context.Context, _ *adminv1.ClearAcmeDnsProviderRequest) (*adminv1.AcmeDnsProvider, error) {
+	if s.acme == nil {
+		return nil, notImplemented("ClearAcmeDnsProvider")
+	}
+	if err := s.acme.ClearDnsProvider(ctx); err != nil {
+		return nil, s.fail(ctx, "ClearAcmeDnsProvider", err)
+	}
+	p, err := s.acme.GetDnsProvider(ctx)
+	if err != nil {
+		return nil, s.fail(ctx, "ClearAcmeDnsProvider", err)
+	}
+	return acmeDnsProviderToProto(p), nil
+}
+
+func acmeDnsProviderToProto(p *biz.AcmeDnsProvider) *adminv1.AcmeDnsProvider {
+	updatedAt := ""
+	if !p.UpdatedAt.IsZero() {
+		updatedAt = p.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z07:00")
+	}
+	config := p.Config
+	if config == nil {
+		config = map[string]string{}
+	}
+	return &adminv1.AcmeDnsProvider{Provider: p.Provider, Config: config, UpdatedAt: updatedAt}
+}
+
 func acmeAccountToProto(a *biz.AcmeAccount) *adminv1.AcmeAccount {
 	updatedAt := ""
 	if !a.UpdatedAt.IsZero() {
