@@ -114,8 +114,8 @@ export interface UpdateVMTAGroupRequest {
 }
 
 // Backend enum values (lowercase).
-export type MatchType = 'mailclass' | 'recipient_email' | 'recipient_domain' | string
-export type TargetType = 'vmta' | 'vmta_group' | string
+export type MatchType = 'mailclass' | 'recipient_email' | 'recipient_domain' | 'sender_ip' | string
+export type TargetType = 'vmta' | 'vmta_group' | '' | string
 
 // Response type: camelCase. matchHeader is the header NAME for a mailclass match.
 export interface RoutingRule {
@@ -127,6 +127,9 @@ export interface RoutingRule {
   priority: number
   targetType: TargetType
   targetId: string
+  // assignMailclass is the class applied by a sender_ip rule (matchValue is
+  // then an IP or CIDR). Empty for other match types.
+  assignMailclass?: string
   status: string
 }
 
@@ -138,6 +141,7 @@ export interface CreateRoutingRuleRequest {
   priority: number
   target_type: TargetType
   target_id: string
+  assign_mailclass?: string
 }
 
 export interface UpdateRoutingRuleRequest {
@@ -148,6 +152,7 @@ export interface UpdateRoutingRuleRequest {
   priority: number
   target_type: TargetType
   target_id: string
+  assign_mailclass?: string
   status: string
 }
 

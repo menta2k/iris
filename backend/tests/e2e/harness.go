@@ -101,6 +101,10 @@ func representativeSnapshot() biz.ConfigSnapshot {
 				Priority: 90, TargetType: biz.TargetVMTA, TargetID: "v2", Status: biz.RoutingStatusActive},
 			{ID: "r3", Name: "vip", MatchType: biz.MatchRecipientDomain, MatchValue: "vip.example",
 				Priority: 10, TargetType: biz.TargetVMTA, TargetID: "v1", Status: biz.RoutingStatusActive},
+			{ID: "r4", Name: "lab-subnet", MatchType: biz.MatchSenderIP, MatchValue: "10.1.111.0/24",
+				AssignMailclass: "bulk", Priority: 200, Status: biz.RoutingStatusActive},
+			{ID: "r5", Name: "test-host", MatchType: biz.MatchSenderIP, MatchValue: "192.0.2.50",
+				AssignMailclass: "bulk", Priority: 150, Status: biz.RoutingStatusActive},
 		},
 		DKIM: []*biz.DKIMDomain{
 			{ID: "d1", Domain: "example.com", Selector: "s1", PrivateKeyRef: harnessDKIMKey(), Status: biz.DKIMReady},

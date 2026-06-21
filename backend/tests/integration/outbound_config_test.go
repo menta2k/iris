@@ -62,6 +62,50 @@ func TestOutboundConfigPersistence(t *testing.T) {
 	}
 }
 
+// TestSenderIPRoutingRule verifies a sender_ip classification rule round-trips
+// through the repo: it persists with a null target and an assigned mailclass,
+// and lists back intact.
+func TestSenderIPRoutingRule(t *testing.T) {
+	db := setupDB(t)
+	uc := biz.NewOutboundConfigUsecase(data.NewOutboundConfigRepo(db), nil)
+	ctx := ownerCtx()
+
+	created, err := uc.CreateRoutingRule(ctx, &biz.RoutingRule{
+		Name: "lab-subnet", MatchType: biz.MatchSenderIP, MatchValue: "10.1.111.0/24",
+		AssignMailclass: "test-class", Priority: 200,
+	})
+	if err != nil {
+		t.Fatalf("create sender_ip rule: %v", err)
+	}
+	if created.TargetID != "" || created.TargetType != "" {
+		t.Fatalf("sender_ip rule should have no target, got type=%q id=%q", created.TargetType, created.TargetID)
+	}
+	if created.AssignMailclass != "test-class" {
+		t.Fatalf("expected assign_mailclass test-class, got %q", created.AssignMailclass)
+	}
+
+	rules, err := uc.ListRoutingRules(ctx, biz.MatchSenderIP, "", biz.NormalizePage(0, ""))
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(rules) != 1 || rules[0].MatchValue != "10.1.111.0/24" || rules[0].AssignMailclass != "test-class" {
+		t.Fatalf("unexpected sender_ip rules: %+v", rules)
+	}
+
+	// A sender_ip rule with no assigned class is rejected.
+	if _, err := uc.CreateRoutingRule(ctx, &biz.RoutingRule{
+		Name: "bad", MatchType: biz.MatchSenderIP, MatchValue: "10.0.0.1",
+	}); err == nil {
+		t.Fatal("expected rejection of sender_ip rule with no assign_mailclass")
+	}
+	// An invalid IP/CIDR is rejected.
+	if _, err := uc.CreateRoutingRule(ctx, &biz.RoutingRule{
+		Name: "bad2", MatchType: biz.MatchSenderIP, MatchValue: "not-an-ip", AssignMailclass: "x",
+	}); err == nil {
+		t.Fatal("expected rejection of invalid sender_ip match value")
+	}
+}
+
 // TestUniqueActiveListenerBindRejected verifies the active listener bind
 // (ip:port) uniqueness constraint maps to a conflict error.
 func TestUniqueActiveListenerBindRejected(t *testing.T) {

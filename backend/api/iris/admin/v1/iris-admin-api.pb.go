@@ -840,9 +840,12 @@ type RoutingRule struct {
 	Status     string                 `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"`
 	// match_header is the header NAME for a mailclass match (e.g. "X-Mail-Class").
 	// Empty for recipient matches.
-	MatchHeader   string `protobuf:"bytes,9,opt,name=match_header,json=matchHeader,proto3" json:"match_header,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	MatchHeader string `protobuf:"bytes,9,opt,name=match_header,json=matchHeader,proto3" json:"match_header,omitempty"`
+	// assign_mailclass is the class applied by a sender_ip rule (match_value is
+	// then an IP or CIDR). Empty for other match types, which use target instead.
+	AssignMailclass string `protobuf:"bytes,10,opt,name=assign_mailclass,json=assignMailclass,proto3" json:"assign_mailclass,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *RoutingRule) Reset() {
@@ -934,6 +937,13 @@ func (x *RoutingRule) GetStatus() string {
 func (x *RoutingRule) GetMatchHeader() string {
 	if x != nil {
 		return x.MatchHeader
+	}
+	return ""
+}
+
+func (x *RoutingRule) GetAssignMailclass() string {
+	if x != nil {
+		return x.AssignMailclass
 	}
 	return ""
 }
@@ -1515,16 +1525,17 @@ func (x *ListRoutingRulesReply) GetPage() *PageReply {
 }
 
 type CreateRoutingRuleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	MatchType     string                 `protobuf:"bytes,2,opt,name=match_type,json=matchType,proto3" json:"match_type,omitempty"`
-	MatchValue    string                 `protobuf:"bytes,3,opt,name=match_value,json=matchValue,proto3" json:"match_value,omitempty"`
-	Priority      int32                  `protobuf:"varint,4,opt,name=priority,proto3" json:"priority,omitempty"`
-	TargetType    string                 `protobuf:"bytes,5,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
-	TargetId      string                 `protobuf:"bytes,6,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
-	MatchHeader   string                 `protobuf:"bytes,7,opt,name=match_header,json=matchHeader,proto3" json:"match_header,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Name            string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	MatchType       string                 `protobuf:"bytes,2,opt,name=match_type,json=matchType,proto3" json:"match_type,omitempty"`
+	MatchValue      string                 `protobuf:"bytes,3,opt,name=match_value,json=matchValue,proto3" json:"match_value,omitempty"`
+	Priority        int32                  `protobuf:"varint,4,opt,name=priority,proto3" json:"priority,omitempty"`
+	TargetType      string                 `protobuf:"bytes,5,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
+	TargetId        string                 `protobuf:"bytes,6,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
+	MatchHeader     string                 `protobuf:"bytes,7,opt,name=match_header,json=matchHeader,proto3" json:"match_header,omitempty"`
+	AssignMailclass string                 `protobuf:"bytes,8,opt,name=assign_mailclass,json=assignMailclass,proto3" json:"assign_mailclass,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *CreateRoutingRuleRequest) Reset() {
@@ -1606,19 +1617,27 @@ func (x *CreateRoutingRuleRequest) GetMatchHeader() string {
 	return ""
 }
 
+func (x *CreateRoutingRuleRequest) GetAssignMailclass() string {
+	if x != nil {
+		return x.AssignMailclass
+	}
+	return ""
+}
+
 type UpdateRoutingRuleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	MatchType     string                 `protobuf:"bytes,3,opt,name=match_type,json=matchType,proto3" json:"match_type,omitempty"`
-	MatchValue    string                 `protobuf:"bytes,4,opt,name=match_value,json=matchValue,proto3" json:"match_value,omitempty"`
-	Priority      int32                  `protobuf:"varint,5,opt,name=priority,proto3" json:"priority,omitempty"`
-	TargetType    string                 `protobuf:"bytes,6,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
-	TargetId      string                 `protobuf:"bytes,7,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
-	Status        string                 `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"`
-	MatchHeader   string                 `protobuf:"bytes,9,opt,name=match_header,json=matchHeader,proto3" json:"match_header,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name            string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	MatchType       string                 `protobuf:"bytes,3,opt,name=match_type,json=matchType,proto3" json:"match_type,omitempty"`
+	MatchValue      string                 `protobuf:"bytes,4,opt,name=match_value,json=matchValue,proto3" json:"match_value,omitempty"`
+	Priority        int32                  `protobuf:"varint,5,opt,name=priority,proto3" json:"priority,omitempty"`
+	TargetType      string                 `protobuf:"bytes,6,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
+	TargetId        string                 `protobuf:"bytes,7,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
+	Status          string                 `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"`
+	MatchHeader     string                 `protobuf:"bytes,9,opt,name=match_header,json=matchHeader,proto3" json:"match_header,omitempty"`
+	AssignMailclass string                 `protobuf:"bytes,10,opt,name=assign_mailclass,json=assignMailclass,proto3" json:"assign_mailclass,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UpdateRoutingRuleRequest) Reset() {
@@ -1710,6 +1729,13 @@ func (x *UpdateRoutingRuleRequest) GetStatus() string {
 func (x *UpdateRoutingRuleRequest) GetMatchHeader() string {
 	if x != nil {
 		return x.MatchHeader
+	}
+	return ""
+}
+
+func (x *UpdateRoutingRuleRequest) GetAssignMailclass() string {
+	if x != nil {
+		return x.AssignMailclass
 	}
 	return ""
 }
@@ -6880,7 +6906,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\amembers\x18\x04 \x03(\v2\x1e.iris.admin.v1.VMTAGroupMemberR\amembers\"B\n" +
 	"\x0fVMTAGroupMember\x12\x17\n" +
 	"\avmta_id\x18\x01 \x01(\tR\x06vmtaId\x12\x16\n" +
-	"\x06weight\x18\x02 \x01(\x05R\x06weight\"\x86\x02\n" +
+	"\x06weight\x18\x02 \x01(\x05R\x06weight\"\xb1\x02\n" +
 	"\vRoutingRule\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
@@ -6893,7 +6919,9 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"targetType\x12\x1b\n" +
 	"\ttarget_id\x18\a \x01(\tR\btargetId\x12\x16\n" +
 	"\x06status\x18\b \x01(\tR\x06status\x12!\n" +
-	"\fmatch_header\x18\t \x01(\tR\vmatchHeader\"Z\n" +
+	"\fmatch_header\x18\t \x01(\tR\vmatchHeader\x12)\n" +
+	"\x10assign_mailclass\x18\n" +
+	" \x01(\tR\x0fassignMailclass\"Z\n" +
 	"\x10ListVMTAsRequest\x12.\n" +
 	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\"i\n" +
@@ -6934,7 +6962,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"matchValue\"w\n" +
 	"\x15ListRoutingRulesReply\x120\n" +
 	"\x05items\x18\x01 \x03(\v2\x1a.iris.admin.v1.RoutingRuleR\x05items\x12,\n" +
-	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\xeb\x01\n" +
+	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\x96\x02\n" +
 	"\x18CreateRoutingRuleRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
@@ -6945,7 +6973,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\vtarget_type\x18\x05 \x01(\tR\n" +
 	"targetType\x12\x1b\n" +
 	"\ttarget_id\x18\x06 \x01(\tR\btargetId\x12!\n" +
-	"\fmatch_header\x18\a \x01(\tR\vmatchHeader\"\x93\x02\n" +
+	"\fmatch_header\x18\a \x01(\tR\vmatchHeader\x12)\n" +
+	"\x10assign_mailclass\x18\b \x01(\tR\x0fassignMailclass\"\xbe\x02\n" +
 	"\x18UpdateRoutingRuleRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
@@ -6958,7 +6987,9 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"targetType\x12\x1b\n" +
 	"\ttarget_id\x18\a \x01(\tR\btargetId\x12\x16\n" +
 	"\x06status\x18\b \x01(\tR\x06status\x12!\n" +
-	"\fmatch_header\x18\t \x01(\tR\vmatchHeader\"\xa6\x02\n" +
+	"\fmatch_header\x18\t \x01(\tR\vmatchHeader\x12)\n" +
+	"\x10assign_mailclass\x18\n" +
+	" \x01(\tR\x0fassignMailclass\"\xa6\x02\n" +
 	"\n" +
 	"MailRecord\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +

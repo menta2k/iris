@@ -473,18 +473,20 @@ local function classify_mail(msg)
 end
 `)
 
+	writeSenderIPClasses(b, routes)
+
 	b.WriteString(`
 -- select_pool walks ROUTES (ordered by descending priority) and returns the
--- egress pool of the first matching rule. A mailclass rule reads its own
--- configured header and compares the value; recipient rules match the
--- envelope recipient / its domain.
-local function select_pool(msg, recipient)
+-- egress pool of the first matching rule. A mailclass rule matches its header
+-- value OR the message's already-resolved class (e.g. one assigned by a
+-- sender_ip rule); recipient rules match the envelope recipient / its domain.
+local function select_pool(msg, recipient, class)
   local domain = recipient:match('@(.+)$') or ''
   for _, route in ipairs(ROUTES) do
     local matched = false
     if route.match_type == 'mailclass' then
       local hv = msg:get_first_named_header_value(route.match_header)
-      matched = (hv ~= nil and hv == route.match_value)
+      matched = (hv ~= nil and hv == route.match_value) or (class ~= nil and class == route.match_value)
     elseif route.match_type == 'recipient_email' then
       matched = (route.match_value == recipient)
     elseif route.match_type == 'recipient_domain' then
@@ -524,10 +526,14 @@ kumo.on('smtp_server_message_received', function(msg)
   end
   iris_dkim_sign(msg)
   local class = classify_mail(msg)
+  if not class then
+    -- Fallback: classify by the connecting client's IP when no header did.
+    class = classify_by_sender_ip(msg)
+  end
   if class then
     msg:set_meta('mailclass', class)
   end
-  local pool = select_pool(msg, recipient)
+  local pool = select_pool(msg, recipient, class)
   if pool then
     msg:set_meta('tenant', pool)
   end
@@ -535,6 +541,66 @@ end)
 
 `)
 	return n
+}
+
+// senderIPClassifyLua defines the runtime helpers for sender-IP classification:
+// pure-Lua IPv4/CIDR matching (no bitwise ops, for Lua-version safety) and the
+// classify_by_sender_ip fallback. Non-IPv4 specs fall back to an exact match.
+const senderIPClassifyLua = `
+local function _ipv4_to_int(ip)
+  local a, b, c, d = ip:match('^(%d+)%.(%d+)%.(%d+)%.(%d+)$')
+  if not a then return nil end
+  a, b, c, d = tonumber(a), tonumber(b), tonumber(c), tonumber(d)
+  if a > 255 or b > 255 or c > 255 or d > 255 then return nil end
+  return ((a * 256 + b) * 256 + c) * 256 + d
+end
+
+local function _ip_matches(ip, spec)
+  local net_s, bits_s = spec:match('^(.-)/(%d+)$')
+  if not net_s then return ip == spec end
+  local ipi = _ipv4_to_int(ip)
+  local neti = _ipv4_to_int(net_s)
+  if not ipi or not neti then return false end
+  local bits = tonumber(bits_s)
+  if bits <= 0 then return true end
+  if bits >= 32 then return ipi == neti end
+  local div = 2 ^ (32 - bits)
+  return math.floor(ipi / div) == math.floor(neti / div)
+end
+
+-- classify_by_sender_ip returns the mailclass configured for the connecting
+-- client IP, or nil. Only consulted as a fallback when no header classified.
+local function classify_by_sender_ip(msg)
+  if #SENDER_IP_CLASSES == 0 then return nil end
+  local ok, peer = pcall(function() return msg:get_meta('received_from') end)
+  if not ok or peer == nil or peer == '' then return nil end
+  peer = tostring(peer)
+  local ip = peer:match('^(%d+%.%d+%.%d+%.%d+)') or peer
+  for _, rule in ipairs(SENDER_IP_CLASSES) do
+    if _ip_matches(ip, rule.cidr) then return rule.mailclass end
+  end
+  return nil
+end
+`
+
+// writeSenderIPClasses emits the SENDER_IP_CLASSES table (CIDR → mailclass, in
+// descending priority) plus the classification helpers. Rules are emitted in
+// the same priority order as ROUTES so the highest-priority IP rule wins.
+func writeSenderIPClasses(b *strings.Builder, routes []*RoutingRule) {
+	b.WriteString("\n-- ===== sender-IP classification (fallback when no mailclass header) =====\n")
+	b.WriteString("local SENDER_IP_CLASSES = {\n")
+	for _, r := range sortedRoutes(routes) {
+		if r.Status != RoutingStatusActive || r.MatchType != MatchSenderIP {
+			continue
+		}
+		if r.MatchValue == "" || r.AssignMailclass == "" {
+			continue
+		}
+		fmt.Fprintf(b, "  { cidr = %s, mailclass = %s },\n",
+			MustLuaString(r.MatchValue), MustLuaString(r.AssignMailclass))
+	}
+	b.WriteString("}\n")
+	b.WriteString(senderIPClassifyLua)
 }
 
 func writeQueueConfig(b *strings.Builder, snap ConfigSnapshot) {

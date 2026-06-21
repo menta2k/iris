@@ -1281,6 +1281,8 @@ components:
                     type: string
                 match_header:
                     type: string
+                assign_mailclass:
+                    type: string
         CreateSuppressionRequest:
             type: object
             properties:
@@ -1835,6 +1837,11 @@ components:
                     description: |-
                         match_header is the header NAME for a mailclass match (e.g. "X-Mail-Class").
                          Empty for recipient matches.
+                assign_mailclass:
+                    type: string
+                    description: |-
+                        assign_mailclass is the class applied by a sender_ip rule (match_value is
+                         then an IP or CIDR). Empty for other match types, which use target instead.
         RspamdResult:
             type: object
             properties:
@@ -1982,6 +1989,8 @@ components:
                 status:
                     type: string
                 match_header:
+                    type: string
+                assign_mailclass:
                     type: string
         UpdateSuppressionRequest:
             type: object

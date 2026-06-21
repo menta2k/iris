@@ -57,6 +57,7 @@ const matchTypes = [
   { value: 'mailclass', label: 'Mail Class (header + value)' },
   { value: 'recipient_email', label: 'Recipient Email' },
   { value: 'recipient_domain', label: 'Recipient Domain' },
+  { value: 'sender_ip', label: 'Sender IP → assign mail class' },
 ]
 const targetTypes = [
   { value: 'vmta', label: 'VMTA' },
@@ -76,11 +77,20 @@ const form = ref({
   priority: 100,
   target_type: 'vmta_group',
   target_id: '',
+  assign_mailclass: '',
   status: 'active',
 })
 
 const isEdit = computed(() => mode.value === 'edit')
 const isMailclass = computed(() => form.value.match_type === 'mailclass')
+// sender_ip rules classify by IP/CIDR and assign a mailclass; they have no
+// VMTA/group target.
+const isSenderIP = computed(() => form.value.match_type === 'sender_ip')
+// The form is submittable when the type-specific required fields are present.
+const canSubmit = computed(() => {
+  if (!form.value.name || !form.value.match_value) return false
+  return isSenderIP.value ? !!form.value.assign_mailclass : !!form.value.target_id
+})
 
 // Options for the Target dropdown follow the selected target type.
 const targetOptions = computed(() =>
@@ -96,6 +106,12 @@ function onTargetTypeChange() {
     form.value.target_id = ''
   }
   ensureTargetSelected()
+}
+
+// When switching to a targeted match type, make sure a target is preselected so
+// the form is immediately valid.
+function onMatchTypeChange() {
+  if (form.value.match_type !== 'sender_ip') ensureTargetSelected()
 }
 
 // Resolve a rule's target id to a human name for the table.
@@ -119,6 +135,7 @@ async function openCreate() {
     priority: 100,
     target_type: 'vmta_group',
     target_id: '',
+    assign_mailclass: '',
     status: 'active',
   }
   dialogOpen.value = true
@@ -134,8 +151,9 @@ async function openEdit(r: RoutingRule) {
     match_header: r.matchHeader || 'X-Mail-Class',
     match_value: r.matchValue,
     priority: r.priority,
-    target_type: r.targetType,
+    target_type: r.targetType || 'vmta_group',
     target_id: r.targetId,
+    assign_mailclass: r.assignMailclass || '',
     status: (r.status || 'active').toLowerCase(),
   }
   dialogOpen.value = true
@@ -143,28 +161,31 @@ async function openEdit(r: RoutingRule) {
 }
 
 async function submit() {
-  if (!form.value.name || !form.value.match_value || !form.value.target_id) return
+  if (!canSubmit.value) return
   saving.value = true
   try {
-    // match_header only applies to mailclass matches.
+    // match_header only applies to mailclass matches; sender_ip rules carry an
+    // assigned class and no VMTA/group target.
     const matchHeader = form.value.match_type === 'mailclass' ? form.value.match_header : ''
+    const senderIP = form.value.match_type === 'sender_ip'
+    const payload = {
+      name: form.value.name,
+      match_type: form.value.match_type,
+      match_header: matchHeader,
+      match_value: form.value.match_value,
+      priority: Number(form.value.priority),
+      target_type: senderIP ? '' : form.value.target_type,
+      target_id: senderIP ? '' : form.value.target_id,
+      assign_mailclass: senderIP ? form.value.assign_mailclass : '',
+    }
     if (isEdit.value && editId.value) {
       await outboundConfigService.updateRoutingRule(editId.value, {
-        ...form.value,
-        match_header: matchHeader,
-        priority: Number(form.value.priority),
+        ...payload,
+        status: form.value.status,
       })
       toast({ title: 'Routing rule updated', description: form.value.name, variant: 'success' })
     } else {
-      await outboundConfigService.createRoutingRule({
-        name: form.value.name,
-        match_type: form.value.match_type,
-        match_header: matchHeader,
-        match_value: form.value.match_value,
-        priority: Number(form.value.priority),
-        target_type: form.value.target_type,
-        target_id: form.value.target_id,
-      })
+      await outboundConfigService.createRoutingRule(payload)
       toast({ title: 'Routing rule created', description: form.value.name, variant: 'success' })
     }
     dialogOpen.value = false
@@ -217,8 +238,14 @@ async function submit() {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="secondary">{{ r.targetType }}</Badge>
-                  <span class="ml-2 text-xs">{{ targetName(r) }}</span>
+                  <template v-if="r.matchType === 'sender_ip'">
+                    <Badge variant="secondary">mail class</Badge>
+                    <span class="ml-2 font-mono text-xs">{{ r.assignMailclass }}</span>
+                  </template>
+                  <template v-else>
+                    <Badge variant="secondary">{{ r.targetType }}</Badge>
+                    <span class="ml-2 text-xs">{{ targetName(r) }}</span>
+                  </template>
                 </TableCell>
                 <TableCell><StatusBadge :status="r.status" /></TableCell>
                 <TableCell class="text-right">
@@ -250,16 +277,18 @@ async function submit() {
         <div class="grid grid-cols-2 gap-3">
           <div class="space-y-1.5">
             <Label for="rr-match-type">Match Type</Label>
-            <Select id="rr-match-type" v-model="form.match_type">
+            <Select id="rr-match-type" v-model="form.match_type" @change="onMatchTypeChange">
               <option v-for="t in matchTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
             </Select>
           </div>
           <div class="space-y-1.5">
-            <Label for="rr-match-value">{{ isMailclass ? 'Header Value' : 'Match Value' }}</Label>
+            <Label for="rr-match-value">{{
+              isMailclass ? 'Header Value' : isSenderIP ? 'Sender IP / CIDR' : 'Match Value'
+            }}</Label>
             <Input
               id="rr-match-value"
               v-model="form.match_value"
-              :placeholder="isMailclass ? 'bulk' : 'gmail.com'"
+              :placeholder="isMailclass ? 'bulk' : isSenderIP ? '10.1.111.0/24' : 'gmail.com'"
             />
           </div>
         </div>
@@ -271,7 +300,21 @@ async function submit() {
             header equals the value above.
           </p>
         </div>
-        <div class="grid grid-cols-2 gap-3">
+        <div v-if="isSenderIP" class="space-y-1.5">
+          <Label for="rr-assign-mailclass">Assign Mail Class</Label>
+          <Input
+            id="rr-assign-mailclass"
+            v-model="form.assign_mailclass"
+            data-testid="rr-assign-mailclass"
+            placeholder="test-class"
+          />
+          <p class="text-xs text-muted-foreground">
+            Mail from this IP/CIDR with no mail-class header is tagged
+            <span class="font-mono">{{ form.assign_mailclass || 'test-class' }}</span> and then
+            follows that class's routing rule.
+          </p>
+        </div>
+        <div v-if="!isSenderIP" class="grid grid-cols-2 gap-3">
           <div class="space-y-1.5">
             <Label for="rr-target-type">Target Type</Label>
             <Select id="rr-target-type" v-model="form.target_type" @change="onTargetTypeChange">
@@ -302,10 +345,7 @@ async function submit() {
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" @click="dialogOpen = false">Cancel</Button>
-          <Button
-            type="submit"
-            :disabled="saving || !form.name || !form.match_value || !form.target_id"
-          >
+          <Button type="submit" :disabled="saving || !canSubmit">
             {{ saving ? 'Saving…' : isEdit ? 'Save' : 'Create' }}
           </Button>
         </DialogFooter>
