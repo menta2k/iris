@@ -21,6 +21,7 @@ const _ = http.SupportPackageIsVersion1
 
 const OperationIrisAdminServiceApplyKumoConfig = "/iris.admin.v1.IrisAdminService/ApplyKumoConfig"
 const OperationIrisAdminServiceChangePassword = "/iris.admin.v1.IrisAdminService/ChangePassword"
+const OperationIrisAdminServiceCheckDomainBounceSetup = "/iris.admin.v1.IrisAdminService/CheckDomainBounceSetup"
 const OperationIrisAdminServiceClearAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/ClearAcmeDnsProvider"
 const OperationIrisAdminServiceConfirmMFA = "/iris.admin.v1.IrisAdminService/ConfirmMFA"
 const OperationIrisAdminServiceCreateDKIMDomain = "/iris.admin.v1.IrisAdminService/CreateDKIMDomain"
@@ -83,6 +84,9 @@ type IrisAdminServiceHTTPServer interface {
 	ApplyKumoConfig(context.Context, *ApplyKumoConfigRequest) (*ApplyKumoConfigReply, error)
 	// ChangePassword ChangePassword updates the calling user's own password.
 	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordReply, error)
+	// CheckDomainBounceSetup CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
+	// (authorizes our egress IPs), and DKIM (selector records) via live DNS.
+	CheckDomainBounceSetup(context.Context, *CheckDomainBounceSetupRequest) (*DomainBounceCheck, error)
 	ClearAcmeDnsProvider(context.Context, *ClearAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	ConfirmMFA(context.Context, *ConfirmMFARequest) (*ConfirmMFAReply, error)
 	CreateDKIMDomain(context.Context, *CreateDKIMDomainRequest) (*DKIMDomain, error)
@@ -228,6 +232,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.PUT("/v1/acme/dns-provider", _IrisAdminService_SetAcmeDnsProvider0_HTTP_Handler(srv))
 	r.DELETE("/v1/acme/dns-provider", _IrisAdminService_ClearAcmeDnsProvider0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/summary", _IrisAdminService_GetDashboardSummary0_HTTP_Handler(srv))
+	r.GET("/v1/domain-check/{domain}", _IrisAdminService_CheckDomainBounceSetup0_HTTP_Handler(srv))
 	r.GET("/v1/settings", _IrisAdminService_GetGlobalSettings0_HTTP_Handler(srv))
 	r.PUT("/v1/settings", _IrisAdminService_UpdateGlobalSettings0_HTTP_Handler(srv))
 }
@@ -1397,6 +1402,28 @@ func _IrisAdminService_GetDashboardSummary0_HTTP_Handler(srv IrisAdminServiceHTT
 	}
 }
 
+func _IrisAdminService_CheckDomainBounceSetup0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CheckDomainBounceSetupRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCheckDomainBounceSetup)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CheckDomainBounceSetup(ctx, req.(*CheckDomainBounceSetupRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DomainBounceCheck)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_GetGlobalSettings0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetGlobalSettingsRequest
@@ -1444,6 +1471,9 @@ type IrisAdminServiceHTTPClient interface {
 	ApplyKumoConfig(ctx context.Context, req *ApplyKumoConfigRequest, opts ...http.CallOption) (rsp *ApplyKumoConfigReply, err error)
 	// ChangePassword ChangePassword updates the calling user's own password.
 	ChangePassword(ctx context.Context, req *ChangePasswordRequest, opts ...http.CallOption) (rsp *ChangePasswordReply, err error)
+	// CheckDomainBounceSetup CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
+	// (authorizes our egress IPs), and DKIM (selector records) via live DNS.
+	CheckDomainBounceSetup(ctx context.Context, req *CheckDomainBounceSetupRequest, opts ...http.CallOption) (rsp *DomainBounceCheck, err error)
 	ClearAcmeDnsProvider(ctx context.Context, req *ClearAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	ConfirmMFA(ctx context.Context, req *ConfirmMFARequest, opts ...http.CallOption) (rsp *ConfirmMFAReply, err error)
 	CreateDKIMDomain(ctx context.Context, req *CreateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
@@ -1563,6 +1593,21 @@ func (c *IrisAdminServiceHTTPClientImpl) ChangePassword(ctx context.Context, in 
 	opts = append(opts, http.Operation(OperationIrisAdminServiceChangePassword))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// CheckDomainBounceSetup CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
+// (authorizes our egress IPs), and DKIM (selector records) via live DNS.
+func (c *IrisAdminServiceHTTPClientImpl) CheckDomainBounceSetup(ctx context.Context, in *CheckDomainBounceSetupRequest, opts ...http.CallOption) (*DomainBounceCheck, error) {
+	var out DomainBounceCheck
+	pattern := "/v1/domain-check/{domain}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCheckDomainBounceSetup))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

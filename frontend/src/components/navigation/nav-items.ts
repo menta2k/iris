@@ -57,6 +57,11 @@ export const navSections: NavSection[] = [
         to: '/operations/acme',
         permission: 'service:control',
       },
+      {
+        label: 'Domain Bounce Readiness',
+        to: '/operations/domain-check',
+        permission: 'service:control',
+      },
     ],
   },
   {

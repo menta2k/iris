@@ -182,8 +182,10 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// US5 inbound automation: webhook + Rspamd use case and workers.
 	inboundRepo := data.NewInboundRepo(db)
 
-	kumoConfigUC := biz.NewKumoConfigUsecase(
-		data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo), kumo, mailOpsRepo, auditor, settingsUC)
+	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo)
+	kumoConfigUC := biz.NewKumoConfigUsecase(kumoSnapshotRepo, kumo, mailOpsRepo, auditor, settingsUC)
+	// Domain bounce-readiness checker (MX/SPF/DKIM via live DNS).
+	domainCheckUC := biz.NewDomainCheckUsecase(kumoSnapshotRepo, nil)
 
 	inboundUC := biz.NewInboundUsecase(inboundRepo, auditor, cfg.KumoMTA.Stub)
 
@@ -237,6 +239,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		KumoConfig:   kumoConfigUC,
 		Settings:     settingsUC,
 		Acme:         acmeUC,
+		DomainCheck:  domainCheckUC,
 	}
 
 	svc := service.NewService(deps)

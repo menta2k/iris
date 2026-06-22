@@ -74,6 +74,7 @@ const (
 	IrisAdminService_SetAcmeDnsProvider_FullMethodName     = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
 	IrisAdminService_ClearAcmeDnsProvider_FullMethodName   = "/iris.admin.v1.IrisAdminService/ClearAcmeDnsProvider"
 	IrisAdminService_GetDashboardSummary_FullMethodName    = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
+	IrisAdminService_CheckDomainBounceSetup_FullMethodName = "/iris.admin.v1.IrisAdminService/CheckDomainBounceSetup"
 	IrisAdminService_GetGlobalSettings_FullMethodName      = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
 	IrisAdminService_UpdateGlobalSettings_FullMethodName   = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
 )
@@ -170,6 +171,9 @@ type IrisAdminServiceClient interface {
 	SetAcmeDnsProvider(ctx context.Context, in *SetAcmeDnsProviderRequest, opts ...grpc.CallOption) (*AcmeDnsProvider, error)
 	ClearAcmeDnsProvider(ctx context.Context, in *ClearAcmeDnsProviderRequest, opts ...grpc.CallOption) (*AcmeDnsProvider, error)
 	GetDashboardSummary(ctx context.Context, in *GetDashboardSummaryRequest, opts ...grpc.CallOption) (*DashboardSummary, error)
+	// CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
+	// (authorizes our egress IPs), and DKIM (selector records) via live DNS.
+	CheckDomainBounceSetup(ctx context.Context, in *CheckDomainBounceSetupRequest, opts ...grpc.CallOption) (*DomainBounceCheck, error)
 	// Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(ctx context.Context, in *GetGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error)
 	UpdateGlobalSettings(ctx context.Context, in *UpdateGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error)
@@ -733,6 +737,16 @@ func (c *irisAdminServiceClient) GetDashboardSummary(ctx context.Context, in *Ge
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) CheckDomainBounceSetup(ctx context.Context, in *CheckDomainBounceSetupRequest, opts ...grpc.CallOption) (*DomainBounceCheck, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DomainBounceCheck)
+	err := c.cc.Invoke(ctx, IrisAdminService_CheckDomainBounceSetup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) GetGlobalSettings(ctx context.Context, in *GetGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GlobalSettings)
@@ -845,6 +859,9 @@ type IrisAdminServiceServer interface {
 	SetAcmeDnsProvider(context.Context, *SetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	ClearAcmeDnsProvider(context.Context, *ClearAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	GetDashboardSummary(context.Context, *GetDashboardSummaryRequest) (*DashboardSummary, error)
+	// CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
+	// (authorizes our egress IPs), and DKIM (selector records) via live DNS.
+	CheckDomainBounceSetup(context.Context, *CheckDomainBounceSetupRequest) (*DomainBounceCheck, error)
 	// Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error)
 	UpdateGlobalSettings(context.Context, *UpdateGlobalSettingsRequest) (*GlobalSettings, error)
@@ -1022,6 +1039,9 @@ func (UnimplementedIrisAdminServiceServer) ClearAcmeDnsProvider(context.Context,
 }
 func (UnimplementedIrisAdminServiceServer) GetDashboardSummary(context.Context, *GetDashboardSummaryRequest) (*DashboardSummary, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetDashboardSummary not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) CheckDomainBounceSetup(context.Context, *CheckDomainBounceSetupRequest) (*DomainBounceCheck, error) {
+	return nil, status.Error(codes.Unimplemented, "method CheckDomainBounceSetup not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetGlobalSettings not implemented")
@@ -2040,6 +2060,24 @@ func _IrisAdminService_GetDashboardSummary_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_CheckDomainBounceSetup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckDomainBounceSetupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).CheckDomainBounceSetup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_CheckDomainBounceSetup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).CheckDomainBounceSetup(ctx, req.(*CheckDomainBounceSetupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_GetGlobalSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetGlobalSettingsRequest)
 	if err := dec(in); err != nil {
@@ -2302,6 +2340,10 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetDashboardSummary",
 			Handler:    _IrisAdminService_GetDashboardSummary_Handler,
+		},
+		{
+			MethodName: "CheckDomainBounceSetup",
+			Handler:    _IrisAdminService_CheckDomainBounceSetup_Handler,
 		},
 		{
 			MethodName: "GetGlobalSettings",

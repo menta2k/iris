@@ -562,3 +562,15 @@ export interface DashboardSummary {
   recentMailEvents: string
   recentAuditEvents: string
 }
+
+// ---- Domain bounce-readiness check ----
+export interface DomainCheckItem {
+  name: string
+  status: 'pass' | 'warn' | 'fail' | string
+  detail: string
+  records?: string[]
+}
+export interface DomainBounceCheck {
+  domain: string
+  items?: DomainCheckItem[]
+}
