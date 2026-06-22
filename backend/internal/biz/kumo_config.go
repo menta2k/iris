@@ -572,6 +572,7 @@ kumo.on('smtp_server_message_received', function(msg)
     kumo.reject(550, '5.7.1 recipient is suppressed')
     return
   end
+  iris_ensure_message_id(msg)
   iris_dkim_sign(msg)
   local class = classify_mail(msg)
   if not class then
@@ -727,19 +728,47 @@ func writeDKIMSigning(b *strings.Builder) {
 	// http_message_generated (HTTP injection), matching KumoMTA's reference
 	// policy. The signature is applied to the received message and persists
 	// through delivery.
-	b.WriteString(`-- ===== dkim signing =====
+	b.WriteString(`-- ===== message-id =====
+-- RFC 5322 requires a Message-ID. Injecting apps (and bare SMTP clients) often
+-- omit it, which trips rspamd's MISSING_MID and weakens threading. Add one when
+-- absent, keyed to the From domain so it both aligns with and is covered by the
+-- DKIM signature applied immediately after.
+local function iris_ensure_message_id(msg)
+  if msg:get_first_named_header_value('Message-ID') then return end
+  local from = msg:from_header()
+  local sender = msg:sender()
+  local domain = (from and from.domain) or (sender and sender.domain) or 'localhost'
+  msg:prepend_header('Message-ID', string.format('<%s@%s>', tostring(msg:id()), domain))
+end
+
+-- ===== dkim signing =====
+-- Resolve a From domain to a signer: exact match first, then walk up the parent
+-- labels so a key published at the organizational domain (example.com) also signs
+-- its subdomains (infra.example.com). The matched domain becomes d=, which DMARC
+-- relaxed-aligns with the From subdomain. The most specific configured domain
+-- wins.
+local function iris_dkim_lookup(from_domain)
+  local d = string.lower(from_domain)
+  while d and d ~= '' do
+    local cfg = DKIM_BY_DOMAIN[d]
+    if cfg then return d, cfg end
+    d = d:match('%.(.+)$')
+  end
+  return nil, nil
+end
+
 local function iris_dkim_sign(msg)
   local from = msg:from_header()
   local domain = from and from.domain or nil
   if not domain then return end
-  local cfg = DKIM_BY_DOMAIN[string.lower(domain)]
+  local sign_domain, cfg = iris_dkim_lookup(domain)
   if not cfg then return end
   local params = {
-    domain = string.lower(domain),
+    domain = sign_domain,
     selector = cfg.selector,
     -- KumoMTA's rsa_sha256_signer requires an explicit header list; this is
-    -- KumoMTA's recommended default set.
-    headers = { 'From', 'To', 'Subject', 'Date', 'MIME-Version', 'Content-Type', 'Sender' },
+    -- KumoMTA's recommended default set, plus Message-ID (ensured above).
+    headers = { 'From', 'To', 'Subject', 'Date', 'Message-ID', 'MIME-Version', 'Content-Type', 'Sender' },
     key = cfg.key,
   }
   local signer
@@ -753,6 +782,7 @@ end
 
 -- Sign mail injected via the HTTP API (the reception hook covers SMTP).
 kumo.on('http_message_generated', function(msg)
+  iris_ensure_message_id(msg)
   iris_dkim_sign(msg)
 end)
 

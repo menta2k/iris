@@ -198,9 +198,19 @@ func TestRenderDKIMSigningWiring(t *testing.T) {
 		"local function iris_dkim_sign(msg)",
 		"kumo.dkim.rsa_sha256_signer(params)",
 		"kumo.dkim.ed25519_signer(params)",
-		"headers = { 'From', 'To', 'Subject', 'Date', 'MIME-Version', 'Content-Type', 'Sender' }",
+		"headers = { 'From', 'To', 'Subject', 'Date', 'Message-ID', 'MIME-Version', 'Content-Type', 'Sender' }",
 		"kumo.on('http_message_generated', function(msg)",
 		"iris_dkim_sign(msg)", // called from the reception hook
+		// Message-ID is injected when absent, before signing, in both hooks.
+		"local function iris_ensure_message_id(msg)",
+		"msg:prepend_header('Message-ID', string.format('<%s@%s>', tostring(msg:id()), domain))",
+		"iris_ensure_message_id(msg)",
+		// Subdomain signing: a From of infra.example.com is signed by a example.com
+		// key by walking up the parent labels; d= is the matched parent domain.
+		"local function iris_dkim_lookup(from_domain)",
+		"d = d:match('%.(.+)$')",
+		"local sign_domain, cfg = iris_dkim_lookup(domain)",
+		"domain = sign_domain,",
 	} {
 		if !strings.Contains(r.Content, want) {
 			t.Fatalf("DKIM signing must contain %q:\n%s", want, r.Content)
