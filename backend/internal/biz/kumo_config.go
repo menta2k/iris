@@ -256,7 +256,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	// Suppression lookup tables.
 	supp := writeSuppression(&b, snap.Suppressions)
 	// Routing table (priority-ordered) and reception hook (which signs DKIM).
-	routes := writeRouting(&b, snap.Routes, vmtaName, groupName, snap.rspamdEnabled(), bounceEnabled(snap), webhookEnabled(snap))
+	routes := writeRouting(&b, snap.Routes, vmtaName, groupName, snap.rspamdEnabled(), bounceEnabled(snap), webhookEnabled(snap), verpEnabled(snap))
 	// get_queue_config maps tenant → egress pool (and the log-stream tracker).
 	writeQueueConfig(&b, snap)
 
@@ -409,7 +409,7 @@ end
 	return n
 }
 
-func writeRouting(b *strings.Builder, routes []*RoutingRule, vmtaName, groupName map[string]string, rspamd, bounce, webhook bool) int {
+func writeRouting(b *strings.Builder, routes []*RoutingRule, vmtaName, groupName map[string]string, rspamd, bounce, webhook, verp bool) int {
 	b.WriteString("-- ===== routing rules (descending priority: higher priority wins) =====\n")
 	b.WriteString("-- A mailclass match is a header (name + value) pair; recipient matches use\n")
 	b.WriteString("-- the address/domain. The first matching rule (highest priority) wins.\n")
@@ -546,6 +546,20 @@ kumo.on('smtp_server_message_received', function(msg)
     if WEBHOOK_BY_EMAIL[email] or WEBHOOK_BY_DOMAIN[rdom] then
       msg:set_meta('queue', WEBHOOK_TRACKER)
       return
+    end
+  end
+`)
+	}
+	if verp {
+		// VERP: rewrite the outbound envelope return-path so async DSNs come back
+		// to the bounce domain carrying this message id. Applied here (reception)
+		// because the message is mutated and persisted at this point.
+		b.WriteString(`  do
+    local mid = msg:id()
+    if mid and tostring(mid) ~= '' then
+      mid = tostring(mid)
+      local mac = kumo.digest.hmac_sha256({ key_data = BOUNCE_VERP_SECRET }, mid)
+      msg:set_sender(string.format('b+%s.%s@%s', string.sub(tostring(mac), 1, 16), mid, BOUNCE_DOMAIN))
     end
   end
 `)
@@ -1081,25 +1095,15 @@ func verpEnabled(snap ConfigSnapshot) bool {
 	return bounceEnabled(snap) && strings.TrimSpace(snap.BounceVerpSecret) != ""
 }
 
-// writeBounceVerp emits the smtp_client_message_sending hook that rewrites the
-// outbound envelope sender to a VERP return-path so async DSNs route back to the
-// bounce domain and carry the message id. Mirrors the previous Iris release.
+// writeBounceVerp emits the VERP signing secret as a local so the reception
+// hook can rewrite the envelope return-path. The rewrite itself is applied in
+// smtp_server_message_received (the message is mutated and persisted there;
+// there is no client-sending hook), see writeRouting's verp block.
 func writeBounceVerp(b *strings.Builder, snap ConfigSnapshot) {
 	if !verpEnabled(snap) {
 		return
 	}
-	fmt.Fprintf(b, "-- ===== bounce VERP (envelope return-path rewrite) =====\nlocal BOUNCE_VERP_SECRET = %s\n", MustLuaString(strings.TrimSpace(snap.BounceVerpSecret)))
-	b.WriteString(`kumo.on('smtp_client_message_sending', function(msg)
-  if BOUNCE_DOMAIN == '' then return end
-  local mid = msg:id()
-  if not mid or tostring(mid) == '' then return end
-  mid = tostring(mid)
-  local mac = kumo.digest.hmac_sha256({ key_data = BOUNCE_VERP_SECRET }, mid)
-  local prefix = string.sub(tostring(mac), 1, 16)
-  msg:set_sender(string.format('b+%s.%s@%s', prefix, mid, BOUNCE_DOMAIN))
-end)
-
-`)
+	fmt.Fprintf(b, "-- ===== bounce VERP (envelope return-path) =====\nlocal BOUNCE_VERP_SECRET = %s\n\n", MustLuaString(strings.TrimSpace(snap.BounceVerpSecret)))
 }
 
 // writeDsnCatcher emits the make.dsn_xadd custom_lua queue constructor that XADDs
