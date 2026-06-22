@@ -1,4 +1,5 @@
 import { http } from './http'
+import { pageQuery, type PageParams } from './pagination'
 import type {
   Bounce,
   FeedbackReport,
@@ -13,22 +14,16 @@ import type {
 } from '@/types'
 
 export const mailOperationsService = {
-  listMailRecords(
-    filters?: MailRecordFilters,
-    page?: { pageSize?: number; pageToken?: string },
-  ) {
-    // The nested PageRequest binds via dot notation; the form codec accepts the
-    // proto field names (page.page_size / page.page_token).
-    const query: Record<string, string | number | undefined> = { ...filters }
-    if (page?.pageSize) query['page.page_size'] = page.pageSize
-    if (page?.pageToken) query['page.page_token'] = page.pageToken
-    return http.get<ListResponse<MailRecord>>('/mail-records', { query })
+  listMailRecords(filters?: MailRecordFilters, page?: PageParams) {
+    return http.get<ListResponse<MailRecord>>('/mail-records', {
+      query: pageQuery(page, { ...filters }),
+    })
   },
-  listBounces() {
-    return http.get<ListResponse<Bounce>>('/bounces')
+  listBounces(page?: PageParams) {
+    return http.get<ListResponse<Bounce>>('/bounces', { query: pageQuery(page) })
   },
-  listFeedbackReports() {
-    return http.get<ListResponse<FeedbackReport>>('/feedback-reports')
+  listFeedbackReports(page?: PageParams) {
+    return http.get<ListResponse<FeedbackReport>>('/feedback-reports', { query: pageQuery(page) })
   },
   listQueues() {
     return http.get<ListResponse<Queue>>('/queues')
