@@ -1,4 +1,5 @@
 import { http } from './http'
+import { pageQuery, type PageParams } from './pagination'
 import type {
   AuditEntry,
   CreateUserRequest,
@@ -18,8 +19,8 @@ export const identityAuditService = {
   updateUser(id: string, body: UpdateUserRequest) {
     return http.put<User>(`/users/${id}`, body)
   },
-  listAuditEntries() {
-    return http.get<ListResponse<AuditEntry>>('/audit-entries')
+  listAuditEntries(page?: PageParams) {
+    return http.get<ListResponse<AuditEntry>>('/audit-entries', { query: pageQuery(page) })
   },
   enrollMfa() {
     return http.post<EnrollMfaReply>('/mfa:enroll', {})

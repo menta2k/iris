@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
+import PaginationControls from '@/components/common/PaginationControls.vue'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
@@ -11,13 +12,23 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { StatusBadge } from '@/components/ui/badge'
-import { useAsyncList } from '@/composables/useAsyncList'
+import { usePagedList } from '@/composables/usePagedList'
 import { identityAuditService } from '@/services'
 import type { AuditEntry } from '@/types'
 
-const { items, loading, error, notImplemented } = useAsyncList<AuditEntry>({
-  loader: () => identityAuditService.listAuditEntries(),
-})
+const {
+  items,
+  loading,
+  error,
+  notImplemented,
+  pageSize,
+  pageNumber,
+  hasPrev,
+  hasNext,
+  nextPage,
+  prevPage,
+  setPageSize,
+} = usePagedList<AuditEntry>({ loader: (page) => identityAuditService.listAuditEntries(page) })
 </script>
 
 <template>
@@ -57,5 +68,17 @@ const { items, loading, error, notImplemented } = useAsyncList<AuditEntry>({
         </CardContent>
       </Card>
     </DataState>
+
+    <PaginationControls
+      v-if="!notImplemented && (items.length > 0 || hasPrev)"
+      :page-number="pageNumber"
+      :has-prev="hasPrev"
+      :has-next="hasNext"
+      :loading="loading"
+      :page-size="pageSize"
+      @prev="prevPage"
+      @next="nextPage"
+      @page-size-change="setPageSize"
+    />
   </div>
 </template>
