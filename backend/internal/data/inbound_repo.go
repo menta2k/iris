@@ -75,6 +75,29 @@ func (r *InboundRepo) ListWebhookRules(ctx context.Context, page biz.Page) ([]*b
 	return out, rows.Err()
 }
 
+// ListWebhookRulesForPolicy returns all ACTIVE webhook rules including their
+// secret, for rendering the in-policy webhook poster. Unlike ListWebhookRules,
+// it selects secret_ref (the policy needs it to sign the HMAC).
+func (r *InboundRepo) ListWebhookRulesForPolicy(ctx context.Context) ([]*biz.WebhookRule, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT id, name, match_type, match_value, destination_url, secret_ref, status, timeout_seconds
+		FROM webhook_rules WHERE status = 'active' ORDER BY name`)
+	if err != nil {
+		return nil, fmt.Errorf("query webhook rules for policy: %w", err)
+	}
+	defer rows.Close()
+	var out []*biz.WebhookRule
+	for rows.Next() {
+		w := &biz.WebhookRule{}
+		if err := rows.Scan(&w.ID, &w.Name, &w.MatchType, &w.MatchValue, &w.DestinationURL,
+			&w.SecretRef, &w.Status, &w.TimeoutSeconds); err != nil {
+			return nil, fmt.Errorf("scan webhook rule: %w", err)
+		}
+		out = append(out, w)
+	}
+	return out, rows.Err()
+}
+
 // MatchWebhookRules returns active rules whose match applies to the recipient.
 func (r *InboundRepo) MatchWebhookRules(ctx context.Context, recipient string) ([]*biz.WebhookRule, error) {
 	domain := biz.RecipientDomain(recipient)

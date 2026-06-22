@@ -17,6 +17,11 @@ type ConfigSnapshot struct {
 	Routes       []*RoutingRule
 	DKIM         []*DKIMDomain
 	Suppressions []*SuppressionEntry
+	// InboundWebhooks are active webhook rules. Their recipient domains are
+	// relay-accepted by get_listener_domain, and matching inbound mail is routed
+	// to the in-policy webhook poster (make.webhook_post) which forwards the raw
+	// message to the destination URL. Includes the HMAC secret (SecretRef).
+	InboundWebhooks []*WebhookRule
 	// EgressEHLODefault is the default outbound EHLO hostname applied to any
 	// egress source that does not set its own.
 	EgressEHLODefault string
@@ -216,8 +221,11 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	b.WriteString(initContent)
 	// Log-hook callbacks that XADD records into the Redis stream.
 	writeLogHook(&b, snap)
-	// Listener-domain handler (bounce relay + FBL ARF parsing) and the DSN XADD
-	// constructor.
+	// Inbound webhook tables + poster. Emitted before the listener-domain and
+	// reception hooks so they can reference the WEBHOOK_* locals as upvalues.
+	writeWebhooks(&b, snap)
+	// Listener-domain handler (bounce relay + FBL ARF parsing + webhook relay)
+	// and the DSN XADD constructor.
 	writeListenerDomain(&b, snap)
 	writeDsnCatcher(&b, snap)
 	// Egress sources (one per active VMTA).
@@ -237,7 +245,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	// Suppression lookup tables.
 	supp := writeSuppression(&b, snap.Suppressions)
 	// Routing table (priority-ordered) and reception hook (which signs DKIM).
-	routes := writeRouting(&b, snap.Routes, vmtaName, groupName, snap.rspamdEnabled(), bounceEnabled(snap))
+	routes := writeRouting(&b, snap.Routes, vmtaName, groupName, snap.rspamdEnabled(), bounceEnabled(snap), webhookEnabled(snap))
 	// get_queue_config maps tenant → egress pool (and the log-stream tracker).
 	writeQueueConfig(&b, snap)
 
@@ -390,7 +398,7 @@ end
 	return n
 }
 
-func writeRouting(b *strings.Builder, routes []*RoutingRule, vmtaName, groupName map[string]string, rspamd, bounce bool) int {
+func writeRouting(b *strings.Builder, routes []*RoutingRule, vmtaName, groupName map[string]string, rspamd, bounce, webhook bool) int {
 	b.WriteString("-- ===== routing rules (descending priority: higher priority wins) =====\n")
 	b.WriteString("-- A mailclass match is a header (name + value) pair; recipient matches use\n")
 	b.WriteString("-- the address/domain. The first matching rule (highest priority) wins.\n")
@@ -516,6 +524,21 @@ kumo.on('smtp_server_message_received', function(msg)
   end
 `)
 	}
+	if webhook {
+		// Inbound webhook capture: recipient-matched mail is routed to the webhook
+		// poster queue (before suppression/classification) instead of being relayed
+		// onward.
+		b.WriteString(`  do
+    local rcpt = msg:recipient()
+    local email = (rcpt and rcpt.email or ''):lower()
+    local rdom = (rcpt and rcpt.domain or ''):lower()
+    if WEBHOOK_BY_EMAIL[email] or WEBHOOK_BY_DOMAIN[rdom] then
+      msg:set_meta('queue', WEBHOOK_TRACKER)
+      return
+    end
+  end
+`)
+	}
 	if rspamd {
 		b.WriteString("  iris_rspamd_scan(msg)\n")
 	}
@@ -627,6 +650,18 @@ func writeQueueConfig(b *strings.Builder, snap ConfigSnapshot) {
       protocol = { custom_lua = { constructor = 'make.dsn_xadd' } },
       retry_interval = '30s',
       max_retry_interval = '5m',
+    }
+  end
+`)
+	}
+	if webhookEnabled(snap) {
+		// Inbound webhook routing: the reception hook tags matched mail with
+		// queue=WEBHOOK_TRACKER; route it to the make.webhook_post custom_lua queue.
+		b.WriteString(`  if domain == WEBHOOK_TRACKER then
+    return kumo.make_queue_config {
+      protocol = { custom_lua = { constructor = 'make.webhook_post' } },
+      retry_interval = '1m',
+      max_retry_interval = '30m',
     }
   end
 `)
@@ -898,17 +933,112 @@ func writeBounceConsts(b *strings.Builder, snap ConfigSnapshot) {
 	fmt.Fprintf(b, "local FBL_DOMAIN    = %s\n\n", MustLuaString(fblDomain))
 }
 
+// webhookEnabled reports whether any active webhook rule with a destination is
+// configured (and therefore whether the in-policy webhook poster is rendered).
+func webhookEnabled(snap ConfigSnapshot) bool {
+	for _, w := range snap.InboundWebhooks {
+		if w != nil && w.Status == WebhookActive && strings.TrimSpace(w.DestinationURL) != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// webhookDomain returns the recipient domain a webhook rule applies to, so the
+// listener relays inbound mail for it. For a recipient_email match it is the
+// part after '@'.
+func webhookDomain(w *WebhookRule) string {
+	v := strings.ToLower(strings.TrimSpace(w.MatchValue))
+	if w.MatchType == MatchRecipientDomain {
+		return v
+	}
+	if i := strings.LastIndexByte(v, '@'); i >= 0 {
+		return v[i+1:]
+	}
+	return v
+}
+
+// writeWebhooks emits the inbound-webhook routing tables and the make.webhook_post
+// custom_lua queue constructor. It POSTs the raw RFC822 message (Content-Type
+// message/rfc822) with X-Iris-Recipient / X-Iris-Message-Id and, when a secret is
+// set, an X-Iris-Signature HMAC-SHA256 of the body — byte-for-byte the same
+// request the previous Iris release sent. No-op when no webhook is configured.
+func writeWebhooks(b *strings.Builder, snap ConfigSnapshot) {
+	if !webhookEnabled(snap) {
+		return
+	}
+	b.WriteString(`-- ===== inbound mail webhooks =====
+local WEBHOOK_TRACKER = "iris_webhook"
+local WEBHOOK_BY_EMAIL = {}
+local WEBHOOK_BY_DOMAIN = {}
+local WEBHOOK_DOMAINS = {}
+`)
+	for _, w := range snap.InboundWebhooks {
+		if w == nil || w.Status != WebhookActive || strings.TrimSpace(w.DestinationURL) == "" {
+			continue
+		}
+		entry := fmt.Sprintf("{ url = %s, secret = %s }",
+			MustLuaString(w.DestinationURL), MustLuaString(w.SecretRef))
+		value := strings.ToLower(strings.TrimSpace(w.MatchValue))
+		switch w.MatchType {
+		case MatchRecipientEmail:
+			fmt.Fprintf(b, "WEBHOOK_BY_EMAIL[%s] = %s\n", MustLuaString(value), entry)
+		case MatchRecipientDomain:
+			fmt.Fprintf(b, "WEBHOOK_BY_DOMAIN[%s] = %s\n", MustLuaString(value), entry)
+		}
+		fmt.Fprintf(b, "WEBHOOK_DOMAINS[%s] = true\n", MustLuaString(webhookDomain(w)))
+	}
+	b.WriteString(`
+kumo.on('make.webhook_post', function(_domain, _tenant, _campaign)
+  local connection = {}
+  function connection:send(message)
+    local rcpt = message:recipient()
+    local email = (rcpt and rcpt.email or ''):lower()
+    local dom = (rcpt and rcpt.domain or ''):lower()
+    local route = WEBHOOK_BY_EMAIL[email] or WEBHOOK_BY_DOMAIN[dom]
+    if not route then
+      return '250 no webhook route (dropped)'
+    end
+    local body = message:get_data()
+    local client = kumo.http.build_client {}
+    local req = client:post(route.url)
+    req:header('Content-Type', 'message/rfc822')
+    req:header('X-Iris-Recipient', email)
+    req:header('X-Iris-Message-Id', tostring(message:id()))
+    if route.secret and route.secret ~= '' then
+      local sig = kumo.digest.hmac_sha256({ key_data = route.secret }, body)
+      req:header('X-Iris-Signature', tostring(sig))
+    end
+    req:body(body)
+    local ok, resp = pcall(function() return req:send() end)
+    if not ok then
+      kumo.log_error('webhook: post failed err=' .. tostring(resp))
+      return string.format('451 4.4.1 webhook post error: %s', tostring(resp))
+    end
+    local code = resp:status_code()
+    if code >= 200 and code < 300 then
+      return string.format('250 forwarded to webhook (%d)', code)
+    end
+    return string.format('451 4.4.1 webhook returned %d', code)
+  end
+  return connection
+end)
+
+`)
+}
+
 // writeListenerDomain emits the single get_listener_domain handler: it relays
-// the bounce domain into the chain (DSN catcher) and enables ARF parsing
-// (log_arf) for the FBL domain so kumod emits Feedback log records. Emitted when
-// either pipeline is configured (the event may be defined only once).
+// the bounce domain into the chain (DSN catcher), enables ARF parsing (log_arf)
+// for the FBL domain, and relays inbound mail for any webhook domain. Emitted
+// when any of those pipelines is configured (the event may be defined once).
 func writeListenerDomain(b *strings.Builder, snap ConfigSnapshot) {
-	if !bounceEnabled(snap) && !fblEnabled(snap) {
+	if !bounceEnabled(snap) && !fblEnabled(snap) && !webhookEnabled(snap) {
 		return
 	}
 	b.WriteString(`-- Accept inbound mail for the bounce domain (relayed into the chain, where the
--- reception hook routes it to the DSN tracker) and parse ARF reports at the FBL
--- domain (emitting Feedback log records).
+-- reception hook routes it to the DSN tracker), parse ARF reports at the FBL
+-- domain (emitting Feedback log records), and relay webhook domains (routed to
+-- the webhook poster).
 kumo.on('get_listener_domain', function(domain, listener)
   if BOUNCE_DOMAIN ~= '' and domain == BOUNCE_DOMAIN then
     return kumo.make_listener_domain { relay_to = true }
@@ -916,7 +1046,14 @@ kumo.on('get_listener_domain', function(domain, listener)
   if FBL_DOMAIN ~= '' and domain == FBL_DOMAIN then
     return kumo.make_listener_domain { log_arf = 'LogThenDrop' }
   end
-  return nil
+`)
+	if webhookEnabled(snap) {
+		b.WriteString(`  if WEBHOOK_DOMAINS[domain] then
+    return kumo.make_listener_domain { relay_to = true }
+  end
+`)
+	}
+	b.WriteString(`  return nil
 end)
 
 `)

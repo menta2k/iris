@@ -7,6 +7,36 @@ import (
 	"github.com/menta2k/iris/backend/internal/data"
 )
 
+// TestWebhookRulesForPolicyIncludesSecret verifies the policy-snapshot listing
+// returns active webhook rules WITH their secret (which the in-policy poster
+// needs for the HMAC signature) — unlike the API listing, which redacts it.
+func TestWebhookRulesForPolicyIncludesSecret(t *testing.T) {
+	db := setupDB(t)
+	repo := data.NewInboundRepo(db)
+	uc := biz.NewInboundUsecase(repo, nil, true)
+	ctx := ownerCtx()
+
+	if _, err := uc.CreateWebhookRule(ctx, &biz.WebhookRule{
+		Name: "support", MatchType: biz.MatchRecipientEmail, MatchValue: "support@server-lab.info",
+		DestinationURL: "http://localhost:9000/hook", SecretRef: "top-secret",
+	}); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	rules, err := repo.ListWebhookRulesForPolicy(ctx)
+	if err != nil {
+		t.Fatalf("list for policy: %v", err)
+	}
+	if len(rules) != 1 {
+		t.Fatalf("expected 1 active rule, got %d", len(rules))
+	}
+	if rules[0].SecretRef != "top-secret" {
+		t.Fatalf("policy listing must include the secret, got %q", rules[0].SecretRef)
+	}
+	if rules[0].MatchValue != "support@server-lab.info" || rules[0].DestinationURL == "" {
+		t.Fatalf("unexpected rule: %+v", rules[0])
+	}
+}
+
 // TestWebhookMatchingAndRspamdPersistence verifies webhook rule matching by
 // email and domain, and that Rspamd results persist and list newest-first.
 func TestWebhookMatchingAndRspamdPersistence(t *testing.T) {

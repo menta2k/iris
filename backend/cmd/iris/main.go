@@ -169,11 +169,12 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	}
 	settingsRepo := data.NewGlobalSettingsRepo(db)
 	settingsUC := biz.NewGlobalSettingsUsecase(settingsRepo, auditor, settingsDefaults)
-	kumoConfigUC := biz.NewKumoConfigUsecase(
-		data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo), kumo, mailOpsRepo, auditor, settingsUC)
-
 	// US5 inbound automation: webhook + Rspamd use case and workers.
 	inboundRepo := data.NewInboundRepo(db)
+
+	kumoConfigUC := biz.NewKumoConfigUsecase(
+		data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo), kumo, mailOpsRepo, auditor, settingsUC)
+
 	inboundUC := biz.NewInboundUsecase(inboundRepo, auditor, cfg.KumoMTA.Stub)
 
 	// ACME (Let's Encrypt) certificate management. The HTTP-01 token store is
@@ -232,13 +233,12 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 
 	// Start background workers. Each exits cleanly on context cancellation.
 	startWorker(ctx, log, "service-control", worker.NewServiceControlWorker(streams, mailOpsRepo, kumo, log).Run)
-	startWorker(ctx, log, "webhook-delivery", worker.NewWebhookWorker(streams, inboundUC, log).Run)
 	startWorker(ctx, log, "rspamd-ingest", worker.NewRspamdWorker(streams, inboundUC, log).Run)
 	// Ingest KumoMTA's structured logs (streamed by the generated policy's
-	// log_hook) into the mail_records hypertable that powers the Logs UI, and
-	// fan received messages out to matching inbound webhooks.
-	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, log).
-		WithWebhooks(worker.NewWebhookProducer(streams)).Run)
+	// log_hook) into the mail_records hypertable that powers the Logs UI.
+	// Inbound webhooks are delivered in-policy by kumod (make.webhook_post),
+	// which forwards the raw message — so no webhook fan-out worker here.
+	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, log).Run)
 	// DSN consumer: async bounces captured at the configured bounce domain.
 	startWorker(ctx, log, "dsn", worker.NewDSNWorker(streams, mailOpsRepo, domainSafetyRepo, biz.DSNStreamName, log).Run)
 	// ACME: HTTP-01 challenge listener (default off) + periodic renewer.

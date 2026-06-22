@@ -106,6 +106,12 @@ func representativeSnapshot() biz.ConfigSnapshot {
 			{ID: "r5", Name: "test-host", MatchType: biz.MatchSenderIP, MatchValue: "192.0.2.50",
 				AssignMailclass: "bulk", Priority: 150, Status: biz.RoutingStatusActive},
 		},
+		InboundWebhooks: []*biz.WebhookRule{
+			{ID: "wh1", Name: "support", MatchType: biz.MatchRecipientEmail, MatchValue: "support@hooked.example",
+				DestinationURL: "https://hooks.example/iris", SecretRef: "webhook-secret", Status: biz.WebhookActive},
+			{ID: "wh2", Name: "leads", MatchType: biz.MatchRecipientDomain, MatchValue: "leads.example",
+				DestinationURL: "https://hooks.example/leads", Status: biz.WebhookActive},
+		},
 		DKIM: []*biz.DKIMDomain{
 			{ID: "d1", Domain: "example.com", Selector: "s1", PrivateKeyRef: harnessDKIMKey(), Status: biz.DKIMReady},
 			{ID: "d2", Domain: "pending.com", Selector: "s1", PrivateKeyRef: harnessDKIMKey(), Status: biz.DKIMNeedsAttention},

@@ -7,15 +7,16 @@ import (
 )
 
 // KumoConfigRepo assembles the full active configuration snapshot used to render
-// a KumoMTA policy. It composes the existing outbound and domain-safety repos.
+// a KumoMTA policy. It composes the outbound, domain-safety, and inbound repos.
 type KumoConfigRepo struct {
 	outbound *OutboundConfigRepo
 	safety   *DomainSafetyRepo
+	inbound  *InboundRepo
 }
 
 // NewKumoConfigRepo constructs the snapshot loader.
-func NewKumoConfigRepo(outbound *OutboundConfigRepo, safety *DomainSafetyRepo) *KumoConfigRepo {
-	return &KumoConfigRepo{outbound: outbound, safety: safety}
+func NewKumoConfigRepo(outbound *OutboundConfigRepo, safety *DomainSafetyRepo, inbound *InboundRepo) *KumoConfigRepo {
+	return &KumoConfigRepo{outbound: outbound, safety: safety, inbound: inbound}
 }
 
 var _ biz.ConfigSnapshotLoader = (*KumoConfigRepo)(nil)
@@ -44,6 +45,11 @@ func (r *KumoConfigRepo) Snapshot(ctx context.Context) (biz.ConfigSnapshot, erro
 	}
 	if snap.Suppressions, err = r.safety.ListSuppressions(ctx, page); err != nil {
 		return snap, err
+	}
+	if r.inbound != nil {
+		if snap.InboundWebhooks, err = r.inbound.ListWebhookRulesForPolicy(ctx); err != nil {
+			return snap, err
+		}
 	}
 	return snap, nil
 }

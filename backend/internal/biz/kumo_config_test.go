@@ -423,6 +423,56 @@ func TestSenderIPClassification(t *testing.T) {
 	}
 }
 
+func TestInboundWebhookGeneration(t *testing.T) {
+	snap := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+		InboundWebhooks: []*WebhookRule{
+			{ID: "w1", Name: "support", MatchType: MatchRecipientEmail, MatchValue: "support@server-lab.info",
+				DestinationURL: "https://portal.example/hook", SecretRef: "s3cr3t", Status: WebhookActive},
+			{ID: "w2", Name: "dom", MatchType: MatchRecipientDomain, MatchValue: "leads.example.com",
+				DestinationURL: "https://portal.example/leads", Status: WebhookActive},
+		},
+		LogStreamRedisURL: "redis://redis:6379",
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil || !r.Valid {
+		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	// Routing tables with the secret carried through verbatim.
+	if !strings.Contains(r.Content, `WEBHOOK_BY_EMAIL["support@server-lab.info"] = { url = "https://portal.example/hook", secret = "s3cr3t" }`) {
+		t.Fatalf("WEBHOOK_BY_EMAIL not emitted as expected:\n%s", r.Content)
+	}
+	if !strings.Contains(r.Content, `WEBHOOK_BY_DOMAIN["leads.example.com"] =`) {
+		t.Fatalf("WEBHOOK_BY_DOMAIN not emitted:\n%s", r.Content)
+	}
+	// Relay-accept the recipient's domain (derived from the email match).
+	if !strings.Contains(r.Content, `WEBHOOK_DOMAINS["server-lab.info"] = true`) ||
+		!strings.Contains(r.Content, `WEBHOOK_DOMAINS["leads.example.com"] = true`) {
+		t.Fatalf("WEBHOOK_DOMAINS not emitted:\n%s", r.Content)
+	}
+	if !strings.Contains(r.Content, "if WEBHOOK_DOMAINS[domain] then") {
+		t.Fatalf("get_listener_domain must relay webhook domains:\n%s", r.Content)
+	}
+	// The poster forwards the raw message exactly as the previous release did.
+	for _, want := range []string{
+		"kumo.on('make.webhook_post'",
+		"req:header('Content-Type', 'message/rfc822')",
+		"req:header('X-Iris-Recipient', email)",
+		"req:header('X-Iris-Message-Id', tostring(message:id()))",
+		"kumo.digest.hmac_sha256({ key_data = route.secret }, body)",
+		"req:header('X-Iris-Signature', tostring(sig))",
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Fatalf("webhook poster missing %q:\n%s", want, r.Content)
+		}
+	}
+	// Reception routes matched mail to the webhook queue; queue config wires it.
+	if !strings.Contains(r.Content, "msg:set_meta('queue', WEBHOOK_TRACKER)") ||
+		!strings.Contains(r.Content, "if domain == WEBHOOK_TRACKER then") {
+		t.Fatalf("webhook reception/queue routing not wired:\n%s", r.Content)
+	}
+}
+
 func TestLogHookHeadersAreDynamic(t *testing.T) {
 	snap := ConfigSnapshot{
 		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
