@@ -137,7 +137,9 @@ func TestInboundDSNSuppresses(t *testing.T) {
 	snap.BounceDomain = "bounce.test"
 	r := startRig(t, snap)
 
-	w := worker.NewDSNWorker(streams, mailRepo, safetyRepo, biz.DSNStreamName, biz.NewLogger("error"))
+	// VERP off for this test: the injected address is at the bounce domain, so
+	// the envelope recipient is treated as the recipient and suppressed.
+	w := worker.NewDSNWorker(streams, mailRepo, safetyRepo, "", biz.DSNStreamName, biz.NewLogger("error"))
 	workerCtx, stopWorker := context.WithCancel(ctx)
 	defer stopWorker()
 	go func() { _ = w.Run(workerCtx) }()

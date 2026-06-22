@@ -38,6 +38,10 @@ type KumoConfigSettings struct {
 	// BounceClassifierFile is the KumoMTA bounce-classifier rules file loaded in
 	// the init block (empty disables classification).
 	BounceClassifierFile string
+
+	// BounceVerpSecret signs the VERP envelope return-path. Empty disables VERP
+	// (the bounce pipeline still works, but async DSNs aren't correlated).
+	BounceVerpSecret string
 }
 
 // KumoConfigUsecase renders Iris configuration into KumoMTA policy and applies
@@ -125,6 +129,7 @@ func (uc *KumoConfigUsecase) render(ctx context.Context) (RenderedConfig, error)
 	snap.BounceDomain = settings.BounceDomain
 	snap.FBLDomain = settings.FBLDomain
 	snap.BounceClassifierFile = settings.BounceClassifierFile
+	snap.BounceVerpSecret = settings.BounceVerpSecret
 	return RenderKumoConfig(snap)
 }
 

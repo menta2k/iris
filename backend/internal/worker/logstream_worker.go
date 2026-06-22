@@ -23,6 +23,9 @@ type MailEventStore interface {
 	InsertFeedbackReport(ctx context.Context, f *biz.FeedbackReport) error
 	// IncrementSoftBounce bumps and returns a recipient's soft-bounce count.
 	IncrementSoftBounce(ctx context.Context, recipient string) (int, error)
+	// RecipientForMessageID returns the original recipient for a sent message id
+	// (used to correlate a VERP async bounce). "" when not found.
+	RecipientForMessageID(ctx context.Context, messageID string) (string, error)
 }
 
 // Suppressor auto-suppresses a recipient. Used by the feedback-loop ingest and

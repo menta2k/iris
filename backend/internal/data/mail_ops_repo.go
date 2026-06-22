@@ -228,6 +228,22 @@ func (r *MailOpsRepo) InsertBounce(ctx context.Context, b *biz.BounceRecord) err
 	return nil
 }
 
+// RecipientForMessageID returns the most recent recipient recorded for a sent
+// message id, used to correlate a VERP async bounce back to who it was for.
+func (r *MailOpsRepo) RecipientForMessageID(ctx context.Context, messageID string) (string, error) {
+	var recipient string
+	err := r.db.Pool.QueryRow(ctx,
+		`SELECT recipient FROM mail_records WHERE message_id = $1 AND recipient <> ''
+		 ORDER BY event_time DESC LIMIT 1`, messageID).Scan(&recipient)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return "", nil
+		}
+		return "", fmt.Errorf("lookup recipient for message %s: %w", messageID, err)
+	}
+	return recipient, nil
+}
+
 // InsertFeedbackReport appends a feedback (ARF/FBL) report row.
 func (r *MailOpsRepo) InsertFeedbackReport(ctx context.Context, f *biz.FeedbackReport) error {
 	_, err := r.db.Pool.Exec(ctx, `

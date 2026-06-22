@@ -423,6 +423,39 @@ func TestSenderIPClassification(t *testing.T) {
 	}
 }
 
+func TestBounceVerpGeneration(t *testing.T) {
+	base := ConfigSnapshot{
+		VMTAs:             []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+		BounceDomain:      "bounce.example.com",
+		LogStreamRedisURL: "redis://redis:6379", // bounce pipeline needs a stream
+	}
+	// No VERP without a secret.
+	off, err := RenderKumoConfig(base)
+	if err != nil || !off.Valid {
+		t.Fatalf("render off: %v", err)
+	}
+	if strings.Contains(off.Content, "smtp_client_message_sending") {
+		t.Fatalf("VERP must be absent without a secret:\n%s", off.Content)
+	}
+	// With a secret, the envelope rewrite is emitted.
+	on := base
+	on.BounceVerpSecret = "verp-key"
+	r, err := RenderKumoConfig(on)
+	if err != nil || !r.Valid {
+		t.Fatalf("render on: %v", err)
+	}
+	for _, want := range []string{
+		`local BOUNCE_VERP_SECRET = "verp-key"`,
+		"kumo.on('smtp_client_message_sending', function(msg)",
+		"kumo.digest.hmac_sha256({ key_data = BOUNCE_VERP_SECRET }, mid)",
+		"msg:set_sender(string.format('b+%s.%s@%s', prefix, mid, BOUNCE_DOMAIN))",
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Fatalf("VERP missing %q:\n%s", want, r.Content)
+		}
+	}
+}
+
 func TestBounceClassifierGeneration(t *testing.T) {
 	base := ConfigSnapshot{
 		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},

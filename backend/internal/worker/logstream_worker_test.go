@@ -9,13 +9,14 @@ import (
 
 // fakeBounceStore records the bounce-pipeline side effects the policy drives.
 type fakeBounceStore struct {
-	soft        map[string]int
-	suppressed  map[string]string // recipient -> source
-	suppressErr error
+	soft            map[string]int
+	suppressed      map[string]string // recipient -> source
+	recipientByMsgID map[string]string
+	suppressErr     error
 }
 
 func newFakeBounceStore() *fakeBounceStore {
-	return &fakeBounceStore{soft: map[string]int{}, suppressed: map[string]string{}}
+	return &fakeBounceStore{soft: map[string]int{}, suppressed: map[string]string{}, recipientByMsgID: map[string]string{}}
 }
 
 func (f *fakeBounceStore) InsertMailEvent(context.Context, *biz.MailRecord) error { return nil }
@@ -26,6 +27,10 @@ func (f *fakeBounceStore) InsertFeedbackReport(context.Context, *biz.FeedbackRep
 func (f *fakeBounceStore) IncrementSoftBounce(_ context.Context, r string) (int, error) {
 	f.soft[r]++
 	return f.soft[r], nil
+}
+
+func (f *fakeBounceStore) RecipientForMessageID(_ context.Context, msgID string) (string, error) {
+	return f.recipientByMsgID[msgID], nil
 }
 
 func (f *fakeBounceStore) SuppressRecipient(_ context.Context, email, source, _ string) error {
