@@ -59,6 +59,10 @@ type ConfigSnapshot struct {
 	// every listener) for the bounce consumer to process.
 	BounceDomain string
 
+	// BounceClassifierFile, when set, makes the init block load KumoMTA's bounce
+	// classifier rules so Bounce log records carry a classification category.
+	BounceClassifierFile string
+
 	// FBLDomain, when set, makes kumod parse RFC 5965 ARF feedback reports sent
 	// to this domain (log_arf) and emit a Feedback log record, which the log hook
 	// streams to the feedback consumer (auto-suppression). Requires the log hook
@@ -789,6 +793,11 @@ func writeInit(b *strings.Builder, snap ConfigSnapshot) {
 	b.WriteString("  kumo.define_spool { name = 'data', path = '/var/spool/kumomta/data' }\n")
 	b.WriteString("  kumo.define_spool { name = 'meta', path = '/var/spool/kumomta/meta' }\n")
 	b.WriteString("  kumo.configure_local_logs { log_dir = '/var/log/kumomta' }\n")
+	if f := strings.TrimSpace(snap.BounceClassifierFile); f != "" {
+		// Load KumoMTA's bounce-classifier rules so Bounce log records carry a
+		// classification (InvalidRecipient, SpamBlock, QuotaIssue, …).
+		fmt.Fprintf(b, "  kumo.configure_bounce_classifier { files = { %s } }\n", MustLuaString(f))
+	}
 	if snap.LogStreamRedisURL != "" {
 		// Stream the structured log records the Logs UI needs. The header
 		// allow-list is dynamic: Subject plus every distinct header that a

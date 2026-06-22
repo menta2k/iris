@@ -190,6 +190,7 @@ export interface Bounce {
   bounceType: string
   diagnostic: string
   processingState: string
+  classification?: string
 }
 
 export interface FeedbackReport {

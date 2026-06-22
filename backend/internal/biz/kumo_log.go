@@ -27,7 +27,11 @@ type KumoLogRecord struct {
 		Code    int32  `json:"code"`
 		Content string `json:"content"`
 	} `json:"response"`
-	Meta map[string]any `json:"meta"`
+	// BounceClassification is the category KumoMTA's bounce classifier assigns
+	// (InvalidRecipient, SpamBlock, QuotaIssue, …); present on Bounce records
+	// when configure_bounce_classifier is loaded.
+	BounceClassification string         `json:"bounce_classification"`
+	Meta                 map[string]any `json:"meta"`
 	// Feedback carries the ARF (RFC 5965) fields KumoMTA parses for a Feedback
 	// log record. Present only when Type == "Feedback".
 	Feedback *KumoFeedbackData `json:"feedback_report"`

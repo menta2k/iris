@@ -34,6 +34,10 @@ type KumoConfigSettings struct {
 
 	// FBLDomain enables ARF parsing (log_arf) for the feedback pipeline.
 	FBLDomain string
+
+	// BounceClassifierFile is the KumoMTA bounce-classifier rules file loaded in
+	// the init block (empty disables classification).
+	BounceClassifierFile string
 }
 
 // KumoConfigUsecase renders Iris configuration into KumoMTA policy and applies
@@ -120,6 +124,7 @@ func (uc *KumoConfigUsecase) render(ctx context.Context) (RenderedConfig, error)
 	snap.EgressMaxAge = settings.EgressMaxAge
 	snap.BounceDomain = settings.BounceDomain
 	snap.FBLDomain = settings.FBLDomain
+	snap.BounceClassifierFile = settings.BounceClassifierFile
 	return RenderKumoConfig(snap)
 }
 

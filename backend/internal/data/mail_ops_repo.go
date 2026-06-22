@@ -57,7 +57,7 @@ func (r *MailOpsRepo) ListBounces(ctx context.Context, page biz.Page) ([]*biz.Bo
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT id, coalesce(mail_record_id::text,''), event_time, recipient,
 		       coalesce(vmta_id::text,''), mailclass, smtp_status, bounce_type,
-		       diagnostic, processing_state
+		       diagnostic, classification, processing_state
 		FROM bounce_records ORDER BY event_time DESC LIMIT $1 OFFSET $2`,
 		page.Size, page.Offset)
 	if err != nil {
@@ -68,7 +68,7 @@ func (r *MailOpsRepo) ListBounces(ctx context.Context, page biz.Page) ([]*biz.Bo
 	for rows.Next() {
 		b := &biz.BounceRecord{}
 		if err := rows.Scan(&b.ID, &b.MailRecordID, &b.EventTime, &b.Recipient, &b.VMTAID,
-			&b.Mailclass, &b.SMTPStatus, &b.BounceType, &b.Diagnostic, &b.ProcessingState); err != nil {
+			&b.Mailclass, &b.SMTPStatus, &b.BounceType, &b.Diagnostic, &b.Classification, &b.ProcessingState); err != nil {
 			return nil, fmt.Errorf("scan bounce: %w", err)
 		}
 		out = append(out, b)
@@ -218,9 +218,9 @@ func (r *MailOpsRepo) InsertMailEvent(ctx context.Context, rec *biz.MailRecord) 
 func (r *MailOpsRepo) InsertBounce(ctx context.Context, b *biz.BounceRecord) error {
 	_, err := r.db.Pool.Exec(ctx, `
 		INSERT INTO bounce_records
-			(event_time, recipient, mailclass, smtp_status, bounce_type, diagnostic, processing_state)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		b.EventTime, b.Recipient, b.Mailclass, b.SMTPStatus, b.BounceType, b.Diagnostic,
+			(event_time, recipient, mailclass, smtp_status, bounce_type, diagnostic, classification, processing_state)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		b.EventTime, b.Recipient, b.Mailclass, b.SMTPStatus, b.BounceType, b.Diagnostic, b.Classification,
 		strOrDefault(b.ProcessingState, biz.ProcessingNew))
 	if err != nil {
 		return fmt.Errorf("insert bounce: %w", err)

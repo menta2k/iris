@@ -21,6 +21,7 @@ type BounceRecord struct {
 	SMTPStatus      string
 	BounceType      string
 	Diagnostic      string
+	Classification  string
 	ProcessingState string
 }
 
@@ -28,6 +29,31 @@ type BounceRecord struct {
 // (5.x.x), which downstream logic may use to auto-suppress recipients.
 func (b *BounceRecord) IsHardBounce() bool {
 	return len(b.SMTPStatus) > 0 && b.SMTPStatus[0] == '5'
+}
+
+// nonRecipientFaultClasses are bounce classifications that are NOT the
+// recipient's fault — a permanent failure here (e.g. the receiver blocked us as
+// spam, or the mailbox was temporarily over quota and reported 5xx) should not
+// auto-suppress an otherwise-valid recipient.
+var nonRecipientFaultClasses = map[string]struct{}{
+	"SpamBlock":      {},
+	"SpamContent":    {},
+	"ContentRelated": {},
+	"QuotaIssue":     {},
+	"PolicyRelated":  {},
+	"RelayDenied":    {},
+	"ProtocolErrors": {},
+}
+
+// ShouldSuppressOnHardBounce reports whether a hard bounce with this
+// classification should auto-suppress the recipient. An empty classification
+// (classifier disabled / no match) keeps the prior behavior of suppressing.
+func (b *BounceRecord) ShouldSuppressOnHardBounce() bool {
+	if b.Classification == "" {
+		return true
+	}
+	_, blocked := nonRecipientFaultClasses[b.Classification]
+	return !blocked
 }
 
 // FeedbackReport captures a feedback-loop or abuse report.
