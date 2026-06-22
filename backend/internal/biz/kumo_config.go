@@ -63,6 +63,11 @@ type ConfigSnapshot struct {
 	// classifier rules so Bounce log records carry a classification category.
 	BounceClassifierFile string
 
+	// BounceVerpSecret, when set alongside a bounce domain, makes the policy
+	// rewrite the outbound envelope sender to a VERP return-path
+	// (b+<hmac>.<msgid>@<bounce_domain>) so async DSNs correlate to the message.
+	BounceVerpSecret string
+
 	// FBLDomain, when set, makes kumod parse RFC 5965 ARF feedback reports sent
 	// to this domain (log_arf) and emit a Feedback log record, which the log hook
 	// streams to the feedback consumer (auto-suppression). Requires the log hook
@@ -232,6 +237,8 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	// and the DSN XADD constructor.
 	writeListenerDomain(&b, snap)
 	writeDsnCatcher(&b, snap)
+	// VERP envelope rewrite (outbound return-path → bounce domain).
+	writeBounceVerp(&b, snap)
 	// Egress sources (one per active VMTA).
 	rendered := writeEgressSources(&b, snap.VMTAs, snap.EgressEHLODefault)
 	// Egress pools: a singleton pool per VMTA + one per active group.
@@ -1063,6 +1070,33 @@ kumo.on('get_listener_domain', function(domain, listener)
 `)
 	}
 	b.WriteString(`  return nil
+end)
+
+`)
+}
+
+// verpEnabled reports whether the VERP envelope rewrite is rendered (requires
+// the bounce pipeline plus a signing secret).
+func verpEnabled(snap ConfigSnapshot) bool {
+	return bounceEnabled(snap) && strings.TrimSpace(snap.BounceVerpSecret) != ""
+}
+
+// writeBounceVerp emits the smtp_client_message_sending hook that rewrites the
+// outbound envelope sender to a VERP return-path so async DSNs route back to the
+// bounce domain and carry the message id. Mirrors the previous Iris release.
+func writeBounceVerp(b *strings.Builder, snap ConfigSnapshot) {
+	if !verpEnabled(snap) {
+		return
+	}
+	fmt.Fprintf(b, "-- ===== bounce VERP (envelope return-path rewrite) =====\nlocal BOUNCE_VERP_SECRET = %s\n", MustLuaString(strings.TrimSpace(snap.BounceVerpSecret)))
+	b.WriteString(`kumo.on('smtp_client_message_sending', function(msg)
+  if BOUNCE_DOMAIN == '' then return end
+  local mid = msg:id()
+  if not mid or tostring(mid) == '' then return end
+  mid = tostring(mid)
+  local mac = kumo.digest.hmac_sha256({ key_data = BOUNCE_VERP_SECRET }, mid)
+  local prefix = string.sub(tostring(mac), 1, 16)
+  msg:set_sender(string.format('b+%s.%s@%s', prefix, mid, BOUNCE_DOMAIN))
 end)
 
 `)

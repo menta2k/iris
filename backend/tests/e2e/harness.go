@@ -132,6 +132,7 @@ func representativeSnapshot() biz.ConfigSnapshot {
 		EgressMaxAge:           "1d",
 		BounceDomain:           "bounce.example.com",
 		BounceClassifierFile:   "/opt/kumomta/share/bounce_classifier/iana.toml",
+		BounceVerpSecret:       "e2e-verp-secret",
 		GeneratorVersion:       "iris-e2e/0.1.0",
 	}
 }

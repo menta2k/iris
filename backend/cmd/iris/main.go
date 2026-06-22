@@ -160,6 +160,9 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	if logStreamRedisURL == "" && cfg.Data.Redis.Addr != "" {
 		logStreamRedisURL = "redis://" + cfg.Data.Redis.Addr
 	}
+	// VERP signing key, derived from the session secret (shared by the policy
+	// generator and the DSN worker).
+	verpKey := biz.DeriveVerpKey(cfg.Auth.SessionToken)
 	// Config/env defaults; UI-managed global settings (below) override these.
 	settingsDefaults := biz.KumoConfigSettings{
 		RspamdMode:        cfg.Rspamd.Mode,
@@ -169,6 +172,10 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		// KumoMTA ships the IANA bounce-classifier rules on standard installs.
 		// Set IRIS_BOUNCE_CLASSIFIER_FILE="" to disable on installs without it.
 		BounceClassifierFile: envOr("IRIS_BOUNCE_CLASSIFIER_FILE", "/opt/kumomta/share/bounce_classifier/iana.toml"),
+		// VERP signing key, derived from the session secret so the policy and the
+		// DSN worker agree without separate storage. Empty (e.g. dev_bypass with
+		// no secret) disables VERP.
+		BounceVerpSecret: verpKey,
 	}
 	settingsRepo := data.NewGlobalSettingsRepo(db)
 	settingsUC := biz.NewGlobalSettingsUsecase(settingsRepo, auditor, settingsDefaults)
@@ -243,7 +250,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// which forwards the raw message — so no webhook fan-out worker here.
 	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, log).Run)
 	// DSN consumer: async bounces captured at the configured bounce domain.
-	startWorker(ctx, log, "dsn", worker.NewDSNWorker(streams, mailOpsRepo, domainSafetyRepo, biz.DSNStreamName, log).Run)
+	startWorker(ctx, log, "dsn", worker.NewDSNWorker(streams, mailOpsRepo, domainSafetyRepo, verpKey, biz.DSNStreamName, log).Run)
 	// ACME: HTTP-01 challenge listener (default off) + periodic renewer.
 	startWorker(ctx, log, "acme-challenge", worker.NewAcmeChallengeWorker(acmeTokens, envOr("IRIS_ACME_HTTP_BIND", "off"), log).Run)
 	startWorker(ctx, log, "acme-renewer", worker.NewAcmeRenewerWorker(acmeUC, renewInterval, renewBefore, log).Run)
