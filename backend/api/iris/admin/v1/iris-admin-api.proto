@@ -215,6 +215,11 @@ service IrisAdminService {
   rpc GetDashboardSummary(GetDashboardSummaryRequest) returns (DashboardSummary) {
     option (google.api.http) = { get: "/v1/dashboard/summary" };
   }
+  // CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
+  // (authorizes our egress IPs), and DKIM (selector records) via live DNS.
+  rpc CheckDomainBounceSetup(CheckDomainBounceSetupRequest) returns (DomainBounceCheck) {
+    option (google.api.http) = { get: "/v1/domain-check/{domain}" };
+  }
 
   // Global settings (deployment-level policy knobs editable in the UI).
   rpc GetGlobalSettings(GetGlobalSettingsRequest) returns (GlobalSettings) {
@@ -801,6 +806,18 @@ message KumoConfigStatusReply {
   // restart_required is true when the pending change touches the init block
   // (listeners/spool/log hook), which needs a KumoMTA restart, not a reload.
   bool restart_required = 6;
+}
+
+message CheckDomainBounceSetupRequest { string domain = 1; }
+message DomainCheckItem {
+  string name = 1;
+  string status = 2; // pass | warn | fail
+  string detail = 3;
+  repeated string records = 4;
+}
+message DomainBounceCheck {
+  string domain = 1;
+  repeated DomainCheckItem items = 2;
 }
 
 message GetDashboardSummaryRequest {}

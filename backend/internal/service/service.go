@@ -30,6 +30,7 @@ type Service struct {
 	kumoConfig   *biz.KumoConfigUsecase
 	settings     *biz.GlobalSettingsUsecase
 	acme         *biz.AcmeUsecase
+	domainCheck  *biz.DomainCheckUsecase
 }
 
 // Deps bundles the use cases the service delegates to. Fields may be nil for
@@ -47,6 +48,7 @@ type Deps struct {
 	KumoConfig   *biz.KumoConfigUsecase
 	Settings     *biz.GlobalSettingsUsecase
 	Acme         *biz.AcmeUsecase
+	DomainCheck  *biz.DomainCheckUsecase
 }
 
 // NewService constructs the admin API service.
@@ -68,6 +70,7 @@ func NewService(d Deps) *Service {
 		kumoConfig:   d.KumoConfig,
 		settings:     d.Settings,
 		acme:         d.Acme,
+		domainCheck:  d.DomainCheck,
 	}
 }
 

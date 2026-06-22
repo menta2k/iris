@@ -380,6 +380,27 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/GenerateDKIMKeyReply'
+    /v1/domain-check/{domain}:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
+                 (authorizes our egress IPs), and DKIM (selector records) via live DNS.
+            operationId: IrisAdminService_CheckDomainBounceSetup
+            parameters:
+                - name: domain
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DomainBounceCheck'
     /v1/feedback-reports:
         get:
             tags:
@@ -1476,6 +1497,28 @@ components:
         DisableMFARequest:
             type: object
             properties: {}
+        DomainBounceCheck:
+            type: object
+            properties:
+                domain:
+                    type: string
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DomainCheckItem'
+        DomainCheckItem:
+            type: object
+            properties:
+                name:
+                    type: string
+                status:
+                    type: string
+                detail:
+                    type: string
+                records:
+                    type: array
+                    items:
+                        type: string
         EnrollMFAReply:
             type: object
             properties:

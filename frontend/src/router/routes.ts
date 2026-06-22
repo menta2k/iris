@@ -110,6 +110,12 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/operations/AcmePage.vue'),
         meta: { permission: 'service:control', title: 'TLS Certificates' },
       },
+      {
+        path: 'operations/domain-check',
+        name: 'domain-check',
+        component: () => import('@/pages/operations/DomainCheckPage.vue'),
+        meta: { permission: 'service:control', title: 'Domain Bounce Readiness' },
+      },
 
       // Domain safety
       {
