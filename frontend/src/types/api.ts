@@ -1,6 +1,9 @@
 // Shared API types matching the Iris KumoMTA admin backend contract.
 
 export interface PageInfo {
+  // Responses are proto-JSON (camelCase). Kept the snake_case alias for any
+  // older reader.
+  nextPageToken?: string
   next_page_token?: string
 }
 
