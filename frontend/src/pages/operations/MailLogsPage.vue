@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
 import { Card, CardContent } from '@/components/ui/card'
@@ -15,6 +15,7 @@ import { StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
 import { mailOperationsService } from '@/services'
 import { ApiError } from '@/services/http'
 import type { MailRecord, MailRecordFilters } from '@/types'
@@ -31,15 +32,31 @@ const filters = ref<MailRecordFilters>({
   vmta_id: '',
 })
 
+// Offset-token pagination: the API returns an opaque nextPageToken; we keep a
+// stack of the tokens used for prior pages so "Previous" can walk back.
+const PAGE_SIZES = [25, 50, 100, 200]
+const pageSize = ref('50')
+const prevTokens = ref<string[]>([])
+const currentToken = ref('')
+const nextToken = ref('')
+const pageNumber = computed(() => prevTokens.value.length + 1)
+const hasNext = computed(() => nextToken.value !== '')
+const hasPrev = computed(() => prevTokens.value.length > 0)
+
 async function load() {
   loading.value = true
   error.value = null
   notImplemented.value = false
   try {
-    const res = await mailOperationsService.listMailRecords({ ...filters.value })
+    const res = await mailOperationsService.listMailRecords(
+      { ...filters.value },
+      { pageSize: Number(pageSize.value), pageToken: currentToken.value || undefined },
+    )
     items.value = res.items ?? []
+    nextToken.value = res.page?.nextPageToken ?? res.page?.next_page_token ?? ''
   } catch (err) {
     items.value = []
+    nextToken.value = ''
     if (err instanceof ApiError && err.notImplemented) {
       notImplemented.value = true
     } else if (err instanceof ApiError && err.status === 0) {
@@ -52,12 +69,32 @@ async function load() {
   }
 }
 
-function resetFilters() {
-  filters.value = { mailclass: '', sender: '', recipient: '', vmta_id: '' }
+// Any new query (filter, reset, page-size change) restarts at the first page.
+function reload() {
+  prevTokens.value = []
+  currentToken.value = ''
   load()
 }
 
-load()
+function resetFilters() {
+  filters.value = { mailclass: '', sender: '', recipient: '', vmta_id: '' }
+  reload()
+}
+
+function nextPage() {
+  if (!hasNext.value) return
+  prevTokens.value.push(currentToken.value)
+  currentToken.value = nextToken.value
+  load()
+}
+
+function prevPage() {
+  if (!hasPrev.value) return
+  currentToken.value = prevTokens.value.pop() ?? ''
+  load()
+}
+
+reload()
 </script>
 
 <template>
@@ -66,7 +103,7 @@ load()
 
     <Card class="mb-4">
       <CardContent class="p-4">
-        <form class="grid items-end gap-3 md:grid-cols-5" @submit.prevent="load">
+        <form class="grid items-end gap-3 md:grid-cols-5" @submit.prevent="reload">
           <div class="space-y-1">
             <Label for="f-mailclass">Mailclass</Label>
             <Input id="f-mailclass" v-model="filters.mailclass" placeholder="marketing" />
@@ -127,5 +164,39 @@ load()
         </CardContent>
       </Card>
     </DataState>
+
+    <!-- Pagination footer: shown whenever there are rows or earlier pages. -->
+    <div
+      v-if="!notImplemented && (items.length > 0 || hasPrev)"
+      class="mt-3 flex items-center justify-between text-sm"
+    >
+      <div class="flex items-center gap-2 text-muted-foreground">
+        <Label for="page-size" class="text-xs">Rows</Label>
+        <Select id="page-size" v-model="pageSize" class="h-8 w-20" @change="reload">
+          <option v-for="s in PAGE_SIZES" :key="s" :value="String(s)">{{ s }}</option>
+        </Select>
+        <span class="ml-2">Page {{ pageNumber }}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          :disabled="!hasPrev || loading"
+          data-testid="prev-page"
+          @click="prevPage"
+        >
+          Previous
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          :disabled="!hasNext || loading"
+          data-testid="next-page"
+          @click="nextPage"
+        >
+          Next
+        </Button>
+      </div>
+    </div>
   </div>
 </template>
