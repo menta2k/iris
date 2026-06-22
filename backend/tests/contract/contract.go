@@ -73,7 +73,7 @@ func newService(t *testing.T) *service.Service {
 		Inbound:      biz.NewInboundUsecase(data.NewInboundRepo(db), auditor, true),
 		Dashboard:    biz.NewDashboardUsecase(data.NewDashboardRepo(db)),
 		KumoConfig: biz.NewKumoConfigUsecase(
-			data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo), biz.NewStubKumoMTA(), mailOpsRepo, auditor,
+			data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, data.NewInboundRepo(db)), biz.NewStubKumoMTA(), mailOpsRepo, auditor,
 			settingsUC),
 		Settings: settingsUC,
 	})
