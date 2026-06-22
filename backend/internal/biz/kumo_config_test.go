@@ -434,10 +434,10 @@ func TestBounceVerpGeneration(t *testing.T) {
 	if err != nil || !off.Valid {
 		t.Fatalf("render off: %v", err)
 	}
-	if strings.Contains(off.Content, "smtp_client_message_sending") {
+	if strings.Contains(off.Content, "BOUNCE_VERP_SECRET") {
 		t.Fatalf("VERP must be absent without a secret:\n%s", off.Content)
 	}
-	// With a secret, the envelope rewrite is emitted.
+	// With a secret, the envelope rewrite is emitted in the reception hook.
 	on := base
 	on.BounceVerpSecret = "verp-key"
 	r, err := RenderKumoConfig(on)
@@ -446,13 +446,16 @@ func TestBounceVerpGeneration(t *testing.T) {
 	}
 	for _, want := range []string{
 		`local BOUNCE_VERP_SECRET = "verp-key"`,
-		"kumo.on('smtp_client_message_sending', function(msg)",
 		"kumo.digest.hmac_sha256({ key_data = BOUNCE_VERP_SECRET }, mid)",
-		"msg:set_sender(string.format('b+%s.%s@%s', prefix, mid, BOUNCE_DOMAIN))",
+		"msg:set_sender(string.format('b+%s.%s@%s', string.sub(tostring(mac), 1, 16), mid, BOUNCE_DOMAIN))",
 	} {
 		if !strings.Contains(r.Content, want) {
 			t.Fatalf("VERP missing %q:\n%s", want, r.Content)
 		}
+	}
+	// The rewrite lives inside the reception hook, not a (non-firing) sending hook.
+	if strings.Contains(r.Content, "smtp_client_message_sending") {
+		t.Fatalf("VERP must not use smtp_client_message_sending:\n%s", r.Content)
 	}
 }
 
