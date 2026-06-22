@@ -220,6 +220,7 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 			Mailclass:       rec.Mailclass(),
 			SMTPStatus:      smtp,
 			Diagnostic:      rec.Response.Content,
+			Classification:  rec.BounceClassification,
 			ProcessingState: biz.ProcessingNew,
 		}
 		if err := w.store.InsertBounce(ctx, bounce); err != nil {
@@ -247,8 +248,14 @@ func (w *LogStreamWorker) applyBouncePolicy(ctx context.Context, b *biz.BounceRe
 	policy := w.bouncePolicy(ctx)
 
 	if b.IsHardBounce() {
-		if policy.AutoSuppressHardBounces {
-			if err := w.suppressor.SuppressRecipient(ctx, recipient, "bounce", "hard bounce "+b.SMTPStatus); err != nil {
+		// Don't suppress an otherwise-valid recipient when the hard failure is
+		// not their fault (spam block, quota, policy) per the classifier.
+		if policy.AutoSuppressHardBounces && b.ShouldSuppressOnHardBounce() {
+			reason := "hard bounce " + b.SMTPStatus
+			if b.Classification != "" {
+				reason += " (" + b.Classification + ")"
+			}
+			if err := w.suppressor.SuppressRecipient(ctx, recipient, "bounce", reason); err != nil {
 				w.log.Error("auto-suppress hard bounce", "recipient", recipient, "error", err.Error())
 			}
 		}

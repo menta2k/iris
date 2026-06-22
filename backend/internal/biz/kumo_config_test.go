@@ -423,6 +423,30 @@ func TestSenderIPClassification(t *testing.T) {
 	}
 }
 
+func TestBounceClassifierGeneration(t *testing.T) {
+	base := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+	}
+	// Off when unset.
+	off, err := RenderKumoConfig(base)
+	if err != nil || !off.Valid {
+		t.Fatalf("render off: %v", err)
+	}
+	if strings.Contains(off.Content, "configure_bounce_classifier") {
+		t.Fatalf("classifier should be absent when unset:\n%s", off.Content)
+	}
+	// On with a file path.
+	on := base
+	on.BounceClassifierFile = "/opt/kumomta/share/bounce_classifier/iana.toml"
+	r, err := RenderKumoConfig(on)
+	if err != nil || !r.Valid {
+		t.Fatalf("render on: %v", err)
+	}
+	if !strings.Contains(r.Content, `kumo.configure_bounce_classifier { files = { "/opt/kumomta/share/bounce_classifier/iana.toml" } }`) {
+		t.Fatalf("classifier not emitted:\n%s", r.Content)
+	}
+}
+
 func TestInboundWebhookGeneration(t *testing.T) {
 	snap := ConfigSnapshot{
 		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},

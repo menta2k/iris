@@ -1284,6 +1284,11 @@ components:
                     type: string
                 processing_state:
                     type: string
+                classification:
+                    type: string
+                    description: |-
+                        classification is KumoMTA's bounce-classifier category (InvalidRecipient,
+                         SpamBlock, …); empty when the classifier is disabled or no rule matched.
         ChangePasswordReply:
             type: object
             properties: {}

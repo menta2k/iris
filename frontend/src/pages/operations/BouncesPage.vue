@@ -51,6 +51,7 @@ const {
                 <TableHead>Mailclass</TableHead>
                 <TableHead>SMTP Status</TableHead>
                 <TableHead>Type</TableHead>
+                <TableHead>Classification</TableHead>
                 <TableHead>Diagnostic</TableHead>
                 <TableHead>State</TableHead>
               </TableRow>
@@ -62,6 +63,10 @@ const {
                 <TableCell>{{ b.mailclass }}</TableCell>
                 <TableCell class="font-mono text-xs">{{ b.smtpStatus }}</TableCell>
                 <TableCell><Badge variant="destructive">{{ b.bounceType }}</Badge></TableCell>
+                <TableCell>
+                  <Badge v-if="b.classification" variant="outline">{{ b.classification }}</Badge>
+                  <span v-else class="text-muted-foreground">—</span>
+                </TableCell>
                 <TableCell class="text-muted-foreground">{{ b.diagnostic }}</TableCell>
                 <TableCell><StatusBadge :status="b.processingState" /></TableCell>
               </TableRow>

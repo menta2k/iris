@@ -59,7 +59,7 @@ func (s *Service) ListBounces(ctx context.Context, req *adminv1.ListBouncesReque
 		out.Items = append(out.Items, &adminv1.Bounce{
 			Id: b.ID, EventTime: timestamppb.New(b.EventTime), Recipient: b.Recipient,
 			Mailclass: b.Mailclass, SmtpStatus: b.SMTPStatus, BounceType: b.BounceType,
-			Diagnostic: b.Diagnostic, ProcessingState: b.ProcessingState,
+			Diagnostic: b.Diagnostic, ProcessingState: b.ProcessingState, Classification: b.Classification,
 		})
 	}
 	return out, nil

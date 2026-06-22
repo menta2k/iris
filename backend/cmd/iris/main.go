@@ -166,6 +166,9 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		RspamdURL:         cfg.Rspamd.BaseURL,
 		LogStreamRedisURL: logStreamRedisURL,
 		LogStreamName:     data.StreamMailEvents,
+		// KumoMTA ships the IANA bounce-classifier rules on standard installs.
+		// Set IRIS_BOUNCE_CLASSIFIER_FILE="" to disable on installs without it.
+		BounceClassifierFile: envOr("IRIS_BOUNCE_CLASSIFIER_FILE", "/opt/kumomta/share/bounce_classifier/iana.toml"),
 	}
 	settingsRepo := data.NewGlobalSettingsRepo(db)
 	settingsUC := biz.NewGlobalSettingsUsecase(settingsRepo, auditor, settingsDefaults)

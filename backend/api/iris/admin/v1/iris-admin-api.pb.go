@@ -1859,8 +1859,11 @@ type Bounce struct {
 	BounceType      string                 `protobuf:"bytes,6,opt,name=bounce_type,json=bounceType,proto3" json:"bounce_type,omitempty"`
 	Diagnostic      string                 `protobuf:"bytes,7,opt,name=diagnostic,proto3" json:"diagnostic,omitempty"`
 	ProcessingState string                 `protobuf:"bytes,8,opt,name=processing_state,json=processingState,proto3" json:"processing_state,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// classification is KumoMTA's bounce-classifier category (InvalidRecipient,
+	// SpamBlock, …); empty when the classifier is disabled or no rule matched.
+	Classification string `protobuf:"bytes,9,opt,name=classification,proto3" json:"classification,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Bounce) Reset() {
@@ -1945,6 +1948,13 @@ func (x *Bounce) GetDiagnostic() string {
 func (x *Bounce) GetProcessingState() string {
 	if x != nil {
 		return x.ProcessingState
+	}
+	return ""
+}
+
+func (x *Bounce) GetClassification() string {
+	if x != nil {
+		return x.Classification
 	}
 	return ""
 }
@@ -7421,7 +7431,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\trecipient\x18\x06 \x01(\tR\trecipient\x12)\n" +
 	"\x10recipient_domain\x18\a \x01(\tR\x0frecipientDomain\x12\x17\n" +
 	"\avmta_id\x18\b \x01(\tR\x06vmtaId\x12\x16\n" +
-	"\x06status\x18\t \x01(\tR\x06status\"\x9c\x02\n" +
+	"\x06status\x18\t \x01(\tR\x06status\"\xc4\x02\n" +
 	"\x06Bounce\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x129\n" +
 	"\n" +
@@ -7435,7 +7445,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\n" +
 	"diagnostic\x18\a \x01(\tR\n" +
 	"diagnostic\x12)\n" +
-	"\x10processing_state\x18\b \x01(\tR\x0fprocessingState\"\xdf\x01\n" +
+	"\x10processing_state\x18\b \x01(\tR\x0fprocessingState\x12&\n" +
+	"\x0eclassification\x18\t \x01(\tR\x0eclassification\"\xdf\x01\n" +
 	"\x0eFeedbackReport\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12;\n" +
 	"\vreceived_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
