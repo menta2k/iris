@@ -32,8 +32,9 @@ type KumoConfigSettings struct {
 	// Bounce domain that inbound DSNs are accepted at (DSN pipeline).
 	BounceDomain string
 
-	// FBLDomain enables ARF parsing (log_arf) for the feedback pipeline.
-	FBLDomain string
+	// FBLDomains enables ARF parsing (log_arf) for the feedback pipeline, one
+	// entry per ARF-candidate domain. Empty disables the pipeline.
+	FBLDomains []string
 
 	// BounceClassifierFile is the KumoMTA bounce-classifier rules file loaded in
 	// the init block (empty disables classification).
@@ -127,7 +128,7 @@ func (uc *KumoConfigUsecase) render(ctx context.Context) (RenderedConfig, error)
 	snap.EgressMaxRetryInterval = settings.EgressMaxRetryInterval
 	snap.EgressMaxAge = settings.EgressMaxAge
 	snap.BounceDomain = settings.BounceDomain
-	snap.FBLDomain = settings.FBLDomain
+	snap.FBLDomains = settings.FBLDomains
 	snap.BounceClassifierFile = settings.BounceClassifierFile
 	snap.BounceVerpSecret = settings.BounceVerpSecret
 	return RenderKumoConfig(snap)

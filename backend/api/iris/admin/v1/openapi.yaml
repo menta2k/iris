@@ -1720,9 +1720,13 @@ components:
                 soft_bounce_threshold:
                     type: integer
                     format: int32
-                fbl_domain:
-                    type: string
-                    description: 'FBL/ARF feedback domain (log_arf): kumod parses ARF reports here.'
+                fbl_domains:
+                    type: array
+                    items:
+                        type: string
+                    description: |-
+                        FBL/ARF feedback domains (log_arf): kumod parses ARF reports received at
+                         any of these domains. Empty disables the FBL pipeline.
                 admin_http_addr:
                     type: string
                     description: |-
@@ -2293,8 +2297,10 @@ components:
                 soft_bounce_threshold:
                     type: integer
                     format: int32
-                fbl_domain:
-                    type: string
+                fbl_domains:
+                    type: array
+                    items:
+                        type: string
                 admin_http_addr:
                     type: string
                 admin_tls_enabled:

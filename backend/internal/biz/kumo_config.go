@@ -72,11 +72,11 @@ type ConfigSnapshot struct {
 	// (b+<hmac>.<msgid>@<bounce_domain>) so async DSNs correlate to the message.
 	BounceVerpSecret string
 
-	// FBLDomain, when set, makes kumod parse RFC 5965 ARF feedback reports sent
-	// to this domain (log_arf) and emit a Feedback log record, which the log hook
-	// streams to the feedback consumer (auto-suppression). Requires the log hook
-	// (LogStreamRedisURL) to actually reach iris.
-	FBLDomain string
+	// FBLDomains, when non-empty, makes kumod parse RFC 5965 ARF feedback reports
+	// received at any of these domains (log_arf) and emit a Feedback log record,
+	// which the log hook streams to the feedback consumer (auto-suppression).
+	// Requires the log hook (LogStreamRedisURL) to actually reach iris.
+	FBLDomains []string
 
 	// GeneratedBy/GeneratorVersion annotate the rendered header.
 	GeneratedBy      string
@@ -1002,7 +1002,7 @@ const DSNStreamName = "iris.dsn.events"
 // log_arf parsing works on its own; the resulting Feedback record only reaches
 // iris when the log hook (LogStreamRedisURL) is also configured.
 func fblEnabled(snap ConfigSnapshot) bool {
-	return strings.TrimSpace(snap.FBLDomain) != ""
+	return len(snap.FBLDomains) > 0
 }
 
 // writeBounceConsts emits the bounce/DSN + FBL constants (empty when disabled).
@@ -1014,14 +1014,18 @@ func writeBounceConsts(b *strings.Builder, snap ConfigSnapshot) {
 		dsnTracker = "iris_dsn_catcher"
 		dsnStream = DSNStreamName
 	}
-	fblDomain := ""
-	if fblEnabled(snap) {
-		fblDomain = strings.ToLower(strings.TrimSpace(snap.FBLDomain))
-	}
 	fmt.Fprintf(b, "local BOUNCE_DOMAIN = %s\n", MustLuaString(bounceDomain))
 	fmt.Fprintf(b, "local DSN_TRACKER   = %s\n", MustLuaString(dsnTracker))
 	fmt.Fprintf(b, "local DSN_STREAM    = %s\n", MustLuaString(dsnStream))
-	fmt.Fprintf(b, "local FBL_DOMAIN    = %s\n\n", MustLuaString(fblDomain))
+	b.WriteString("local FBL_DOMAINS  = {}\n")
+	for _, d := range snap.FBLDomains {
+		d = strings.ToLower(strings.TrimSpace(d))
+		if d == "" {
+			continue
+		}
+		fmt.Fprintf(b, "FBL_DOMAINS[%s] = true\n", MustLuaString(d))
+	}
+	b.WriteString("\n")
 }
 
 // webhookEnabled reports whether any active webhook rule with a destination is
@@ -1127,14 +1131,14 @@ func writeListenerDomain(b *strings.Builder, snap ConfigSnapshot) {
 		return
 	}
 	b.WriteString(`-- Accept inbound mail for the bounce domain (relayed into the chain, where the
--- reception hook routes it to the DSN tracker), parse ARF reports at the FBL
+-- reception hook routes it to the DSN tracker), parse ARF reports at any FBL
 -- domain (emitting Feedback log records), and relay webhook domains (routed to
 -- the webhook poster).
 kumo.on('get_listener_domain', function(domain, listener)
   if BOUNCE_DOMAIN ~= '' and domain == BOUNCE_DOMAIN then
     return kumo.make_listener_domain { relay_to = true }
   end
-  if FBL_DOMAIN ~= '' and domain == FBL_DOMAIN then
+  if FBL_DOMAINS[domain] then
     return kumo.make_listener_domain { log_arf = 'LogThenDrop' }
   end
 `)

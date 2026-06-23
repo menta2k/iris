@@ -39,9 +39,10 @@ type GlobalSettings struct {
 	AutoSuppressHardBounces bool
 	SoftBounceThreshold     int
 
-	// FBLDomain enables ARF feedback-report parsing (log_arf) at this domain so
-	// kumod emits Feedback log records for the feedback consumer.
-	FBLDomain string
+	// FBLDomains enables ARF feedback-report parsing (log_arf) at each of these
+	// domains so kumod emits Feedback log records for the feedback consumer.
+	// Empty disables the FBL pipeline.
+	FBLDomains []string
 
 	// Iris admin server (applied on restart — the listening socket is bound at
 	// startup). AdminHTTPAddr overrides the configured HTTP bind when set. When
@@ -121,10 +122,25 @@ func (g *GlobalSettings) Validate() error {
 	if g.BounceDomain != "" && (len(g.BounceDomain) > 253 || !dnsNameRe.MatchString(g.BounceDomain)) {
 		return Invalid("SETTINGS_BOUNCE_DOMAIN_INVALID", "bounce_domain %q is not a valid DNS name", g.BounceDomain)
 	}
-	g.FBLDomain = strings.ToLower(strings.TrimSpace(g.FBLDomain))
-	if g.FBLDomain != "" && (len(g.FBLDomain) > 253 || !dnsNameRe.MatchString(g.FBLDomain)) {
-		return Invalid("SETTINGS_FBL_DOMAIN_INVALID", "fbl_domain %q is not a valid DNS name", g.FBLDomain)
+	// FBL/ARF feedback domains: normalize (trim, lower-case), validate each as a
+	// DNS name, and de-dupe. Empty entries are dropped; an empty list disables FBL.
+	seen := make(map[string]struct{}, len(g.FBLDomains))
+	normalized := make([]string, 0, len(g.FBLDomains))
+	for _, d := range g.FBLDomains {
+		d = strings.ToLower(strings.TrimSpace(d))
+		if d == "" {
+			continue
+		}
+		if len(d) > 253 || !dnsNameRe.MatchString(d) {
+			return Invalid("SETTINGS_FBL_DOMAIN_INVALID", "fbl_domain %q is not a valid DNS name", d)
+		}
+		if _, dup := seen[d]; dup {
+			continue
+		}
+		seen[d] = struct{}{}
+		normalized = append(normalized, d)
 	}
+	g.FBLDomains = normalized
 	if g.SoftBounceThreshold < 0 || g.SoftBounceThreshold > 1000 {
 		return Invalid("SETTINGS_SOFT_THRESHOLD_RANGE", "soft_bounce_threshold must be between 0 and 1000")
 	}

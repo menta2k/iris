@@ -356,7 +356,7 @@ func TestRenderFBLListenerDomain(t *testing.T) {
 		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "l1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
 	}
 
-	// Disabled: no listener-domain handler, FBL_DOMAIN empty.
+	// Disabled: no listener-domain handler, no log_arf.
 	off, err := RenderKumoConfig(base)
 	if err != nil || !off.Valid {
 		t.Fatalf("render off: err=%v valid=%v issues=%v", err, off.Valid, off.LintIssues)
@@ -365,17 +365,18 @@ func TestRenderFBLListenerDomain(t *testing.T) {
 		t.Fatalf("FBL/listener-domain must be absent when unconfigured:\n%s", off.Content)
 	}
 
-	// Enabled: single get_listener_domain handler with log_arf for the FBL domain.
+	// Enabled: one get_listener_domain handler with log_arf for every FBL domain.
 	on := base
-	on.FBLDomain = "fbl.example.com"
+	on.FBLDomains = []string{"fbl.example.com", "fbl2.example.com"}
 	r, err := RenderKumoConfig(on)
 	if err != nil || !r.Valid {
 		t.Fatalf("render on: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
 	}
-	if !strings.Contains(r.Content, `local FBL_DOMAIN    = "fbl.example.com"`) ||
-		!strings.Contains(r.Content, "kumo.on('get_listener_domain'") ||
+	if !strings.Contains(r.Content, `FBL_DOMAINS["fbl.example.com"] = true`) ||
+		!strings.Contains(r.Content, `FBL_DOMAINS["fbl2.example.com"] = true`) ||
+		!strings.Contains(r.Content, "if FBL_DOMAINS[domain] then") ||
 		!strings.Contains(r.Content, "log_arf = 'LogThenDrop'") {
-		t.Fatalf("FBL log_arf not wired:\n%s", r.Content)
+		t.Fatalf("FBL multi-domain log_arf not wired:\n%s", r.Content)
 	}
 	// Exactly one get_listener_domain handler (the event may be defined once).
 	if n := strings.Count(r.Content, "kumo.on('get_listener_domain'"); n != 1 {
