@@ -157,6 +157,11 @@ service IrisAdminService {
   rpc UpdateUser(UpdateUserRequest) returns (User) {
     option (google.api.http) = { put: "/v1/users/{id}" body: "*" };
   }
+  // ResetUserPassword sets a new password for a user (admin reset). Requires
+  // user:write; the new password is strength-validated and bcrypt-hashed.
+  rpc ResetUserPassword(ResetUserPasswordRequest) returns (ResetUserPasswordReply) {
+    option (google.api.http) = { post: "/v1/users/{id}:reset-password" body: "*" };
+  }
   // MFA enrollment for the calling user (TOTP).
   rpc EnrollMFA(EnrollMFARequest) returns (EnrollMFAReply) {
     option (google.api.http) = { post: "/v1/mfa:enroll" body: "*" };
@@ -733,6 +738,12 @@ message UpdateUserRequest {
   bool mfa_required = 4;
   repeated string roles = 5;
 }
+message ResetUserPasswordRequest {
+  string id = 1;
+  // New password; strength-validated server-side (>= 12 chars) and bcrypt-hashed.
+  string password = 2;
+}
+message ResetUserPasswordReply {}
 message ListAuditEntriesRequest { PageRequest page = 1; }
 message ListAuditEntriesReply {
   repeated AuditEntry items = 1;

@@ -94,6 +94,29 @@ func (uc *IdentityUsecase) UpdateUser(ctx context.Context, id string, u *IrisUse
 	return out, nil
 }
 
+// ResetUserPassword sets a new password for a user (admin reset). The caller
+// needs user:write. The new password is strength-validated and bcrypt-hashed;
+// MFA enrollment is left untouched. The plaintext password is never recorded
+// in the audit log — only the target user id (see user.set_status).
+func (uc *IdentityUsecase) ResetUserPassword(ctx context.Context, id, password string) error {
+	if _, err := RequirePermission(ctx, PermUserWrite); err != nil {
+		return err
+	}
+	if id == "" {
+		return Invalid("USER_ID_REQUIRED", "user id is required")
+	}
+	hash, err := HashPassword(password) // enforces >= 12 chars + bcrypt
+	if err != nil {
+		return err
+	}
+	if err := uc.repo.SetPassword(ctx, id, hash); err != nil {
+		uc.audit(ctx, "user.password_reset", "user", id, AuditFailure, nil)
+		return err
+	}
+	uc.audit(ctx, "user.password_reset", "user", id, AuditSuccess, nil)
+	return nil
+}
+
 // SetUserStatus enables, disables, or locks a user.
 func (uc *IdentityUsecase) SetUserStatus(ctx context.Context, id, status string) error {
 	if _, err := RequirePermission(ctx, PermUserWrite); err != nil {

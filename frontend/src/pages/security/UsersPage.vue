@@ -114,6 +114,56 @@ async function submit() {
     saving.value = false
   }
 }
+
+// --- Reset password (admin) ---
+const MIN_PASSWORD_LENGTH = 12
+
+const resetOpen = ref(false)
+const resetSaving = ref(false)
+const resetId = ref<string | null>(null)
+const resetEmail = ref('')
+const resetPw = ref('')
+const resetConfirm = ref('')
+
+const resetValid = computed(
+  () =>
+    resetPw.value.length >= MIN_PASSWORD_LENGTH && resetPw.value === resetConfirm.value,
+)
+
+function openReset(u: User) {
+  resetId.value = u.id
+  resetEmail.value = u.email
+  resetPw.value = ''
+  resetConfirm.value = ''
+  resetOpen.value = true
+}
+
+// 16 chars from an unambiguous alphabet; enough entropy to hand off as a
+// temporary password, easy to read aloud.
+function generatePassword() {
+  const alphabet = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+  let out = ''
+  for (let i = 0; i < 16; i++) out += alphabet[bytes[i] % alphabet.length]
+  resetPw.value = out
+  resetConfirm.value = out
+}
+
+async function submitReset() {
+  if (!resetId.value || !resetValid.value) return
+  resetSaving.value = true
+  try {
+    await identityAuditService.resetPassword(resetId.value, { password: resetPw.value })
+    toast({ title: 'Password reset', description: resetEmail.value, variant: 'success' })
+    resetOpen.value = false
+  } catch (err) {
+    const msg = err instanceof ApiError ? err.message : 'Failed to reset password.'
+    toast({ title: 'Reset failed', description: msg, variant: 'destructive' })
+  } finally {
+    resetSaving.value = false
+  }
+}
 </script>
 
 <template>
@@ -159,14 +209,24 @@ async function submit() {
                 </TableCell>
                 <TableCell><StatusBadge :status="u.status" /></TableCell>
                 <TableCell class="text-right">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    :data-testid="`edit-user-${u.id}`"
-                    @click="openEdit(u)"
-                  >
-                    Edit
-                  </Button>
+                  <div class="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      :data-testid="`edit-user-${u.id}`"
+                      @click="openEdit(u)"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      :data-testid="`reset-user-${u.id}`"
+                      @click="openReset(u)"
+                    >
+                      Reset password
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -223,6 +283,59 @@ async function submit() {
           <Button type="button" variant="outline" @click="dialogOpen = false">Cancel</Button>
           <Button type="submit" :disabled="saving || (!isEdit && !form.email) || form.roles.length === 0">
             {{ saving ? 'Saving…' : isEdit ? 'Save' : 'Create' }}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Dialog>
+
+    <Dialog v-model:open="resetOpen">
+      <DialogHeader>
+        <DialogTitle>Reset password</DialogTitle>
+      </DialogHeader>
+      <form class="space-y-4" @submit.prevent="submitReset">
+        <p class="text-sm text-muted-foreground">
+          Set a new password for
+          <span class="font-medium text-foreground">{{ resetEmail }}</span>. They can use it to
+          sign in immediately.
+        </p>
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <Label for="reset-pw">New password</Label>
+            <button
+              type="button"
+              class="text-xs text-primary hover:underline"
+              @click="generatePassword"
+            >
+              Generate
+            </button>
+          </div>
+          <Input
+            id="reset-pw"
+            v-model="resetPw"
+            type="password"
+            autocomplete="new-password"
+            placeholder="At least 12 characters"
+          />
+        </div>
+        <div class="space-y-1.5">
+          <Label for="reset-confirm">Confirm password</Label>
+          <Input
+            id="reset-confirm"
+            v-model="resetConfirm"
+            type="password"
+            autocomplete="new-password"
+          />
+          <p v-if="resetConfirm && resetConfirm !== resetPw" class="text-xs text-destructive">
+            Passwords do not match.
+          </p>
+          <p v-else-if="resetPw.length > 0 && resetPw.length < MIN_PASSWORD_LENGTH" class="text-xs text-muted-foreground">
+            At least {{ MIN_PASSWORD_LENGTH }} characters.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" @click="resetOpen = false">Cancel</Button>
+          <Button type="submit" :disabled="resetSaving || !resetValid">
+            {{ resetSaving ? 'Saving…' : 'Reset' }}
           </Button>
         </DialogFooter>
       </form>
