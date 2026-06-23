@@ -63,12 +63,18 @@ func NewMetricsUsecase(urls PrometheusURLProvider, client HTTPDoer) *MetricsUsec
 
 // curatedSeries defines the fixed PromQL (sans rate window) for each line. Each
 // expression is wrapped as sum(rate(<expr>[<window>])) * 60 → events/minute.
+//
+// The status label values MUST match what the logstream worker records into
+// iris_mail_events_total — i.e. the normalized MailRecord statuses from
+// mail_record.go (sent/received/deferred/bounced), NOT the raw KumoMTA event
+// types (Delivery/Reception/TransientFailure). Filtering on the raw types
+// yields an empty result and a blank chart.
 var curatedSeries = []struct {
 	key, label, expr string
 }{
-	{"deliveries", "Deliveries/min", `iris_mail_events_total{status="Delivery"}`},
-	{"receptions", "Receptions/min", `iris_mail_events_total{status="Reception"}`},
-	{"deferrals", "Deferrals/min", `iris_mail_events_total{status="TransientFailure"}`},
+	{"deliveries", "Deliveries/min", `iris_mail_events_total{status="` + MailSent + `"}`},
+	{"receptions", "Receptions/min", `iris_mail_events_total{status="` + MailReceived + `"}`},
+	{"deferrals", "Deferrals/min", `iris_mail_events_total{status="` + MailDeferred + `"}`},
 	{"bounces", "Bounces/min", `iris_bounces_total`},
 }
 
