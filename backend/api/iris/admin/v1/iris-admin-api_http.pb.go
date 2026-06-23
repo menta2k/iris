@@ -69,6 +69,7 @@ const OperationIrisAdminServiceLogout = "/iris.admin.v1.IrisAdminService/Logout"
 const OperationIrisAdminServiceRequestAcmeCertificate = "/iris.admin.v1.IrisAdminService/RequestAcmeCertificate"
 const OperationIrisAdminServiceRequestQueueAction = "/iris.admin.v1.IrisAdminService/RequestQueueAction"
 const OperationIrisAdminServiceRequestServiceControl = "/iris.admin.v1.IrisAdminService/RequestServiceControl"
+const OperationIrisAdminServiceResetUserPassword = "/iris.admin.v1.IrisAdminService/ResetUserPassword"
 const OperationIrisAdminServiceSaveAcmeAccount = "/iris.admin.v1.IrisAdminService/SaveAcmeAccount"
 const OperationIrisAdminServiceSetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
 const OperationIrisAdminServiceUpdateDKIMDomain = "/iris.admin.v1.IrisAdminService/UpdateDKIMDomain"
@@ -170,6 +171,9 @@ type IrisAdminServiceHTTPServer interface {
 	RequestQueueAction(context.Context, *RequestQueueActionRequest) (*QueueActionReply, error)
 	// RequestServiceControl KumoMTA service & configuration ------------------------------------------
 	RequestServiceControl(context.Context, *RequestServiceControlRequest) (*ServiceControlRequest, error)
+	// ResetUserPassword ResetUserPassword sets a new password for a user (admin reset). Requires
+	// user:write; the new password is strength-validated and bcrypt-hashed.
+	ResetUserPassword(context.Context, *ResetUserPasswordRequest) (*ResetUserPasswordReply, error)
 	SaveAcmeAccount(context.Context, *SaveAcmeAccountRequest) (*AcmeAccount, error)
 	SetAcmeDnsProvider(context.Context, *SetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	UpdateDKIMDomain(context.Context, *UpdateDKIMDomainRequest) (*DKIMDomain, error)
@@ -228,6 +232,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.GET("/v1/users", _IrisAdminService_ListUsers0_HTTP_Handler(srv))
 	r.POST("/v1/users", _IrisAdminService_CreateUser0_HTTP_Handler(srv))
 	r.PUT("/v1/users/{id}", _IrisAdminService_UpdateUser0_HTTP_Handler(srv))
+	r.POST("/v1/users/{id}:reset-password", _IrisAdminService_ResetUserPassword0_HTTP_Handler(srv))
 	r.POST("/v1/mfa:enroll", _IrisAdminService_EnrollMFA0_HTTP_Handler(srv))
 	r.POST("/v1/mfa:confirm", _IrisAdminService_ConfirmMFA0_HTTP_Handler(srv))
 	r.POST("/v1/mfa:disable", _IrisAdminService_DisableMFA0_HTTP_Handler(srv))
@@ -1111,6 +1116,31 @@ func _IrisAdminService_UpdateUser0_HTTP_Handler(srv IrisAdminServiceHTTPServer) 
 	}
 }
 
+func _IrisAdminService_ResetUserPassword0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ResetUserPasswordRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceResetUserPassword)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ResetUserPassword(ctx, req.(*ResetUserPasswordRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ResetUserPasswordReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_EnrollMFA0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in EnrollMFARequest
@@ -1650,6 +1680,9 @@ type IrisAdminServiceHTTPClient interface {
 	RequestQueueAction(ctx context.Context, req *RequestQueueActionRequest, opts ...http.CallOption) (rsp *QueueActionReply, err error)
 	// RequestServiceControl KumoMTA service & configuration ------------------------------------------
 	RequestServiceControl(ctx context.Context, req *RequestServiceControlRequest, opts ...http.CallOption) (rsp *ServiceControlRequest, err error)
+	// ResetUserPassword ResetUserPassword sets a new password for a user (admin reset). Requires
+	// user:write; the new password is strength-validated and bcrypt-hashed.
+	ResetUserPassword(ctx context.Context, req *ResetUserPasswordRequest, opts ...http.CallOption) (rsp *ResetUserPasswordReply, err error)
 	SaveAcmeAccount(ctx context.Context, req *SaveAcmeAccountRequest, opts ...http.CallOption) (rsp *AcmeAccount, err error)
 	SetAcmeDnsProvider(ctx context.Context, req *SetAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	UpdateDKIMDomain(ctx context.Context, req *UpdateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
@@ -2353,6 +2386,21 @@ func (c *IrisAdminServiceHTTPClientImpl) RequestServiceControl(ctx context.Conte
 	pattern := "/v1/kumomta:service-control"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceRequestServiceControl))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ResetUserPassword ResetUserPassword sets a new password for a user (admin reset). Requires
+// user:write; the new password is strength-validated and bcrypt-hashed.
+func (c *IrisAdminServiceHTTPClientImpl) ResetUserPassword(ctx context.Context, in *ResetUserPasswordRequest, opts ...http.CallOption) (*ResetUserPasswordReply, error) {
+	var out ResetUserPasswordReply
+	pattern := "/v1/users/{id}:reset-password"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceResetUserPassword))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {

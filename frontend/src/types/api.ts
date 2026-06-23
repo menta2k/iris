@@ -297,6 +297,11 @@ export interface UpdateUserRequest {
   roles: string[]
 }
 
+// Admin reset of another user's password. Strength-validated server-side.
+export interface ResetPasswordRequest {
+  password: string
+}
+
 export interface AuditEntry {
   id: string
   occurredAt: string

@@ -1040,6 +1040,33 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/User'
+    /v1/users/{id}:reset-password:
+        post:
+            tags:
+                - IrisAdminService
+            description: |-
+                ResetUserPassword sets a new password for a user (admin reset). Requires
+                 user:write; the new password is strength-validated and bcrypt-hashed.
+            operationId: IrisAdminService_ResetUserPassword
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ResetUserPasswordRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ResetUserPasswordReply'
     /v1/vmta-groups:
         get:
             tags:
@@ -2107,6 +2134,17 @@ components:
                 confirmation_id:
                     type: string
             description: KumoMTA service & configuration -------------------------------------------
+        ResetUserPasswordReply:
+            type: object
+            properties: {}
+        ResetUserPasswordRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                password:
+                    type: string
+                    description: New password; strength-validated server-side (>= 12 chars) and bcrypt-hashed.
         RoutingRule:
             type: object
             properties:

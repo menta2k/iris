@@ -5,6 +5,7 @@ import type {
   CreateUserRequest,
   EnrollMfaReply,
   ListResponse,
+  ResetPasswordRequest,
   UpdateUserRequest,
   User,
 } from '@/types'
@@ -18,6 +19,9 @@ export const identityAuditService = {
   },
   updateUser(id: string, body: UpdateUserRequest) {
     return http.put<User>(`/users/${id}`, body)
+  },
+  resetPassword(id: string, body: ResetPasswordRequest) {
+    return http.post<Record<string, never>>(`/users/${id}:reset-password`, body)
   },
   listAuditEntries(page?: PageParams) {
     return http.get<ListResponse<AuditEntry>>('/audit-entries', { query: pageQuery(page) })

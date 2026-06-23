@@ -102,6 +102,17 @@ func (s *Service) UpdateUser(ctx context.Context, req *adminv1.UpdateUserRequest
 	return userToProto(out), nil
 }
 
+// ResetUserPassword sets a new password for a user (admin reset, US3).
+func (s *Service) ResetUserPassword(ctx context.Context, req *adminv1.ResetUserPasswordRequest) (*adminv1.ResetUserPasswordReply, error) {
+	if s.identity == nil {
+		return nil, notImplemented("ResetUserPassword")
+	}
+	if err := s.identity.ResetUserPassword(ctx, req.GetId(), req.GetPassword()); err != nil {
+		return nil, s.fail(ctx, "ResetUserPassword", err)
+	}
+	return &adminv1.ResetUserPasswordReply{}, nil
+}
+
 // ListAuditEntries returns audit-log entries (US3).
 func (s *Service) ListAuditEntries(ctx context.Context, req *adminv1.ListAuditEntriesRequest) (*adminv1.ListAuditEntriesReply, error) {
 	if s.identity == nil {
