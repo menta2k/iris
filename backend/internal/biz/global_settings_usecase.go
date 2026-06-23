@@ -99,8 +99,8 @@ func (uc *GlobalSettingsUsecase) Effective(ctx context.Context) (KumoConfigSetti
 	if row.BounceDomain != "" {
 		s.BounceDomain = row.BounceDomain
 	}
-	if row.FBLDomain != "" {
-		s.FBLDomain = row.FBLDomain
+	if len(row.FBLDomains) > 0 {
+		s.FBLDomains = row.FBLDomains
 	}
 	return s, nil
 }

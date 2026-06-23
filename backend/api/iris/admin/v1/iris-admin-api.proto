@@ -922,8 +922,9 @@ message GlobalSettings {
   string bounce_domain = 10;
   bool auto_suppress_hard_bounces = 11;
   int32 soft_bounce_threshold = 12;
-  // FBL/ARF feedback domain (log_arf): kumod parses ARF reports here.
-  string fbl_domain = 13;
+  // FBL/ARF feedback domains (log_arf): kumod parses ARF reports received at
+  // any of these domains. Empty disables the FBL pipeline.
+  repeated string fbl_domains = 13;
   // Iris admin server (applied on restart). admin_http_addr overrides the HTTP
   // bind; admin_tls_enabled serves HTTPS using the issued cert whose domain is
   // admin_tls_cert_domain.
@@ -952,7 +953,7 @@ message UpdateGlobalSettingsRequest {
   string bounce_domain = 10;
   bool auto_suppress_hard_bounces = 11;
   int32 soft_bounce_threshold = 12;
-  string fbl_domain = 13;
+  repeated string fbl_domains = 13;
   string admin_http_addr = 14;
   bool admin_tls_enabled = 15;
   string admin_tls_cert_domain = 16;

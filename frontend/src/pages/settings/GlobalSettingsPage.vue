@@ -39,7 +39,7 @@ const form = ref({
   bounce_domain: '',
   auto_suppress_hard_bounces: true,
   soft_bounce_threshold: 0,
-  fbl_domain: '',
+  fbl_domains_text: '',
   admin_http_addr: '',
   admin_tls_enabled: false,
   admin_tls_cert_domain: '',
@@ -62,7 +62,7 @@ function apply(s: GlobalSettings) {
     bounce_domain: s.bounceDomain || '',
     auto_suppress_hard_bounces: s.autoSuppressHardBounces ?? true,
     soft_bounce_threshold: s.softBounceThreshold ?? 0,
-    fbl_domain: s.fblDomain || '',
+    fbl_domains_text: (s.fblDomains ?? []).join('\n'),
     admin_http_addr: s.adminHttpAddr || '',
     admin_tls_enabled: s.adminTlsEnabled ?? false,
     admin_tls_cert_domain: s.adminTlsCertDomain || '',
@@ -97,10 +97,40 @@ async function load() {
   }
 }
 
+// FBL domains are edited as free text (one per line / comma-separated).
+function parseFblDomains(text: string): string[] {
+  return text
+    .split(/[\n,]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+}
+
 async function save() {
   saving.value = true
   try {
-    apply(await settingsService.updateSettings({ ...form.value }))
+    apply(
+      await settingsService.updateSettings({
+        rspamd_mode: form.value.rspamd_mode,
+        rspamd_url: form.value.rspamd_url,
+        egress_ehlo_domain: form.value.egress_ehlo_domain,
+        log_stream_redis_url: form.value.log_stream_redis_url,
+        esmtp_listen: form.value.esmtp_listen,
+        http_listen: form.value.http_listen,
+        egress_retry_interval: form.value.egress_retry_interval,
+        egress_max_retry_interval: form.value.egress_max_retry_interval,
+        egress_max_age: form.value.egress_max_age,
+        bounce_domain: form.value.bounce_domain,
+        auto_suppress_hard_bounces: form.value.auto_suppress_hard_bounces,
+        soft_bounce_threshold: form.value.soft_bounce_threshold,
+        fbl_domains: parseFblDomains(form.value.fbl_domains_text),
+        admin_http_addr: form.value.admin_http_addr,
+        admin_tls_enabled: form.value.admin_tls_enabled,
+        admin_tls_cert_domain: form.value.admin_tls_cert_domain,
+        acme_renew_interval: form.value.acme_renew_interval,
+        acme_renew_before: form.value.acme_renew_before,
+        prometheus_url: form.value.prometheus_url,
+      }),
+    )
     toast({
       title: 'Settings saved',
       description:
@@ -249,12 +279,18 @@ onMounted(load)
               </p>
             </div>
             <div class="space-y-1.5">
-              <Label for="fbl-domain">Feedback (FBL/ARF) domain</Label>
-              <Input id="fbl-domain" v-model="form.fbl_domain" placeholder="fbl.example.com" />
+              <Label for="fbl-domains">Feedback (FBL/ARF) domains</Label>
+              <textarea
+                id="fbl-domains"
+                v-model="form.fbl_domains_text"
+                rows="3"
+                class="flex w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder="fbl.example.com&#10;complaints.example.com"
+              ></textarea>
               <p class="text-xs text-muted-foreground">
-                KumoMTA parses RFC 5965 ARF feedback reports sent to this domain and emits Feedback
-                records, which auto-suppress the complainant. Requires the log-stream Redis URL.
-                Leave blank to disable.
+                KumoMTA parses RFC 5965 ARF feedback reports sent to any of these domains and emits
+                Feedback records, which auto-suppress the complainant. One domain per line. Requires
+                the log-stream Redis URL. Leave blank to disable.
               </p>
             </div>
           </CardContent>

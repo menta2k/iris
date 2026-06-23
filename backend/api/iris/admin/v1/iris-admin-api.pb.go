@@ -7642,8 +7642,9 @@ type GlobalSettings struct {
 	BounceDomain            string `protobuf:"bytes,10,opt,name=bounce_domain,json=bounceDomain,proto3" json:"bounce_domain,omitempty"`
 	AutoSuppressHardBounces bool   `protobuf:"varint,11,opt,name=auto_suppress_hard_bounces,json=autoSuppressHardBounces,proto3" json:"auto_suppress_hard_bounces,omitempty"`
 	SoftBounceThreshold     int32  `protobuf:"varint,12,opt,name=soft_bounce_threshold,json=softBounceThreshold,proto3" json:"soft_bounce_threshold,omitempty"`
-	// FBL/ARF feedback domain (log_arf): kumod parses ARF reports here.
-	FblDomain string `protobuf:"bytes,13,opt,name=fbl_domain,json=fblDomain,proto3" json:"fbl_domain,omitempty"`
+	// FBL/ARF feedback domains (log_arf): kumod parses ARF reports received at
+	// any of these domains. Empty disables the FBL pipeline.
+	FblDomains []string `protobuf:"bytes,13,rep,name=fbl_domains,json=fblDomains,proto3" json:"fbl_domains,omitempty"`
 	// Iris admin server (applied on restart). admin_http_addr overrides the HTTP
 	// bind; admin_tls_enabled serves HTTPS using the issued cert whose domain is
 	// admin_tls_cert_domain.
@@ -7775,11 +7776,11 @@ func (x *GlobalSettings) GetSoftBounceThreshold() int32 {
 	return 0
 }
 
-func (x *GlobalSettings) GetFblDomain() string {
+func (x *GlobalSettings) GetFblDomains() []string {
 	if x != nil {
-		return x.FblDomain
+		return x.FblDomains
 	}
-	return ""
+	return nil
 }
 
 func (x *GlobalSettings) GetAdminHttpAddr() string {
@@ -7888,7 +7889,7 @@ type UpdateGlobalSettingsRequest struct {
 	BounceDomain            string                 `protobuf:"bytes,10,opt,name=bounce_domain,json=bounceDomain,proto3" json:"bounce_domain,omitempty"`
 	AutoSuppressHardBounces bool                   `protobuf:"varint,11,opt,name=auto_suppress_hard_bounces,json=autoSuppressHardBounces,proto3" json:"auto_suppress_hard_bounces,omitempty"`
 	SoftBounceThreshold     int32                  `protobuf:"varint,12,opt,name=soft_bounce_threshold,json=softBounceThreshold,proto3" json:"soft_bounce_threshold,omitempty"`
-	FblDomain               string                 `protobuf:"bytes,13,opt,name=fbl_domain,json=fblDomain,proto3" json:"fbl_domain,omitempty"`
+	FblDomains              []string               `protobuf:"bytes,13,rep,name=fbl_domains,json=fblDomains,proto3" json:"fbl_domains,omitempty"`
 	AdminHttpAddr           string                 `protobuf:"bytes,14,opt,name=admin_http_addr,json=adminHttpAddr,proto3" json:"admin_http_addr,omitempty"`
 	AdminTlsEnabled         bool                   `protobuf:"varint,15,opt,name=admin_tls_enabled,json=adminTlsEnabled,proto3" json:"admin_tls_enabled,omitempty"`
 	AdminTlsCertDomain      string                 `protobuf:"bytes,16,opt,name=admin_tls_cert_domain,json=adminTlsCertDomain,proto3" json:"admin_tls_cert_domain,omitempty"`
@@ -8013,11 +8014,11 @@ func (x *UpdateGlobalSettingsRequest) GetSoftBounceThreshold() int32 {
 	return 0
 }
 
-func (x *UpdateGlobalSettingsRequest) GetFblDomain() string {
+func (x *UpdateGlobalSettingsRequest) GetFblDomains() []string {
 	if x != nil {
-		return x.FblDomain
+		return x.FblDomains
 	}
-	return ""
+	return nil
 }
 
 func (x *UpdateGlobalSettingsRequest) GetAdminHttpAddr() string {
@@ -8665,7 +8666,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06series\x18\x01 \x03(\v2\x1c.iris.admin.v1.MetricsSeriesR\x06series\x12\x14\n" +
 	"\x05range\x18\x02 \x01(\tR\x05range\x12!\n" +
 	"\fstep_seconds\x18\x03 \x01(\x03R\vstepSeconds\x121\n" +
-	"\x14prometheus_available\x18\x04 \x01(\bR\x13prometheusAvailable\"\x85\a\n" +
+	"\x14prometheus_available\x18\x04 \x01(\bR\x13prometheusAvailable\"\x87\a\n" +
 	"\x0eGlobalSettings\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -8682,9 +8683,9 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\rbounce_domain\x18\n" +
 	" \x01(\tR\fbounceDomain\x12;\n" +
 	"\x1aauto_suppress_hard_bounces\x18\v \x01(\bR\x17autoSuppressHardBounces\x122\n" +
-	"\x15soft_bounce_threshold\x18\f \x01(\x05R\x13softBounceThreshold\x12\x1d\n" +
-	"\n" +
-	"fbl_domain\x18\r \x01(\tR\tfblDomain\x12&\n" +
+	"\x15soft_bounce_threshold\x18\f \x01(\x05R\x13softBounceThreshold\x12\x1f\n" +
+	"\vfbl_domains\x18\r \x03(\tR\n" +
+	"fblDomains\x12&\n" +
 	"\x0fadmin_http_addr\x18\x0e \x01(\tR\radminHttpAddr\x12*\n" +
 	"\x11admin_tls_enabled\x18\x0f \x01(\bR\x0fadminTlsEnabled\x121\n" +
 	"\x15admin_tls_cert_domain\x18\x10 \x01(\tR\x12adminTlsCertDomain\x12.\n" +
@@ -8695,7 +8696,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"updated_at\x18\x14 \x01(\tR\tupdatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_by\x18\x15 \x01(\tR\tupdatedBy\"\x1a\n" +
-	"\x18GetGlobalSettingsRequest\"\xd4\x06\n" +
+	"\x18GetGlobalSettingsRequest\"\xd6\x06\n" +
 	"\x1bUpdateGlobalSettingsRequest\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -8712,9 +8713,9 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\rbounce_domain\x18\n" +
 	" \x01(\tR\fbounceDomain\x12;\n" +
 	"\x1aauto_suppress_hard_bounces\x18\v \x01(\bR\x17autoSuppressHardBounces\x122\n" +
-	"\x15soft_bounce_threshold\x18\f \x01(\x05R\x13softBounceThreshold\x12\x1d\n" +
-	"\n" +
-	"fbl_domain\x18\r \x01(\tR\tfblDomain\x12&\n" +
+	"\x15soft_bounce_threshold\x18\f \x01(\x05R\x13softBounceThreshold\x12\x1f\n" +
+	"\vfbl_domains\x18\r \x03(\tR\n" +
+	"fblDomains\x12&\n" +
 	"\x0fadmin_http_addr\x18\x0e \x01(\tR\radminHttpAddr\x12*\n" +
 	"\x11admin_tls_enabled\x18\x0f \x01(\bR\x0fadminTlsEnabled\x121\n" +
 	"\x15admin_tls_cert_domain\x18\x10 \x01(\tR\x12adminTlsCertDomain\x12.\n" +
