@@ -192,6 +192,7 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 		EventTime:       rec.EventTime(now),
 		Mailclass:       rec.Mailclass(),
 		Sender:          rec.Sender,
+		FromHeader:      rec.FromHeader(),
 		Recipient:       rec.Recipient,
 		RecipientDomain: rec.RecipientDomainOf(),
 		Status:          status,

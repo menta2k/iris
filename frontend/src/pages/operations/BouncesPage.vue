@@ -14,6 +14,7 @@ import {
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { usePagedList } from '@/composables/usePagedList'
 import { mailOperationsService } from '@/services'
+import { formatDateTime } from '@/composables/useTimezone'
 import type { Bounce } from '@/types'
 
 const {
@@ -58,7 +59,7 @@ const {
             </TableHeader>
             <TableBody>
               <TableRow v-for="b in items" :key="b.id">
-                <TableCell class="whitespace-nowrap text-muted-foreground">{{ b.eventTime }}</TableCell>
+                <TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDateTime(b.eventTime) }}</TableCell>
                 <TableCell>{{ b.recipient }}</TableCell>
                 <TableCell>{{ b.mailclass }}</TableCell>
                 <TableCell class="font-mono text-xs">{{ b.smtpStatus }}</TableCell>

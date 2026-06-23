@@ -18,6 +18,7 @@ func (s *Service) ListMailRecords(ctx context.Context, req *adminv1.ListMailReco
 	f := biz.MailFilter{
 		Mailclass: req.GetMailclass(),
 		Sender:    req.GetSender(),
+		From:      req.GetFrom(),
 		Recipient: req.GetRecipient(),
 		VMTAID:    req.GetVmtaId(),
 	}
@@ -39,6 +40,7 @@ func (s *Service) ListMailRecords(ctx context.Context, req *adminv1.ListMailReco
 			Id: m.ID, MessageId: m.MessageID, EventTime: timestamppb.New(m.EventTime),
 			Mailclass: m.Mailclass, Sender: m.Sender, Recipient: m.Recipient,
 			RecipientDomain: m.RecipientDomain, VmtaId: m.VMTAID, Status: m.Status,
+			FromHeader: m.FromHeader,
 		})
 	}
 	return out, nil

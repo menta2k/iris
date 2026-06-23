@@ -17,6 +17,10 @@ type ConfigSnapshot struct {
 	Routes       []*RoutingRule
 	DKIM         []*DKIMDomain
 	Suppressions []*SuppressionEntry
+	// TLSPolicies require TLS on outbound delivery to matched destination
+	// domains (enable_tls=Required on the egress path). Inactive entries are
+	// skipped at render time.
+	TLSPolicies []*TLSPolicy
 	// InboundWebhooks are active webhook rules. Their recipient domains are
 	// relay-accepted by get_listener_domain, and matching inbound mail is routed
 	// to the in-policy webhook poster (make.webhook_post) which forwards the raw
@@ -244,7 +248,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	// Egress pools: a singleton pool per VMTA + one per active group.
 	pools := writeEgressPools(&b, snap.VMTAs, snap.Groups, vmtaName)
 	// Per-VMTA connection limits (max_connections) via the egress path config.
-	writeEgressPaths(&b, snap.VMTAs)
+	writeEgressPaths(&b, snap.VMTAs, snap.TLSPolicies)
 	// DKIM signers.
 	dkim := writeDKIMTable(&b, snap.DKIM)
 	// DKIM signing function + the http-injection signing hook. Defined before the
@@ -898,10 +902,13 @@ func writeEsmtpListener(b *strings.Builder, l *Listener) {
 	b.WriteString("  }\n")
 }
 
-// writeEgressPaths emits per-VMTA connection limits. The SOURCE_LIMITS table is
-// keyed by egress source (VMTA) name; get_egress_path_config applies the limit.
-func writeEgressPaths(b *strings.Builder, vmtas []*VMTA) {
-	b.WriteString("-- ===== egress path config (per-VMTA connection limits) =====\n")
+// writeEgressPaths emits per-VMTA connection limits and the require-TLS domain
+// table. SOURCE_LIMITS is keyed by egress source (VMTA) name; REQUIRE_TLS_DOMAINS
+// is keyed by destination domain. get_egress_path_config applies both: the
+// connection limit for the source and enable_tls for a required-TLS domain, so
+// kumod refuses to deliver to that domain in cleartext.
+func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolicy) {
+	b.WriteString("-- ===== egress path config (per-VMTA connection limits + require-TLS) =====\n")
 	b.WriteString("local SOURCE_LIMITS = {}\n")
 	for _, v := range sortedVMTAs(vmtas) {
 		if v.Status != VMTAStatusActive && v.Status != VMTAStatusDraining {
@@ -911,6 +918,14 @@ func writeEgressPaths(b *strings.Builder, vmtas []*VMTA) {
 			fmt.Fprintf(b, "SOURCE_LIMITS[%s] = %d\n", MustLuaString(v.Name), v.MaxConnections)
 		}
 	}
+	b.WriteString("local REQUIRE_TLS_DOMAINS = {}\n")
+	for _, p := range sortedTLSPolicies(tlsPolicies) {
+		if p.Status != TLSPolicyActive {
+			continue
+		}
+		fmt.Fprintf(b, "REQUIRE_TLS_DOMAINS[%s] = %s\n",
+			MustLuaString(strings.ToLower(p.Domain)), MustLuaString(p.EnableTLSValue()))
+	}
 	b.WriteString(`
 kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
   local params = {}
@@ -918,10 +933,22 @@ kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
   if limit and limit > 0 then
     params.connection_limit = limit
   end
+  -- Require TLS for matched destination domains: kumod fails the delivery
+  -- (logged) rather than sending in cleartext when the peer offers no STARTTLS.
+  local tls = REQUIRE_TLS_DOMAINS[string.lower(domain)]
+  if tls then
+    params.enable_tls = tls
+  end
   return kumo.make_egress_path(params)
 end)
 
 `)
+}
+
+func sortedTLSPolicies(in []*TLSPolicy) []*TLSPolicy {
+	out := append([]*TLSPolicy(nil), in...)
+	sort.Slice(out, func(i, j int) bool { return out[i].Domain < out[j].Domain })
+	return out
 }
 
 func sortedListeners(in []*Listener) []*Listener {
@@ -931,11 +958,15 @@ func sortedListeners(in []*Listener) []*Listener {
 }
 
 // luaLogHeaderList builds the configure_log_hook header allow-list: always
-// "Subject", plus each distinct header name matched by an active mailclass
-// routing rule, rendered as escaped Lua string literals.
+// "From" and "Subject", plus each distinct header name matched by an active
+// mailclass routing rule, rendered as escaped Lua string literals. "From" is
+// included so log records carry the original From header — the envelope sender
+// is VERP-rewritten at reception, so it is the only place the original sender
+// survives.
 func luaLogHeaderList(routes []*RoutingRule) string {
 	seen := map[string]struct{}{}
-	headers := []string{"Subject"}
+	headers := []string{"From", "Subject"}
+	seen["from"] = struct{}{}
 	seen["subject"] = struct{}{}
 	var mailclass []string
 	for _, r := range routes {

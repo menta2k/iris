@@ -43,6 +43,9 @@ const (
 	IrisAdminService_ListSuppressions_FullMethodName       = "/iris.admin.v1.IrisAdminService/ListSuppressions"
 	IrisAdminService_CreateSuppression_FullMethodName      = "/iris.admin.v1.IrisAdminService/CreateSuppression"
 	IrisAdminService_UpdateSuppression_FullMethodName      = "/iris.admin.v1.IrisAdminService/UpdateSuppression"
+	IrisAdminService_ListTLSPolicies_FullMethodName        = "/iris.admin.v1.IrisAdminService/ListTLSPolicies"
+	IrisAdminService_CreateTLSPolicy_FullMethodName        = "/iris.admin.v1.IrisAdminService/CreateTLSPolicy"
+	IrisAdminService_DeleteTLSPolicy_FullMethodName        = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
 	IrisAdminService_ListWebhookRules_FullMethodName       = "/iris.admin.v1.IrisAdminService/ListWebhookRules"
 	IrisAdminService_CreateWebhookRule_FullMethodName      = "/iris.admin.v1.IrisAdminService/CreateWebhookRule"
 	IrisAdminService_UpdateWebhookRule_FullMethodName      = "/iris.admin.v1.IrisAdminService/UpdateWebhookRule"
@@ -114,6 +117,10 @@ type IrisAdminServiceClient interface {
 	ListSuppressions(ctx context.Context, in *ListSuppressionsRequest, opts ...grpc.CallOption) (*ListSuppressionsReply, error)
 	CreateSuppression(ctx context.Context, in *CreateSuppressionRequest, opts ...grpc.CallOption) (*Suppression, error)
 	UpdateSuppression(ctx context.Context, in *UpdateSuppressionRequest, opts ...grpc.CallOption) (*Suppression, error)
+	// Require-TLS policies (outbound delivery must use TLS for these domains) ---
+	ListTLSPolicies(ctx context.Context, in *ListTLSPoliciesRequest, opts ...grpc.CallOption) (*ListTLSPoliciesReply, error)
+	CreateTLSPolicy(ctx context.Context, in *CreateTLSPolicyRequest, opts ...grpc.CallOption) (*TLSPolicy, error)
+	DeleteTLSPolicy(ctx context.Context, in *DeleteTLSPolicyRequest, opts ...grpc.CallOption) (*DeleteTLSPolicyReply, error)
 	// Inbound automation -------------------------------------------------------
 	ListWebhookRules(ctx context.Context, in *ListWebhookRulesRequest, opts ...grpc.CallOption) (*ListWebhookRulesReply, error)
 	CreateWebhookRule(ctx context.Context, in *CreateWebhookRuleRequest, opts ...grpc.CallOption) (*WebhookRule, error)
@@ -425,6 +432,36 @@ func (c *irisAdminServiceClient) UpdateSuppression(ctx context.Context, in *Upda
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Suppression)
 	err := c.cc.Invoke(ctx, IrisAdminService_UpdateSuppression_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ListTLSPolicies(ctx context.Context, in *ListTLSPoliciesRequest, opts ...grpc.CallOption) (*ListTLSPoliciesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListTLSPoliciesReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListTLSPolicies_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) CreateTLSPolicy(ctx context.Context, in *CreateTLSPolicyRequest, opts ...grpc.CallOption) (*TLSPolicy, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TLSPolicy)
+	err := c.cc.Invoke(ctx, IrisAdminService_CreateTLSPolicy_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) DeleteTLSPolicy(ctx context.Context, in *DeleteTLSPolicyRequest, opts ...grpc.CallOption) (*DeleteTLSPolicyReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteTLSPolicyReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_DeleteTLSPolicy_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -815,6 +852,10 @@ type IrisAdminServiceServer interface {
 	ListSuppressions(context.Context, *ListSuppressionsRequest) (*ListSuppressionsReply, error)
 	CreateSuppression(context.Context, *CreateSuppressionRequest) (*Suppression, error)
 	UpdateSuppression(context.Context, *UpdateSuppressionRequest) (*Suppression, error)
+	// Require-TLS policies (outbound delivery must use TLS for these domains) ---
+	ListTLSPolicies(context.Context, *ListTLSPoliciesRequest) (*ListTLSPoliciesReply, error)
+	CreateTLSPolicy(context.Context, *CreateTLSPolicyRequest) (*TLSPolicy, error)
+	DeleteTLSPolicy(context.Context, *DeleteTLSPolicyRequest) (*DeleteTLSPolicyReply, error)
 	// Inbound automation -------------------------------------------------------
 	ListWebhookRules(context.Context, *ListWebhookRulesRequest) (*ListWebhookRulesReply, error)
 	CreateWebhookRule(context.Context, *CreateWebhookRuleRequest) (*WebhookRule, error)
@@ -963,6 +1004,15 @@ func (UnimplementedIrisAdminServiceServer) CreateSuppression(context.Context, *C
 }
 func (UnimplementedIrisAdminServiceServer) UpdateSuppression(context.Context, *UpdateSuppressionRequest) (*Suppression, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateSuppression not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListTLSPolicies(context.Context, *ListTLSPoliciesRequest) (*ListTLSPoliciesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTLSPolicies not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) CreateTLSPolicy(context.Context, *CreateTLSPolicyRequest) (*TLSPolicy, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateTLSPolicy not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) DeleteTLSPolicy(context.Context, *DeleteTLSPolicyRequest) (*DeleteTLSPolicyReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteTLSPolicy not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) ListWebhookRules(context.Context, *ListWebhookRulesRequest) (*ListWebhookRulesReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListWebhookRules not implemented")
@@ -1518,6 +1568,60 @@ func _IrisAdminService_UpdateSuppression_Handler(srv interface{}, ctx context.Co
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IrisAdminServiceServer).UpdateSuppression(ctx, req.(*UpdateSuppressionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListTLSPolicies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTLSPoliciesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListTLSPolicies(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListTLSPolicies_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListTLSPolicies(ctx, req.(*ListTLSPoliciesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_CreateTLSPolicy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateTLSPolicyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).CreateTLSPolicy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_CreateTLSPolicy_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).CreateTLSPolicy(ctx, req.(*CreateTLSPolicyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_DeleteTLSPolicy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteTLSPolicyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).DeleteTLSPolicy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_DeleteTLSPolicy_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).DeleteTLSPolicy(ctx, req.(*DeleteTLSPolicyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2254,6 +2358,18 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateSuppression",
 			Handler:    _IrisAdminService_UpdateSuppression_Handler,
+		},
+		{
+			MethodName: "ListTLSPolicies",
+			Handler:    _IrisAdminService_ListTLSPolicies_Handler,
+		},
+		{
+			MethodName: "CreateTLSPolicy",
+			Handler:    _IrisAdminService_CreateTLSPolicy_Handler,
+		},
+		{
+			MethodName: "DeleteTLSPolicy",
+			Handler:    _IrisAdminService_DeleteTLSPolicy_Handler,
 		},
 		{
 			MethodName: "ListWebhookRules",

@@ -122,6 +122,53 @@ func (r *DomainSafetyRepo) ListSuppressions(ctx context.Context, page biz.Page) 
 	return out, rows.Err()
 }
 
+// CreateTLSPolicy inserts a require-TLS destination-domain policy.
+func (r *DomainSafetyRepo) CreateTLSPolicy(ctx context.Context, p *biz.TLSPolicy) (*biz.TLSPolicy, error) {
+	out := &biz.TLSPolicy{}
+	err := r.db.Pool.QueryRow(ctx, `
+		INSERT INTO require_tls_domains (domain, mode, status)
+		VALUES ($1, $2, $3)
+		RETURNING id, domain, mode, status`,
+		p.Domain, p.Mode, p.Status).Scan(&out.ID, &out.Domain, &out.Mode, &out.Status)
+	if err != nil {
+		return nil, mapConstraint(err, "require_tls_domains")
+	}
+	return out, nil
+}
+
+// ListTLSPolicies returns require-TLS domain policies ordered by domain.
+func (r *DomainSafetyRepo) ListTLSPolicies(ctx context.Context, page biz.Page) ([]*biz.TLSPolicy, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT id, domain, mode, status
+		FROM require_tls_domains ORDER BY domain LIMIT $1 OFFSET $2`,
+		page.Size, page.Offset)
+	if err != nil {
+		return nil, fmt.Errorf("query tls policies: %w", err)
+	}
+	defer rows.Close()
+	var out []*biz.TLSPolicy
+	for rows.Next() {
+		p := &biz.TLSPolicy{}
+		if err := rows.Scan(&p.ID, &p.Domain, &p.Mode, &p.Status); err != nil {
+			return nil, fmt.Errorf("scan tls policy: %w", err)
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
+}
+
+// DeleteTLSPolicy removes a require-TLS domain policy by id.
+func (r *DomainSafetyRepo) DeleteTLSPolicy(ctx context.Context, id string) error {
+	tag, err := r.db.Pool.Exec(ctx, `DELETE FROM require_tls_domains WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("delete tls policy: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return biz.NotFound("TLS_POLICY_NOT_FOUND", "tls policy not found")
+	}
+	return nil
+}
+
 // SuppressRecipient upserts an active email suppression for a recipient. Used
 // by the feedback-loop ingest to auto-suppress complainants. Idempotent on
 // (type, value): an existing entry is reactivated and its reason/source updated.

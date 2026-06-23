@@ -130,6 +130,12 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/domain-safety/SuppressionsPage.vue'),
         meta: { permission: 'domain-safety:read', title: 'Suppressions' },
       },
+      {
+        path: 'domain-safety/require-tls',
+        name: 'require-tls',
+        component: () => import('@/pages/domain-safety/RequireTlsPage.vue'),
+        meta: { permission: 'domain-safety:read', title: 'Require TLS' },
+      },
 
       // Inbound automation
       {

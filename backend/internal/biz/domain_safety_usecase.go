@@ -14,6 +14,9 @@ type DomainSafetyRepo interface {
 	UpdateSuppression(ctx context.Context, id string, s *SuppressionEntry) (*SuppressionEntry, error)
 	ListSuppressions(ctx context.Context, page Page) ([]*SuppressionEntry, error)
 	IsSuppressed(ctx context.Context, recipient string) (bool, error)
+	CreateTLSPolicy(ctx context.Context, p *TLSPolicy) (*TLSPolicy, error)
+	ListTLSPolicies(ctx context.Context, page Page) ([]*TLSPolicy, error)
+	DeleteTLSPolicy(ctx context.Context, id string) error
 }
 
 // DomainSafetyUsecase implements DKIM and suppression management (US4) and
@@ -222,6 +225,49 @@ func (uc *DomainSafetyUsecase) UpdateSuppression(ctx context.Context, id string,
 		"type": out.Type, "value": out.Value, "status": out.Status,
 	})
 	return out, nil
+}
+
+// ListTLSPolicies returns the require-TLS destination-domain policies.
+func (uc *DomainSafetyUsecase) ListTLSPolicies(ctx context.Context, page Page) ([]*TLSPolicy, error) {
+	if _, err := RequirePermission(ctx, PermDKIMRead); err != nil {
+		return nil, err
+	}
+	return uc.repo.ListTLSPolicies(ctx, page)
+}
+
+// CreateTLSPolicy validates and persists a require-TLS domain policy.
+func (uc *DomainSafetyUsecase) CreateTLSPolicy(ctx context.Context, p *TLSPolicy) (*TLSPolicy, error) {
+	if _, err := RequirePermission(ctx, PermDKIMWrite); err != nil {
+		return nil, err
+	}
+	if err := p.Validate(); err != nil {
+		return nil, err
+	}
+	out, err := uc.repo.CreateTLSPolicy(ctx, p)
+	if err != nil {
+		uc.audit(ctx, "tls_policy.create", "tls_policy", p.Domain, AuditFailure, map[string]any{"domain": p.Domain})
+		return nil, err
+	}
+	uc.audit(ctx, "tls_policy.create", "tls_policy", out.ID, AuditSuccess, map[string]any{
+		"domain": out.Domain, "mode": out.Mode, "status": out.Status,
+	})
+	return out, nil
+}
+
+// DeleteTLSPolicy removes a require-TLS domain policy by id.
+func (uc *DomainSafetyUsecase) DeleteTLSPolicy(ctx context.Context, id string) error {
+	if _, err := RequirePermission(ctx, PermDKIMWrite); err != nil {
+		return err
+	}
+	if id == "" {
+		return Invalid("TLS_POLICY_ID_REQUIRED", "tls policy id is required")
+	}
+	if err := uc.repo.DeleteTLSPolicy(ctx, id); err != nil {
+		uc.audit(ctx, "tls_policy.delete", "tls_policy", id, AuditFailure, nil)
+		return err
+	}
+	uc.audit(ctx, "tls_policy.delete", "tls_policy", id, AuditSuccess, nil)
+	return nil
 }
 
 // IsRecipientEligible reports whether a recipient may receive outbound mail.

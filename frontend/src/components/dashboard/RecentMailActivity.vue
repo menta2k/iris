@@ -10,6 +10,7 @@ import {
   TableEmpty,
 } from '@/components/ui/table'
 import { StatusBadge } from '@/components/ui/badge'
+import { formatDateTime } from '@/composables/useTimezone'
 import type { MailRecord } from '@/types'
 
 defineProps<{ events?: MailRecord[]; count?: string }>()
@@ -36,7 +37,7 @@ defineProps<{ events?: MailRecord[]; count?: string }>()
         <TableBody>
           <TableEmpty v-if="!events || events.length === 0" :colspan="4" message="No recent mail events." />
           <TableRow v-for="ev in events" :key="ev.id">
-            <TableCell class="whitespace-nowrap text-muted-foreground">{{ ev.eventTime }}</TableCell>
+            <TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDateTime(ev.eventTime) }}</TableCell>
             <TableCell>{{ ev.recipient }}</TableCell>
             <TableCell>{{ ev.mailclass }}</TableCell>
             <TableCell><StatusBadge :status="ev.status" /></TableCell>

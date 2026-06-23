@@ -13,6 +13,7 @@ import {
 import { StatusBadge, Badge } from '@/components/ui/badge'
 import { useAsyncList } from '@/composables/useAsyncList'
 import { inboundAutomationService } from '@/services'
+import { formatDateTime } from '@/composables/useTimezone'
 import type { WebhookDeliveryEvent } from '@/types'
 
 const { items, loading, error, notImplemented } = useAsyncList<WebhookDeliveryEvent>({
@@ -45,7 +46,7 @@ const { items, loading, error, notImplemented } = useAsyncList<WebhookDeliveryEv
             </TableHeader>
             <TableBody>
               <TableRow v-for="e in items" :key="e.id">
-                <TableCell class="whitespace-nowrap text-muted-foreground">{{ e.eventTime }}</TableCell>
+                <TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDateTime(e.eventTime) }}</TableCell>
                 <TableCell><Badge variant="outline">{{ e.webhookName || '—' }}</Badge></TableCell>
                 <TableCell>{{ e.recipient || '—' }}</TableCell>
                 <TableCell class="text-muted-foreground">{{ e.attempt }}</TableCell>

@@ -18,11 +18,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { usePagedList } from '@/composables/usePagedList'
 import { mailOperationsService } from '@/services'
+import { formatDateTime } from '@/composables/useTimezone'
 import type { MailRecord, MailRecordFilters } from '@/types'
 
 const filters = ref<MailRecordFilters>({
   mailclass: '',
   sender: '',
+  from: '',
   recipient: '',
   vmta_id: '',
 })
@@ -46,7 +48,7 @@ const {
 })
 
 function resetFilters() {
-  filters.value = { mailclass: '', sender: '', recipient: '', vmta_id: '' }
+  filters.value = { mailclass: '', sender: '', from: '', recipient: '', vmta_id: '' }
   reload()
 }
 </script>
@@ -57,13 +59,17 @@ function resetFilters() {
 
     <Card class="mb-4">
       <CardContent class="p-4">
-        <form class="grid items-end gap-3 md:grid-cols-5" @submit.prevent="reload">
+        <form class="grid items-end gap-3 md:grid-cols-6" @submit.prevent="reload">
           <div class="space-y-1">
             <Label for="f-mailclass">Mailclass</Label>
             <Input id="f-mailclass" v-model="filters.mailclass" placeholder="marketing" />
           </div>
           <div class="space-y-1">
-            <Label for="f-sender">Sender</Label>
+            <Label for="f-from">From</Label>
+            <Input id="f-from" v-model="filters.from" placeholder="sentry@infra.verax.net" />
+          </div>
+          <div class="space-y-1">
+            <Label for="f-sender">Sender (envelope)</Label>
             <Input id="f-sender" v-model="filters.sender" placeholder="news@example.com" />
           </div>
           <div class="space-y-1">
@@ -97,7 +103,8 @@ function resetFilters() {
                 <TableHead>Time</TableHead>
                 <TableHead>Message ID</TableHead>
                 <TableHead>Mailclass</TableHead>
-                <TableHead>Sender</TableHead>
+                <TableHead>From</TableHead>
+                <TableHead>Sender (envelope)</TableHead>
                 <TableHead>Recipient</TableHead>
                 <TableHead>VMTA</TableHead>
                 <TableHead>Status</TableHead>
@@ -105,10 +112,11 @@ function resetFilters() {
             </TableHeader>
             <TableBody>
               <TableRow v-for="m in items" :key="m.id">
-                <TableCell class="whitespace-nowrap text-muted-foreground">{{ m.eventTime }}</TableCell>
+                <TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDateTime(m.eventTime) }}</TableCell>
                 <TableCell class="font-mono text-xs">{{ m.messageId }}</TableCell>
                 <TableCell>{{ m.mailclass }}</TableCell>
-                <TableCell>{{ m.sender }}</TableCell>
+                <TableCell>{{ m.fromHeader || '—' }}</TableCell>
+                <TableCell class="text-muted-foreground">{{ m.sender }}</TableCell>
                 <TableCell>{{ m.recipient }}</TableCell>
                 <TableCell class="font-mono text-xs">{{ m.vmtaId }}</TableCell>
                 <TableCell><StatusBadge :status="m.status" /></TableCell>

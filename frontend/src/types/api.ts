@@ -167,6 +167,8 @@ export interface MailRecord {
   eventTime: string
   mailclass: string
   sender: string
+  /** Original From header (the envelope sender is VERP-rewritten at reception). */
+  fromHeader?: string
   recipient: string
   recipientDomain: string
   vmtaId: string
@@ -176,6 +178,8 @@ export interface MailRecord {
 export interface MailRecordFilters {
   mailclass?: string
   sender?: string
+  /** Case-insensitive substring match on the original From header. */
+  from?: string
   recipient?: string
   vmta_id?: string
   [key: string]: string | undefined
@@ -355,6 +359,22 @@ export interface CreateSuppressionRequest {
   type: 'email' | 'domain'
   value: string
   reason: string
+}
+
+// ---- Require-TLS policies (outbound delivery) ----
+
+export type TLSPolicyMode = 'required' | 'required_insecure'
+
+export interface TLSPolicy {
+  id: string
+  domain: string
+  mode: TLSPolicyMode | string
+  status: string
+}
+
+export interface CreateTLSPolicyRequest {
+  domain: string
+  mode: TLSPolicyMode
 }
 
 // Only reason and status are editable; type/value are immutable.

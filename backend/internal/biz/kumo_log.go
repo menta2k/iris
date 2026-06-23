@@ -32,9 +32,27 @@ type KumoLogRecord struct {
 	// when configure_bounce_classifier is loaded.
 	BounceClassification string         `json:"bounce_classification"`
 	Meta                 map[string]any `json:"meta"`
+	// Headers carries the headers KumoMTA's log hook is configured to capture
+	// (the configure_log_hook allow-list). Used to recover the original From,
+	// which the VERP rewrite removes from the envelope sender.
+	Headers map[string]string `json:"headers"`
 	// Feedback carries the ARF (RFC 5965) fields KumoMTA parses for a Feedback
 	// log record. Present only when Type == "Feedback".
 	Feedback *KumoFeedbackData `json:"feedback_report"`
+}
+
+// FromHeader returns the original From header captured by the log hook, or "".
+// KumoMTA's header keys preserve their original case; match case-insensitively.
+func (r *KumoLogRecord) FromHeader() string {
+	if r.Headers == nil {
+		return ""
+	}
+	for k, v := range r.Headers {
+		if strings.EqualFold(k, "From") {
+			return strings.TrimSpace(v)
+		}
+	}
+	return ""
 }
 
 // KumoFeedbackData mirrors the ARF feedback fields on a KumoMTA Feedback log

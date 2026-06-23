@@ -46,6 +46,9 @@ func (r *KumoConfigRepo) Snapshot(ctx context.Context) (biz.ConfigSnapshot, erro
 	if snap.Suppressions, err = r.safety.ListSuppressions(ctx, page); err != nil {
 		return snap, err
 	}
+	if snap.TLSPolicies, err = r.safety.ListTLSPolicies(ctx, page); err != nil {
+		return snap, err
+	}
 	if r.inbound != nil {
 		if snap.InboundWebhooks, err = r.inbound.ListWebhookRulesForPolicy(ctx); err != nil {
 			return snap, err
