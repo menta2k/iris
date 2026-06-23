@@ -44,6 +44,7 @@ func (s *Service) UpdateGlobalSettings(ctx context.Context, req *adminv1.UpdateG
 		AdminTLSCertDomain:      req.GetAdminTlsCertDomain(),
 		AcmeRenewInterval:       req.GetAcmeRenewInterval(),
 		AcmeRenewBefore:         req.GetAcmeRenewBefore(),
+		PrometheusURL:           req.GetPrometheusUrl(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "UpdateGlobalSettings", err)
@@ -75,6 +76,7 @@ func settingsToProto(g *biz.GlobalSettings) *adminv1.GlobalSettings {
 		AdminTlsCertDomain:      g.AdminTLSCertDomain,
 		AcmeRenewInterval:       g.AcmeRenewInterval,
 		AcmeRenewBefore:         g.AcmeRenewBefore,
+		PrometheusUrl:           g.PrometheusURL,
 		UpdatedAt:               updatedAt,
 		UpdatedBy:               g.UpdatedBy,
 	}

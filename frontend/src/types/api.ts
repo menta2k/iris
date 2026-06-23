@@ -458,6 +458,7 @@ export interface GlobalSettings {
   adminTlsCertDomain: string
   acmeRenewInterval: string
   acmeRenewBefore: string
+  prometheusUrl: string
   updatedAt?: string
   updatedBy?: string
 }
@@ -481,6 +482,27 @@ export interface UpdateGlobalSettingsRequest {
   admin_tls_cert_domain: string
   acme_renew_interval: string
   acme_renew_before: string
+  prometheus_url: string
+}
+
+// ---- Dashboard metrics (Prometheus-backed time-series) ----
+
+export interface MetricPoint {
+  timestamp: number // unix seconds
+  value: number // events per minute
+}
+
+export interface MetricsSeries {
+  key: string
+  label: string
+  points?: MetricPoint[]
+}
+
+export interface MetricsTimeseries {
+  series?: MetricsSeries[]
+  range: string
+  stepSeconds: number
+  prometheusAvailable: boolean
 }
 
 export interface KumoConfigApplyResponse {

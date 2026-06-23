@@ -57,6 +57,11 @@ type GlobalSettings struct {
 	AcmeRenewInterval string
 	AcmeRenewBefore   string
 
+	// PrometheusURL is the base URL of the Prometheus that scrapes Iris/KumoMTA
+	// (e.g. "http://localhost:9090"). When set, the dashboard metrics endpoint
+	// queries it for time-series; empty disables those panels.
+	PrometheusURL string
+
 	UpdatedAt time.Time
 	UpdatedBy string
 }
@@ -134,6 +139,12 @@ func (g *GlobalSettings) Validate() error {
 	g.AdminTLSCertDomain = strings.ToLower(strings.TrimSpace(g.AdminTLSCertDomain))
 	if g.AdminTLSEnabled && g.AdminTLSCertDomain == "" {
 		return Invalid("SETTINGS_ADMIN_TLS_CERT_REQUIRED", "admin_tls_cert_domain is required when admin TLS is enabled")
+	}
+
+	// Prometheus base URL (optional; must be http(s) when set).
+	g.PrometheusURL = strings.TrimSpace(g.PrometheusURL)
+	if g.PrometheusURL != "" && !isHTTPURL(g.PrometheusURL) {
+		return Invalid("SETTINGS_PROMETHEUS_URL_INVALID", "prometheus_url must be an http(s):// URL")
 	}
 
 	// ACME renew schedule.

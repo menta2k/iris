@@ -1,6 +1,9 @@
 package biz
 
-import "context"
+import (
+	"context"
+	"strings"
+)
 
 // GlobalSettingsRepo is the persistence boundary for the singleton settings row.
 type GlobalSettingsRepo interface {
@@ -119,6 +122,17 @@ func (uc *GlobalSettingsUsecase) BouncePolicyNow(ctx context.Context) BouncePoli
 		AutoSuppressHardBounces: row.AutoSuppressHardBounces,
 		SoftBounceThreshold:     row.SoftBounceThreshold,
 	}
+}
+
+// PrometheusURLNow returns the configured Prometheus base URL (empty when
+// unset). Used by the metrics endpoint to decide whether time-series are
+// available. No permission check — internal provider.
+func (uc *GlobalSettingsUsecase) PrometheusURLNow(ctx context.Context) string {
+	row, err := uc.repo.Get(ctx)
+	if err != nil || row == nil {
+		return ""
+	}
+	return strings.TrimSpace(row.PrometheusURL)
 }
 
 func (uc *GlobalSettingsUsecase) audit(ctx context.Context, outcome AuditOutcome, summary map[string]any) {
