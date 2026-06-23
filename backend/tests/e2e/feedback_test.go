@@ -88,7 +88,7 @@ func TestFeedbackReportAutoSuppresses(t *testing.T) {
 
 	// Enable ARF parsing at the FBL domain.
 	snap := routingSnapshot(kumodIP)
-	snap.FBLDomain = "fbl.test"
+	snap.FBLDomains = []string{"fbl.test"}
 	r := startRig(t, snap)
 
 	w := worker.NewLogStreamWorker(streams, mailRepo, safetyRepo, nil, stream, biz.NewLogger("error"))
