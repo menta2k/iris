@@ -42,6 +42,7 @@ const OperationIrisAdminServiceGetAcmeAccount = "/iris.admin.v1.IrisAdminService
 const OperationIrisAdminServiceGetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/GetAcmeDnsProvider"
 const OperationIrisAdminServiceGetDashboardSummary = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
 const OperationIrisAdminServiceGetGlobalSettings = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
+const OperationIrisAdminServiceGetMetricsTimeseries = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
 const OperationIrisAdminServiceKumoConfigStatus = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
 const OperationIrisAdminServiceListAcmeCertificates = "/iris.admin.v1.IrisAdminService/ListAcmeCertificates"
 const OperationIrisAdminServiceListAcmeDnsProviders = "/iris.admin.v1.IrisAdminService/ListAcmeDnsProviders"
@@ -116,6 +117,9 @@ type IrisAdminServiceHTTPServer interface {
 	GetDashboardSummary(context.Context, *GetDashboardSummaryRequest) (*DashboardSummary, error)
 	// GetGlobalSettings Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error)
+	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
+	// bounces, deferrals, receptions) from the configured Prometheus.
+	GetMetricsTimeseries(context.Context, *GetMetricsTimeseriesRequest) (*MetricsTimeseries, error)
 	// KumoConfigStatus KumoConfigStatus reports whether the current configuration has drifted from
 	// the last applied policy (a regenerate/apply is pending).
 	KumoConfigStatus(context.Context, *KumoConfigStatusRequest) (*KumoConfigStatusReply, error)
@@ -232,6 +236,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.PUT("/v1/acme/dns-provider", _IrisAdminService_SetAcmeDnsProvider0_HTTP_Handler(srv))
 	r.DELETE("/v1/acme/dns-provider", _IrisAdminService_ClearAcmeDnsProvider0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/summary", _IrisAdminService_GetDashboardSummary0_HTTP_Handler(srv))
+	r.GET("/v1/dashboard/metrics", _IrisAdminService_GetMetricsTimeseries0_HTTP_Handler(srv))
 	r.GET("/v1/domain-check/{domain}", _IrisAdminService_CheckDomainBounceSetup0_HTTP_Handler(srv))
 	r.GET("/v1/settings", _IrisAdminService_GetGlobalSettings0_HTTP_Handler(srv))
 	r.PUT("/v1/settings", _IrisAdminService_UpdateGlobalSettings0_HTTP_Handler(srv))
@@ -1402,6 +1407,25 @@ func _IrisAdminService_GetDashboardSummary0_HTTP_Handler(srv IrisAdminServiceHTT
 	}
 }
 
+func _IrisAdminService_GetMetricsTimeseries0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetMetricsTimeseriesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetMetricsTimeseries)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetMetricsTimeseries(ctx, req.(*GetMetricsTimeseriesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*MetricsTimeseries)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_CheckDomainBounceSetup0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in CheckDomainBounceSetupRequest
@@ -1503,6 +1527,9 @@ type IrisAdminServiceHTTPClient interface {
 	GetDashboardSummary(ctx context.Context, req *GetDashboardSummaryRequest, opts ...http.CallOption) (rsp *DashboardSummary, err error)
 	// GetGlobalSettings Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(ctx context.Context, req *GetGlobalSettingsRequest, opts ...http.CallOption) (rsp *GlobalSettings, err error)
+	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
+	// bounces, deferrals, receptions) from the configured Prometheus.
+	GetMetricsTimeseries(ctx context.Context, req *GetMetricsTimeseriesRequest, opts ...http.CallOption) (rsp *MetricsTimeseries, err error)
 	// KumoConfigStatus KumoConfigStatus reports whether the current configuration has drifted from
 	// the last applied policy (a regenerate/apply is pending).
 	KumoConfigStatus(ctx context.Context, req *KumoConfigStatusRequest, opts ...http.CallOption) (rsp *KumoConfigStatusReply, err error)
@@ -1875,6 +1902,21 @@ func (c *IrisAdminServiceHTTPClientImpl) GetGlobalSettings(ctx context.Context, 
 	pattern := "/v1/settings"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceGetGlobalSettings))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
+// bounces, deferrals, receptions) from the configured Prometheus.
+func (c *IrisAdminServiceHTTPClientImpl) GetMetricsTimeseries(ctx context.Context, in *GetMetricsTimeseriesRequest, opts ...http.CallOption) (*MetricsTimeseries, error) {
+	var out MetricsTimeseries
+	pattern := "/v1/dashboard/metrics"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetMetricsTimeseries))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

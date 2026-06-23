@@ -215,6 +215,11 @@ service IrisAdminService {
   rpc GetDashboardSummary(GetDashboardSummaryRequest) returns (DashboardSummary) {
     option (google.api.http) = { get: "/v1/dashboard/summary" };
   }
+  // GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
+  // bounces, deferrals, receptions) from the configured Prometheus.
+  rpc GetMetricsTimeseries(GetMetricsTimeseriesRequest) returns (MetricsTimeseries) {
+    option (google.api.http) = { get: "/v1/dashboard/metrics" };
+  }
   // CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
   // (authorizes our egress IPs), and DKIM (selector records) via live DNS.
   rpc CheckDomainBounceSetup(CheckDomainBounceSetupRequest) returns (DomainBounceCheck) {
@@ -828,6 +833,27 @@ message DashboardSummary {
   int64 recent_audit_events = 4;
 }
 
+// GetMetricsTimeseries selects the lookback window: "1h" | "6h" | "24h" | "7d"
+// (empty defaults to "6h").
+message GetMetricsTimeseriesRequest {
+  string range = 1;
+}
+message MetricPoint {
+  int64 timestamp = 1; // unix seconds
+  double value = 2;    // events per minute at that point
+}
+message MetricsSeries {
+  string key = 1;   // "deliveries" | "bounces" | "deferrals" | "receptions"
+  string label = 2; // human label for the legend
+  repeated MetricPoint points = 3;
+}
+message MetricsTimeseries {
+  repeated MetricsSeries series = 1;
+  string range = 2;            // echoed effective range
+  int64 step_seconds = 3;      // resolution between points
+  bool prometheus_available = 4; // false when no Prometheus URL is configured
+}
+
 // Global settings — deployment-level policy knobs an operator edits in the UI.
 message GlobalSettings {
   // rspamd inbound spam filtering: "off" | "tag" | "enforce".
@@ -859,6 +885,8 @@ message GlobalSettings {
   // ACME auto-renew schedule (duration form, e.g. "12h", "30d").
   string acme_renew_interval = 17;
   string acme_renew_before = 18;
+  // Prometheus base URL the dashboard metrics endpoint queries (empty disables).
+  string prometheus_url = 19;
   string updated_at = 20;
   string updated_by = 21;
 }
@@ -882,4 +910,5 @@ message UpdateGlobalSettingsRequest {
   string admin_tls_cert_domain = 16;
   string acme_renew_interval = 17;
   string acme_renew_before = 18;
+  string prometheus_url = 19;
 }

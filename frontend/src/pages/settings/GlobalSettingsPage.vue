@@ -44,6 +44,7 @@ const form = ref({
   admin_tls_cert_domain: '',
   acme_renew_interval: '',
   acme_renew_before: '',
+  prometheus_url: '',
 })
 
 function apply(s: GlobalSettings) {
@@ -66,6 +67,7 @@ function apply(s: GlobalSettings) {
     admin_tls_cert_domain: s.adminTlsCertDomain || '',
     acme_renew_interval: s.acmeRenewInterval || '',
     acme_renew_before: s.acmeRenewBefore || '',
+    prometheus_url: s.prometheusUrl || '',
   }
   updatedBy.value = s.updatedBy || ''
   updatedAt.value = s.updatedAt || ''
@@ -270,6 +272,27 @@ onMounted(load)
             <div class="space-y-1.5">
               <Label for="http">HTTP listen (host:port)</Label>
               <Input id="http" v-model="form.http_listen" placeholder="0.0.0.0:8000" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Observability</CardTitle>
+            <CardDescription>Metrics source for the dashboard charts.</CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <div class="space-y-1.5">
+              <Label for="prometheus-url">Prometheus URL</Label>
+              <Input
+                id="prometheus-url"
+                v-model="form.prometheus_url"
+                placeholder="http://localhost:9090"
+              />
+              <p class="text-xs text-muted-foreground">
+                Base URL of the Prometheus that scrapes Iris/KumoMTA. When set, the dashboard
+                shows mail-flow charts. Leave blank to disable.
+              </p>
             </div>
           </CardContent>
         </Card>

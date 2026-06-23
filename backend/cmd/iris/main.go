@@ -236,6 +236,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		DomainSafety: domainSafetyUC,
 		Inbound:      inboundUC,
 		Dashboard:    biz.NewDashboardUsecase(data.NewDashboardRepo(db)),
+		Metrics:      biz.NewMetricsUsecase(settingsUC, nil),
 		KumoConfig:   kumoConfigUC,
 		Settings:     settingsUC,
 		Acme:         acmeUC,

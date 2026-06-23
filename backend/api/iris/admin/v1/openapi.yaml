@@ -283,6 +283,26 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ListBouncesReply'
+    /v1/dashboard/metrics:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
+                 bounces, deferrals, receptions) from the configured Prometheus.
+            operationId: IrisAdminService_GetMetricsTimeseries
+            parameters:
+                - name: range
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MetricsTimeseries'
     /v1/dashboard/summary:
         get:
             tags:
@@ -1618,6 +1638,9 @@ components:
                     description: ACME auto-renew schedule (duration form, e.g. "12h", "30d").
                 acme_renew_before:
                     type: string
+                prometheus_url:
+                    type: string
+                    description: Prometheus base URL the dashboard metrics endpoint queries (empty disables).
                 updated_at:
                     type: string
                 updated_by:
@@ -1916,6 +1939,38 @@ components:
                 status:
                     type: string
             description: Mail operations -----------------------------------------------------------
+        MetricPoint:
+            type: object
+            properties:
+                timestamp:
+                    type: string
+                value:
+                    type: number
+                    format: double
+        MetricsSeries:
+            type: object
+            properties:
+                key:
+                    type: string
+                label:
+                    type: string
+                points:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/MetricPoint'
+        MetricsTimeseries:
+            type: object
+            properties:
+                series:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/MetricsSeries'
+                range:
+                    type: string
+                step_seconds:
+                    type: string
+                prometheus_available:
+                    type: boolean
         PageReply:
             type: object
             properties:
@@ -2109,6 +2164,8 @@ components:
                 acme_renew_interval:
                     type: string
                 acme_renew_before:
+                    type: string
+                prometheus_url:
                     type: string
         UpdateListenerRequest:
             type: object

@@ -22,3 +22,28 @@ func (s *Service) GetDashboardSummary(ctx context.Context, req *adminv1.GetDashb
 		RecentAuditEvents: summary.RecentAuditEvents,
 	}, nil
 }
+
+// GetMetricsTimeseries returns curated mail-flow time-series from the configured
+// Prometheus (deliveries/receptions/deferrals/bounces per minute).
+func (s *Service) GetMetricsTimeseries(ctx context.Context, req *adminv1.GetMetricsTimeseriesRequest) (*adminv1.MetricsTimeseries, error) {
+	if s.metrics == nil {
+		return nil, notImplemented("GetMetricsTimeseries")
+	}
+	ts, err := s.metrics.Timeseries(ctx, req.GetRange())
+	if err != nil {
+		return nil, s.fail(ctx, "GetMetricsTimeseries", err)
+	}
+	out := &adminv1.MetricsTimeseries{
+		Range:               ts.Range,
+		StepSeconds:         ts.StepSeconds,
+		PrometheusAvailable: ts.PrometheusAvailable,
+	}
+	for _, ser := range ts.Series {
+		ps := &adminv1.MetricsSeries{Key: ser.Key, Label: ser.Label}
+		for _, p := range ser.Points {
+			ps.Points = append(ps.Points, &adminv1.MetricPoint{Timestamp: p.Timestamp, Value: p.Value})
+		}
+		out.Series = append(out.Series, ps)
+	}
+	return out, nil
+}
