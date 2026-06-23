@@ -90,6 +90,17 @@ service IrisAdminService {
     option (google.api.http) = { put: "/v1/suppressions/{id}" body: "*" };
   }
 
+  // Require-TLS policies (outbound delivery must use TLS for these domains) ---
+  rpc ListTLSPolicies(ListTLSPoliciesRequest) returns (ListTLSPoliciesReply) {
+    option (google.api.http) = { get: "/v1/tls-policies" };
+  }
+  rpc CreateTLSPolicy(CreateTLSPolicyRequest) returns (TLSPolicy) {
+    option (google.api.http) = { post: "/v1/tls-policies" body: "*" };
+  }
+  rpc DeleteTLSPolicy(DeleteTLSPolicyRequest) returns (DeleteTLSPolicyReply) {
+    option (google.api.http) = { delete: "/v1/tls-policies/{id}" };
+  }
+
   // Inbound automation -------------------------------------------------------
   rpc ListWebhookRules(ListWebhookRulesRequest) returns (ListWebhookRulesReply) {
     option (google.api.http) = { get: "/v1/webhook-rules" };
@@ -413,6 +424,9 @@ message MailRecord {
   string recipient_domain = 7;
   string vmta_id = 8;
   string status = 9;
+  // Original From header. The envelope sender is VERP-rewritten at reception,
+  // so it no longer reflects who the mail was from.
+  string from_header = 10;
 }
 message Bounce {
   string id = 1;
@@ -450,6 +464,8 @@ message ListMailRecordsRequest {
   string vmta_id = 5;
   google.protobuf.Timestamp from_time = 6;
   google.protobuf.Timestamp to_time = 7;
+  // Case-insensitive substring match on the original From header.
+  string from = 8;
 }
 message ListMailRecordsReply {
   repeated MailRecord items = 1;
@@ -543,6 +559,27 @@ message UpdateSuppressionRequest {
   string reason = 2;
   string status = 3;
 }
+
+// TLSPolicy requires TLS on outbound delivery to a destination domain. mode is
+// "required" (STARTTLS + valid cert) or "required_insecure" (STARTTLS, skip
+// cert validation).
+message TLSPolicy {
+  string id = 1;
+  string domain = 2;
+  string mode = 3;
+  string status = 4;
+}
+message ListTLSPoliciesRequest { PageRequest page = 1; }
+message ListTLSPoliciesReply {
+  repeated TLSPolicy items = 1;
+  PageReply page = 2;
+}
+message CreateTLSPolicyRequest {
+  string domain = 1;
+  string mode = 2;
+}
+message DeleteTLSPolicyRequest { string id = 1; }
+message DeleteTLSPolicyReply {}
 
 // Inbound automation --------------------------------------------------------
 message WebhookRule {

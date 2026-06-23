@@ -24,7 +24,7 @@ var _ biz.MailOpsRepo = (*MailOpsRepo)(nil)
 // ListMailRecords returns mail records matching the filter, newest first.
 func (r *MailOpsRepo) ListMailRecords(ctx context.Context, f biz.MailFilter, page biz.Page) ([]*biz.MailRecord, error) {
 	rows, err := r.db.Pool.Query(ctx, `
-		SELECT id, message_id, event_time, mailclass, sender, recipient,
+		SELECT id, message_id, event_time, mailclass, sender, from_header, recipient,
 		       recipient_domain, coalesce(vmta_id::text,''), status
 		FROM mail_records
 		WHERE ($1 = '' OR mailclass = $1)
@@ -33,9 +33,10 @@ func (r *MailOpsRepo) ListMailRecords(ctx context.Context, f biz.MailFilter, pag
 		  AND ($4 = '' OR vmta_id::text = $4)
 		  AND ($5::timestamptz IS NULL OR event_time >= $5)
 		  AND ($6::timestamptz IS NULL OR event_time <= $6)
+		  AND ($7 = '' OR from_header ILIKE '%' || $7 || '%')
 		ORDER BY event_time DESC
-		LIMIT $7 OFFSET $8`,
-		f.Mailclass, f.Sender, f.Recipient, f.VMTAID, f.FromTime, f.ToTime, page.Size, page.Offset)
+		LIMIT $8 OFFSET $9`,
+		f.Mailclass, f.Sender, f.Recipient, f.VMTAID, f.FromTime, f.ToTime, f.From, page.Size, page.Offset)
 	if err != nil {
 		return nil, fmt.Errorf("query mail records: %w", err)
 	}
@@ -44,7 +45,7 @@ func (r *MailOpsRepo) ListMailRecords(ctx context.Context, f biz.MailFilter, pag
 	for rows.Next() {
 		m := &biz.MailRecord{}
 		if err := rows.Scan(&m.ID, &m.MessageID, &m.EventTime, &m.Mailclass, &m.Sender,
-			&m.Recipient, &m.RecipientDomain, &m.VMTAID, &m.Status); err != nil {
+			&m.FromHeader, &m.Recipient, &m.RecipientDomain, &m.VMTAID, &m.Status); err != nil {
 			return nil, fmt.Errorf("scan mail record: %w", err)
 		}
 		out = append(out, m)
@@ -204,10 +205,10 @@ func (r *MailOpsRepo) InsertMailEvent(ctx context.Context, rec *biz.MailRecord) 
 	// persisted record.
 	if err := r.db.Pool.QueryRow(ctx, `
 		INSERT INTO mail_records
-			(message_id, event_time, mailclass, sender, recipient, recipient_domain, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+			(message_id, event_time, mailclass, sender, from_header, recipient, recipient_domain, status)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id`,
-		rec.MessageID, rec.EventTime, rec.Mailclass, rec.Sender, rec.Recipient,
+		rec.MessageID, rec.EventTime, rec.Mailclass, rec.Sender, rec.FromHeader, rec.Recipient,
 		rec.RecipientDomain, rec.Status).Scan(&rec.ID); err != nil {
 		return fmt.Errorf("insert mail event: %w", err)
 	}

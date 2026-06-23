@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/select'
 import { useToast } from '@/composables/useToast'
 import { settingsService } from '@/services'
 import { acmeService } from '@/services/acme'
+import { formatDateTime } from '@/composables/useTimezone'
 import { ApiError } from '@/services/http'
 import type { AcmeCertificate, GlobalSettings } from '@/types'
 
@@ -332,7 +333,7 @@ onMounted(load)
                   {{ issuedCerts.length ? 'Select a certificate…' : 'No issued certificates' }}
                 </option>
                 <option v-for="c in issuedCerts" :key="c.id" :value="c.domain">
-                  {{ c.domain }}<span v-if="c.expiresAt"> (expires {{ c.expiresAt }})</span>
+                  {{ c.domain }}<span v-if="c.expiresAt"> (expires {{ formatDateTime(c.expiresAt) }})</span>
                 </option>
               </Select>
               <p class="text-xs text-muted-foreground">

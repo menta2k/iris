@@ -73,6 +73,7 @@ export const navSections: NavSection[] = [
         to: '/domain-safety/suppressions',
         permission: 'domain-safety:read',
       },
+      { label: 'Require TLS', to: '/domain-safety/require-tls', permission: 'domain-safety:read' },
     ],
   },
   {

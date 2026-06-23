@@ -4,6 +4,7 @@ import SidebarNav from '@/components/navigation/SidebarNav.vue'
 import ConfigDriftBanner from '@/components/common/ConfigDriftBanner.vue'
 import { Toaster } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
+import TimezonePicker from '@/components/common/TimezonePicker.vue'
 import { useAuth } from '@/composables/useAuth'
 
 const { user, role, logout } = useAuth()
@@ -34,6 +35,7 @@ async function onLogout() {
       </div>
 
       <div class="flex items-center gap-4">
+        <TimezonePicker />
         <div class="text-right leading-tight">
           <p class="text-xs font-medium">{{ user?.displayName || user?.email }}</p>
           <p class="text-[10px] uppercase tracking-wide text-muted-foreground">{{ role }}</p>

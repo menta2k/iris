@@ -14,6 +14,7 @@ import {
 import { StatusBadge } from '@/components/ui/badge'
 import { usePagedList } from '@/composables/usePagedList'
 import { identityAuditService } from '@/services'
+import { formatDateTime } from '@/composables/useTimezone'
 import type { AuditEntry } from '@/types'
 
 const {
@@ -56,7 +57,7 @@ const {
             </TableHeader>
             <TableBody>
               <TableRow v-for="a in items" :key="a.id">
-                <TableCell class="whitespace-nowrap text-muted-foreground">{{ a.occurredAt }}</TableCell>
+                <TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDateTime(a.occurredAt) }}</TableCell>
                 <TableCell class="font-mono text-xs">{{ a.actorUserId }}</TableCell>
                 <TableCell class="font-medium">{{ a.operation }}</TableCell>
                 <TableCell class="font-mono text-xs">{{ a.targetType }}/{{ a.targetId }}</TableCell>

@@ -10,6 +10,7 @@ import {
   TableEmpty,
 } from '@/components/ui/table'
 import { StatusBadge } from '@/components/ui/badge'
+import { formatDateTime } from '@/composables/useTimezone'
 import type { AuditEntry } from '@/types'
 
 defineProps<{ events?: AuditEntry[]; count?: string }>()
@@ -36,7 +37,7 @@ defineProps<{ events?: AuditEntry[]; count?: string }>()
         <TableBody>
           <TableEmpty v-if="!events || events.length === 0" :colspan="4" message="No recent audit events." />
           <TableRow v-for="ev in events" :key="ev.id">
-            <TableCell class="whitespace-nowrap text-muted-foreground">{{ ev.occurredAt }}</TableCell>
+            <TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDateTime(ev.occurredAt) }}</TableCell>
             <TableCell>{{ ev.actorUserId }}</TableCell>
             <TableCell>{{ ev.operation }}</TableCell>
             <TableCell><StatusBadge :status="ev.outcome" /></TableCell>

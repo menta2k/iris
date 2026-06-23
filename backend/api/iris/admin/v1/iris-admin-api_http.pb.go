@@ -28,12 +28,14 @@ const OperationIrisAdminServiceCreateDKIMDomain = "/iris.admin.v1.IrisAdminServi
 const OperationIrisAdminServiceCreateListener = "/iris.admin.v1.IrisAdminService/CreateListener"
 const OperationIrisAdminServiceCreateRoutingRule = "/iris.admin.v1.IrisAdminService/CreateRoutingRule"
 const OperationIrisAdminServiceCreateSuppression = "/iris.admin.v1.IrisAdminService/CreateSuppression"
+const OperationIrisAdminServiceCreateTLSPolicy = "/iris.admin.v1.IrisAdminService/CreateTLSPolicy"
 const OperationIrisAdminServiceCreateUser = "/iris.admin.v1.IrisAdminService/CreateUser"
 const OperationIrisAdminServiceCreateVMTA = "/iris.admin.v1.IrisAdminService/CreateVMTA"
 const OperationIrisAdminServiceCreateVMTAGroups = "/iris.admin.v1.IrisAdminService/CreateVMTAGroups"
 const OperationIrisAdminServiceCreateWebhookRule = "/iris.admin.v1.IrisAdminService/CreateWebhookRule"
 const OperationIrisAdminServiceCurrentUser = "/iris.admin.v1.IrisAdminService/CurrentUser"
 const OperationIrisAdminServiceDeleteAcmeCertificate = "/iris.admin.v1.IrisAdminService/DeleteAcmeCertificate"
+const OperationIrisAdminServiceDeleteTLSPolicy = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
 const OperationIrisAdminServiceDisableMFA = "/iris.admin.v1.IrisAdminService/DisableMFA"
 const OperationIrisAdminServiceEnrollMFA = "/iris.admin.v1.IrisAdminService/EnrollMFA"
 const OperationIrisAdminServiceGenerateDKIMKey = "/iris.admin.v1.IrisAdminService/GenerateDKIMKey"
@@ -56,6 +58,7 @@ const OperationIrisAdminServiceListQueues = "/iris.admin.v1.IrisAdminService/Lis
 const OperationIrisAdminServiceListRoutingRules = "/iris.admin.v1.IrisAdminService/ListRoutingRules"
 const OperationIrisAdminServiceListRspamdResults = "/iris.admin.v1.IrisAdminService/ListRspamdResults"
 const OperationIrisAdminServiceListSuppressions = "/iris.admin.v1.IrisAdminService/ListSuppressions"
+const OperationIrisAdminServiceListTLSPolicies = "/iris.admin.v1.IrisAdminService/ListTLSPolicies"
 const OperationIrisAdminServiceListUsers = "/iris.admin.v1.IrisAdminService/ListUsers"
 const OperationIrisAdminServiceListVMTAGroups = "/iris.admin.v1.IrisAdminService/ListVMTAGroups"
 const OperationIrisAdminServiceListVMTAs = "/iris.admin.v1.IrisAdminService/ListVMTAs"
@@ -94,6 +97,7 @@ type IrisAdminServiceHTTPServer interface {
 	CreateListener(context.Context, *CreateListenerRequest) (*Listener, error)
 	CreateRoutingRule(context.Context, *CreateRoutingRuleRequest) (*RoutingRule, error)
 	CreateSuppression(context.Context, *CreateSuppressionRequest) (*Suppression, error)
+	CreateTLSPolicy(context.Context, *CreateTLSPolicyRequest) (*TLSPolicy, error)
 	CreateUser(context.Context, *CreateUserRequest) (*User, error)
 	CreateVMTA(context.Context, *CreateVMTARequest) (*VMTA, error)
 	CreateVMTAGroups(context.Context, *CreateVMTAGroupRequest) (*VMTAGroup, error)
@@ -102,6 +106,7 @@ type IrisAdminServiceHTTPServer interface {
 	// the SPA calls it on load to restore a session from a stored token.
 	CurrentUser(context.Context, *CurrentUserRequest) (*CurrentUserReply, error)
 	DeleteAcmeCertificate(context.Context, *DeleteAcmeCertificateRequest) (*DeleteAcmeCertificateReply, error)
+	DeleteTLSPolicy(context.Context, *DeleteTLSPolicyRequest) (*DeleteTLSPolicyReply, error)
 	DisableMFA(context.Context, *DisableMFARequest) (*DisableMFAReply, error)
 	// EnrollMFA MFA enrollment for the calling user (TOTP).
 	EnrollMFA(context.Context, *EnrollMFARequest) (*EnrollMFAReply, error)
@@ -139,6 +144,8 @@ type IrisAdminServiceHTTPServer interface {
 	ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesReply, error)
 	ListRspamdResults(context.Context, *ListRspamdResultsRequest) (*ListRspamdResultsReply, error)
 	ListSuppressions(context.Context, *ListSuppressionsRequest) (*ListSuppressionsReply, error)
+	// ListTLSPolicies Require-TLS policies (outbound delivery must use TLS for these domains) ---
+	ListTLSPolicies(context.Context, *ListTLSPoliciesRequest) (*ListTLSPoliciesReply, error)
 	// ListUsers Security administration --------------------------------------------------
 	ListUsers(context.Context, *ListUsersRequest) (*ListUsersReply, error)
 	ListVMTAGroups(context.Context, *ListVMTAGroupsRequest) (*ListVMTAGroupsReply, error)
@@ -205,6 +212,9 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.GET("/v1/suppressions", _IrisAdminService_ListSuppressions0_HTTP_Handler(srv))
 	r.POST("/v1/suppressions", _IrisAdminService_CreateSuppression0_HTTP_Handler(srv))
 	r.PUT("/v1/suppressions/{id}", _IrisAdminService_UpdateSuppression0_HTTP_Handler(srv))
+	r.GET("/v1/tls-policies", _IrisAdminService_ListTLSPolicies0_HTTP_Handler(srv))
+	r.POST("/v1/tls-policies", _IrisAdminService_CreateTLSPolicy0_HTTP_Handler(srv))
+	r.DELETE("/v1/tls-policies/{id}", _IrisAdminService_DeleteTLSPolicy0_HTTP_Handler(srv))
 	r.GET("/v1/webhook-rules", _IrisAdminService_ListWebhookRules0_HTTP_Handler(srv))
 	r.POST("/v1/webhook-rules", _IrisAdminService_CreateWebhookRule0_HTTP_Handler(srv))
 	r.PUT("/v1/webhook-rules/{id}", _IrisAdminService_UpdateWebhookRule0_HTTP_Handler(srv))
@@ -757,6 +767,69 @@ func _IrisAdminService_UpdateSuppression0_HTTP_Handler(srv IrisAdminServiceHTTPS
 			return err
 		}
 		reply := out.(*Suppression)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ListTLSPolicies0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListTLSPoliciesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListTLSPolicies)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListTLSPolicies(ctx, req.(*ListTLSPoliciesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListTLSPoliciesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CreateTLSPolicy0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateTLSPolicyRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCreateTLSPolicy)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateTLSPolicy(ctx, req.(*CreateTLSPolicyRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*TLSPolicy)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_DeleteTLSPolicy0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteTLSPolicyRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceDeleteTLSPolicy)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteTLSPolicy(ctx, req.(*DeleteTLSPolicyRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteTLSPolicyReply)
 		return ctx.Result(200, reply)
 	}
 }
@@ -1504,6 +1577,7 @@ type IrisAdminServiceHTTPClient interface {
 	CreateListener(ctx context.Context, req *CreateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
 	CreateRoutingRule(ctx context.Context, req *CreateRoutingRuleRequest, opts ...http.CallOption) (rsp *RoutingRule, err error)
 	CreateSuppression(ctx context.Context, req *CreateSuppressionRequest, opts ...http.CallOption) (rsp *Suppression, err error)
+	CreateTLSPolicy(ctx context.Context, req *CreateTLSPolicyRequest, opts ...http.CallOption) (rsp *TLSPolicy, err error)
 	CreateUser(ctx context.Context, req *CreateUserRequest, opts ...http.CallOption) (rsp *User, err error)
 	CreateVMTA(ctx context.Context, req *CreateVMTARequest, opts ...http.CallOption) (rsp *VMTA, err error)
 	CreateVMTAGroups(ctx context.Context, req *CreateVMTAGroupRequest, opts ...http.CallOption) (rsp *VMTAGroup, err error)
@@ -1512,6 +1586,7 @@ type IrisAdminServiceHTTPClient interface {
 	// the SPA calls it on load to restore a session from a stored token.
 	CurrentUser(ctx context.Context, req *CurrentUserRequest, opts ...http.CallOption) (rsp *CurrentUserReply, err error)
 	DeleteAcmeCertificate(ctx context.Context, req *DeleteAcmeCertificateRequest, opts ...http.CallOption) (rsp *DeleteAcmeCertificateReply, err error)
+	DeleteTLSPolicy(ctx context.Context, req *DeleteTLSPolicyRequest, opts ...http.CallOption) (rsp *DeleteTLSPolicyReply, err error)
 	DisableMFA(ctx context.Context, req *DisableMFARequest, opts ...http.CallOption) (rsp *DisableMFAReply, err error)
 	// EnrollMFA MFA enrollment for the calling user (TOTP).
 	EnrollMFA(ctx context.Context, req *EnrollMFARequest, opts ...http.CallOption) (rsp *EnrollMFAReply, err error)
@@ -1549,6 +1624,8 @@ type IrisAdminServiceHTTPClient interface {
 	ListRoutingRules(ctx context.Context, req *ListRoutingRulesRequest, opts ...http.CallOption) (rsp *ListRoutingRulesReply, err error)
 	ListRspamdResults(ctx context.Context, req *ListRspamdResultsRequest, opts ...http.CallOption) (rsp *ListRspamdResultsReply, err error)
 	ListSuppressions(ctx context.Context, req *ListSuppressionsRequest, opts ...http.CallOption) (rsp *ListSuppressionsReply, err error)
+	// ListTLSPolicies Require-TLS policies (outbound delivery must use TLS for these domains) ---
+	ListTLSPolicies(ctx context.Context, req *ListTLSPoliciesRequest, opts ...http.CallOption) (rsp *ListTLSPoliciesReply, err error)
 	// ListUsers Security administration --------------------------------------------------
 	ListUsers(ctx context.Context, req *ListUsersRequest, opts ...http.CallOption) (rsp *ListUsersReply, err error)
 	ListVMTAGroups(ctx context.Context, req *ListVMTAGroupsRequest, opts ...http.CallOption) (rsp *ListVMTAGroupsReply, err error)
@@ -1719,6 +1796,19 @@ func (c *IrisAdminServiceHTTPClientImpl) CreateSuppression(ctx context.Context, 
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) CreateTLSPolicy(ctx context.Context, in *CreateTLSPolicyRequest, opts ...http.CallOption) (*TLSPolicy, error) {
+	var out TLSPolicy
+	pattern := "/v1/tls-policies"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateTLSPolicy))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) CreateUser(ctx context.Context, in *CreateUserRequest, opts ...http.CallOption) (*User, error) {
 	var out User
 	pattern := "/v1/users"
@@ -1791,6 +1881,19 @@ func (c *IrisAdminServiceHTTPClientImpl) DeleteAcmeCertificate(ctx context.Conte
 	pattern := "/v1/acme/certificates/{id}"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteAcmeCertificate))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) DeleteTLSPolicy(ctx context.Context, in *DeleteTLSPolicyRequest, opts ...http.CallOption) (*DeleteTLSPolicyReply, error) {
+	var out DeleteTLSPolicyReply
+	pattern := "/v1/tls-policies/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteTLSPolicy))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {
@@ -2092,6 +2195,20 @@ func (c *IrisAdminServiceHTTPClientImpl) ListSuppressions(ctx context.Context, i
 	pattern := "/v1/suppressions"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListSuppressions))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListTLSPolicies Require-TLS policies (outbound delivery must use TLS for these domains) ---
+func (c *IrisAdminServiceHTTPClientImpl) ListTLSPolicies(ctx context.Context, in *ListTLSPoliciesRequest, opts ...http.CallOption) (*ListTLSPoliciesReply, error) {
+	var out ListTLSPoliciesReply
+	pattern := "/v1/tls-policies"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListTLSPolicies))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

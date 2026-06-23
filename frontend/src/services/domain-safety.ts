@@ -2,11 +2,13 @@ import { http } from './http'
 import type {
   CreateDkimDomainRequest,
   CreateSuppressionRequest,
+  CreateTLSPolicyRequest,
   DkimDomain,
   GenerateDkimKeyReply,
   GenerateDkimKeyRequest,
   ListResponse,
   Suppression,
+  TLSPolicy,
   UpdateDkimDomainRequest,
   UpdateSuppressionRequest,
 } from '@/types'
@@ -32,5 +34,14 @@ export const domainSafetyService = {
   },
   updateSuppression(id: string, body: UpdateSuppressionRequest) {
     return http.put<Suppression>(`/suppressions/${id}`, body)
+  },
+  listTLSPolicies() {
+    return http.get<ListResponse<TLSPolicy>>('/tls-policies')
+  },
+  createTLSPolicy(body: CreateTLSPolicyRequest) {
+    return http.post<TLSPolicy>('/tls-policies', body)
+  },
+  deleteTLSPolicy(id: string) {
+    return http.delete<Record<string, never>>(`/tls-policies/${id}`)
   },
 }

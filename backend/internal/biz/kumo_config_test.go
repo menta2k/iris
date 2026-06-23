@@ -264,6 +264,35 @@ func TestRenderRspamdAndLogHook(t *testing.T) {
 	}
 }
 
+func TestRenderRequireTLSPolicy(t *testing.T) {
+	snap := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+		TLSPolicies: []*TLSPolicy{
+			{ID: "t1", Domain: "secure.example", Mode: TLSModeRequired, Status: TLSPolicyActive},
+			{ID: "t2", Domain: "lab.example", Mode: TLSModeRequiredInsecure, Status: TLSPolicyActive},
+			{ID: "t3", Domain: "off.example", Mode: TLSModeRequired, Status: TLSPolicyDisabled},
+		},
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil || !r.Valid {
+		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	for _, want := range []string{
+		`REQUIRE_TLS_DOMAINS["secure.example"] = "Required"`,
+		`REQUIRE_TLS_DOMAINS["lab.example"] = "RequiredInsecure"`,
+		"local tls = REQUIRE_TLS_DOMAINS[string.lower(domain)]",
+		"params.enable_tls = tls",
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Fatalf("require-TLS policy must contain %q:\n%s", want, r.Content)
+		}
+	}
+	// A disabled policy must not be emitted.
+	if strings.Contains(r.Content, "off.example") {
+		t.Fatalf("disabled TLS policy must be skipped:\n%s", r.Content)
+	}
+}
+
 func TestRenderDeliveryRatesAndBouncePipeline(t *testing.T) {
 	base := ConfigSnapshot{
 		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
@@ -564,8 +593,9 @@ func TestLogHookHeadersAreDynamic(t *testing.T) {
 	if err != nil || !r.Valid {
 		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
 	}
-	// The configured mailclass headers are in the log-hook allow-list.
-	if !strings.Contains(r.Content, `headers = { "Subject", "X-Campaign-Type", "X-Mail-Class" }`) {
+	// From + Subject are always captured (From recovers the original sender past
+	// the VERP rewrite); the configured mailclass headers follow.
+	if !strings.Contains(r.Content, `headers = { "From", "Subject", "X-Campaign-Type", "X-Mail-Class" }`) {
 		t.Fatalf("log hook headers not dynamic:\n%s", r.Content)
 	}
 	// The hardcoded X-Kumo-Mail-Class is gone, and the disabled rule's header

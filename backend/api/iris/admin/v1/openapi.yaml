@@ -619,6 +619,11 @@ paths:
                   schema:
                     type: string
                     format: date-time
+                - name: from
+                  in: query
+                  description: Case-insensitive substring match on the original From header.
+                  schema:
+                    type: string
             responses:
                 "200":
                     description: OK
@@ -913,6 +918,64 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Suppression'
+    /v1/tls-policies:
+        get:
+            tags:
+                - IrisAdminService
+            description: Require-TLS policies (outbound delivery must use TLS for these domains) ---
+            operationId: IrisAdminService_ListTLSPolicies
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListTLSPoliciesReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateTLSPolicy
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateTLSPolicyRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TLSPolicy'
+    /v1/tls-policies/{id}:
+        delete:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_DeleteTLSPolicy
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteTLSPolicyReply'
     /v1/users:
         get:
             tags:
@@ -1421,6 +1484,13 @@ components:
                     type: string
                 reason:
                     type: string
+        CreateTLSPolicyRequest:
+            type: object
+            properties:
+                domain:
+                    type: string
+                mode:
+                    type: string
         CreateUserRequest:
             type: object
             properties:
@@ -1509,6 +1579,9 @@ components:
                 recent_audit_events:
                     type: string
         DeleteAcmeCertificateReply:
+            type: object
+            properties: {}
+        DeleteTLSPolicyReply:
             type: object
             properties: {}
         DisableMFAReply:
@@ -1805,6 +1878,15 @@ components:
                         $ref: '#/components/schemas/Suppression'
                 page:
                     $ref: '#/components/schemas/PageReply'
+        ListTLSPoliciesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/TLSPolicy'
+                page:
+                    $ref: '#/components/schemas/PageReply'
         ListUsersReply:
             type: object
             properties:
@@ -1938,6 +2020,11 @@ components:
                     type: string
                 status:
                     type: string
+                from_header:
+                    type: string
+                    description: |-
+                        Original From header. The envelope sender is VERP-rewritten at reception,
+                         so it no longer reflects who the mail was from.
             description: Mail operations -----------------------------------------------------------
         MetricPoint:
             type: object
@@ -2111,6 +2198,21 @@ components:
                     type: string
                 status:
                     type: string
+        TLSPolicy:
+            type: object
+            properties:
+                id:
+                    type: string
+                domain:
+                    type: string
+                mode:
+                    type: string
+                status:
+                    type: string
+            description: |-
+                TLSPolicy requires TLS on outbound delivery to a destination domain. mode is
+                 "required" (STARTTLS + valid cert) or "required_insecure" (STARTTLS, skip
+                 cert validation).
         UpdateDKIMDomainRequest:
             type: object
             properties:

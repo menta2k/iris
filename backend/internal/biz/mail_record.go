@@ -18,11 +18,14 @@ const (
 
 // MailRecord is a single message event in the mail log.
 type MailRecord struct {
-	ID              string
-	MessageID       string
-	EventTime       time.Time
-	Mailclass       string
-	Sender          string
+	ID        string
+	MessageID string
+	EventTime time.Time
+	Mailclass string
+	Sender    string
+	// FromHeader is the original From header. The envelope Sender is
+	// VERP-rewritten at reception, so it no longer shows who sent the mail.
+	FromHeader      string
 	Recipient       string
 	RecipientDomain string
 	VMTAID          string
@@ -34,6 +37,8 @@ type MailRecord struct {
 type MailFilter struct {
 	Mailclass string
 	Sender    string
+	// From is a case-insensitive substring match on the original From header.
+	From      string
 	Recipient string
 	VMTAID    string
 	FromTime  *time.Time
@@ -44,6 +49,7 @@ type MailFilter struct {
 func NormalizeMailFilter(f MailFilter) (MailFilter, error) {
 	f.Mailclass = SanitizeFilter(f.Mailclass)
 	f.Sender = strings.ToLower(SanitizeFilter(f.Sender))
+	f.From = strings.ToLower(SanitizeFilter(f.From))
 	f.Recipient = strings.ToLower(SanitizeFilter(f.Recipient))
 	f.VMTAID = SanitizeFilter(f.VMTAID)
 	if f.FromTime != nil && f.ToTime != nil && f.ToTime.Before(*f.FromTime) {

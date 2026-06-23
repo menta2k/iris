@@ -13,6 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { useAsyncList } from '@/composables/useAsyncList'
 import { inboundAutomationService } from '@/services'
+import { formatDateTime } from '@/composables/useTimezone'
 import type { RspamdResult } from '@/types'
 
 const { items, loading, error, notImplemented } = useAsyncList<RspamdResult>({
@@ -51,7 +52,7 @@ function scoreVariant(score: number) {
             </TableHeader>
             <TableBody>
               <TableRow v-for="r in items" :key="r.id">
-                <TableCell class="whitespace-nowrap text-muted-foreground">{{ r.eventTime }}</TableCell>
+                <TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDateTime(r.eventTime) }}</TableCell>
                 <TableCell class="font-mono text-xs">{{ r.mailRecordId }}</TableCell>
                 <TableCell>
                   <Badge :variant="scoreVariant(r.score)">{{ r.score }}</Badge>

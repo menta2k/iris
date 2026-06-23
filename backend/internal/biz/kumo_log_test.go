@@ -28,6 +28,26 @@ func TestParseKumoLogRecord(t *testing.T) {
 	}
 }
 
+func TestKumoLogFromHeader(t *testing.T) {
+	// The log hook captures From into headers; FromHeader recovers it past the
+	// VERP-rewritten envelope sender.
+	rec, err := ParseKumoLogRecord([]byte(`{
+		"type":"Delivery","id":"m1",
+		"sender":"b+abc.def@bounce.kumo.example.com","recipient":"x@dest.example",
+		"headers":{"From":"Monitoring <sentry@infra.example.com>","Subject":"hi"}}`))
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if got := rec.FromHeader(); got != "Monitoring <sentry@infra.example.com>" {
+		t.Fatalf("unexpected From header: %q", got)
+	}
+	// Absent headers yield an empty string, not a panic.
+	none, _ := ParseKumoLogRecord([]byte(`{"type":"Reception","id":"m2","sender":"a@b.example","recipient":"c@d.example"}`))
+	if none.FromHeader() != "" {
+		t.Fatalf("expected empty From header, got %q", none.FromHeader())
+	}
+}
+
 func TestParseKumoFeedbackRecord(t *testing.T) {
 	// Field names/types match KumoMTA's actual ARFReport: original_rcpto_to is a
 	// list, reporting_mta is an object.
