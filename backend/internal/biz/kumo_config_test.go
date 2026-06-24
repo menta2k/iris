@@ -413,6 +413,17 @@ func TestRenderFBLAwaitingForward(t *testing.T) {
 		!strings.Contains(r.Content, "msg:set_recipient(fwd)") {
 		t.Fatalf("FBL awaiting-approval forward not wired:\n%s", r.Content)
 	}
+	// The forward rewrites the sender (SPF), tags the class, and pins an egress pool.
+	for _, want := range []string{
+		"msg:set_meta('mailclass', 'fbl-forward')",
+		"msg:set_sender('fbl-forward@' .. dom)",
+		`local FBL_FORWARD_POOL = "v1"`,
+		"msg:set_meta('tenant', FBL_FORWARD_POOL)",
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Fatalf("FBL forward hardening missing %q:\n%s", want, r.Content)
+		}
+	}
 	// Awaiting must not enable ARF parsing for the domain.
 	if strings.Contains(r.Content, `FBL_DOMAINS["fbl.example.com"] = true`) {
 		t.Fatalf("awaiting-approval domain must not enable log_arf:\n%s", r.Content)

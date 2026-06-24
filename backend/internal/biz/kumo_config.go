@@ -611,8 +611,25 @@ kumo.on('smtp_server_message_received', function(msg)
 		// confirmation is never dropped).
 		b.WriteString(`  do
     local rcpt = msg:recipient()
-    local fwd = FBL_FORWARD[(rcpt and rcpt.email or ''):lower()]
+    local email = (rcpt and rcpt.email or ''):lower()
+    local fwd = FBL_FORWARD[email]
     if fwd then
+      -- Tag the class so the forward is identifiable in the mail log (this hook
+      -- returns before classify_mail runs).
+      msg:set_meta('mailclass', 'fbl-forward')
+      -- Rewrite the envelope sender to a local address at the feedback domain so
+      -- the forwarded mail passes SPF from our egress IP (the provider's original
+      -- sender would fail SPF). Bounces of the forward return here, not to the
+      -- provider.
+      local dom = (rcpt and rcpt.domain or ''):lower()
+      if dom ~= '' then
+        msg:set_sender('fbl-forward@' .. dom)
+      end
+      -- Pin to a real egress source so it delivers from a known IP (the default
+      -- pool has no bound source); the feedback domain's SPF must cover it.
+      if FBL_FORWARD_POOL ~= '' then
+        msg:set_meta('tenant', FBL_FORWARD_POOL)
+      end
       msg:set_recipient(fwd)
       return
     end
@@ -1147,6 +1164,18 @@ func fblForwards(snap ConfigSnapshot) []*FBLEndpoint {
 	return out
 }
 
+// fblForwardPool returns the egress pool (first active VMTA's singleton pool)
+// used to deliver forwarded feedback mail, so it egresses from a real source IP
+// instead of the address-less default pool. Empty when there is no active VMTA.
+func fblForwardPool(snap ConfigSnapshot) string {
+	for _, v := range sortedVMTAs(snap.VMTAs) {
+		if v.Status == VMTAStatusActive {
+			return v.Name
+		}
+	}
+	return ""
+}
+
 // fblForwardEnabled reports whether any awaiting-approval forward is rendered
 // (and therefore whether the reception-hook forward block is emitted).
 func fblForwardEnabled(snap ConfigSnapshot) bool {
@@ -1187,6 +1216,10 @@ func writeBounceConsts(b *strings.Builder, snap ConfigSnapshot) {
 		fmt.Fprintf(b, "FBL_FORWARD[%s] = %s\n", MustLuaString(addr), MustLuaString(fwd))
 		fmt.Fprintf(b, "FBL_RELAY_DOMAINS[%s] = true\n", MustLuaString(dom))
 	}
+	// Egress pool forwarded feedback mail is sent through (a real VMTA source, so
+	// it leaves from a known IP rather than the address-less default pool). Empty
+	// when no active VMTA exists.
+	fmt.Fprintf(b, "local FBL_FORWARD_POOL = %s\n", MustLuaString(fblForwardPool(snap)))
 	// DMARC aggregate-report catcher constants (empty when disabled).
 	dmarcAddr, dmarcDomain, dmarcStream, dmarcTracker := "", "", "", ""
 	if dmarcEnabled(snap) {
