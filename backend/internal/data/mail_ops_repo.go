@@ -34,9 +34,10 @@ func (r *MailOpsRepo) ListMailRecords(ctx context.Context, f biz.MailFilter, pag
 		  AND ($5::timestamptz IS NULL OR event_time >= $5)
 		  AND ($6::timestamptz IS NULL OR event_time <= $6)
 		  AND ($7 = '' OR from_header ILIKE '%' || $7 || '%')
+		  AND ($8 = '' OR status = $8)
 		ORDER BY event_time DESC
-		LIMIT $8 OFFSET $9`,
-		f.Mailclass, f.Sender, f.Recipient, f.VMTAID, f.FromTime, f.ToTime, f.From, page.Size, page.Offset)
+		LIMIT $9 OFFSET $10`,
+		f.Mailclass, f.Sender, f.Recipient, f.VMTAID, f.FromTime, f.ToTime, f.From, f.Status, page.Size, page.Offset)
 	if err != nil {
 		return nil, fmt.Errorf("query mail records: %w", err)
 	}

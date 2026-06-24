@@ -26,13 +26,13 @@ func TestMailOpsContract(t *testing.T) {
 	}
 
 	q, err := svc.RequestQueueAction(ctx, &adminv1.RequestQueueActionRequest{
-		Mailclass: "bulk", Action: "pause", ConfirmationId: "c1",
+		Action: "suspend", Domain: "example.com",
 	})
 	if err != nil {
 		t.Fatalf("RequestQueueAction: %v", err)
 	}
-	if q.GetStatus() != "pending" {
-		t.Fatalf("expected pending queue action, got %q", q.GetStatus())
+	if q.GetStatus() != "ok" {
+		t.Fatalf("expected ok queue action, got %q", q.GetStatus())
 	}
 
 	sc, err := svc.RequestServiceControl(ctx, &adminv1.RequestServiceControlRequest{

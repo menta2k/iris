@@ -22,6 +22,17 @@ type MailclassQueue struct {
 	LastObservedAt          *time.Time
 }
 
+// QueueState is a live KumoMTA scheduled-queue summary for one destination
+// domain: how many messages are scheduled (waiting/retrying) and whether the
+// queue is administratively suspended.
+type QueueState struct {
+	Domain        string
+	Depth         int64
+	Suspended     bool
+	SuspendID     string
+	SuspendReason string
+}
+
 // Service-control request states.
 const (
 	SvcRequested = "requested"

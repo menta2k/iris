@@ -185,6 +185,7 @@ export interface MailRecordFilters {
   from?: string
   recipient?: string
   vmta_id?: string
+  status?: string
   [key: string]: string | undefined
 }
 
@@ -209,25 +210,28 @@ export interface FeedbackReport {
   processingState: string
 }
 
+// Queue is a live kumod scheduled-queue summary for a destination domain.
 export interface Queue {
-  mailclass: string
-  state: string
-  // int64 fields arrive as JSON strings via proto-JSON.
+  domain: string
+  // int64 arrives as a JSON string via proto-JSON.
   depth: string
-  oldestMessageAgeSeconds: string
+  suspended?: boolean
+  suspendReason?: string
 }
 
 // Backend enum values (lowercase).
-export type QueueAction = 'pause' | 'resume' | 'drain' | 'flush'
+export type QueueAction = 'suspend' | 'resume' | 'bounce'
 
 export interface QueueActionRequest {
   action: QueueAction
-  confirmation_id: string
+  domain: string
+  reason?: string
+  confirmation_id?: string
 }
 
 export interface QueueActionResponse {
-  request_id: string
   status: string
+  summary: string
 }
 
 // Backend enum values (lowercase).

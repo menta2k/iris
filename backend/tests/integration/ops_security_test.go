@@ -36,7 +36,7 @@ func TestUnauthorizedServiceControlAndQueueDenied(t *testing.T) {
 		MFAVerified: true,
 	})
 
-	if _, err := uc.RequestQueueAction(ctx, "bulk", "pause", "c1"); err == nil {
+	if _, err := uc.RequestQueueAction(ctx, "suspend", "example.com", "", "c1"); err == nil {
 		t.Fatal("expected queue action to be denied")
 	} else if de, ok := biz.AsDomainError(err); !ok || de.Kind != biz.KindForbidden {
 		t.Fatalf("expected forbidden, got %v", err)

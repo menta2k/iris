@@ -2072,14 +2072,15 @@ func (x *FeedbackReport) GetProcessingState() string {
 	return ""
 }
 
+// Queue is a live kumod scheduled-queue summary for one destination domain.
 type Queue struct {
-	state                   protoimpl.MessageState `protogen:"open.v1"`
-	Mailclass               string                 `protobuf:"bytes,1,opt,name=mailclass,proto3" json:"mailclass,omitempty"`
-	State                   string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
-	Depth                   int64                  `protobuf:"varint,3,opt,name=depth,proto3" json:"depth,omitempty"`
-	OldestMessageAgeSeconds int64                  `protobuf:"varint,4,opt,name=oldest_message_age_seconds,json=oldestMessageAgeSeconds,proto3" json:"oldest_message_age_seconds,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Domain        string                 `protobuf:"bytes,1,opt,name=domain,proto3" json:"domain,omitempty"`
+	Depth         int64                  `protobuf:"varint,2,opt,name=depth,proto3" json:"depth,omitempty"`
+	Suspended     bool                   `protobuf:"varint,3,opt,name=suspended,proto3" json:"suspended,omitempty"`
+	SuspendReason string                 `protobuf:"bytes,4,opt,name=suspend_reason,json=suspendReason,proto3" json:"suspend_reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Queue) Reset() {
@@ -2112,16 +2113,9 @@ func (*Queue) Descriptor() ([]byte, []int) {
 	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{26}
 }
 
-func (x *Queue) GetMailclass() string {
+func (x *Queue) GetDomain() string {
 	if x != nil {
-		return x.Mailclass
-	}
-	return ""
-}
-
-func (x *Queue) GetState() string {
-	if x != nil {
-		return x.State
+		return x.Domain
 	}
 	return ""
 }
@@ -2133,11 +2127,18 @@ func (x *Queue) GetDepth() int64 {
 	return 0
 }
 
-func (x *Queue) GetOldestMessageAgeSeconds() int64 {
+func (x *Queue) GetSuspended() bool {
 	if x != nil {
-		return x.OldestMessageAgeSeconds
+		return x.Suspended
 	}
-	return 0
+	return false
+}
+
+func (x *Queue) GetSuspendReason() string {
+	if x != nil {
+		return x.SuspendReason
+	}
+	return ""
 }
 
 type ListMailRecordsRequest struct {
@@ -2150,7 +2151,9 @@ type ListMailRecordsRequest struct {
 	FromTime  *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=from_time,json=fromTime,proto3" json:"from_time,omitempty"`
 	ToTime    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=to_time,json=toTime,proto3" json:"to_time,omitempty"`
 	// Case-insensitive substring match on the original From header.
-	From          string `protobuf:"bytes,8,opt,name=from,proto3" json:"from,omitempty"`
+	From string `protobuf:"bytes,8,opt,name=from,proto3" json:"from,omitempty"`
+	// Filter by mail-record status (e.g. "deferred" to see what's in the queue).
+	Status        string `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2237,6 +2240,13 @@ func (x *ListMailRecordsRequest) GetToTime() *timestamppb.Timestamp {
 func (x *ListMailRecordsRequest) GetFrom() string {
 	if x != nil {
 		return x.From
+	}
+	return ""
+}
+
+func (x *ListMailRecordsRequest) GetStatus() string {
+	if x != nil {
+		return x.Status
 	}
 	return ""
 }
@@ -2583,9 +2593,10 @@ func (x *ListQueuesReply) GetPage() *PageReply {
 
 type RequestQueueActionRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	Mailclass      string                 `protobuf:"bytes,1,opt,name=mailclass,proto3" json:"mailclass,omitempty"`
-	Action         string                 `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`
-	ConfirmationId string                 `protobuf:"bytes,3,opt,name=confirmation_id,json=confirmationId,proto3" json:"confirmation_id,omitempty"`
+	Action         string                 `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"` // suspend | resume | bounce
+	Domain         string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"` // destination domain (scheduled queue)
+	Reason         string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	ConfirmationId string                 `protobuf:"bytes,4,opt,name=confirmation_id,json=confirmationId,proto3" json:"confirmation_id,omitempty"` // required for the destructive bounce
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -2620,16 +2631,23 @@ func (*RequestQueueActionRequest) Descriptor() ([]byte, []int) {
 	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{35}
 }
 
-func (x *RequestQueueActionRequest) GetMailclass() string {
+func (x *RequestQueueActionRequest) GetAction() string {
 	if x != nil {
-		return x.Mailclass
+		return x.Action
 	}
 	return ""
 }
 
-func (x *RequestQueueActionRequest) GetAction() string {
+func (x *RequestQueueActionRequest) GetDomain() string {
 	if x != nil {
-		return x.Action
+		return x.Domain
+	}
+	return ""
+}
+
+func (x *RequestQueueActionRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
 	}
 	return ""
 }
@@ -2643,8 +2661,8 @@ func (x *RequestQueueActionRequest) GetConfirmationId() string {
 
 type QueueActionReply struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RequestId     string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Summary       string                 `protobuf:"bytes,2,opt,name=summary,proto3" json:"summary,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2679,16 +2697,16 @@ func (*QueueActionReply) Descriptor() ([]byte, []int) {
 	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{36}
 }
 
-func (x *QueueActionReply) GetRequestId() string {
+func (x *QueueActionReply) GetStatus() string {
 	if x != nil {
-		return x.RequestId
+		return x.Status
 	}
 	return ""
 }
 
-func (x *QueueActionReply) GetStatus() string {
+func (x *QueueActionReply) GetSummary() string {
 	if x != nil {
-		return x.Status
+		return x.Summary
 	}
 	return ""
 }
@@ -9841,12 +9859,12 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\vreport_type\x18\x04 \x01(\tR\n" +
 	"reportType\x12\x1c\n" +
 	"\trecipient\x18\x05 \x01(\tR\trecipient\x12)\n" +
-	"\x10processing_state\x18\x06 \x01(\tR\x0fprocessingState\"\x8e\x01\n" +
-	"\x05Queue\x12\x1c\n" +
-	"\tmailclass\x18\x01 \x01(\tR\tmailclass\x12\x14\n" +
-	"\x05state\x18\x02 \x01(\tR\x05state\x12\x14\n" +
-	"\x05depth\x18\x03 \x01(\x03R\x05depth\x12;\n" +
-	"\x1aoldest_message_age_seconds\x18\x04 \x01(\x03R\x17oldestMessageAgeSeconds\"\xb7\x02\n" +
+	"\x10processing_state\x18\x06 \x01(\tR\x0fprocessingState\"z\n" +
+	"\x05Queue\x12\x16\n" +
+	"\x06domain\x18\x01 \x01(\tR\x06domain\x12\x14\n" +
+	"\x05depth\x18\x02 \x01(\x03R\x05depth\x12\x1c\n" +
+	"\tsuspended\x18\x03 \x01(\bR\tsuspended\x12%\n" +
+	"\x0esuspend_reason\x18\x04 \x01(\tR\rsuspendReason\"\xcf\x02\n" +
 	"\x16ListMailRecordsRequest\x12.\n" +
 	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\x12\x1c\n" +
 	"\tmailclass\x18\x02 \x01(\tR\tmailclass\x12\x16\n" +
@@ -9855,7 +9873,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\avmta_id\x18\x05 \x01(\tR\x06vmtaId\x127\n" +
 	"\tfrom_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\bfromTime\x123\n" +
 	"\ato_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x06toTime\x12\x12\n" +
-	"\x04from\x18\b \x01(\tR\x04from\"u\n" +
+	"\x04from\x18\b \x01(\tR\x04from\x12\x16\n" +
+	"\x06status\x18\t \x01(\tR\x06status\"u\n" +
 	"\x14ListMailRecordsReply\x12/\n" +
 	"\x05items\x18\x01 \x03(\v2\x19.iris.admin.v1.MailRecordR\x05items\x12,\n" +
 	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"D\n" +
@@ -9873,15 +9892,15 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\"k\n" +
 	"\x0fListQueuesReply\x12*\n" +
 	"\x05items\x18\x01 \x03(\v2\x14.iris.admin.v1.QueueR\x05items\x12,\n" +
-	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"z\n" +
-	"\x19RequestQueueActionRequest\x12\x1c\n" +
-	"\tmailclass\x18\x01 \x01(\tR\tmailclass\x12\x16\n" +
-	"\x06action\x18\x02 \x01(\tR\x06action\x12'\n" +
-	"\x0fconfirmation_id\x18\x03 \x01(\tR\x0econfirmationId\"I\n" +
-	"\x10QueueActionReply\x12\x1d\n" +
-	"\n" +
-	"request_id\x18\x01 \x01(\tR\trequestId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\"\x9e\x01\n" +
+	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\x8c\x01\n" +
+	"\x19RequestQueueActionRequest\x12\x16\n" +
+	"\x06action\x18\x01 \x01(\tR\x06action\x12\x16\n" +
+	"\x06domain\x18\x02 \x01(\tR\x06domain\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\x12'\n" +
+	"\x0fconfirmation_id\x18\x04 \x01(\tR\x0econfirmationId\"D\n" +
+	"\x10QueueActionReply\x12\x16\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\x12\x18\n" +
+	"\asummary\x18\x02 \x01(\tR\asummary\"\x9e\x01\n" +
 	"\n" +
 	"DKIMDomain\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
@@ -10405,7 +10424,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x11acme_renew_before\x18\x12 \x01(\tR\x0facmeRenewBefore\x12%\n" +
 	"\x0eprometheus_url\x18\x13 \x01(\tR\rprometheusUrl\x12'\n" +
 	"\x0fsuppression_ttl\x18\x14 \x01(\tR\x0esuppressionTtl\x12,\n" +
-	"\x12dmarc_report_email\x18\x15 \x01(\tR\x10dmarcReportEmailJ\x04\b\r\x10\x0e2\xedC\n" +
+	"\x12dmarc_report_email\x18\x15 \x01(\tR\x10dmarcReportEmailJ\x04\b\r\x10\x0e2\xe0C\n" +
 	"\x10IrisAdminService\x12n\n" +
 	"\rListListeners\x12#.iris.admin.v1.ListListenersRequest\x1a!.iris.admin.v1.ListListenersReply\"\x15\x82\xd3\xe4\x93\x02\x0f\x12\r/v1/listeners\x12i\n" +
 	"\x0eCreateListener\x12$.iris.admin.v1.CreateListenerRequest\x1a\x17.iris.admin.v1.Listener\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/v1/listeners\x12n\n" +
@@ -10426,8 +10445,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x13ListFeedbackReports\x12).iris.admin.v1.ListFeedbackReportsRequest\x1a'.iris.admin.v1.ListFeedbackReportsReply\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/v1/feedback-reports\x12b\n" +
 	"\n" +
 	"ListQueues\x12 .iris.admin.v1.ListQueuesRequest\x1a\x1e.iris.admin.v1.ListQueuesReply\"\x12\x82\xd3\xe4\x93\x02\f\x12\n" +
-	"/v1/queues\x12\x89\x01\n" +
-	"\x12RequestQueueAction\x12(.iris.admin.v1.RequestQueueActionRequest\x1a\x1f.iris.admin.v1.QueueActionReply\"(\x82\xd3\xe4\x93\x02\":\x01*\"\x1d/v1/queues/{mailclass}:action\x12w\n" +
+	"/v1/queues\x12}\n" +
+	"\x12RequestQueueAction\x12(.iris.admin.v1.RequestQueueActionRequest\x1a\x1f.iris.admin.v1.QueueActionReply\"\x1c\x82\xd3\xe4\x93\x02\x16:\x01*\"\x11/v1/queues:action\x12w\n" +
 	"\x0fListDKIMDomains\x12%.iris.admin.v1.ListDKIMDomainsRequest\x1a#.iris.admin.v1.ListDKIMDomainsReply\"\x18\x82\xd3\xe4\x93\x02\x12\x12\x10/v1/dkim-domains\x12r\n" +
 	"\x10CreateDKIMDomain\x12&.iris.admin.v1.CreateDKIMDomainRequest\x1a\x19.iris.admin.v1.DKIMDomain\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/v1/dkim-domains\x12w\n" +
 	"\x10UpdateDKIMDomain\x12&.iris.admin.v1.UpdateDKIMDomainRequest\x1a\x19.iris.admin.v1.DKIMDomain\" \x82\xd3\xe4\x93\x02\x1a:\x01*\x1a\x15/v1/dkim-domains/{id}\x12\x87\x01\n" +

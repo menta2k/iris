@@ -62,7 +62,7 @@ service IrisAdminService {
     option (google.api.http) = { get: "/v1/queues" };
   }
   rpc RequestQueueAction(RequestQueueActionRequest) returns (QueueActionReply) {
-    option (google.api.http) = { post: "/v1/queues/{mailclass}:action" body: "*" };
+    option (google.api.http) = { post: "/v1/queues:action" body: "*" };
   }
 
   // Domain & recipient safety ------------------------------------------------
@@ -498,11 +498,12 @@ message FeedbackReport {
   string recipient = 5;
   string processing_state = 6;
 }
+// Queue is a live kumod scheduled-queue summary for one destination domain.
 message Queue {
-  string mailclass = 1;
-  string state = 2;
-  int64 depth = 3;
-  int64 oldest_message_age_seconds = 4;
+  string domain = 1;
+  int64 depth = 2;
+  bool suspended = 3;
+  string suspend_reason = 4;
 }
 
 message ListMailRecordsRequest {
@@ -515,6 +516,8 @@ message ListMailRecordsRequest {
   google.protobuf.Timestamp to_time = 7;
   // Case-insensitive substring match on the original From header.
   string from = 8;
+  // Filter by mail-record status (e.g. "deferred" to see what's in the queue).
+  string status = 9;
 }
 message ListMailRecordsReply {
   repeated MailRecord items = 1;
@@ -536,13 +539,14 @@ message ListQueuesReply {
   PageReply page = 2;
 }
 message RequestQueueActionRequest {
-  string mailclass = 1;
-  string action = 2;
-  string confirmation_id = 3;
+  string action = 1;          // suspend | resume | bounce
+  string domain = 2;          // destination domain (scheduled queue)
+  string reason = 3;
+  string confirmation_id = 4; // required for the destructive bounce
 }
 message QueueActionReply {
-  string request_id = 1;
-  string status = 2;
+  string status = 1;
+  string summary = 2;
 }
 
 // Domain & recipient safety -------------------------------------------------

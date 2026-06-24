@@ -28,11 +28,8 @@ export const mailOperationsService = {
   listQueues() {
     return http.get<ListResponse<Queue>>('/queues')
   },
-  queueAction(mailclass: string, body: QueueActionRequest) {
-    return http.post<QueueActionResponse>(
-      `/queues/${encodeURIComponent(mailclass)}:action`,
-      body,
-    )
+  queueAction(body: QueueActionRequest) {
+    return http.post<QueueActionResponse>('/queues:action', body)
   },
   serviceControl(body: ServiceControlRequest) {
     return http.post<ServiceControlResponse>('/kumomta:service-control', body)

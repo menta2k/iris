@@ -120,10 +120,13 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// External service adapters: in-memory stub for local dev, file/exec/HTTP
 	// adapter (writes the generated policy and reloads KumoMTA) otherwise.
 	var kumo biz.KumoMTAAdapter
+	var queueAdmin biz.KumoQueueAdmin // live kumod queue control (nil in stub mode)
 	if cfg.KumoMTA.Stub {
 		kumo = biz.NewStubKumoMTA()
 	} else {
-		kumo = data.NewFileKumoMTA(cfg.KumoMTA)
+		fk := data.NewFileKumoMTA(cfg.KumoMTA)
+		kumo = fk
+		queueAdmin = fk
 	}
 
 	// US2 mail operations: repository, Redis producer, and use case.
@@ -252,7 +255,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		Log:          log,
 		Auditor:      auditor,
 		Outbound:     outboundUC,
-		MailOps:      biz.NewMailOpsUsecase(mailOpsRepo, opsProducer, auditor),
+		MailOps:      biz.NewMailOpsUsecase(mailOpsRepo, opsProducer, auditor).WithQueueAdmin(queueAdmin),
 		Identity:     identityUC,
 		Auth:         authUC,
 		DomainSafety: domainSafetyUC,
