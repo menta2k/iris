@@ -28,6 +28,42 @@ func TestParseKumoLogRecord(t *testing.T) {
 	}
 }
 
+func TestKumoLogRecordMailStatus(t *testing.T) {
+	cases := map[string]string{
+		KumoReception:        MailReceived,
+		KumoDelivery:         MailSent,
+		KumoBounce:           MailBounced,
+		KumoTransientFailure: MailDeferred,
+		KumoSuppressed:       MailSuppressed,
+		"Rejection":          "", // untracked types map to no status
+	}
+	for recType, want := range cases {
+		rec := &KumoLogRecord{Type: recType}
+		if got := rec.MailStatus(); got != want {
+			t.Errorf("MailStatus(%q) = %q, want %q", recType, got, want)
+		}
+	}
+}
+
+func TestParseSuppressedRecord(t *testing.T) {
+	// Mirrors what the reception hook's iris_log_suppressed XADDs.
+	rec, err := ParseKumoLogRecord([]byte(`{
+		"type":"Suppressed","id":"msg-9","sender":"a@send.example",
+		"recipient":"blocked@Dest.example","headers":{"From":"Real Sender <a@send.example>"}}`))
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if rec.MailStatus() != MailSuppressed {
+		t.Fatalf("expected suppressed, got %q", rec.MailStatus())
+	}
+	if rec.RecipientDomainOf() != "dest.example" {
+		t.Fatalf("expected lowercased domain, got %q", rec.RecipientDomainOf())
+	}
+	if rec.FromHeader() != "Real Sender <a@send.example>" {
+		t.Fatalf("expected From header, got %q", rec.FromHeader())
+	}
+}
+
 func TestKumoLogFromHeader(t *testing.T) {
 	// The log hook captures From into headers; FromHeader recovers it past the
 	// VERP-rewritten envelope sender.

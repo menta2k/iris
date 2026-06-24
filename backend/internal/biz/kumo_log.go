@@ -83,6 +83,10 @@ const (
 	KumoBounce           = "Bounce"
 	KumoTransientFailure = "TransientFailure"
 	KumoFeedback         = "Feedback"
+	// KumoSuppressed is a synthetic record type Iris emits from the reception hook
+	// when a recipient is rejected by the suppression list (KumoMTA itself has no
+	// such record type — the reject is otherwise invisible to the Logs UI).
+	KumoSuppressed = "Suppressed"
 )
 
 // ParseKumoLogRecord decodes one KumoMTA JSON log record, rejecting oversized
@@ -113,6 +117,8 @@ func (r *KumoLogRecord) MailStatus() string {
 		return MailBounced
 	case KumoTransientFailure:
 		return MailDeferred
+	case KumoSuppressed:
+		return MailSuppressed
 	default:
 		return ""
 	}

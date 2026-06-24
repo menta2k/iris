@@ -523,6 +523,34 @@ local function select_pool(msg, recipient, class)
   return nil
 end
 
+-- iris_log_suppressed streams a synthetic 'Suppressed' record onto the log
+-- stream so a recipient rejected by the suppression list still appears in the
+-- mail log (kumo.reject otherwise emits no record the Logs UI ingests). No-op
+-- when the log stream is disabled; fail-open so a Redis hiccup never blocks the
+-- reject.
+local function iris_log_suppressed(msg, recipient)
+  if not LOGSTREAM_REDIS_URL or LOGSTREAM_REDIS_URL == '' then return end
+  local ok, err = pcall(function()
+    local sender = ''
+    local s = msg:sender()
+    if s then sender = s.email or '' end
+    local payload = kumo.serde.json_encode {
+      type = 'Suppressed',
+      id = tostring(msg:id()),
+      sender = sender,
+      recipient = recipient,
+      headers = { From = msg:get_first_named_header_value('From') or '' },
+    }
+    local redis = require 'redis'
+    local conn = redis.open { node = LOGSTREAM_REDIS_URL, pool_size = 5 }
+    conn:query('XADD', LOGSTREAM_NAME, 'MAXLEN', '~', LOGSTREAM_MAXLEN, '*',
+               'type', 'Suppressed', 'data', payload)
+  end)
+  if not ok then
+    kumo.log_error('logstream: suppressed xadd failed err=' .. tostring(err))
+  end
+end
+
 -- Reception hook: optionally scan with rspamd, reject suppressed recipients,
 -- classify the mail (the 'mailclass' meta, logged for the Logs UI), then choose
 -- an egress pool and record it as the 'tenant' meta for get_queue_config.
@@ -567,6 +595,9 @@ kumo.on('smtp_server_message_received', function(msg)
     local email = (rcpt and rcpt.email or ''):lower()
     local rdom = (rcpt and rcpt.domain or ''):lower()
     if WEBHOOK_BY_EMAIL[email] or WEBHOOK_BY_DOMAIN[rdom] then
+      -- Tag the class so webhook-captured mail is identifiable in the mail log
+      -- (this hook returns before classify_mail runs).
+      msg:set_meta('mailclass', 'webhook')
       msg:set_meta('queue', WEBHOOK_TRACKER)
       return
     end
@@ -592,6 +623,7 @@ kumo.on('smtp_server_message_received', function(msg)
 	}
 	b.WriteString(`  local recipient = msg:recipient().email
   if is_suppressed(recipient) then
+    iris_log_suppressed(msg, recipient)
     kumo.reject(550, '5.7.1 recipient is suppressed')
     return
   end

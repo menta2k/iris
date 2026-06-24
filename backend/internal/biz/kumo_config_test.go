@@ -623,6 +623,39 @@ func TestInboundWebhookGeneration(t *testing.T) {
 		!strings.Contains(r.Content, "if domain == WEBHOOK_TRACKER then") {
 		t.Fatalf("webhook reception/queue routing not wired:\n%s", r.Content)
 	}
+	// Webhook-captured mail is tagged with the 'webhook' class so it is
+	// identifiable in the mail log (the hook returns before classify_mail).
+	if !strings.Contains(r.Content, "msg:set_meta('mailclass', 'webhook')") {
+		t.Fatalf("webhook mailclass tag not emitted:\n%s", r.Content)
+	}
+}
+
+func TestSuppressedLogRecordGeneration(t *testing.T) {
+	snap := ConfigSnapshot{
+		VMTAs:             []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+		Suppressions:      []*SuppressionEntry{{ID: "s1", Type: SuppressEmail, Value: "blocked@example.com", Status: SuppressActive}},
+		LogStreamRedisURL: "redis://redis:6379",
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil || !r.Valid {
+		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	// The reception hook emits a synthetic Suppressed record before rejecting.
+	for _, want := range []string{
+		"local function iris_log_suppressed(msg, recipient)",
+		"type = 'Suppressed',",
+		"'type', 'Suppressed', 'data', payload",
+		"iris_log_suppressed(msg, recipient)",
+		"kumo.reject(550, '5.7.1 recipient is suppressed')",
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Fatalf("suppressed logging missing %q:\n%s", want, r.Content)
+		}
+	}
+	// The call must precede the reject so the record is streamed first.
+	if i, j := strings.Index(r.Content, "iris_log_suppressed(msg, recipient)"), strings.Index(r.Content, "kumo.reject(550"); i < 0 || j < 0 || i > j {
+		t.Fatalf("iris_log_suppressed must be called before kumo.reject:\n%s", r.Content)
+	}
 }
 
 func TestLogHookHeadersAreDynamic(t *testing.T) {
