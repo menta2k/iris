@@ -42,7 +42,8 @@ type ConfigSnapshot struct {
 	HostedDomains []string
 
 	// LogStreamRedisURL, when set, makes the policy stream KumoMTA's structured
-	// log records (Reception/Delivery/Bounce/TransientFailure/Feedback) into a
+	// log records (Reception/Delivery/Bounce/AdminBounce/Expiration/
+	// TransientFailure/Feedback) into a
 	// Redis stream via a log_hook; the Iris log consumer ingests them into the
 	// mail_records hypertable. LogStreamName is the stream name.
 	LogStreamRedisURL string
@@ -1525,6 +1526,10 @@ kumo.on('should_enqueue_log_record', function(msg, hook_name)
   local tracked = {
     Reception = true, Delivery = true, Bounce = true,
     TransientFailure = true, Feedback = true,
+    -- Terminal queue removals: admin bounce (operator purge) and age expiration.
+    -- Without these, a purged/expired message keeps its last "deferred" status in
+    -- the Logs/Queues UI even though kumod has dropped it.
+    AdminBounce = true, Expiration = true,
   }
   if tracked[lr.type] then
     msg:set_meta('queue', LOGSTREAM_TRACKER)

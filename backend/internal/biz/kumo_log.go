@@ -83,6 +83,12 @@ const (
 	KumoBounce           = "Bounce"
 	KumoTransientFailure = "TransientFailure"
 	KumoFeedback         = "Feedback"
+	// KumoAdminBounce is logged when an operator bounces (purges) a queue via the
+	// admin API; KumoExpiration when a message exceeds its max age. Both are
+	// terminal removals from the queue — Iris records them as bounced so the
+	// message stops reading "deferred" once it has left kumod's queue.
+	KumoAdminBounce = "AdminBounce"
+	KumoExpiration  = "Expiration"
 	// KumoSuppressed is a synthetic record type Iris emits from the reception hook
 	// when a recipient is rejected by the suppression list (KumoMTA itself has no
 	// such record type — the reject is otherwise invisible to the Logs UI).
@@ -113,7 +119,7 @@ func (r *KumoLogRecord) MailStatus() string {
 		return MailReceived
 	case KumoDelivery:
 		return MailSent
-	case KumoBounce:
+	case KumoBounce, KumoAdminBounce, KumoExpiration:
 		return MailBounced
 	case KumoTransientFailure:
 		return MailDeferred
