@@ -982,6 +982,9 @@ message GlobalSettings {
   string prometheus_url = 19;
   string updated_at = 20;
   string updated_by = 21;
+  // Suppression record lifetime (duration form, e.g. "720h", "30d"). Empty =
+  // permanent. Applied as the Redis key TTL on the live suppression list.
+  string suppression_ttl = 22;
 }
 message GetGlobalSettingsRequest {}
 message UpdateGlobalSettingsRequest {
@@ -1004,4 +1007,5 @@ message UpdateGlobalSettingsRequest {
   string acme_renew_interval = 17;
   string acme_renew_before = 18;
   string prometheus_url = 19;
+  string suppression_ttl = 20;
 }

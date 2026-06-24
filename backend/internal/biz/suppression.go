@@ -1,6 +1,9 @@
 package biz
 
-import "strings"
+import (
+	"strings"
+	"time"
+)
 
 // Suppression types.
 const (
@@ -23,6 +26,10 @@ type SuppressionEntry struct {
 	Reason string
 	Source string
 	Status string
+	// ExpiresAt is when the entry stops blocking (nil = permanent). The live
+	// policy lookup enforces this via the Redis key TTL; this mirrors it for the
+	// DB list and the DB-side IsSuppressed check.
+	ExpiresAt *time.Time
 }
 
 // Validate normalizes and checks a suppression entry.

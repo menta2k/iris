@@ -1854,6 +1854,11 @@ components:
                     type: string
                 updated_by:
                     type: string
+                suppression_ttl:
+                    type: string
+                    description: |-
+                        Suppression record lifetime (duration form, e.g. "720h", "30d"). Empty =
+                         permanent. Applied as the Redis key TTL on the live suppression list.
             description: Global settings — deployment-level policy knobs an operator edits in the UI.
         KumoConfig:
             type: object
@@ -2435,6 +2440,8 @@ components:
                 acme_renew_before:
                     type: string
                 prometheus_url:
+                    type: string
+                suppression_ttl:
                     type: string
         UpdateListenerRequest:
             type: object

@@ -3,6 +3,7 @@ package biz
 import (
 	"context"
 	"strings"
+	"time"
 )
 
 // GlobalSettingsRepo is the persistence boundary for the singleton settings row.
@@ -119,6 +120,18 @@ func (uc *GlobalSettingsUsecase) BouncePolicyNow(ctx context.Context) BouncePoli
 		AutoSuppressHardBounces: row.AutoSuppressHardBounces,
 		SoftBounceThreshold:     row.SoftBounceThreshold,
 	}
+}
+
+// SuppressionTTLNow returns the configured suppression-record lifetime (0 when
+// unset/permanent). Used by the suppression write path to set the Redis key TTL
+// and the DB expires_at. No permission check — internal provider.
+func (uc *GlobalSettingsUsecase) SuppressionTTLNow(ctx context.Context) time.Duration {
+	row, err := uc.repo.Get(ctx)
+	if err != nil || row == nil {
+		return 0
+	}
+	d, _ := ParseFlexDuration(row.SuppressionTTL)
+	return d
 }
 
 // PrometheusURLNow returns the configured Prometheus base URL (empty when

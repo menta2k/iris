@@ -96,14 +96,15 @@ func TestRenderKumoConfig(t *testing.T) {
 		t.Fatal("non-ready DKIM domain must not be a signer")
 	}
 
-	// Only active suppressions.
-	if r.SuppressionCount != 2 ||
-		!strings.Contains(r.Content, `SUPPRESSED_EMAILS["blocked@example.com"] = true`) ||
-		!strings.Contains(r.Content, `SUPPRESSED_DOMAINS["blocked.example"] = true`) {
-		t.Fatalf("missing suppression entries:\n%s", r.Content)
+	// Suppressions are no longer rendered inline — they live in Redis. The config
+	// must not contain any suppression values regardless of the snapshot.
+	if strings.Contains(r.Content, "SUPPRESSED_EMAILS") ||
+		strings.Contains(r.Content, "blocked@example.com") ||
+		strings.Contains(r.Content, "blocked.example") {
+		t.Fatalf("suppression list must not be rendered into the config:\n%s", r.Content)
 	}
-	if strings.Contains(r.Content, "old@example.com") {
-		t.Fatal("disabled suppression must not appear")
+	if r.SuppressionCount != 0 {
+		t.Fatalf("SuppressionCount should be 0 (list is in Redis), got %d", r.SuppressionCount)
 	}
 
 	if r.Checksum == "" {
@@ -633,6 +634,44 @@ func TestInboundWebhookGeneration(t *testing.T) {
 	if !strings.Contains(r.Content, "if WEBHOOK_DOMAINS[rdom] then") ||
 		!strings.Contains(r.Content, "recipient rejected, no matching route") {
 		t.Fatalf("unknown-recipient reject for webhook domains not emitted:\n%s", r.Content)
+	}
+}
+
+func TestSuppressionRedisLookupGeneration(t *testing.T) {
+	base := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+	}
+
+	// With Redis configured, suppression is a memoized EXISTS lookup, not a table.
+	on := base
+	on.LogStreamRedisURL = "redis://redis:6379"
+	r, err := RenderKumoConfig(on)
+	if err != nil || !r.Valid {
+		t.Fatalf("render on: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	for _, want := range []string{
+		"kumo.memoize(_supp_lookup",
+		"conn:query('EXISTS', 'supp:e:' .. recipient, 'supp:d:' .. domain)",
+		"name = 'iris_suppression'",
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Fatalf("suppression redis lookup missing %q:\n%s", want, r.Content)
+		}
+	}
+	if strings.Contains(r.Content, "SUPPRESSED_EMAILS") {
+		t.Fatalf("must not render the inline suppression table:\n%s", r.Content)
+	}
+
+	// Without Redis, suppression enforcement degrades to a no-op stub.
+	off, err := RenderKumoConfig(base)
+	if err != nil || !off.Valid {
+		t.Fatalf("render off: err=%v valid=%v issues=%v", err, off.Valid, off.LintIssues)
+	}
+	if !strings.Contains(off.Content, "local function is_suppressed(_recipient) return false end") {
+		t.Fatalf("expected no-op is_suppressed when redis disabled:\n%s", off.Content)
+	}
+	if strings.Contains(off.Content, "kumo.memoize(_supp_lookup") {
+		t.Fatalf("must not render the redis lookup when redis disabled:\n%s", off.Content)
 	}
 }
 
