@@ -111,6 +111,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { permission: 'service:control', title: 'Feedback Loops' },
       },
       {
+        path: 'operations/dmarc',
+        name: 'dmarc',
+        component: () => import('@/pages/operations/DmarcPage.vue'),
+        meta: { permission: 'operations:read', title: 'DMARC Reports' },
+      },
+      {
         path: 'tools/diagnose',
         name: 'tools-diagnose',
         component: () => import('@/pages/tools/DiagnosePage.vue'),

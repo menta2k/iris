@@ -100,6 +100,9 @@ func (uc *GlobalSettingsUsecase) Effective(ctx context.Context) (KumoConfigSetti
 	if row.BounceDomain != "" {
 		s.BounceDomain = row.BounceDomain
 	}
+	if row.DMARCReportEmail != "" {
+		s.DMARCReportAddr = row.DMARCReportEmail
+	}
 	return s, nil
 }
 

@@ -40,6 +40,7 @@ const form = ref({
   auto_suppress_hard_bounces: true,
   soft_bounce_threshold: 0,
   suppression_ttl: '',
+  dmarc_report_email: '',
   admin_http_addr: '',
   admin_tls_enabled: false,
   admin_tls_cert_domain: '',
@@ -63,6 +64,7 @@ function apply(s: GlobalSettings) {
     auto_suppress_hard_bounces: s.autoSuppressHardBounces ?? true,
     soft_bounce_threshold: s.softBounceThreshold ?? 0,
     suppression_ttl: s.suppressionTtl || '',
+    dmarc_report_email: s.dmarcReportEmail || '',
     admin_http_addr: s.adminHttpAddr || '',
     admin_tls_enabled: s.adminTlsEnabled ?? false,
     admin_tls_cert_domain: s.adminTlsCertDomain || '',
@@ -115,6 +117,7 @@ async function save() {
         auto_suppress_hard_bounces: form.value.auto_suppress_hard_bounces,
         soft_bounce_threshold: form.value.soft_bounce_threshold,
         suppression_ttl: form.value.suppression_ttl,
+        dmarc_report_email: form.value.dmarc_report_email,
         admin_http_addr: form.value.admin_http_addr,
         admin_tls_enabled: form.value.admin_tls_enabled,
         admin_tls_cert_domain: form.value.admin_tls_cert_domain,
@@ -282,6 +285,20 @@ onMounted(load)
                 How long a suppression entry blocks a recipient before it ages out (duration form,
                 e.g. <code>720h</code>, <code>30d</code>). Leave blank to keep suppressions
                 permanent. Applied as the Redis key TTL on the live suppression list.
+              </p>
+            </div>
+            <div class="space-y-1.5">
+              <Label for="dmarc-email">DMARC report address</Label>
+              <Input
+                id="dmarc-email"
+                v-model="form.dmarc_report_email"
+                placeholder="dmarc@kmx.jobs.bg"
+                data-testid="dmarc-report-email"
+              />
+              <p class="text-xs text-muted-foreground">
+                Address to advertise as <code>rua=</code> in your domains' DMARC DNS records.
+                Inbound aggregate reports arriving here are parsed into the DMARC Reports page. One
+                address serves all your domains. Leave blank to disable.
               </p>
             </div>
           </CardContent>

@@ -32,6 +32,10 @@ type KumoConfigSettings struct {
 	// Bounce domain that inbound DSNs are accepted at (DSN pipeline).
 	BounceDomain string
 
+	// DMARCReportAddr is the address inbound DMARC aggregate reports arrive at
+	// (the configured rua). Empty disables the DMARC capture pipeline.
+	DMARCReportAddr string
+
 	// BounceClassifierFile is the KumoMTA bounce-classifier rules file loaded in
 	// the init block (empty disables classification).
 	BounceClassifierFile string
@@ -124,6 +128,7 @@ func (uc *KumoConfigUsecase) render(ctx context.Context) (RenderedConfig, error)
 	snap.EgressMaxRetryInterval = settings.EgressMaxRetryInterval
 	snap.EgressMaxAge = settings.EgressMaxAge
 	snap.BounceDomain = settings.BounceDomain
+	snap.DMARCReportAddr = settings.DMARCReportAddr
 	snap.BounceClassifierFile = settings.BounceClassifierFile
 	snap.BounceVerpSecret = settings.BounceVerpSecret
 	return RenderKumoConfig(snap)

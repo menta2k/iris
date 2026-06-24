@@ -507,6 +507,7 @@ export interface GlobalSettings {
   autoSuppressHardBounces: boolean
   softBounceThreshold: number
   suppressionTtl: string
+  dmarcReportEmail: string
   adminHttpAddr: string
   adminTlsEnabled: boolean
   adminTlsCertDomain: string
@@ -531,6 +532,7 @@ export interface UpdateGlobalSettingsRequest {
   auto_suppress_hard_bounces: boolean
   soft_bounce_threshold: number
   suppression_ttl: string
+  dmarc_report_email: string
   admin_http_addr: string
   admin_tls_enabled: boolean
   admin_tls_cert_domain: string
@@ -649,6 +651,49 @@ export interface DomainCheckItem {
 export interface DomainBounceCheck {
   domain: string
   items?: DomainCheckItem[]
+}
+
+// ---- DMARC aggregate reports ----
+
+export interface DmarcCount {
+  label: string
+  count: number
+}
+export interface DmarcSource {
+  ip: string
+  total: number
+  pass: number
+  fail: number
+}
+export interface DmarcDomainStat {
+  domain: string
+  messages: number
+  pass: number
+}
+export interface DmarcDay {
+  date: string
+  messages: number
+  pass: number
+}
+export interface DmarcStats {
+  totalMessages: number
+  dmarcPass: number
+  spfPass: number
+  dkimPass: number
+  dispositions?: DmarcCount[]
+  topSources?: DmarcSource[]
+  domains?: DmarcDomainStat[]
+  series?: DmarcDay[]
+}
+export interface DmarcReport {
+  orgName: string
+  reportId: string
+  domain: string
+  dateBegin: string
+  dateEnd: string
+  policyP: string
+  policyPct: number
+  receivedAt: string
 }
 
 // ---- Tools: Diagnose + RBL ----

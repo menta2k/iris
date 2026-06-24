@@ -44,6 +44,11 @@ type GlobalSettings struct {
 	// Redis key TTL on the live suppression list and mirrored to expires_at.
 	SuppressionTTL string
 
+	// DMARCReportEmail is the address advertised as the rua= in domains' DMARC
+	// records. Inbound aggregate reports arriving here are captured and parsed.
+	// Empty disables the DMARC pipeline. One address serves many domains.
+	DMARCReportEmail string
+
 	// Iris admin server (applied on restart — the listening socket is bound at
 	// startup). AdminHTTPAddr overrides the configured HTTP bind when set. When
 	// AdminTLSEnabled, the server serves HTTPS on that address using the issued
@@ -129,6 +134,11 @@ func (g *GlobalSettings) Validate() error {
 	g.SuppressionTTL = strings.TrimSpace(g.SuppressionTTL)
 	if g.SuppressionTTL != "" && !kumoDurationRe.MatchString(g.SuppressionTTL) {
 		return Invalid("SETTINGS_DURATION_INVALID", "suppression_ttl %q is not a valid duration (e.g. 720h, 30d)", g.SuppressionTTL)
+	}
+	// DMARC aggregate-report address (optional; must be a valid email when set).
+	g.DMARCReportEmail = strings.ToLower(strings.TrimSpace(g.DMARCReportEmail))
+	if g.DMARCReportEmail != "" && !isValidEmail(g.DMARCReportEmail) {
+		return Invalid("SETTINGS_DMARC_EMAIL_INVALID", "dmarc_report_email %q is not a valid email address", g.DMARCReportEmail)
 	}
 
 	// Iris admin server.

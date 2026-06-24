@@ -637,6 +637,47 @@ func TestInboundWebhookGeneration(t *testing.T) {
 	}
 }
 
+func TestDMARCCatcherGeneration(t *testing.T) {
+	base := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "l1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+	}
+
+	// Enabled (report address + redis): catcher, tracker route, listener relay.
+	on := base
+	on.DMARCReportAddr = "dmarc@kmx.jobs.bg"
+	on.LogStreamRedisURL = "redis://redis:6379"
+	r, err := RenderKumoConfig(on)
+	if err != nil || !r.Valid {
+		t.Fatalf("render on: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	for _, want := range []string{
+		`local DMARC_REPORT_ADDR   = "dmarc@kmx.jobs.bg"`,
+		`local DMARC_REPORT_DOMAIN = "kmx.jobs.bg"`,
+		"kumo.on('make.dmarc_xadd'",
+		"if (rcpt and rcpt.email or ''):lower() == DMARC_REPORT_ADDR then",
+		"msg:set_meta('queue', DMARC_TRACKER)",
+		"if domain == DMARC_TRACKER then",
+		"if DMARC_REPORT_DOMAIN ~= '' and domain == DMARC_REPORT_DOMAIN then",
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Fatalf("DMARC catcher missing %q:\n%s", want, r.Content)
+		}
+	}
+
+	// Disabled: no DMARC catcher rendered.
+	off, err := RenderKumoConfig(base)
+	if err != nil || !off.Valid {
+		t.Fatalf("render off: err=%v valid=%v issues=%v", err, off.Valid, off.LintIssues)
+	}
+	// The empty DMARC_* locals may still be declared, but no catcher constructor,
+	// queue route, or reception match should be rendered.
+	if strings.Contains(off.Content, "make.dmarc_xadd") ||
+		strings.Contains(off.Content, "if domain == DMARC_TRACKER then") ||
+		strings.Contains(off.Content, "== DMARC_REPORT_ADDR then") {
+		t.Fatalf("DMARC catcher must be absent when unconfigured:\n%s", off.Content)
+	}
+}
+
 func TestSuppressionRedisLookupGeneration(t *testing.T) {
 	base := ConfigSnapshot{
 		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
