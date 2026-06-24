@@ -7707,6 +7707,451 @@ func (x *DomainBounceCheck) GetItems() []*DomainCheckItem {
 	return nil
 }
 
+// Tools: Diagnose + RBL check.
+type DiagnoseRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FromEmail     string                 `protobuf:"bytes,1,opt,name=from_email,json=fromEmail,proto3" json:"from_email,omitempty"`
+	Recipient     string                 `protobuf:"bytes,2,opt,name=recipient,proto3" json:"recipient,omitempty"` // optional: refine routing simulation
+	Mailclass     string                 `protobuf:"bytes,3,opt,name=mailclass,proto3" json:"mailclass,omitempty"` // optional: the X-Mail-Class value to simulate
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiagnoseRequest) Reset() {
+	*x = DiagnoseRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[125]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiagnoseRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiagnoseRequest) ProtoMessage() {}
+
+func (x *DiagnoseRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[125]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiagnoseRequest.ProtoReflect.Descriptor instead.
+func (*DiagnoseRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{125}
+}
+
+func (x *DiagnoseRequest) GetFromEmail() string {
+	if x != nil {
+		return x.FromEmail
+	}
+	return ""
+}
+
+func (x *DiagnoseRequest) GetRecipient() string {
+	if x != nil {
+		return x.Recipient
+	}
+	return ""
+}
+
+func (x *DiagnoseRequest) GetMailclass() string {
+	if x != nil {
+		return x.Mailclass
+	}
+	return ""
+}
+
+type RoutingOutcome struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MatchedRule   string                 `protobuf:"bytes,1,opt,name=matched_rule,json=matchedRule,proto3" json:"matched_rule,omitempty"`
+	EgressPool    string                 `protobuf:"bytes,2,opt,name=egress_pool,json=egressPool,proto3" json:"egress_pool,omitempty"`
+	Vmtas         []string               `protobuf:"bytes,3,rep,name=vmtas,proto3" json:"vmtas,omitempty"`
+	EgressIps     []string               `protobuf:"bytes,4,rep,name=egress_ips,json=egressIps,proto3" json:"egress_ips,omitempty"`
+	Listeners     []string               `protobuf:"bytes,5,rep,name=listeners,proto3" json:"listeners,omitempty"`
+	Note          string                 `protobuf:"bytes,6,opt,name=note,proto3" json:"note,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RoutingOutcome) Reset() {
+	*x = RoutingOutcome{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[126]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RoutingOutcome) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RoutingOutcome) ProtoMessage() {}
+
+func (x *RoutingOutcome) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[126]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RoutingOutcome.ProtoReflect.Descriptor instead.
+func (*RoutingOutcome) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{126}
+}
+
+func (x *RoutingOutcome) GetMatchedRule() string {
+	if x != nil {
+		return x.MatchedRule
+	}
+	return ""
+}
+
+func (x *RoutingOutcome) GetEgressPool() string {
+	if x != nil {
+		return x.EgressPool
+	}
+	return ""
+}
+
+func (x *RoutingOutcome) GetVmtas() []string {
+	if x != nil {
+		return x.Vmtas
+	}
+	return nil
+}
+
+func (x *RoutingOutcome) GetEgressIps() []string {
+	if x != nil {
+		return x.EgressIps
+	}
+	return nil
+}
+
+func (x *RoutingOutcome) GetListeners() []string {
+	if x != nil {
+		return x.Listeners
+	}
+	return nil
+}
+
+func (x *RoutingOutcome) GetNote() string {
+	if x != nil {
+		return x.Note
+	}
+	return ""
+}
+
+type DiagnoseResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FromEmail     string                 `protobuf:"bytes,1,opt,name=from_email,json=fromEmail,proto3" json:"from_email,omitempty"`
+	Domain        string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
+	Items         []*DomainCheckItem     `protobuf:"bytes,3,rep,name=items,proto3" json:"items,omitempty"`
+	Routing       *RoutingOutcome        `protobuf:"bytes,4,opt,name=routing,proto3" json:"routing,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiagnoseResult) Reset() {
+	*x = DiagnoseResult{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[127]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiagnoseResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiagnoseResult) ProtoMessage() {}
+
+func (x *DiagnoseResult) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[127]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiagnoseResult.ProtoReflect.Descriptor instead.
+func (*DiagnoseResult) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{127}
+}
+
+func (x *DiagnoseResult) GetFromEmail() string {
+	if x != nil {
+		return x.FromEmail
+	}
+	return ""
+}
+
+func (x *DiagnoseResult) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
+}
+
+func (x *DiagnoseResult) GetItems() []*DomainCheckItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+func (x *DiagnoseResult) GetRouting() *RoutingOutcome {
+	if x != nil {
+		return x.Routing
+	}
+	return nil
+}
+
+type RblCheckRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RblCheckRequest) Reset() {
+	*x = RblCheckRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[128]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RblCheckRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RblCheckRequest) ProtoMessage() {}
+
+func (x *RblCheckRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[128]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RblCheckRequest.ProtoReflect.Descriptor instead.
+func (*RblCheckRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{128}
+}
+
+type RblListing struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Zone          string                 `protobuf:"bytes,1,opt,name=zone,proto3" json:"zone,omitempty"`
+	Listed        bool                   `protobuf:"varint,2,opt,name=listed,proto3" json:"listed,omitempty"`
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RblListing) Reset() {
+	*x = RblListing{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[129]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RblListing) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RblListing) ProtoMessage() {}
+
+func (x *RblListing) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[129]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RblListing.ProtoReflect.Descriptor instead.
+func (*RblListing) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{129}
+}
+
+func (x *RblListing) GetZone() string {
+	if x != nil {
+		return x.Zone
+	}
+	return ""
+}
+
+func (x *RblListing) GetListed() bool {
+	if x != nil {
+		return x.Listed
+	}
+	return false
+}
+
+func (x *RblListing) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type RblIpResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ip            string                 `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
+	Source        string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	Listed        bool                   `protobuf:"varint,3,opt,name=listed,proto3" json:"listed,omitempty"`
+	Listings      []*RblListing          `protobuf:"bytes,4,rep,name=listings,proto3" json:"listings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RblIpResult) Reset() {
+	*x = RblIpResult{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[130]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RblIpResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RblIpResult) ProtoMessage() {}
+
+func (x *RblIpResult) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[130]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RblIpResult.ProtoReflect.Descriptor instead.
+func (*RblIpResult) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{130}
+}
+
+func (x *RblIpResult) GetIp() string {
+	if x != nil {
+		return x.Ip
+	}
+	return ""
+}
+
+func (x *RblIpResult) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *RblIpResult) GetListed() bool {
+	if x != nil {
+		return x.Listed
+	}
+	return false
+}
+
+func (x *RblIpResult) GetListings() []*RblListing {
+	if x != nil {
+		return x.Listings
+	}
+	return nil
+}
+
+type RblCheckReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Results       []*RblIpResult         `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
+	Zones         []string               `protobuf:"bytes,2,rep,name=zones,proto3" json:"zones,omitempty"`
+	CheckedAt     string                 `protobuf:"bytes,3,opt,name=checked_at,json=checkedAt,proto3" json:"checked_at,omitempty"`
+	Skipped       []string               `protobuf:"bytes,4,rep,name=skipped,proto3" json:"skipped,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RblCheckReply) Reset() {
+	*x = RblCheckReply{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[131]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RblCheckReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RblCheckReply) ProtoMessage() {}
+
+func (x *RblCheckReply) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[131]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RblCheckReply.ProtoReflect.Descriptor instead.
+func (*RblCheckReply) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{131}
+}
+
+func (x *RblCheckReply) GetResults() []*RblIpResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
+func (x *RblCheckReply) GetZones() []string {
+	if x != nil {
+		return x.Zones
+	}
+	return nil
+}
+
+func (x *RblCheckReply) GetCheckedAt() string {
+	if x != nil {
+		return x.CheckedAt
+	}
+	return ""
+}
+
+func (x *RblCheckReply) GetSkipped() []string {
+	if x != nil {
+		return x.Skipped
+	}
+	return nil
+}
+
 type GetDashboardSummaryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -7715,7 +8160,7 @@ type GetDashboardSummaryRequest struct {
 
 func (x *GetDashboardSummaryRequest) Reset() {
 	*x = GetDashboardSummaryRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[125]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[132]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7727,7 +8172,7 @@ func (x *GetDashboardSummaryRequest) String() string {
 func (*GetDashboardSummaryRequest) ProtoMessage() {}
 
 func (x *GetDashboardSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[125]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[132]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7740,7 +8185,7 @@ func (x *GetDashboardSummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDashboardSummaryRequest.ProtoReflect.Descriptor instead.
 func (*GetDashboardSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{125}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{132}
 }
 
 type DashboardSummary struct {
@@ -7755,7 +8200,7 @@ type DashboardSummary struct {
 
 func (x *DashboardSummary) Reset() {
 	*x = DashboardSummary{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[126]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[133]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7767,7 +8212,7 @@ func (x *DashboardSummary) String() string {
 func (*DashboardSummary) ProtoMessage() {}
 
 func (x *DashboardSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[126]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[133]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7780,7 +8225,7 @@ func (x *DashboardSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DashboardSummary.ProtoReflect.Descriptor instead.
 func (*DashboardSummary) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{126}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{133}
 }
 
 func (x *DashboardSummary) GetServiceState() string {
@@ -7822,7 +8267,7 @@ type GetMetricsTimeseriesRequest struct {
 
 func (x *GetMetricsTimeseriesRequest) Reset() {
 	*x = GetMetricsTimeseriesRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[127]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[134]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7834,7 +8279,7 @@ func (x *GetMetricsTimeseriesRequest) String() string {
 func (*GetMetricsTimeseriesRequest) ProtoMessage() {}
 
 func (x *GetMetricsTimeseriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[127]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[134]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7847,7 +8292,7 @@ func (x *GetMetricsTimeseriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMetricsTimeseriesRequest.ProtoReflect.Descriptor instead.
 func (*GetMetricsTimeseriesRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{127}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{134}
 }
 
 func (x *GetMetricsTimeseriesRequest) GetRange() string {
@@ -7867,7 +8312,7 @@ type MetricPoint struct {
 
 func (x *MetricPoint) Reset() {
 	*x = MetricPoint{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[128]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[135]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7879,7 +8324,7 @@ func (x *MetricPoint) String() string {
 func (*MetricPoint) ProtoMessage() {}
 
 func (x *MetricPoint) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[128]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[135]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7892,7 +8337,7 @@ func (x *MetricPoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricPoint.ProtoReflect.Descriptor instead.
 func (*MetricPoint) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{128}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{135}
 }
 
 func (x *MetricPoint) GetTimestamp() int64 {
@@ -7920,7 +8365,7 @@ type MetricsSeries struct {
 
 func (x *MetricsSeries) Reset() {
 	*x = MetricsSeries{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[129]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[136]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7932,7 +8377,7 @@ func (x *MetricsSeries) String() string {
 func (*MetricsSeries) ProtoMessage() {}
 
 func (x *MetricsSeries) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[129]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[136]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7945,7 +8390,7 @@ func (x *MetricsSeries) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricsSeries.ProtoReflect.Descriptor instead.
 func (*MetricsSeries) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{129}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{136}
 }
 
 func (x *MetricsSeries) GetKey() string {
@@ -7981,7 +8426,7 @@ type MetricsTimeseries struct {
 
 func (x *MetricsTimeseries) Reset() {
 	*x = MetricsTimeseries{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[130]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[137]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7993,7 +8438,7 @@ func (x *MetricsTimeseries) String() string {
 func (*MetricsTimeseries) ProtoMessage() {}
 
 func (x *MetricsTimeseries) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[130]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[137]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8006,7 +8451,7 @@ func (x *MetricsTimeseries) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricsTimeseries.ProtoReflect.Descriptor instead.
 func (*MetricsTimeseries) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{130}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{137}
 }
 
 func (x *MetricsTimeseries) GetSeries() []*MetricsSeries {
@@ -8080,7 +8525,7 @@ type GlobalSettings struct {
 
 func (x *GlobalSettings) Reset() {
 	*x = GlobalSettings{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[131]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[138]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8092,7 +8537,7 @@ func (x *GlobalSettings) String() string {
 func (*GlobalSettings) ProtoMessage() {}
 
 func (x *GlobalSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[131]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[138]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8105,7 +8550,7 @@ func (x *GlobalSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GlobalSettings.ProtoReflect.Descriptor instead.
 func (*GlobalSettings) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{131}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{138}
 }
 
 func (x *GlobalSettings) GetRspamdMode() string {
@@ -8263,7 +8708,7 @@ type GetGlobalSettingsRequest struct {
 
 func (x *GetGlobalSettingsRequest) Reset() {
 	*x = GetGlobalSettingsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[132]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[139]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8275,7 +8720,7 @@ func (x *GetGlobalSettingsRequest) String() string {
 func (*GetGlobalSettingsRequest) ProtoMessage() {}
 
 func (x *GetGlobalSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[132]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[139]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8288,7 +8733,7 @@ func (x *GetGlobalSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetGlobalSettingsRequest.ProtoReflect.Descriptor instead.
 func (*GetGlobalSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{132}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{139}
 }
 
 type UpdateGlobalSettingsRequest struct {
@@ -8318,7 +8763,7 @@ type UpdateGlobalSettingsRequest struct {
 
 func (x *UpdateGlobalSettingsRequest) Reset() {
 	*x = UpdateGlobalSettingsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[133]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[140]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8330,7 +8775,7 @@ func (x *UpdateGlobalSettingsRequest) String() string {
 func (*UpdateGlobalSettingsRequest) ProtoMessage() {}
 
 func (x *UpdateGlobalSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[133]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[140]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8343,7 +8788,7 @@ func (x *UpdateGlobalSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGlobalSettingsRequest.ProtoReflect.Descriptor instead.
 func (*UpdateGlobalSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{133}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{140}
 }
 
 func (x *UpdateGlobalSettingsRequest) GetRspamdMode() string {
@@ -9092,7 +9537,44 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\arecords\x18\x04 \x03(\tR\arecords\"a\n" +
 	"\x11DomainBounceCheck\x12\x16\n" +
 	"\x06domain\x18\x01 \x01(\tR\x06domain\x124\n" +
-	"\x05items\x18\x02 \x03(\v2\x1e.iris.admin.v1.DomainCheckItemR\x05items\"\x1c\n" +
+	"\x05items\x18\x02 \x03(\v2\x1e.iris.admin.v1.DomainCheckItemR\x05items\"l\n" +
+	"\x0fDiagnoseRequest\x12\x1d\n" +
+	"\n" +
+	"from_email\x18\x01 \x01(\tR\tfromEmail\x12\x1c\n" +
+	"\trecipient\x18\x02 \x01(\tR\trecipient\x12\x1c\n" +
+	"\tmailclass\x18\x03 \x01(\tR\tmailclass\"\xbb\x01\n" +
+	"\x0eRoutingOutcome\x12!\n" +
+	"\fmatched_rule\x18\x01 \x01(\tR\vmatchedRule\x12\x1f\n" +
+	"\vegress_pool\x18\x02 \x01(\tR\n" +
+	"egressPool\x12\x14\n" +
+	"\x05vmtas\x18\x03 \x03(\tR\x05vmtas\x12\x1d\n" +
+	"\n" +
+	"egress_ips\x18\x04 \x03(\tR\tegressIps\x12\x1c\n" +
+	"\tlisteners\x18\x05 \x03(\tR\tlisteners\x12\x12\n" +
+	"\x04note\x18\x06 \x01(\tR\x04note\"\xb6\x01\n" +
+	"\x0eDiagnoseResult\x12\x1d\n" +
+	"\n" +
+	"from_email\x18\x01 \x01(\tR\tfromEmail\x12\x16\n" +
+	"\x06domain\x18\x02 \x01(\tR\x06domain\x124\n" +
+	"\x05items\x18\x03 \x03(\v2\x1e.iris.admin.v1.DomainCheckItemR\x05items\x127\n" +
+	"\arouting\x18\x04 \x01(\v2\x1d.iris.admin.v1.RoutingOutcomeR\arouting\"\x11\n" +
+	"\x0fRblCheckRequest\"P\n" +
+	"\n" +
+	"RblListing\x12\x12\n" +
+	"\x04zone\x18\x01 \x01(\tR\x04zone\x12\x16\n" +
+	"\x06listed\x18\x02 \x01(\bR\x06listed\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"\x84\x01\n" +
+	"\vRblIpResult\x12\x0e\n" +
+	"\x02ip\x18\x01 \x01(\tR\x02ip\x12\x16\n" +
+	"\x06source\x18\x02 \x01(\tR\x06source\x12\x16\n" +
+	"\x06listed\x18\x03 \x01(\bR\x06listed\x125\n" +
+	"\blistings\x18\x04 \x03(\v2\x19.iris.admin.v1.RblListingR\blistings\"\x94\x01\n" +
+	"\rRblCheckReply\x124\n" +
+	"\aresults\x18\x01 \x03(\v2\x1a.iris.admin.v1.RblIpResultR\aresults\x12\x14\n" +
+	"\x05zones\x18\x02 \x03(\tR\x05zones\x12\x1d\n" +
+	"\n" +
+	"checked_at\x18\x03 \x01(\tR\tcheckedAt\x12\x18\n" +
+	"\askipped\x18\x04 \x03(\tR\askipped\"\x1c\n" +
 	"\x1aGetDashboardSummaryRequest\"\xbe\x01\n" +
 	"\x10DashboardSummary\x12#\n" +
 	"\rservice_state\x18\x01 \x01(\tR\fserviceState\x12'\n" +
@@ -9165,7 +9647,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x13acme_renew_interval\x18\x11 \x01(\tR\x11acmeRenewInterval\x12*\n" +
 	"\x11acme_renew_before\x18\x12 \x01(\tR\x0facmeRenewBefore\x12%\n" +
 	"\x0eprometheus_url\x18\x13 \x01(\tR\rprometheusUrl\x12'\n" +
-	"\x0fsuppression_ttl\x18\x14 \x01(\tR\x0esuppressionTtlJ\x04\b\r\x10\x0e2\xb5?\n" +
+	"\x0fsuppression_ttl\x18\x14 \x01(\tR\x0esuppressionTtlJ\x04\b\r\x10\x0e2\x89A\n" +
 	"\x10IrisAdminService\x12n\n" +
 	"\rListListeners\x12#.iris.admin.v1.ListListenersRequest\x1a!.iris.admin.v1.ListListenersReply\"\x15\x82\xd3\xe4\x93\x02\x0f\x12\r/v1/listeners\x12i\n" +
 	"\x0eCreateListener\x12$.iris.admin.v1.CreateListenerRequest\x1a\x17.iris.admin.v1.Listener\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/v1/listeners\x12n\n" +
@@ -9239,7 +9721,9 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x14ClearAcmeDnsProvider\x12*.iris.admin.v1.ClearAcmeDnsProviderRequest\x1a\x1e.iris.admin.v1.AcmeDnsProvider\"\x1d\x82\xd3\xe4\x93\x02\x17*\x15/v1/acme/dns-provider\x12\x80\x01\n" +
 	"\x13GetDashboardSummary\x12).iris.admin.v1.GetDashboardSummaryRequest\x1a\x1f.iris.admin.v1.DashboardSummary\"\x1d\x82\xd3\xe4\x93\x02\x17\x12\x15/v1/dashboard/summary\x12\x83\x01\n" +
 	"\x14GetMetricsTimeseries\x12*.iris.admin.v1.GetMetricsTimeseriesRequest\x1a .iris.admin.v1.MetricsTimeseries\"\x1d\x82\xd3\xe4\x93\x02\x17\x12\x15/v1/dashboard/metrics\x12\x8b\x01\n" +
-	"\x16CheckDomainBounceSetup\x12,.iris.admin.v1.CheckDomainBounceSetupRequest\x1a .iris.admin.v1.DomainBounceCheck\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/v1/domain-check/{domain}\x12q\n" +
+	"\x16CheckDomainBounceSetup\x12,.iris.admin.v1.CheckDomainBounceSetupRequest\x1a .iris.admin.v1.DomainBounceCheck\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/v1/domain-check/{domain}\x12h\n" +
+	"\bDiagnose\x12\x1e.iris.admin.v1.DiagnoseRequest\x1a\x1d.iris.admin.v1.DiagnoseResult\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/v1/tools/diagnose\x12h\n" +
+	"\bRblCheck\x12\x1e.iris.admin.v1.RblCheckRequest\x1a\x1c.iris.admin.v1.RblCheckReply\"\x1e\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/v1/tools/rbl-check\x12q\n" +
 	"\x11GetGlobalSettings\x12'.iris.admin.v1.GetGlobalSettingsRequest\x1a\x1d.iris.admin.v1.GlobalSettings\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/settings\x12z\n" +
 	"\x14UpdateGlobalSettings\x12*.iris.admin.v1.UpdateGlobalSettingsRequest\x1a\x1d.iris.admin.v1.GlobalSettings\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*\x1a\f/v1/settingsB;Z9github.com/menta2k/iris/backend/api/iris/admin/v1;adminv1b\x06proto3"
 
@@ -9255,7 +9739,7 @@ func file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP() []byte {
 	return file_iris_admin_v1_iris_admin_api_proto_rawDescData
 }
 
-var file_iris_admin_v1_iris_admin_api_proto_msgTypes = make([]protoimpl.MessageInfo, 136)
+var file_iris_admin_v1_iris_admin_api_proto_msgTypes = make([]protoimpl.MessageInfo, 143)
 var file_iris_admin_v1_iris_admin_api_proto_goTypes = []any{
 	(*PageRequest)(nil),                   // 0: iris.admin.v1.PageRequest
 	(*PageReply)(nil),                     // 1: iris.admin.v1.PageReply
@@ -9382,18 +9866,25 @@ var file_iris_admin_v1_iris_admin_api_proto_goTypes = []any{
 	(*CheckDomainBounceSetupRequest)(nil), // 122: iris.admin.v1.CheckDomainBounceSetupRequest
 	(*DomainCheckItem)(nil),               // 123: iris.admin.v1.DomainCheckItem
 	(*DomainBounceCheck)(nil),             // 124: iris.admin.v1.DomainBounceCheck
-	(*GetDashboardSummaryRequest)(nil),    // 125: iris.admin.v1.GetDashboardSummaryRequest
-	(*DashboardSummary)(nil),              // 126: iris.admin.v1.DashboardSummary
-	(*GetMetricsTimeseriesRequest)(nil),   // 127: iris.admin.v1.GetMetricsTimeseriesRequest
-	(*MetricPoint)(nil),                   // 128: iris.admin.v1.MetricPoint
-	(*MetricsSeries)(nil),                 // 129: iris.admin.v1.MetricsSeries
-	(*MetricsTimeseries)(nil),             // 130: iris.admin.v1.MetricsTimeseries
-	(*GlobalSettings)(nil),                // 131: iris.admin.v1.GlobalSettings
-	(*GetGlobalSettingsRequest)(nil),      // 132: iris.admin.v1.GetGlobalSettingsRequest
-	(*UpdateGlobalSettingsRequest)(nil),   // 133: iris.admin.v1.UpdateGlobalSettingsRequest
-	nil,                                   // 134: iris.admin.v1.AcmeDnsProvider.ConfigEntry
-	nil,                                   // 135: iris.admin.v1.SetAcmeDnsProviderRequest.ConfigEntry
-	(*timestamppb.Timestamp)(nil),         // 136: google.protobuf.Timestamp
+	(*DiagnoseRequest)(nil),               // 125: iris.admin.v1.DiagnoseRequest
+	(*RoutingOutcome)(nil),                // 126: iris.admin.v1.RoutingOutcome
+	(*DiagnoseResult)(nil),                // 127: iris.admin.v1.DiagnoseResult
+	(*RblCheckRequest)(nil),               // 128: iris.admin.v1.RblCheckRequest
+	(*RblListing)(nil),                    // 129: iris.admin.v1.RblListing
+	(*RblIpResult)(nil),                   // 130: iris.admin.v1.RblIpResult
+	(*RblCheckReply)(nil),                 // 131: iris.admin.v1.RblCheckReply
+	(*GetDashboardSummaryRequest)(nil),    // 132: iris.admin.v1.GetDashboardSummaryRequest
+	(*DashboardSummary)(nil),              // 133: iris.admin.v1.DashboardSummary
+	(*GetMetricsTimeseriesRequest)(nil),   // 134: iris.admin.v1.GetMetricsTimeseriesRequest
+	(*MetricPoint)(nil),                   // 135: iris.admin.v1.MetricPoint
+	(*MetricsSeries)(nil),                 // 136: iris.admin.v1.MetricsSeries
+	(*MetricsTimeseries)(nil),             // 137: iris.admin.v1.MetricsTimeseries
+	(*GlobalSettings)(nil),                // 138: iris.admin.v1.GlobalSettings
+	(*GetGlobalSettingsRequest)(nil),      // 139: iris.admin.v1.GetGlobalSettingsRequest
+	(*UpdateGlobalSettingsRequest)(nil),   // 140: iris.admin.v1.UpdateGlobalSettingsRequest
+	nil,                                   // 141: iris.admin.v1.AcmeDnsProvider.ConfigEntry
+	nil,                                   // 142: iris.admin.v1.SetAcmeDnsProviderRequest.ConfigEntry
+	(*timestamppb.Timestamp)(nil),         // 143: google.protobuf.Timestamp
 }
 var file_iris_admin_v1_iris_admin_api_proto_depIdxs = []int32{
 	0,   // 0: iris.admin.v1.ListListenersRequest.page:type_name -> iris.admin.v1.PageRequest
@@ -9411,12 +9902,12 @@ var file_iris_admin_v1_iris_admin_api_proto_depIdxs = []int32{
 	0,   // 12: iris.admin.v1.ListRoutingRulesRequest.page:type_name -> iris.admin.v1.PageRequest
 	10,  // 13: iris.admin.v1.ListRoutingRulesReply.items:type_name -> iris.admin.v1.RoutingRule
 	1,   // 14: iris.admin.v1.ListRoutingRulesReply.page:type_name -> iris.admin.v1.PageReply
-	136, // 15: iris.admin.v1.MailRecord.event_time:type_name -> google.protobuf.Timestamp
-	136, // 16: iris.admin.v1.Bounce.event_time:type_name -> google.protobuf.Timestamp
-	136, // 17: iris.admin.v1.FeedbackReport.received_at:type_name -> google.protobuf.Timestamp
+	143, // 15: iris.admin.v1.MailRecord.event_time:type_name -> google.protobuf.Timestamp
+	143, // 16: iris.admin.v1.Bounce.event_time:type_name -> google.protobuf.Timestamp
+	143, // 17: iris.admin.v1.FeedbackReport.received_at:type_name -> google.protobuf.Timestamp
 	0,   // 18: iris.admin.v1.ListMailRecordsRequest.page:type_name -> iris.admin.v1.PageRequest
-	136, // 19: iris.admin.v1.ListMailRecordsRequest.from_time:type_name -> google.protobuf.Timestamp
-	136, // 20: iris.admin.v1.ListMailRecordsRequest.to_time:type_name -> google.protobuf.Timestamp
+	143, // 19: iris.admin.v1.ListMailRecordsRequest.from_time:type_name -> google.protobuf.Timestamp
+	143, // 20: iris.admin.v1.ListMailRecordsRequest.to_time:type_name -> google.protobuf.Timestamp
 	23,  // 21: iris.admin.v1.ListMailRecordsReply.items:type_name -> iris.admin.v1.MailRecord
 	1,   // 22: iris.admin.v1.ListMailRecordsReply.page:type_name -> iris.admin.v1.PageReply
 	0,   // 23: iris.admin.v1.ListBouncesRequest.page:type_name -> iris.admin.v1.PageRequest
@@ -9437,7 +9928,7 @@ var file_iris_admin_v1_iris_admin_api_proto_depIdxs = []int32{
 	0,   // 38: iris.admin.v1.ListTLSPoliciesRequest.page:type_name -> iris.admin.v1.PageRequest
 	49,  // 39: iris.admin.v1.ListTLSPoliciesReply.items:type_name -> iris.admin.v1.TLSPolicy
 	1,   // 40: iris.admin.v1.ListTLSPoliciesReply.page:type_name -> iris.admin.v1.PageReply
-	136, // 41: iris.admin.v1.RspamdResult.event_time:type_name -> google.protobuf.Timestamp
+	143, // 41: iris.admin.v1.RspamdResult.event_time:type_name -> google.protobuf.Timestamp
 	0,   // 42: iris.admin.v1.ListWebhookDeliveriesRequest.page:type_name -> iris.admin.v1.PageRequest
 	57,  // 43: iris.admin.v1.ListWebhookDeliveriesReply.items:type_name -> iris.admin.v1.WebhookDeliveryEvent
 	1,   // 44: iris.admin.v1.ListWebhookDeliveriesReply.page:type_name -> iris.admin.v1.PageReply
@@ -9460,150 +9951,158 @@ var file_iris_admin_v1_iris_admin_api_proto_depIdxs = []int32{
 	1,   // 61: iris.admin.v1.ListAuditEntriesReply.page:type_name -> iris.admin.v1.PageReply
 	107, // 62: iris.admin.v1.ListAcmeCertificatesReply.items:type_name -> iris.admin.v1.AcmeCertificate
 	113, // 63: iris.admin.v1.ListAcmeDnsProvidersReply.items:type_name -> iris.admin.v1.AcmeDnsProviderInfo
-	134, // 64: iris.admin.v1.AcmeDnsProvider.config:type_name -> iris.admin.v1.AcmeDnsProvider.ConfigEntry
-	135, // 65: iris.admin.v1.SetAcmeDnsProviderRequest.config:type_name -> iris.admin.v1.SetAcmeDnsProviderRequest.ConfigEntry
+	141, // 64: iris.admin.v1.AcmeDnsProvider.config:type_name -> iris.admin.v1.AcmeDnsProvider.ConfigEntry
+	142, // 65: iris.admin.v1.SetAcmeDnsProviderRequest.config:type_name -> iris.admin.v1.SetAcmeDnsProviderRequest.ConfigEntry
 	123, // 66: iris.admin.v1.DomainBounceCheck.items:type_name -> iris.admin.v1.DomainCheckItem
-	128, // 67: iris.admin.v1.MetricsSeries.points:type_name -> iris.admin.v1.MetricPoint
-	129, // 68: iris.admin.v1.MetricsTimeseries.series:type_name -> iris.admin.v1.MetricsSeries
-	3,   // 69: iris.admin.v1.IrisAdminService.ListListeners:input_type -> iris.admin.v1.ListListenersRequest
-	5,   // 70: iris.admin.v1.IrisAdminService.CreateListener:input_type -> iris.admin.v1.CreateListenerRequest
-	6,   // 71: iris.admin.v1.IrisAdminService.UpdateListener:input_type -> iris.admin.v1.UpdateListenerRequest
-	11,  // 72: iris.admin.v1.IrisAdminService.ListVMTAs:input_type -> iris.admin.v1.ListVMTAsRequest
-	13,  // 73: iris.admin.v1.IrisAdminService.CreateVMTA:input_type -> iris.admin.v1.CreateVMTARequest
-	14,  // 74: iris.admin.v1.IrisAdminService.UpdateVMTA:input_type -> iris.admin.v1.UpdateVMTARequest
-	15,  // 75: iris.admin.v1.IrisAdminService.ListVMTAGroups:input_type -> iris.admin.v1.ListVMTAGroupsRequest
-	17,  // 76: iris.admin.v1.IrisAdminService.CreateVMTAGroups:input_type -> iris.admin.v1.CreateVMTAGroupRequest
-	18,  // 77: iris.admin.v1.IrisAdminService.UpdateVMTAGroup:input_type -> iris.admin.v1.UpdateVMTAGroupRequest
-	19,  // 78: iris.admin.v1.IrisAdminService.ListRoutingRules:input_type -> iris.admin.v1.ListRoutingRulesRequest
-	21,  // 79: iris.admin.v1.IrisAdminService.CreateRoutingRule:input_type -> iris.admin.v1.CreateRoutingRuleRequest
-	22,  // 80: iris.admin.v1.IrisAdminService.UpdateRoutingRule:input_type -> iris.admin.v1.UpdateRoutingRuleRequest
-	27,  // 81: iris.admin.v1.IrisAdminService.ListMailRecords:input_type -> iris.admin.v1.ListMailRecordsRequest
-	29,  // 82: iris.admin.v1.IrisAdminService.ListBounces:input_type -> iris.admin.v1.ListBouncesRequest
-	31,  // 83: iris.admin.v1.IrisAdminService.ListFeedbackReports:input_type -> iris.admin.v1.ListFeedbackReportsRequest
-	33,  // 84: iris.admin.v1.IrisAdminService.ListQueues:input_type -> iris.admin.v1.ListQueuesRequest
-	35,  // 85: iris.admin.v1.IrisAdminService.RequestQueueAction:input_type -> iris.admin.v1.RequestQueueActionRequest
-	39,  // 86: iris.admin.v1.IrisAdminService.ListDKIMDomains:input_type -> iris.admin.v1.ListDKIMDomainsRequest
-	41,  // 87: iris.admin.v1.IrisAdminService.CreateDKIMDomain:input_type -> iris.admin.v1.CreateDKIMDomainRequest
-	42,  // 88: iris.admin.v1.IrisAdminService.UpdateDKIMDomain:input_type -> iris.admin.v1.UpdateDKIMDomainRequest
-	43,  // 89: iris.admin.v1.IrisAdminService.GenerateDKIMKey:input_type -> iris.admin.v1.GenerateDKIMKeyRequest
-	45,  // 90: iris.admin.v1.IrisAdminService.ListSuppressions:input_type -> iris.admin.v1.ListSuppressionsRequest
-	47,  // 91: iris.admin.v1.IrisAdminService.CreateSuppression:input_type -> iris.admin.v1.CreateSuppressionRequest
-	48,  // 92: iris.admin.v1.IrisAdminService.UpdateSuppression:input_type -> iris.admin.v1.UpdateSuppressionRequest
-	50,  // 93: iris.admin.v1.IrisAdminService.ListTLSPolicies:input_type -> iris.admin.v1.ListTLSPoliciesRequest
-	52,  // 94: iris.admin.v1.IrisAdminService.CreateTLSPolicy:input_type -> iris.admin.v1.CreateTLSPolicyRequest
-	53,  // 95: iris.admin.v1.IrisAdminService.DeleteTLSPolicy:input_type -> iris.admin.v1.DeleteTLSPolicyRequest
-	60,  // 96: iris.admin.v1.IrisAdminService.ListWebhookRules:input_type -> iris.admin.v1.ListWebhookRulesRequest
-	62,  // 97: iris.admin.v1.IrisAdminService.CreateWebhookRule:input_type -> iris.admin.v1.CreateWebhookRuleRequest
-	63,  // 98: iris.admin.v1.IrisAdminService.UpdateWebhookRule:input_type -> iris.admin.v1.UpdateWebhookRuleRequest
-	58,  // 99: iris.admin.v1.IrisAdminService.ListWebhookDeliveries:input_type -> iris.admin.v1.ListWebhookDeliveriesRequest
-	64,  // 100: iris.admin.v1.IrisAdminService.ListRspamdResults:input_type -> iris.admin.v1.ListRspamdResultsRequest
-	67,  // 101: iris.admin.v1.IrisAdminService.ListFeedbackLoops:input_type -> iris.admin.v1.ListFeedbackLoopsRequest
-	69,  // 102: iris.admin.v1.IrisAdminService.CreateFeedbackLoop:input_type -> iris.admin.v1.CreateFeedbackLoopRequest
-	70,  // 103: iris.admin.v1.IrisAdminService.UpdateFeedbackLoop:input_type -> iris.admin.v1.UpdateFeedbackLoopRequest
-	71,  // 104: iris.admin.v1.IrisAdminService.DeleteFeedbackLoop:input_type -> iris.admin.v1.DeleteFeedbackLoopRequest
-	75,  // 105: iris.admin.v1.IrisAdminService.Login:input_type -> iris.admin.v1.LoginRequest
-	77,  // 106: iris.admin.v1.IrisAdminService.VerifyMFA:input_type -> iris.admin.v1.VerifyMFARequest
-	78,  // 107: iris.admin.v1.IrisAdminService.CurrentUser:input_type -> iris.admin.v1.CurrentUserRequest
-	80,  // 108: iris.admin.v1.IrisAdminService.ChangePassword:input_type -> iris.admin.v1.ChangePasswordRequest
-	82,  // 109: iris.admin.v1.IrisAdminService.Logout:input_type -> iris.admin.v1.LogoutRequest
-	90,  // 110: iris.admin.v1.IrisAdminService.ListUsers:input_type -> iris.admin.v1.ListUsersRequest
-	92,  // 111: iris.admin.v1.IrisAdminService.CreateUser:input_type -> iris.admin.v1.CreateUserRequest
-	93,  // 112: iris.admin.v1.IrisAdminService.UpdateUser:input_type -> iris.admin.v1.UpdateUserRequest
-	94,  // 113: iris.admin.v1.IrisAdminService.ResetUserPassword:input_type -> iris.admin.v1.ResetUserPasswordRequest
-	84,  // 114: iris.admin.v1.IrisAdminService.EnrollMFA:input_type -> iris.admin.v1.EnrollMFARequest
-	86,  // 115: iris.admin.v1.IrisAdminService.ConfirmMFA:input_type -> iris.admin.v1.ConfirmMFARequest
-	88,  // 116: iris.admin.v1.IrisAdminService.DisableMFA:input_type -> iris.admin.v1.DisableMFARequest
-	96,  // 117: iris.admin.v1.IrisAdminService.ListAuditEntries:input_type -> iris.admin.v1.ListAuditEntriesRequest
-	98,  // 118: iris.admin.v1.IrisAdminService.RequestServiceControl:input_type -> iris.admin.v1.RequestServiceControlRequest
-	100, // 119: iris.admin.v1.IrisAdminService.GenerateKumoConfig:input_type -> iris.admin.v1.GenerateKumoConfigRequest
-	102, // 120: iris.admin.v1.IrisAdminService.ApplyKumoConfig:input_type -> iris.admin.v1.ApplyKumoConfigRequest
-	120, // 121: iris.admin.v1.IrisAdminService.KumoConfigStatus:input_type -> iris.admin.v1.KumoConfigStatusRequest
-	104, // 122: iris.admin.v1.IrisAdminService.GetAcmeAccount:input_type -> iris.admin.v1.GetAcmeAccountRequest
-	105, // 123: iris.admin.v1.IrisAdminService.SaveAcmeAccount:input_type -> iris.admin.v1.SaveAcmeAccountRequest
-	108, // 124: iris.admin.v1.IrisAdminService.ListAcmeCertificates:input_type -> iris.admin.v1.ListAcmeCertificatesRequest
-	110, // 125: iris.admin.v1.IrisAdminService.RequestAcmeCertificate:input_type -> iris.admin.v1.RequestAcmeCertificateRequest
-	111, // 126: iris.admin.v1.IrisAdminService.DeleteAcmeCertificate:input_type -> iris.admin.v1.DeleteAcmeCertificateRequest
-	114, // 127: iris.admin.v1.IrisAdminService.ListAcmeDnsProviders:input_type -> iris.admin.v1.ListAcmeDnsProvidersRequest
-	117, // 128: iris.admin.v1.IrisAdminService.GetAcmeDnsProvider:input_type -> iris.admin.v1.GetAcmeDnsProviderRequest
-	118, // 129: iris.admin.v1.IrisAdminService.SetAcmeDnsProvider:input_type -> iris.admin.v1.SetAcmeDnsProviderRequest
-	119, // 130: iris.admin.v1.IrisAdminService.ClearAcmeDnsProvider:input_type -> iris.admin.v1.ClearAcmeDnsProviderRequest
-	125, // 131: iris.admin.v1.IrisAdminService.GetDashboardSummary:input_type -> iris.admin.v1.GetDashboardSummaryRequest
-	127, // 132: iris.admin.v1.IrisAdminService.GetMetricsTimeseries:input_type -> iris.admin.v1.GetMetricsTimeseriesRequest
-	122, // 133: iris.admin.v1.IrisAdminService.CheckDomainBounceSetup:input_type -> iris.admin.v1.CheckDomainBounceSetupRequest
-	132, // 134: iris.admin.v1.IrisAdminService.GetGlobalSettings:input_type -> iris.admin.v1.GetGlobalSettingsRequest
-	133, // 135: iris.admin.v1.IrisAdminService.UpdateGlobalSettings:input_type -> iris.admin.v1.UpdateGlobalSettingsRequest
-	4,   // 136: iris.admin.v1.IrisAdminService.ListListeners:output_type -> iris.admin.v1.ListListenersReply
-	2,   // 137: iris.admin.v1.IrisAdminService.CreateListener:output_type -> iris.admin.v1.Listener
-	2,   // 138: iris.admin.v1.IrisAdminService.UpdateListener:output_type -> iris.admin.v1.Listener
-	12,  // 139: iris.admin.v1.IrisAdminService.ListVMTAs:output_type -> iris.admin.v1.ListVMTAsReply
-	7,   // 140: iris.admin.v1.IrisAdminService.CreateVMTA:output_type -> iris.admin.v1.VMTA
-	7,   // 141: iris.admin.v1.IrisAdminService.UpdateVMTA:output_type -> iris.admin.v1.VMTA
-	16,  // 142: iris.admin.v1.IrisAdminService.ListVMTAGroups:output_type -> iris.admin.v1.ListVMTAGroupsReply
-	8,   // 143: iris.admin.v1.IrisAdminService.CreateVMTAGroups:output_type -> iris.admin.v1.VMTAGroup
-	8,   // 144: iris.admin.v1.IrisAdminService.UpdateVMTAGroup:output_type -> iris.admin.v1.VMTAGroup
-	20,  // 145: iris.admin.v1.IrisAdminService.ListRoutingRules:output_type -> iris.admin.v1.ListRoutingRulesReply
-	10,  // 146: iris.admin.v1.IrisAdminService.CreateRoutingRule:output_type -> iris.admin.v1.RoutingRule
-	10,  // 147: iris.admin.v1.IrisAdminService.UpdateRoutingRule:output_type -> iris.admin.v1.RoutingRule
-	28,  // 148: iris.admin.v1.IrisAdminService.ListMailRecords:output_type -> iris.admin.v1.ListMailRecordsReply
-	30,  // 149: iris.admin.v1.IrisAdminService.ListBounces:output_type -> iris.admin.v1.ListBouncesReply
-	32,  // 150: iris.admin.v1.IrisAdminService.ListFeedbackReports:output_type -> iris.admin.v1.ListFeedbackReportsReply
-	34,  // 151: iris.admin.v1.IrisAdminService.ListQueues:output_type -> iris.admin.v1.ListQueuesReply
-	36,  // 152: iris.admin.v1.IrisAdminService.RequestQueueAction:output_type -> iris.admin.v1.QueueActionReply
-	40,  // 153: iris.admin.v1.IrisAdminService.ListDKIMDomains:output_type -> iris.admin.v1.ListDKIMDomainsReply
-	37,  // 154: iris.admin.v1.IrisAdminService.CreateDKIMDomain:output_type -> iris.admin.v1.DKIMDomain
-	37,  // 155: iris.admin.v1.IrisAdminService.UpdateDKIMDomain:output_type -> iris.admin.v1.DKIMDomain
-	44,  // 156: iris.admin.v1.IrisAdminService.GenerateDKIMKey:output_type -> iris.admin.v1.GenerateDKIMKeyReply
-	46,  // 157: iris.admin.v1.IrisAdminService.ListSuppressions:output_type -> iris.admin.v1.ListSuppressionsReply
-	38,  // 158: iris.admin.v1.IrisAdminService.CreateSuppression:output_type -> iris.admin.v1.Suppression
-	38,  // 159: iris.admin.v1.IrisAdminService.UpdateSuppression:output_type -> iris.admin.v1.Suppression
-	51,  // 160: iris.admin.v1.IrisAdminService.ListTLSPolicies:output_type -> iris.admin.v1.ListTLSPoliciesReply
-	49,  // 161: iris.admin.v1.IrisAdminService.CreateTLSPolicy:output_type -> iris.admin.v1.TLSPolicy
-	54,  // 162: iris.admin.v1.IrisAdminService.DeleteTLSPolicy:output_type -> iris.admin.v1.DeleteTLSPolicyReply
-	61,  // 163: iris.admin.v1.IrisAdminService.ListWebhookRules:output_type -> iris.admin.v1.ListWebhookRulesReply
-	55,  // 164: iris.admin.v1.IrisAdminService.CreateWebhookRule:output_type -> iris.admin.v1.WebhookRule
-	55,  // 165: iris.admin.v1.IrisAdminService.UpdateWebhookRule:output_type -> iris.admin.v1.WebhookRule
-	59,  // 166: iris.admin.v1.IrisAdminService.ListWebhookDeliveries:output_type -> iris.admin.v1.ListWebhookDeliveriesReply
-	65,  // 167: iris.admin.v1.IrisAdminService.ListRspamdResults:output_type -> iris.admin.v1.ListRspamdResultsReply
-	68,  // 168: iris.admin.v1.IrisAdminService.ListFeedbackLoops:output_type -> iris.admin.v1.ListFeedbackLoopsReply
-	66,  // 169: iris.admin.v1.IrisAdminService.CreateFeedbackLoop:output_type -> iris.admin.v1.FeedbackLoop
-	66,  // 170: iris.admin.v1.IrisAdminService.UpdateFeedbackLoop:output_type -> iris.admin.v1.FeedbackLoop
-	72,  // 171: iris.admin.v1.IrisAdminService.DeleteFeedbackLoop:output_type -> iris.admin.v1.DeleteFeedbackLoopReply
-	76,  // 172: iris.admin.v1.IrisAdminService.Login:output_type -> iris.admin.v1.LoginReply
-	76,  // 173: iris.admin.v1.IrisAdminService.VerifyMFA:output_type -> iris.admin.v1.LoginReply
-	79,  // 174: iris.admin.v1.IrisAdminService.CurrentUser:output_type -> iris.admin.v1.CurrentUserReply
-	81,  // 175: iris.admin.v1.IrisAdminService.ChangePassword:output_type -> iris.admin.v1.ChangePasswordReply
-	83,  // 176: iris.admin.v1.IrisAdminService.Logout:output_type -> iris.admin.v1.LogoutReply
-	91,  // 177: iris.admin.v1.IrisAdminService.ListUsers:output_type -> iris.admin.v1.ListUsersReply
-	73,  // 178: iris.admin.v1.IrisAdminService.CreateUser:output_type -> iris.admin.v1.User
-	73,  // 179: iris.admin.v1.IrisAdminService.UpdateUser:output_type -> iris.admin.v1.User
-	95,  // 180: iris.admin.v1.IrisAdminService.ResetUserPassword:output_type -> iris.admin.v1.ResetUserPasswordReply
-	85,  // 181: iris.admin.v1.IrisAdminService.EnrollMFA:output_type -> iris.admin.v1.EnrollMFAReply
-	87,  // 182: iris.admin.v1.IrisAdminService.ConfirmMFA:output_type -> iris.admin.v1.ConfirmMFAReply
-	89,  // 183: iris.admin.v1.IrisAdminService.DisableMFA:output_type -> iris.admin.v1.DisableMFAReply
-	97,  // 184: iris.admin.v1.IrisAdminService.ListAuditEntries:output_type -> iris.admin.v1.ListAuditEntriesReply
-	99,  // 185: iris.admin.v1.IrisAdminService.RequestServiceControl:output_type -> iris.admin.v1.ServiceControlRequest
-	101, // 186: iris.admin.v1.IrisAdminService.GenerateKumoConfig:output_type -> iris.admin.v1.KumoConfig
-	103, // 187: iris.admin.v1.IrisAdminService.ApplyKumoConfig:output_type -> iris.admin.v1.ApplyKumoConfigReply
-	121, // 188: iris.admin.v1.IrisAdminService.KumoConfigStatus:output_type -> iris.admin.v1.KumoConfigStatusReply
-	106, // 189: iris.admin.v1.IrisAdminService.GetAcmeAccount:output_type -> iris.admin.v1.AcmeAccount
-	106, // 190: iris.admin.v1.IrisAdminService.SaveAcmeAccount:output_type -> iris.admin.v1.AcmeAccount
-	109, // 191: iris.admin.v1.IrisAdminService.ListAcmeCertificates:output_type -> iris.admin.v1.ListAcmeCertificatesReply
-	107, // 192: iris.admin.v1.IrisAdminService.RequestAcmeCertificate:output_type -> iris.admin.v1.AcmeCertificate
-	112, // 193: iris.admin.v1.IrisAdminService.DeleteAcmeCertificate:output_type -> iris.admin.v1.DeleteAcmeCertificateReply
-	115, // 194: iris.admin.v1.IrisAdminService.ListAcmeDnsProviders:output_type -> iris.admin.v1.ListAcmeDnsProvidersReply
-	116, // 195: iris.admin.v1.IrisAdminService.GetAcmeDnsProvider:output_type -> iris.admin.v1.AcmeDnsProvider
-	116, // 196: iris.admin.v1.IrisAdminService.SetAcmeDnsProvider:output_type -> iris.admin.v1.AcmeDnsProvider
-	116, // 197: iris.admin.v1.IrisAdminService.ClearAcmeDnsProvider:output_type -> iris.admin.v1.AcmeDnsProvider
-	126, // 198: iris.admin.v1.IrisAdminService.GetDashboardSummary:output_type -> iris.admin.v1.DashboardSummary
-	130, // 199: iris.admin.v1.IrisAdminService.GetMetricsTimeseries:output_type -> iris.admin.v1.MetricsTimeseries
-	124, // 200: iris.admin.v1.IrisAdminService.CheckDomainBounceSetup:output_type -> iris.admin.v1.DomainBounceCheck
-	131, // 201: iris.admin.v1.IrisAdminService.GetGlobalSettings:output_type -> iris.admin.v1.GlobalSettings
-	131, // 202: iris.admin.v1.IrisAdminService.UpdateGlobalSettings:output_type -> iris.admin.v1.GlobalSettings
-	136, // [136:203] is the sub-list for method output_type
-	69,  // [69:136] is the sub-list for method input_type
-	69,  // [69:69] is the sub-list for extension type_name
-	69,  // [69:69] is the sub-list for extension extendee
-	0,   // [0:69] is the sub-list for field type_name
+	123, // 67: iris.admin.v1.DiagnoseResult.items:type_name -> iris.admin.v1.DomainCheckItem
+	126, // 68: iris.admin.v1.DiagnoseResult.routing:type_name -> iris.admin.v1.RoutingOutcome
+	129, // 69: iris.admin.v1.RblIpResult.listings:type_name -> iris.admin.v1.RblListing
+	130, // 70: iris.admin.v1.RblCheckReply.results:type_name -> iris.admin.v1.RblIpResult
+	135, // 71: iris.admin.v1.MetricsSeries.points:type_name -> iris.admin.v1.MetricPoint
+	136, // 72: iris.admin.v1.MetricsTimeseries.series:type_name -> iris.admin.v1.MetricsSeries
+	3,   // 73: iris.admin.v1.IrisAdminService.ListListeners:input_type -> iris.admin.v1.ListListenersRequest
+	5,   // 74: iris.admin.v1.IrisAdminService.CreateListener:input_type -> iris.admin.v1.CreateListenerRequest
+	6,   // 75: iris.admin.v1.IrisAdminService.UpdateListener:input_type -> iris.admin.v1.UpdateListenerRequest
+	11,  // 76: iris.admin.v1.IrisAdminService.ListVMTAs:input_type -> iris.admin.v1.ListVMTAsRequest
+	13,  // 77: iris.admin.v1.IrisAdminService.CreateVMTA:input_type -> iris.admin.v1.CreateVMTARequest
+	14,  // 78: iris.admin.v1.IrisAdminService.UpdateVMTA:input_type -> iris.admin.v1.UpdateVMTARequest
+	15,  // 79: iris.admin.v1.IrisAdminService.ListVMTAGroups:input_type -> iris.admin.v1.ListVMTAGroupsRequest
+	17,  // 80: iris.admin.v1.IrisAdminService.CreateVMTAGroups:input_type -> iris.admin.v1.CreateVMTAGroupRequest
+	18,  // 81: iris.admin.v1.IrisAdminService.UpdateVMTAGroup:input_type -> iris.admin.v1.UpdateVMTAGroupRequest
+	19,  // 82: iris.admin.v1.IrisAdminService.ListRoutingRules:input_type -> iris.admin.v1.ListRoutingRulesRequest
+	21,  // 83: iris.admin.v1.IrisAdminService.CreateRoutingRule:input_type -> iris.admin.v1.CreateRoutingRuleRequest
+	22,  // 84: iris.admin.v1.IrisAdminService.UpdateRoutingRule:input_type -> iris.admin.v1.UpdateRoutingRuleRequest
+	27,  // 85: iris.admin.v1.IrisAdminService.ListMailRecords:input_type -> iris.admin.v1.ListMailRecordsRequest
+	29,  // 86: iris.admin.v1.IrisAdminService.ListBounces:input_type -> iris.admin.v1.ListBouncesRequest
+	31,  // 87: iris.admin.v1.IrisAdminService.ListFeedbackReports:input_type -> iris.admin.v1.ListFeedbackReportsRequest
+	33,  // 88: iris.admin.v1.IrisAdminService.ListQueues:input_type -> iris.admin.v1.ListQueuesRequest
+	35,  // 89: iris.admin.v1.IrisAdminService.RequestQueueAction:input_type -> iris.admin.v1.RequestQueueActionRequest
+	39,  // 90: iris.admin.v1.IrisAdminService.ListDKIMDomains:input_type -> iris.admin.v1.ListDKIMDomainsRequest
+	41,  // 91: iris.admin.v1.IrisAdminService.CreateDKIMDomain:input_type -> iris.admin.v1.CreateDKIMDomainRequest
+	42,  // 92: iris.admin.v1.IrisAdminService.UpdateDKIMDomain:input_type -> iris.admin.v1.UpdateDKIMDomainRequest
+	43,  // 93: iris.admin.v1.IrisAdminService.GenerateDKIMKey:input_type -> iris.admin.v1.GenerateDKIMKeyRequest
+	45,  // 94: iris.admin.v1.IrisAdminService.ListSuppressions:input_type -> iris.admin.v1.ListSuppressionsRequest
+	47,  // 95: iris.admin.v1.IrisAdminService.CreateSuppression:input_type -> iris.admin.v1.CreateSuppressionRequest
+	48,  // 96: iris.admin.v1.IrisAdminService.UpdateSuppression:input_type -> iris.admin.v1.UpdateSuppressionRequest
+	50,  // 97: iris.admin.v1.IrisAdminService.ListTLSPolicies:input_type -> iris.admin.v1.ListTLSPoliciesRequest
+	52,  // 98: iris.admin.v1.IrisAdminService.CreateTLSPolicy:input_type -> iris.admin.v1.CreateTLSPolicyRequest
+	53,  // 99: iris.admin.v1.IrisAdminService.DeleteTLSPolicy:input_type -> iris.admin.v1.DeleteTLSPolicyRequest
+	60,  // 100: iris.admin.v1.IrisAdminService.ListWebhookRules:input_type -> iris.admin.v1.ListWebhookRulesRequest
+	62,  // 101: iris.admin.v1.IrisAdminService.CreateWebhookRule:input_type -> iris.admin.v1.CreateWebhookRuleRequest
+	63,  // 102: iris.admin.v1.IrisAdminService.UpdateWebhookRule:input_type -> iris.admin.v1.UpdateWebhookRuleRequest
+	58,  // 103: iris.admin.v1.IrisAdminService.ListWebhookDeliveries:input_type -> iris.admin.v1.ListWebhookDeliveriesRequest
+	64,  // 104: iris.admin.v1.IrisAdminService.ListRspamdResults:input_type -> iris.admin.v1.ListRspamdResultsRequest
+	67,  // 105: iris.admin.v1.IrisAdminService.ListFeedbackLoops:input_type -> iris.admin.v1.ListFeedbackLoopsRequest
+	69,  // 106: iris.admin.v1.IrisAdminService.CreateFeedbackLoop:input_type -> iris.admin.v1.CreateFeedbackLoopRequest
+	70,  // 107: iris.admin.v1.IrisAdminService.UpdateFeedbackLoop:input_type -> iris.admin.v1.UpdateFeedbackLoopRequest
+	71,  // 108: iris.admin.v1.IrisAdminService.DeleteFeedbackLoop:input_type -> iris.admin.v1.DeleteFeedbackLoopRequest
+	75,  // 109: iris.admin.v1.IrisAdminService.Login:input_type -> iris.admin.v1.LoginRequest
+	77,  // 110: iris.admin.v1.IrisAdminService.VerifyMFA:input_type -> iris.admin.v1.VerifyMFARequest
+	78,  // 111: iris.admin.v1.IrisAdminService.CurrentUser:input_type -> iris.admin.v1.CurrentUserRequest
+	80,  // 112: iris.admin.v1.IrisAdminService.ChangePassword:input_type -> iris.admin.v1.ChangePasswordRequest
+	82,  // 113: iris.admin.v1.IrisAdminService.Logout:input_type -> iris.admin.v1.LogoutRequest
+	90,  // 114: iris.admin.v1.IrisAdminService.ListUsers:input_type -> iris.admin.v1.ListUsersRequest
+	92,  // 115: iris.admin.v1.IrisAdminService.CreateUser:input_type -> iris.admin.v1.CreateUserRequest
+	93,  // 116: iris.admin.v1.IrisAdminService.UpdateUser:input_type -> iris.admin.v1.UpdateUserRequest
+	94,  // 117: iris.admin.v1.IrisAdminService.ResetUserPassword:input_type -> iris.admin.v1.ResetUserPasswordRequest
+	84,  // 118: iris.admin.v1.IrisAdminService.EnrollMFA:input_type -> iris.admin.v1.EnrollMFARequest
+	86,  // 119: iris.admin.v1.IrisAdminService.ConfirmMFA:input_type -> iris.admin.v1.ConfirmMFARequest
+	88,  // 120: iris.admin.v1.IrisAdminService.DisableMFA:input_type -> iris.admin.v1.DisableMFARequest
+	96,  // 121: iris.admin.v1.IrisAdminService.ListAuditEntries:input_type -> iris.admin.v1.ListAuditEntriesRequest
+	98,  // 122: iris.admin.v1.IrisAdminService.RequestServiceControl:input_type -> iris.admin.v1.RequestServiceControlRequest
+	100, // 123: iris.admin.v1.IrisAdminService.GenerateKumoConfig:input_type -> iris.admin.v1.GenerateKumoConfigRequest
+	102, // 124: iris.admin.v1.IrisAdminService.ApplyKumoConfig:input_type -> iris.admin.v1.ApplyKumoConfigRequest
+	120, // 125: iris.admin.v1.IrisAdminService.KumoConfigStatus:input_type -> iris.admin.v1.KumoConfigStatusRequest
+	104, // 126: iris.admin.v1.IrisAdminService.GetAcmeAccount:input_type -> iris.admin.v1.GetAcmeAccountRequest
+	105, // 127: iris.admin.v1.IrisAdminService.SaveAcmeAccount:input_type -> iris.admin.v1.SaveAcmeAccountRequest
+	108, // 128: iris.admin.v1.IrisAdminService.ListAcmeCertificates:input_type -> iris.admin.v1.ListAcmeCertificatesRequest
+	110, // 129: iris.admin.v1.IrisAdminService.RequestAcmeCertificate:input_type -> iris.admin.v1.RequestAcmeCertificateRequest
+	111, // 130: iris.admin.v1.IrisAdminService.DeleteAcmeCertificate:input_type -> iris.admin.v1.DeleteAcmeCertificateRequest
+	114, // 131: iris.admin.v1.IrisAdminService.ListAcmeDnsProviders:input_type -> iris.admin.v1.ListAcmeDnsProvidersRequest
+	117, // 132: iris.admin.v1.IrisAdminService.GetAcmeDnsProvider:input_type -> iris.admin.v1.GetAcmeDnsProviderRequest
+	118, // 133: iris.admin.v1.IrisAdminService.SetAcmeDnsProvider:input_type -> iris.admin.v1.SetAcmeDnsProviderRequest
+	119, // 134: iris.admin.v1.IrisAdminService.ClearAcmeDnsProvider:input_type -> iris.admin.v1.ClearAcmeDnsProviderRequest
+	132, // 135: iris.admin.v1.IrisAdminService.GetDashboardSummary:input_type -> iris.admin.v1.GetDashboardSummaryRequest
+	134, // 136: iris.admin.v1.IrisAdminService.GetMetricsTimeseries:input_type -> iris.admin.v1.GetMetricsTimeseriesRequest
+	122, // 137: iris.admin.v1.IrisAdminService.CheckDomainBounceSetup:input_type -> iris.admin.v1.CheckDomainBounceSetupRequest
+	125, // 138: iris.admin.v1.IrisAdminService.Diagnose:input_type -> iris.admin.v1.DiagnoseRequest
+	128, // 139: iris.admin.v1.IrisAdminService.RblCheck:input_type -> iris.admin.v1.RblCheckRequest
+	139, // 140: iris.admin.v1.IrisAdminService.GetGlobalSettings:input_type -> iris.admin.v1.GetGlobalSettingsRequest
+	140, // 141: iris.admin.v1.IrisAdminService.UpdateGlobalSettings:input_type -> iris.admin.v1.UpdateGlobalSettingsRequest
+	4,   // 142: iris.admin.v1.IrisAdminService.ListListeners:output_type -> iris.admin.v1.ListListenersReply
+	2,   // 143: iris.admin.v1.IrisAdminService.CreateListener:output_type -> iris.admin.v1.Listener
+	2,   // 144: iris.admin.v1.IrisAdminService.UpdateListener:output_type -> iris.admin.v1.Listener
+	12,  // 145: iris.admin.v1.IrisAdminService.ListVMTAs:output_type -> iris.admin.v1.ListVMTAsReply
+	7,   // 146: iris.admin.v1.IrisAdminService.CreateVMTA:output_type -> iris.admin.v1.VMTA
+	7,   // 147: iris.admin.v1.IrisAdminService.UpdateVMTA:output_type -> iris.admin.v1.VMTA
+	16,  // 148: iris.admin.v1.IrisAdminService.ListVMTAGroups:output_type -> iris.admin.v1.ListVMTAGroupsReply
+	8,   // 149: iris.admin.v1.IrisAdminService.CreateVMTAGroups:output_type -> iris.admin.v1.VMTAGroup
+	8,   // 150: iris.admin.v1.IrisAdminService.UpdateVMTAGroup:output_type -> iris.admin.v1.VMTAGroup
+	20,  // 151: iris.admin.v1.IrisAdminService.ListRoutingRules:output_type -> iris.admin.v1.ListRoutingRulesReply
+	10,  // 152: iris.admin.v1.IrisAdminService.CreateRoutingRule:output_type -> iris.admin.v1.RoutingRule
+	10,  // 153: iris.admin.v1.IrisAdminService.UpdateRoutingRule:output_type -> iris.admin.v1.RoutingRule
+	28,  // 154: iris.admin.v1.IrisAdminService.ListMailRecords:output_type -> iris.admin.v1.ListMailRecordsReply
+	30,  // 155: iris.admin.v1.IrisAdminService.ListBounces:output_type -> iris.admin.v1.ListBouncesReply
+	32,  // 156: iris.admin.v1.IrisAdminService.ListFeedbackReports:output_type -> iris.admin.v1.ListFeedbackReportsReply
+	34,  // 157: iris.admin.v1.IrisAdminService.ListQueues:output_type -> iris.admin.v1.ListQueuesReply
+	36,  // 158: iris.admin.v1.IrisAdminService.RequestQueueAction:output_type -> iris.admin.v1.QueueActionReply
+	40,  // 159: iris.admin.v1.IrisAdminService.ListDKIMDomains:output_type -> iris.admin.v1.ListDKIMDomainsReply
+	37,  // 160: iris.admin.v1.IrisAdminService.CreateDKIMDomain:output_type -> iris.admin.v1.DKIMDomain
+	37,  // 161: iris.admin.v1.IrisAdminService.UpdateDKIMDomain:output_type -> iris.admin.v1.DKIMDomain
+	44,  // 162: iris.admin.v1.IrisAdminService.GenerateDKIMKey:output_type -> iris.admin.v1.GenerateDKIMKeyReply
+	46,  // 163: iris.admin.v1.IrisAdminService.ListSuppressions:output_type -> iris.admin.v1.ListSuppressionsReply
+	38,  // 164: iris.admin.v1.IrisAdminService.CreateSuppression:output_type -> iris.admin.v1.Suppression
+	38,  // 165: iris.admin.v1.IrisAdminService.UpdateSuppression:output_type -> iris.admin.v1.Suppression
+	51,  // 166: iris.admin.v1.IrisAdminService.ListTLSPolicies:output_type -> iris.admin.v1.ListTLSPoliciesReply
+	49,  // 167: iris.admin.v1.IrisAdminService.CreateTLSPolicy:output_type -> iris.admin.v1.TLSPolicy
+	54,  // 168: iris.admin.v1.IrisAdminService.DeleteTLSPolicy:output_type -> iris.admin.v1.DeleteTLSPolicyReply
+	61,  // 169: iris.admin.v1.IrisAdminService.ListWebhookRules:output_type -> iris.admin.v1.ListWebhookRulesReply
+	55,  // 170: iris.admin.v1.IrisAdminService.CreateWebhookRule:output_type -> iris.admin.v1.WebhookRule
+	55,  // 171: iris.admin.v1.IrisAdminService.UpdateWebhookRule:output_type -> iris.admin.v1.WebhookRule
+	59,  // 172: iris.admin.v1.IrisAdminService.ListWebhookDeliveries:output_type -> iris.admin.v1.ListWebhookDeliveriesReply
+	65,  // 173: iris.admin.v1.IrisAdminService.ListRspamdResults:output_type -> iris.admin.v1.ListRspamdResultsReply
+	68,  // 174: iris.admin.v1.IrisAdminService.ListFeedbackLoops:output_type -> iris.admin.v1.ListFeedbackLoopsReply
+	66,  // 175: iris.admin.v1.IrisAdminService.CreateFeedbackLoop:output_type -> iris.admin.v1.FeedbackLoop
+	66,  // 176: iris.admin.v1.IrisAdminService.UpdateFeedbackLoop:output_type -> iris.admin.v1.FeedbackLoop
+	72,  // 177: iris.admin.v1.IrisAdminService.DeleteFeedbackLoop:output_type -> iris.admin.v1.DeleteFeedbackLoopReply
+	76,  // 178: iris.admin.v1.IrisAdminService.Login:output_type -> iris.admin.v1.LoginReply
+	76,  // 179: iris.admin.v1.IrisAdminService.VerifyMFA:output_type -> iris.admin.v1.LoginReply
+	79,  // 180: iris.admin.v1.IrisAdminService.CurrentUser:output_type -> iris.admin.v1.CurrentUserReply
+	81,  // 181: iris.admin.v1.IrisAdminService.ChangePassword:output_type -> iris.admin.v1.ChangePasswordReply
+	83,  // 182: iris.admin.v1.IrisAdminService.Logout:output_type -> iris.admin.v1.LogoutReply
+	91,  // 183: iris.admin.v1.IrisAdminService.ListUsers:output_type -> iris.admin.v1.ListUsersReply
+	73,  // 184: iris.admin.v1.IrisAdminService.CreateUser:output_type -> iris.admin.v1.User
+	73,  // 185: iris.admin.v1.IrisAdminService.UpdateUser:output_type -> iris.admin.v1.User
+	95,  // 186: iris.admin.v1.IrisAdminService.ResetUserPassword:output_type -> iris.admin.v1.ResetUserPasswordReply
+	85,  // 187: iris.admin.v1.IrisAdminService.EnrollMFA:output_type -> iris.admin.v1.EnrollMFAReply
+	87,  // 188: iris.admin.v1.IrisAdminService.ConfirmMFA:output_type -> iris.admin.v1.ConfirmMFAReply
+	89,  // 189: iris.admin.v1.IrisAdminService.DisableMFA:output_type -> iris.admin.v1.DisableMFAReply
+	97,  // 190: iris.admin.v1.IrisAdminService.ListAuditEntries:output_type -> iris.admin.v1.ListAuditEntriesReply
+	99,  // 191: iris.admin.v1.IrisAdminService.RequestServiceControl:output_type -> iris.admin.v1.ServiceControlRequest
+	101, // 192: iris.admin.v1.IrisAdminService.GenerateKumoConfig:output_type -> iris.admin.v1.KumoConfig
+	103, // 193: iris.admin.v1.IrisAdminService.ApplyKumoConfig:output_type -> iris.admin.v1.ApplyKumoConfigReply
+	121, // 194: iris.admin.v1.IrisAdminService.KumoConfigStatus:output_type -> iris.admin.v1.KumoConfigStatusReply
+	106, // 195: iris.admin.v1.IrisAdminService.GetAcmeAccount:output_type -> iris.admin.v1.AcmeAccount
+	106, // 196: iris.admin.v1.IrisAdminService.SaveAcmeAccount:output_type -> iris.admin.v1.AcmeAccount
+	109, // 197: iris.admin.v1.IrisAdminService.ListAcmeCertificates:output_type -> iris.admin.v1.ListAcmeCertificatesReply
+	107, // 198: iris.admin.v1.IrisAdminService.RequestAcmeCertificate:output_type -> iris.admin.v1.AcmeCertificate
+	112, // 199: iris.admin.v1.IrisAdminService.DeleteAcmeCertificate:output_type -> iris.admin.v1.DeleteAcmeCertificateReply
+	115, // 200: iris.admin.v1.IrisAdminService.ListAcmeDnsProviders:output_type -> iris.admin.v1.ListAcmeDnsProvidersReply
+	116, // 201: iris.admin.v1.IrisAdminService.GetAcmeDnsProvider:output_type -> iris.admin.v1.AcmeDnsProvider
+	116, // 202: iris.admin.v1.IrisAdminService.SetAcmeDnsProvider:output_type -> iris.admin.v1.AcmeDnsProvider
+	116, // 203: iris.admin.v1.IrisAdminService.ClearAcmeDnsProvider:output_type -> iris.admin.v1.AcmeDnsProvider
+	133, // 204: iris.admin.v1.IrisAdminService.GetDashboardSummary:output_type -> iris.admin.v1.DashboardSummary
+	137, // 205: iris.admin.v1.IrisAdminService.GetMetricsTimeseries:output_type -> iris.admin.v1.MetricsTimeseries
+	124, // 206: iris.admin.v1.IrisAdminService.CheckDomainBounceSetup:output_type -> iris.admin.v1.DomainBounceCheck
+	127, // 207: iris.admin.v1.IrisAdminService.Diagnose:output_type -> iris.admin.v1.DiagnoseResult
+	131, // 208: iris.admin.v1.IrisAdminService.RblCheck:output_type -> iris.admin.v1.RblCheckReply
+	138, // 209: iris.admin.v1.IrisAdminService.GetGlobalSettings:output_type -> iris.admin.v1.GlobalSettings
+	138, // 210: iris.admin.v1.IrisAdminService.UpdateGlobalSettings:output_type -> iris.admin.v1.GlobalSettings
+	142, // [142:211] is the sub-list for method output_type
+	73,  // [73:142] is the sub-list for method input_type
+	73,  // [73:73] is the sub-list for extension type_name
+	73,  // [73:73] is the sub-list for extension extendee
+	0,   // [0:73] is the sub-list for field type_name
 }
 
 func init() { file_iris_admin_v1_iris_admin_api_proto_init() }
@@ -9617,7 +10116,7 @@ func file_iris_admin_v1_iris_admin_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_iris_admin_v1_iris_admin_api_proto_rawDesc), len(file_iris_admin_v1_iris_admin_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   136,
+			NumMessages:   143,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

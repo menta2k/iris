@@ -84,6 +84,8 @@ const (
 	IrisAdminService_GetDashboardSummary_FullMethodName    = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
 	IrisAdminService_GetMetricsTimeseries_FullMethodName   = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
 	IrisAdminService_CheckDomainBounceSetup_FullMethodName = "/iris.admin.v1.IrisAdminService/CheckDomainBounceSetup"
+	IrisAdminService_Diagnose_FullMethodName               = "/iris.admin.v1.IrisAdminService/Diagnose"
+	IrisAdminService_RblCheck_FullMethodName               = "/iris.admin.v1.IrisAdminService/RblCheck"
 	IrisAdminService_GetGlobalSettings_FullMethodName      = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
 	IrisAdminService_UpdateGlobalSettings_FullMethodName   = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
 )
@@ -200,6 +202,13 @@ type IrisAdminServiceClient interface {
 	// CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
 	// (authorizes our egress IPs), and DKIM (selector records) via live DNS.
 	CheckDomainBounceSetup(ctx context.Context, in *CheckDomainBounceSetupRequest, opts ...grpc.CallOption) (*DomainBounceCheck, error)
+	// Tools ---------------------------------------------------------------------
+	// Diagnose reports how mail from a given address is handled and whether the
+	// sending domain is set up correctly (DKIM/SPF/DMARC/MX/FBL + routing preview).
+	Diagnose(ctx context.Context, in *DiagnoseRequest, opts ...grpc.CallOption) (*DiagnoseResult, error)
+	// RblCheck tests the deployment's listener and VMTA egress IPs against DNS
+	// blocklists.
+	RblCheck(ctx context.Context, in *RblCheckRequest, opts ...grpc.CallOption) (*RblCheckReply, error)
 	// Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(ctx context.Context, in *GetGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error)
 	UpdateGlobalSettings(ctx context.Context, in *UpdateGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error)
@@ -863,6 +872,26 @@ func (c *irisAdminServiceClient) CheckDomainBounceSetup(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) Diagnose(ctx context.Context, in *DiagnoseRequest, opts ...grpc.CallOption) (*DiagnoseResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DiagnoseResult)
+	err := c.cc.Invoke(ctx, IrisAdminService_Diagnose_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) RblCheck(ctx context.Context, in *RblCheckRequest, opts ...grpc.CallOption) (*RblCheckReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RblCheckReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_RblCheck_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) GetGlobalSettings(ctx context.Context, in *GetGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GlobalSettings)
@@ -995,6 +1024,13 @@ type IrisAdminServiceServer interface {
 	// CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
 	// (authorizes our egress IPs), and DKIM (selector records) via live DNS.
 	CheckDomainBounceSetup(context.Context, *CheckDomainBounceSetupRequest) (*DomainBounceCheck, error)
+	// Tools ---------------------------------------------------------------------
+	// Diagnose reports how mail from a given address is handled and whether the
+	// sending domain is set up correctly (DKIM/SPF/DMARC/MX/FBL + routing preview).
+	Diagnose(context.Context, *DiagnoseRequest) (*DiagnoseResult, error)
+	// RblCheck tests the deployment's listener and VMTA egress IPs against DNS
+	// blocklists.
+	RblCheck(context.Context, *RblCheckRequest) (*RblCheckReply, error)
 	// Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error)
 	UpdateGlobalSettings(context.Context, *UpdateGlobalSettingsRequest) (*GlobalSettings, error)
@@ -1202,6 +1238,12 @@ func (UnimplementedIrisAdminServiceServer) GetMetricsTimeseries(context.Context,
 }
 func (UnimplementedIrisAdminServiceServer) CheckDomainBounceSetup(context.Context, *CheckDomainBounceSetupRequest) (*DomainBounceCheck, error) {
 	return nil, status.Error(codes.Unimplemented, "method CheckDomainBounceSetup not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) Diagnose(context.Context, *DiagnoseRequest) (*DiagnoseResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method Diagnose not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) RblCheck(context.Context, *RblCheckRequest) (*RblCheckReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method RblCheck not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetGlobalSettings not implemented")
@@ -2400,6 +2442,42 @@ func _IrisAdminService_CheckDomainBounceSetup_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_Diagnose_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DiagnoseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).Diagnose(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_Diagnose_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).Diagnose(ctx, req.(*DiagnoseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_RblCheck_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RblCheckRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).RblCheck(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_RblCheck_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).RblCheck(ctx, req.(*RblCheckRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_GetGlobalSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetGlobalSettingsRequest)
 	if err := dec(in); err != nil {
@@ -2702,6 +2780,14 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CheckDomainBounceSetup",
 			Handler:    _IrisAdminService_CheckDomainBounceSetup_Handler,
+		},
+		{
+			MethodName: "Diagnose",
+			Handler:    _IrisAdminService_Diagnose_Handler,
+		},
+		{
+			MethodName: "RblCheck",
+			Handler:    _IrisAdminService_RblCheck_Handler,
 		},
 		{
 			MethodName: "GetGlobalSettings",

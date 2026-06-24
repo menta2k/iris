@@ -38,6 +38,7 @@ const OperationIrisAdminServiceCurrentUser = "/iris.admin.v1.IrisAdminService/Cu
 const OperationIrisAdminServiceDeleteAcmeCertificate = "/iris.admin.v1.IrisAdminService/DeleteAcmeCertificate"
 const OperationIrisAdminServiceDeleteFeedbackLoop = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
 const OperationIrisAdminServiceDeleteTLSPolicy = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
+const OperationIrisAdminServiceDiagnose = "/iris.admin.v1.IrisAdminService/Diagnose"
 const OperationIrisAdminServiceDisableMFA = "/iris.admin.v1.IrisAdminService/DisableMFA"
 const OperationIrisAdminServiceEnrollMFA = "/iris.admin.v1.IrisAdminService/EnrollMFA"
 const OperationIrisAdminServiceGenerateDKIMKey = "/iris.admin.v1.IrisAdminService/GenerateDKIMKey"
@@ -69,6 +70,7 @@ const OperationIrisAdminServiceListWebhookDeliveries = "/iris.admin.v1.IrisAdmin
 const OperationIrisAdminServiceListWebhookRules = "/iris.admin.v1.IrisAdminService/ListWebhookRules"
 const OperationIrisAdminServiceLogin = "/iris.admin.v1.IrisAdminService/Login"
 const OperationIrisAdminServiceLogout = "/iris.admin.v1.IrisAdminService/Logout"
+const OperationIrisAdminServiceRblCheck = "/iris.admin.v1.IrisAdminService/RblCheck"
 const OperationIrisAdminServiceRequestAcmeCertificate = "/iris.admin.v1.IrisAdminService/RequestAcmeCertificate"
 const OperationIrisAdminServiceRequestQueueAction = "/iris.admin.v1.IrisAdminService/RequestQueueAction"
 const OperationIrisAdminServiceRequestServiceControl = "/iris.admin.v1.IrisAdminService/RequestServiceControl"
@@ -114,6 +116,10 @@ type IrisAdminServiceHTTPServer interface {
 	DeleteAcmeCertificate(context.Context, *DeleteAcmeCertificateRequest) (*DeleteAcmeCertificateReply, error)
 	DeleteFeedbackLoop(context.Context, *DeleteFeedbackLoopRequest) (*DeleteFeedbackLoopReply, error)
 	DeleteTLSPolicy(context.Context, *DeleteTLSPolicyRequest) (*DeleteTLSPolicyReply, error)
+	// Diagnose Tools ---------------------------------------------------------------------
+	// Diagnose reports how mail from a given address is handled and whether the
+	// sending domain is set up correctly (DKIM/SPF/DMARC/MX/FBL + routing preview).
+	Diagnose(context.Context, *DiagnoseRequest) (*DiagnoseResult, error)
 	DisableMFA(context.Context, *DisableMFARequest) (*DisableMFAReply, error)
 	// EnrollMFA MFA enrollment for the calling user (TOTP).
 	EnrollMFA(context.Context, *EnrollMFARequest) (*EnrollMFAReply, error)
@@ -175,6 +181,9 @@ type IrisAdminServiceHTTPServer interface {
 	// Logout Logout is a no-op server-side for stateless tokens; provided so clients can
 	// signal intent and the action is audited.
 	Logout(context.Context, *LogoutRequest) (*LogoutReply, error)
+	// RblCheck RblCheck tests the deployment's listener and VMTA egress IPs against DNS
+	// blocklists.
+	RblCheck(context.Context, *RblCheckRequest) (*RblCheckReply, error)
 	// RequestAcmeCertificate RequestAcmeCertificate issues (or re-issues) a certificate via HTTP-01.
 	// Synchronous: blocks for the ACME handshake.
 	RequestAcmeCertificate(context.Context, *RequestAcmeCertificateRequest) (*AcmeCertificate, error)
@@ -268,6 +277,8 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.GET("/v1/dashboard/summary", _IrisAdminService_GetDashboardSummary0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/metrics", _IrisAdminService_GetMetricsTimeseries0_HTTP_Handler(srv))
 	r.GET("/v1/domain-check/{domain}", _IrisAdminService_CheckDomainBounceSetup0_HTTP_Handler(srv))
+	r.POST("/v1/tools/diagnose", _IrisAdminService_Diagnose0_HTTP_Handler(srv))
+	r.POST("/v1/tools/rbl-check", _IrisAdminService_RblCheck0_HTTP_Handler(srv))
 	r.GET("/v1/settings", _IrisAdminService_GetGlobalSettings0_HTTP_Handler(srv))
 	r.PUT("/v1/settings", _IrisAdminService_UpdateGlobalSettings0_HTTP_Handler(srv))
 }
@@ -1654,6 +1665,50 @@ func _IrisAdminService_CheckDomainBounceSetup0_HTTP_Handler(srv IrisAdminService
 	}
 }
 
+func _IrisAdminService_Diagnose0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DiagnoseRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceDiagnose)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.Diagnose(ctx, req.(*DiagnoseRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DiagnoseResult)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_RblCheck0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in RblCheckRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceRblCheck)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.RblCheck(ctx, req.(*RblCheckRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*RblCheckReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_GetGlobalSettings0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetGlobalSettingsRequest
@@ -1722,6 +1777,10 @@ type IrisAdminServiceHTTPClient interface {
 	DeleteAcmeCertificate(ctx context.Context, req *DeleteAcmeCertificateRequest, opts ...http.CallOption) (rsp *DeleteAcmeCertificateReply, err error)
 	DeleteFeedbackLoop(ctx context.Context, req *DeleteFeedbackLoopRequest, opts ...http.CallOption) (rsp *DeleteFeedbackLoopReply, err error)
 	DeleteTLSPolicy(ctx context.Context, req *DeleteTLSPolicyRequest, opts ...http.CallOption) (rsp *DeleteTLSPolicyReply, err error)
+	// Diagnose Tools ---------------------------------------------------------------------
+	// Diagnose reports how mail from a given address is handled and whether the
+	// sending domain is set up correctly (DKIM/SPF/DMARC/MX/FBL + routing preview).
+	Diagnose(ctx context.Context, req *DiagnoseRequest, opts ...http.CallOption) (rsp *DiagnoseResult, err error)
 	DisableMFA(ctx context.Context, req *DisableMFARequest, opts ...http.CallOption) (rsp *DisableMFAReply, err error)
 	// EnrollMFA MFA enrollment for the calling user (TOTP).
 	EnrollMFA(ctx context.Context, req *EnrollMFARequest, opts ...http.CallOption) (rsp *EnrollMFAReply, err error)
@@ -1783,6 +1842,9 @@ type IrisAdminServiceHTTPClient interface {
 	// Logout Logout is a no-op server-side for stateless tokens; provided so clients can
 	// signal intent and the action is audited.
 	Logout(ctx context.Context, req *LogoutRequest, opts ...http.CallOption) (rsp *LogoutReply, err error)
+	// RblCheck RblCheck tests the deployment's listener and VMTA egress IPs against DNS
+	// blocklists.
+	RblCheck(ctx context.Context, req *RblCheckRequest, opts ...http.CallOption) (rsp *RblCheckReply, err error)
 	// RequestAcmeCertificate RequestAcmeCertificate issues (or re-issues) a certificate via HTTP-01.
 	// Synchronous: blocks for the ACME handshake.
 	RequestAcmeCertificate(ctx context.Context, req *RequestAcmeCertificateRequest, opts ...http.CallOption) (rsp *AcmeCertificate, err error)
@@ -2065,6 +2127,22 @@ func (c *IrisAdminServiceHTTPClientImpl) DeleteTLSPolicy(ctx context.Context, in
 	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteTLSPolicy))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// Diagnose Tools ---------------------------------------------------------------------
+// Diagnose reports how mail from a given address is handled and whether the
+// sending domain is set up correctly (DKIM/SPF/DMARC/MX/FBL + routing preview).
+func (c *IrisAdminServiceHTTPClientImpl) Diagnose(ctx context.Context, in *DiagnoseRequest, opts ...http.CallOption) (*DiagnoseResult, error) {
+	var out DiagnoseResult
+	pattern := "/v1/tools/diagnose"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceDiagnose))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -2496,6 +2574,21 @@ func (c *IrisAdminServiceHTTPClientImpl) Logout(ctx context.Context, in *LogoutR
 	pattern := "/v1/auth:logout"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceLogout))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// RblCheck RblCheck tests the deployment's listener and VMTA egress IPs against DNS
+// blocklists.
+func (c *IrisAdminServiceHTTPClientImpl) RblCheck(ctx context.Context, in *RblCheckRequest, opts ...http.CallOption) (*RblCheckReply, error) {
+	var out RblCheckReply
+	pattern := "/v1/tools/rbl-check"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceRblCheck))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {

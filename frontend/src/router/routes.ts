@@ -111,6 +111,18 @@ export const routes: RouteRecordRaw[] = [
         meta: { permission: 'service:control', title: 'Feedback Loops' },
       },
       {
+        path: 'tools/diagnose',
+        name: 'tools-diagnose',
+        component: () => import('@/pages/tools/DiagnosePage.vue'),
+        meta: { permission: 'service:control', title: 'Diagnose' },
+      },
+      {
+        path: 'tools/rbl-check',
+        name: 'tools-rbl-check',
+        component: () => import('@/pages/tools/RblCheckPage.vue'),
+        meta: { permission: 'service:control', title: 'RBL Check' },
+      },
+      {
         path: 'operations/acme',
         name: 'acme',
         component: () => import('@/pages/operations/AcmePage.vue'),

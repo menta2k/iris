@@ -650,3 +650,42 @@ export interface DomainBounceCheck {
   domain: string
   items?: DomainCheckItem[]
 }
+
+// ---- Tools: Diagnose + RBL ----
+
+export interface DiagnoseRequest {
+  from_email: string
+  recipient?: string
+  mailclass?: string
+}
+export interface RoutingOutcome {
+  matchedRule?: string
+  egressPool?: string
+  vmtas?: string[]
+  egressIps?: string[]
+  listeners?: string[]
+  note?: string
+}
+export interface DiagnoseResult {
+  fromEmail: string
+  domain: string
+  items?: DomainCheckItem[]
+  routing?: RoutingOutcome
+}
+export interface RblListing {
+  zone: string
+  listed: boolean
+  reason?: string
+}
+export interface RblIpResult {
+  ip: string
+  source: string
+  listed: boolean
+  listings?: RblListing[]
+}
+export interface RblCheckReply {
+  results?: RblIpResult[]
+  zones?: string[]
+  checkedAt?: string
+  skipped?: string[]
+}
