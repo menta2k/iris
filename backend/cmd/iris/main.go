@@ -202,7 +202,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// Domain bounce-readiness checker (MX/SPF/DKIM via live DNS).
 	domainCheckUC := biz.NewDomainCheckUsecase(kumoSnapshotRepo, nil)
 	// Tools: sender diagnose + RBL/DNSBL check (live DNS).
-	diagnoseUC := biz.NewDiagnoseUsecase(kumoSnapshotRepo, nil)
+	diagnoseUC := biz.NewDiagnoseUsecase(kumoSnapshotRepo, nil, settingsUC)
 	rblUC := biz.NewRBLUsecase(kumoSnapshotRepo, nil)
 	// DMARC aggregate-report parsing.
 	dmarcRepo := data.NewDMARCRepo(db)

@@ -38,16 +38,18 @@ type DiagnoseResult struct {
 // deployment and whether the sending domain is set up correctly. It reuses the
 // domain-check DNS helpers and the config snapshot.
 type DiagnoseUsecase struct {
-	loader ConfigSnapshotLoader
-	dns    DNSResolver
+	loader   ConfigSnapshotLoader
+	dns      DNSResolver
+	settings EffectiveSettingsProvider // resolves deployment settings (e.g. DMARC report addr)
 }
 
-// NewDiagnoseUsecase constructs the use case. A nil resolver uses the system default.
-func NewDiagnoseUsecase(loader ConfigSnapshotLoader, dns DNSResolver) *DiagnoseUsecase {
+// NewDiagnoseUsecase constructs the use case. A nil resolver uses the system
+// default; a nil settings provider falls back to the raw snapshot.
+func NewDiagnoseUsecase(loader ConfigSnapshotLoader, dns DNSResolver, settings EffectiveSettingsProvider) *DiagnoseUsecase {
 	if dns == nil {
 		dns = net.DefaultResolver
 	}
-	return &DiagnoseUsecase{loader: loader, dns: dns}
+	return &DiagnoseUsecase{loader: loader, dns: dns, settings: settings}
 }
 
 // Diagnose runs the DNS sending-readiness checks for the from-address domain and
@@ -86,7 +88,16 @@ func (uc *DiagnoseUsecase) Diagnose(ctx context.Context, req DiagnoseRequest) (*
 	out.Items = append(out.Items, diagnoseDKIMSigner(domain, snap.DKIM))
 	out.Items = append(out.Items, checkDKIM(ctx, uc.dns, domain, snap.DKIM)...)
 	out.Items = append(out.Items, checkSPF(ctx, uc.dns, domain, egressIPs))
+	// The configured DMARC report address is a deployment setting (merged via the
+	// settings provider), not part of the raw snapshot — resolve it explicitly.
+	reportAddr := strings.TrimSpace(snap.DMARCReportAddr)
+	if uc.settings != nil {
+		if eff, serr := uc.settings.Effective(ctx); serr == nil && eff.DMARCReportAddr != "" {
+			reportAddr = eff.DMARCReportAddr
+		}
+	}
 	out.Items = append(out.Items, checkDMARC(ctx, uc.dns, domain))
+	out.Items = append(out.Items, diagnoseDMARCReporting(ctx, uc.dns, domain, reportAddr))
 	out.Items = append(out.Items, checkMX(ctx, uc.dns, domain, listenerIPs))
 	out.Items = append(out.Items, diagnoseFBL(domain, snap.FBLEndpoints))
 	out.Items = append(out.Items, diagnoseHosted(domain, snap.hostedDomains()))
@@ -166,6 +177,78 @@ func diagnoseHosted(domain string, hosted []string) CheckItem {
 	item.Status = CheckWarn
 	item.Detail = "Domain is not in the hosted-domains set (treated as a relay/outbound-only domain)."
 	return item
+}
+
+// diagnoseDMARCReporting checks whether aggregate reports for the domain will
+// reach Iris: a report address must be configured (Global Settings) AND the
+// domain's published DMARC rua= must include it.
+func diagnoseDMARCReporting(ctx context.Context, dns DNSResolver, domain, configuredAddr string) CheckItem {
+	item := CheckItem{Name: "DMARC reporting (rua)"}
+	configuredAddr = strings.ToLower(strings.TrimSpace(configuredAddr))
+
+	txts, _ := dns.LookupTXT(ctx, "_dmarc."+domain)
+	var record string
+	for _, t := range txts {
+		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(t)), "v=dmarc1") {
+			record = strings.TrimSpace(t)
+			break
+		}
+	}
+	rua := parseDMARCRua(record)
+
+	switch {
+	case configuredAddr == "":
+		item.Status = CheckWarn
+		item.Detail = "No DMARC report address is set in Iris (Global Settings → DMARC report address); aggregate reports can't be collected."
+	case record == "":
+		item.Status = CheckWarn
+		item.Detail = "No DMARC record at _dmarc." + domain + " to carry a rua= reporting address."
+	case len(rua) == 0:
+		item.Status = CheckWarn
+		item.Detail = "DMARC record has no rua= — add rua=mailto:" + configuredAddr + " to receive aggregate reports."
+	case containsFold(rua, configuredAddr):
+		item.Status = CheckPass
+		item.Detail = "Aggregate reports for this domain are directed to the configured address (" + configuredAddr + ")."
+		item.Records = rua
+	default:
+		item.Status = CheckWarn
+		item.Detail = "rua= points elsewhere (" + strings.Join(rua, ", ") + "); add mailto:" + configuredAddr + " so reports reach Iris."
+		item.Records = rua
+	}
+	return item
+}
+
+// parseDMARCRua extracts the rua= mailbox addresses from a DMARC record (the
+// "mailto:" scheme and any "!size" suffix stripped), lowercased.
+func parseDMARCRua(record string) []string {
+	for _, tok := range strings.Split(record, ";") {
+		tok = strings.TrimSpace(tok)
+		if !strings.HasPrefix(strings.ToLower(tok), "rua=") {
+			continue
+		}
+		var out []string
+		for _, uri := range strings.Split(tok[len("rua="):], ",") {
+			uri = strings.ToLower(strings.TrimSpace(uri))
+			uri = strings.TrimPrefix(uri, "mailto:")
+			if i := strings.IndexByte(uri, '!'); i >= 0 {
+				uri = uri[:i]
+			}
+			if uri != "" {
+				out = append(out, uri)
+			}
+		}
+		return out
+	}
+	return nil
+}
+
+func containsFold(list []string, want string) bool {
+	for _, v := range list {
+		if strings.EqualFold(v, want) {
+			return true
+		}
+	}
+	return false
 }
 
 // simulateRouting mirrors the rendered select_pool: it walks active routing rules
