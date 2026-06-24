@@ -292,6 +292,13 @@ func TestRenderRequireTLSPolicy(t *testing.T) {
 	if strings.Contains(r.Content, "off.example") {
 		t.Fatalf("disabled TLS policy must be skipped:\n%s", r.Content)
 	}
+	// Generous SMTP client timeouts so slow/tarpitting receivers (e.g. a stall on
+	// RSET during connection reuse) don't trip KumoMTA's aggressive defaults.
+	for _, want := range []string{"rset_timeout = '30s'", "idle_timeout = '60s'", "data_timeout = '60s'"} {
+		if !strings.Contains(r.Content, want) {
+			t.Fatalf("egress path must set %q:\n%s", want, r.Content)
+		}
+	}
 }
 
 func TestRenderDeliveryRatesAndBouncePipeline(t *testing.T) {
