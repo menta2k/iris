@@ -601,6 +601,14 @@ kumo.on('smtp_server_message_received', function(msg)
       msg:set_meta('queue', WEBHOOK_TRACKER)
       return
     end
+    if WEBHOOK_DOMAINS[rdom] then
+      -- The domain is accepted for relay only because a webhook rule exists for
+      -- it, but this recipient matched no rule above. Reject so the sending MTA
+      -- issues the bounce to the originator, instead of relaying to the domain's
+      -- real MX (which would fail and be swallowed by the VERP bounce path).
+      kumo.reject(550, string.format('5.1.1 <%s>: recipient rejected, no matching route', email))
+      return
+    end
   end
 `)
 	}

@@ -32,10 +32,16 @@ func (b *BounceRecord) IsHardBounce() bool {
 }
 
 // nonRecipientFaultClasses are bounce classifications that are NOT the
-// recipient's fault — a permanent failure here (e.g. the receiver blocked us as
-// spam, or the mailbox was temporarily over quota and reported 5xx) should not
-// auto-suppress an otherwise-valid recipient.
+// recipient's fault — a permanent failure here should not auto-suppress an
+// otherwise-valid recipient. Two groups:
+//   - Remote policy/content: the receiver blocked us as spam, by policy, or the
+//     mailbox was temporarily over quota and reported 5xx.
+//   - Routing / infrastructure: iris (or DNS/the network) could not route to a
+//     domain it is responsible for. The recipient may be perfectly valid; the
+//     failure is on our side, so it must never suppress the address. This covers
+//     the loopback/prohibited-MX case (RoutingErrors).
 var nonRecipientFaultClasses = map[string]struct{}{
+	// Remote policy / content.
 	"SpamBlock":      {},
 	"SpamContent":    {},
 	"ContentRelated": {},
@@ -43,6 +49,14 @@ var nonRecipientFaultClasses = map[string]struct{}{
 	"PolicyRelated":  {},
 	"RelayDenied":    {},
 	"ProtocolErrors": {},
+	// Routing / infrastructure (not the recipient's fault).
+	"RoutingErrors":      {},
+	"BadConnection":      {},
+	"BadConfiguration":   {},
+	"NoAnswerFromHost":   {},
+	"DNSFailure":         {},
+	"ServiceUnavailable": {},
+	"TooManyConnections": {},
 }
 
 // ShouldSuppressOnHardBounce reports whether a hard bounce with this
