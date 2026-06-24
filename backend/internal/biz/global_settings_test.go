@@ -35,6 +35,10 @@ func TestGlobalSettingsValidate(t *testing.T) {
 	// Bounce/DSN pipeline fields.
 	assertReason(t, (&GlobalSettings{BounceDomain: "bounce.example.com"}).Validate(), "")
 	assertReason(t, (&GlobalSettings{BounceDomain: "not a domain"}).Validate(), "SETTINGS_BOUNCE_DOMAIN_INVALID")
+	assertReason(t, (&GlobalSettings{SuppressionTTL: "30d"}).Validate(), "")
+	assertReason(t, (&GlobalSettings{SuppressionTTL: "720h"}).Validate(), "")
+	assertReason(t, (&GlobalSettings{SuppressionTTL: ""}).Validate(), "")
+	assertReason(t, (&GlobalSettings{SuppressionTTL: "forever"}).Validate(), "SETTINGS_DURATION_INVALID")
 	assertReason(t, (&GlobalSettings{SoftBounceThreshold: 5}).Validate(), "")
 	assertReason(t, (&GlobalSettings{SoftBounceThreshold: -1}).Validate(), "SETTINGS_SOFT_THRESHOLD_RANGE")
 	assertReason(t, (&GlobalSettings{SoftBounceThreshold: 1001}).Validate(), "SETTINGS_SOFT_THRESHOLD_RANGE")

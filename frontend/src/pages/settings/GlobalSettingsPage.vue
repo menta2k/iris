@@ -39,6 +39,7 @@ const form = ref({
   bounce_domain: '',
   auto_suppress_hard_bounces: true,
   soft_bounce_threshold: 0,
+  suppression_ttl: '',
   admin_http_addr: '',
   admin_tls_enabled: false,
   admin_tls_cert_domain: '',
@@ -61,6 +62,7 @@ function apply(s: GlobalSettings) {
     bounce_domain: s.bounceDomain || '',
     auto_suppress_hard_bounces: s.autoSuppressHardBounces ?? true,
     soft_bounce_threshold: s.softBounceThreshold ?? 0,
+    suppression_ttl: s.suppressionTtl || '',
     admin_http_addr: s.adminHttpAddr || '',
     admin_tls_enabled: s.adminTlsEnabled ?? false,
     admin_tls_cert_domain: s.adminTlsCertDomain || '',
@@ -112,6 +114,7 @@ async function save() {
         bounce_domain: form.value.bounce_domain,
         auto_suppress_hard_bounces: form.value.auto_suppress_hard_bounces,
         soft_bounce_threshold: form.value.soft_bounce_threshold,
+        suppression_ttl: form.value.suppression_ttl,
         admin_http_addr: form.value.admin_http_addr,
         admin_tls_enabled: form.value.admin_tls_enabled,
         admin_tls_cert_domain: form.value.admin_tls_cert_domain,
@@ -265,6 +268,20 @@ onMounted(load)
               <p class="text-xs text-muted-foreground">
                 Suppress a recipient after this many soft (4xx) bounces. 0 disables soft-bounce
                 suppression.
+              </p>
+            </div>
+            <div class="space-y-1.5">
+              <Label for="suppression-ttl">Suppression record lifetime</Label>
+              <Input
+                id="suppression-ttl"
+                v-model="form.suppression_ttl"
+                placeholder="30d"
+                data-testid="suppression-ttl"
+              />
+              <p class="text-xs text-muted-foreground">
+                How long a suppression entry blocks a recipient before it ages out (duration form,
+                e.g. <code>720h</code>, <code>30d</code>). Leave blank to keep suppressions
+                permanent. Applied as the Redis key TTL on the live suppression list.
               </p>
             </div>
           </CardContent>

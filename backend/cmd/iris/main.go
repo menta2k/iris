@@ -179,6 +179,20 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	}
 	settingsRepo := data.NewGlobalSettingsRepo(db)
 	settingsUC := biz.NewGlobalSettingsUsecase(settingsRepo, auditor, settingsDefaults)
+	// Suppression list lives in Redis (write-through cache + per-entry TTL); the
+	// rendered policy consults it instead of an inline table. Attach the cache and
+	// TTL provider now that settingsUC exists, then backfill Redis from the DB so
+	// a restart/flush stays consistent. domainSafetyRepo is a pointer, so the
+	// already-constructed usecase/snapshot loader pick up the cache too.
+	suppCache := data.NewSuppressionCache(streams.Client)
+	domainSafetyRepo.WithSuppressionCache(suppCache, settingsUC.SuppressionTTLNow)
+	if active, lerr := domainSafetyRepo.ListActiveSuppressions(ctx); lerr != nil {
+		log.Warn("suppression backfill: list active failed", "error", lerr.Error())
+	} else if n, berr := suppCache.Backfill(ctx, active, time.Now().UTC()); berr != nil {
+		log.Warn("suppression backfill: redis populate failed", "error", berr.Error())
+	} else {
+		log.Info("suppression cache backfilled", "entries", n)
+	}
 	// US5 inbound automation: webhook + Rspamd use case and workers.
 	inboundRepo := data.NewInboundRepo(db)
 	fblRepo := data.NewFBLRepo(db)

@@ -44,9 +44,8 @@ func (r *KumoConfigRepo) Snapshot(ctx context.Context) (biz.ConfigSnapshot, erro
 	if snap.DKIM, err = r.safety.ListDKIMDomains(ctx, page); err != nil {
 		return snap, err
 	}
-	if snap.Suppressions, err = r.safety.ListSuppressions(ctx, page); err != nil {
-		return snap, err
-	}
+	// Suppressions are enforced via Redis (see SuppressionCache), not rendered
+	// into the policy, so they are intentionally not loaded into the snapshot.
 	if snap.TLSPolicies, err = r.safety.ListTLSPolicies(ctx, page); err != nil {
 		return snap, err
 	}

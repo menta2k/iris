@@ -39,6 +39,11 @@ type GlobalSettings struct {
 	AutoSuppressHardBounces bool
 	SoftBounceThreshold     int
 
+	// SuppressionTTL is the lifetime applied to suppression records (Go/KumoMTA
+	// duration form, e.g. "720h", "30d"). Empty = permanent. Enforced as the
+	// Redis key TTL on the live suppression list and mirrored to expires_at.
+	SuppressionTTL string
+
 	// Iris admin server (applied on restart — the listening socket is bound at
 	// startup). AdminHTTPAddr overrides the configured HTTP bind when set. When
 	// AdminTLSEnabled, the server serves HTTPS on that address using the issued
@@ -119,6 +124,11 @@ func (g *GlobalSettings) Validate() error {
 	}
 	if g.SoftBounceThreshold < 0 || g.SoftBounceThreshold > 1000 {
 		return Invalid("SETTINGS_SOFT_THRESHOLD_RANGE", "soft_bounce_threshold must be between 0 and 1000")
+	}
+	// Suppression record lifetime (optional duration; empty = permanent).
+	g.SuppressionTTL = strings.TrimSpace(g.SuppressionTTL)
+	if g.SuppressionTTL != "" && !kumoDurationRe.MatchString(g.SuppressionTTL) {
+		return Invalid("SETTINGS_DURATION_INVALID", "suppression_ttl %q is not a valid duration (e.g. 720h, 30d)", g.SuppressionTTL)
 	}
 
 	// Iris admin server.

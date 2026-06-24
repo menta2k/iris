@@ -260,8 +260,8 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	// Hosted domains + inbound rspamd scanning.
 	writeHostedDomains(&b, snap)
 	writeRspamd(&b, snap)
-	// Suppression lookup tables.
-	supp := writeSuppression(&b, snap.Suppressions)
+	// Suppression lookup (redis-backed; the list is no longer rendered inline).
+	writeSuppression(&b, snap)
 	// Routing table (priority-ordered) and reception hook (which signs DKIM).
 	routes := writeRouting(&b, snap.Routes, vmtaName, groupName, snap.rspamdEnabled(), bounceEnabled(snap), webhookEnabled(snap), verpEnabled(snap), fblForwardEnabled(snap))
 	// get_queue_config maps tenant → egress pool (and the log-stream tracker).
@@ -280,7 +280,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 		PoolCount:        pools,
 		RouteCount:       routes,
 		DKIMCount:        dkim,
-		SuppressionCount: supp,
+		SuppressionCount: 0, // suppressions live in Redis now, not the config
 		Valid:            len(issues) == 0,
 		LintIssues:       issues,
 	}, nil
@@ -388,32 +388,46 @@ func writeDKIMTable(b *strings.Builder, ids []*DKIMDomain) int {
 	return n
 }
 
-func writeSuppression(b *strings.Builder, supps []*SuppressionEntry) int {
-	b.WriteString("-- ===== suppression list =====\n")
-	b.WriteString("local SUPPRESSED_EMAILS = {}\n")
-	b.WriteString("local SUPPRESSED_DOMAINS = {}\n")
-	n := 0
-	for _, s := range sortedSuppressions(supps) {
-		if s.Status != SuppressActive {
-			continue
-		}
-		switch s.Type {
-		case SuppressEmail:
-			fmt.Fprintf(b, "SUPPRESSED_EMAILS[%s] = true\n", MustLuaString(s.Value))
-			n++
-		case SuppressDomain:
-			fmt.Fprintf(b, "SUPPRESSED_DOMAINS[%s] = true\n", MustLuaString(s.Value))
-			n++
-		}
+// writeSuppression emits the is_suppressed lookup. The list itself lives in
+// Redis (keys supp:e:<email> / supp:d:<domain> with a per-entry TTL), not in the
+// config — so a 5M-send / 0.5%-bounce workload no longer bloats the policy and a
+// new suppression takes effect within the memoize TTL without a config apply.
+// The lookup uses the same Redis as the log stream; when that is unset,
+// suppression enforcement is disabled (is_suppressed always false), the same
+// degraded mode as the log hook.
+func writeSuppression(b *strings.Builder, snap ConfigSnapshot) {
+	b.WriteString("-- ===== suppression list (redis-backed, memoized) =====\n")
+	if snap.LogStreamRedisURL == "" {
+		b.WriteString("local function is_suppressed(_recipient) return false end\n\n")
+		return
 	}
-	b.WriteString(`
-local function is_suppressed(recipient)
-  local domain = recipient:match('@(.+)$') or ''
-  return SUPPRESSED_EMAILS[recipient] == true or SUPPRESSED_DOMAINS[domain] == true
+	// _supp_lookup hits Redis (EXISTS on the exact email + its domain); memoize
+	// caches the result briefly so repeat/retry recipients don't re-query. The
+	// short TTL bounds how long a freshly-suppressed address can still get through
+	// (negative results are cached too). Fail-open: a Redis error never blocks mail.
+	b.WriteString(`local function _supp_lookup(recipient)
+  local ok, res = pcall(function()
+    local domain = recipient:match('@(.+)$') or ''
+    local redis = require 'redis'
+    local conn = redis.open { node = LOGSTREAM_REDIS_URL, pool_size = 10 }
+    local n = conn:query('EXISTS', 'supp:e:' .. recipient, 'supp:d:' .. domain)
+    return (tonumber(n) or 0) > 0
+  end)
+  if not ok then
+    kumo.log_error('suppression: redis lookup failed: ' .. tostring(res))
+    return false
+  end
+  return res
 end
 
+local is_suppressed = kumo.memoize(_supp_lookup, {
+  name = 'iris_suppression',
+  ttl = '60 seconds',
+  capacity = 100000,
+  allow_stale_reads = true,
+})
+
 `)
-	return n
 }
 
 func writeRouting(b *strings.Builder, routes []*RoutingRule, vmtaName, groupName map[string]string, rspamd, bounce, webhook, verp, fblForward bool) int {
@@ -1472,10 +1486,5 @@ func sortedRoutes(in []*RoutingRule) []*RoutingRule {
 func sortedDKIM(in []*DKIMDomain) []*DKIMDomain {
 	out := append([]*DKIMDomain(nil), in...)
 	sort.Slice(out, func(i, j int) bool { return out[i].Domain < out[j].Domain })
-	return out
-}
-func sortedSuppressions(in []*SuppressionEntry) []*SuppressionEntry {
-	out := append([]*SuppressionEntry(nil), in...)
-	sort.Slice(out, func(i, j int) bool { return out[i].Value < out[j].Value })
 	return out
 }

@@ -3,17 +3,44 @@ package data
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/menta2k/iris/backend/internal/biz"
 )
 
 // DomainSafetyRepo persists DKIM domains and suppression entries.
 type DomainSafetyRepo struct {
-	db *DB
+	db    *DB
+	cache *SuppressionCache
+	// ttl resolves the current suppression lifetime (0 = permanent); nil = permanent.
+	ttl func(context.Context) time.Duration
 }
 
 // NewDomainSafetyRepo constructs the repository.
 func NewDomainSafetyRepo(db *DB) *DomainSafetyRepo { return &DomainSafetyRepo{db: db} }
+
+// WithSuppressionCache attaches the Redis live-suppression cache and the TTL
+// provider used to age entries. Without it the repo is DB-only (cache writes are
+// no-ops), which keeps tests and Redis-less deployments working.
+func (r *DomainSafetyRepo) WithSuppressionCache(cache *SuppressionCache, ttl func(context.Context) time.Duration) *DomainSafetyRepo {
+	r.cache = cache
+	r.ttl = ttl
+	return r
+}
+
+// suppressionExpiry resolves the absolute expiry for a new/refreshed entry from
+// the configured TTL: (expires_at, ttl). A zero TTL means permanent (nil, 0).
+func (r *DomainSafetyRepo) suppressionExpiry(ctx context.Context) (*time.Time, time.Duration) {
+	if r.ttl == nil {
+		return nil, 0
+	}
+	d := r.ttl(ctx)
+	if d <= 0 {
+		return nil, 0
+	}
+	exp := time.Now().UTC().Add(d)
+	return &exp, d
+}
 
 var _ biz.DomainSafetyRepo = (*DomainSafetyRepo)(nil)
 
@@ -73,30 +100,52 @@ func (r *DomainSafetyRepo) UpdateDKIMDomain(ctx context.Context, id string, d *b
 	return out, nil
 }
 
-// CreateSuppression inserts a suppression entry.
+// CreateSuppression inserts a suppression entry and mirrors it to the live
+// Redis cache (with the configured TTL).
 func (r *DomainSafetyRepo) CreateSuppression(ctx context.Context, s *biz.SuppressionEntry) (*biz.SuppressionEntry, error) {
+	expiresAt, ttl := r.suppressionExpiry(ctx)
 	row := r.db.Pool.QueryRow(ctx, `
-		INSERT INTO suppression_entries (type, value, reason, source, status)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id, type, value, reason, source, status`,
-		s.Type, s.Value, s.Reason, s.Source, s.Status)
+		INSERT INTO suppression_entries (type, value, reason, source, status, expires_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, type, value, reason, source, status, expires_at`,
+		s.Type, s.Value, s.Reason, s.Source, s.Status, expiresAt)
 	out := &biz.SuppressionEntry{}
-	if err := row.Scan(&out.ID, &out.Type, &out.Value, &out.Reason, &out.Source, &out.Status); err != nil {
+	if err := row.Scan(&out.ID, &out.Type, &out.Value, &out.Reason, &out.Source, &out.Status, &out.ExpiresAt); err != nil {
 		return nil, mapConstraint(err, "suppression")
+	}
+	if out.Status == biz.SuppressActive {
+		if err := r.cache.Put(ctx, out.Type, out.Value, ttl); err != nil {
+			return nil, err
+		}
 	}
 	return out, nil
 }
 
-// UpdateSuppression updates a suppression entry's reason and status by id.
+// UpdateSuppression updates a suppression entry's reason and status by id. An
+// entry set active is (re)written to the cache with a fresh TTL; any other
+// status removes it from the live list.
 func (r *DomainSafetyRepo) UpdateSuppression(ctx context.Context, id string, s *biz.SuppressionEntry) (*biz.SuppressionEntry, error) {
+	expiresAt, ttl := r.suppressionExpiry(ctx)
+	active := s.Status == biz.SuppressActive
+	// Only refresh expires_at when (re)activating; otherwise leave it as stored.
 	row := r.db.Pool.QueryRow(ctx, `
-		UPDATE suppression_entries SET reason = $2, status = $3, updated_at = now()
+		UPDATE suppression_entries
+		SET reason = $2, status = $3,
+		    expires_at = CASE WHEN $3 = 'active' THEN $4 ELSE expires_at END,
+		    updated_at = now()
 		WHERE id = $1
-		RETURNING id, type, value, reason, source, status`,
-		id, s.Reason, s.Status)
+		RETURNING id, type, value, reason, source, status, expires_at`,
+		id, s.Reason, s.Status, expiresAt)
 	out := &biz.SuppressionEntry{}
-	if err := row.Scan(&out.ID, &out.Type, &out.Value, &out.Reason, &out.Source, &out.Status); err != nil {
+	if err := row.Scan(&out.ID, &out.Type, &out.Value, &out.Reason, &out.Source, &out.Status, &out.ExpiresAt); err != nil {
 		return nil, mapConstraint(err, "suppression")
+	}
+	if active {
+		if err := r.cache.Put(ctx, out.Type, out.Value, ttl); err != nil {
+			return nil, err
+		}
+	} else if err := r.cache.Del(ctx, out.Type, out.Value); err != nil {
+		return nil, err
 	}
 	return out, nil
 }
@@ -104,7 +153,7 @@ func (r *DomainSafetyRepo) UpdateSuppression(ctx context.Context, id string, s *
 // ListSuppressions returns suppression entries.
 func (r *DomainSafetyRepo) ListSuppressions(ctx context.Context, page biz.Page) ([]*biz.SuppressionEntry, error) {
 	rows, err := r.db.Pool.Query(ctx, `
-		SELECT id, type, value, reason, source, status
+		SELECT id, type, value, reason, source, status, expires_at
 		FROM suppression_entries ORDER BY value LIMIT $1 OFFSET $2`,
 		page.Size, page.Offset)
 	if err != nil {
@@ -114,7 +163,29 @@ func (r *DomainSafetyRepo) ListSuppressions(ctx context.Context, page biz.Page) 
 	var out []*biz.SuppressionEntry
 	for rows.Next() {
 		s := &biz.SuppressionEntry{}
-		if err := rows.Scan(&s.ID, &s.Type, &s.Value, &s.Reason, &s.Source, &s.Status); err != nil {
+		if err := rows.Scan(&s.ID, &s.Type, &s.Value, &s.Reason, &s.Source, &s.Status, &s.ExpiresAt); err != nil {
+			return nil, fmt.Errorf("scan suppression: %w", err)
+		}
+		out = append(out, s)
+	}
+	return out, rows.Err()
+}
+
+// ListActiveSuppressions returns all non-expired active entries, used to
+// backfill the Redis cache at startup.
+func (r *DomainSafetyRepo) ListActiveSuppressions(ctx context.Context) ([]*biz.SuppressionEntry, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT id, type, value, reason, source, status, expires_at
+		FROM suppression_entries
+		WHERE status = 'active' AND (expires_at IS NULL OR expires_at > now())`)
+	if err != nil {
+		return nil, fmt.Errorf("query active suppressions: %w", err)
+	}
+	defer rows.Close()
+	var out []*biz.SuppressionEntry
+	for rows.Next() {
+		s := &biz.SuppressionEntry{}
+		if err := rows.Scan(&s.ID, &s.Type, &s.Value, &s.Reason, &s.Source, &s.Status, &s.ExpiresAt); err != nil {
 			return nil, fmt.Errorf("scan suppression: %w", err)
 		}
 		out = append(out, s)
@@ -177,20 +248,25 @@ func (r *DomainSafetyRepo) SuppressRecipient(ctx context.Context, email, source,
 	if value == "" {
 		return nil
 	}
+	expiresAt, ttl := r.suppressionExpiry(ctx)
 	_, err := r.db.Pool.Exec(ctx, `
-		INSERT INTO suppression_entries (type, value, reason, source, status)
-		VALUES ('email', $1, $2, $3, 'active')
+		INSERT INTO suppression_entries (type, value, reason, source, status, expires_at)
+		VALUES ('email', $1, $2, $3, 'active', $4)
 		ON CONFLICT (type, value) DO UPDATE
-		SET status = 'active', reason = EXCLUDED.reason, source = EXCLUDED.source, updated_at = now()`,
-		value, reason, source)
+		SET status = 'active', reason = EXCLUDED.reason, source = EXCLUDED.source,
+		    expires_at = EXCLUDED.expires_at, updated_at = now()`,
+		value, reason, source, expiresAt)
 	if err != nil {
 		return fmt.Errorf("auto-suppress recipient: %w", err)
+	}
+	if err := r.cache.Put(ctx, biz.SuppressEmail, value, ttl); err != nil {
+		return err
 	}
 	return nil
 }
 
-// IsSuppressed reports whether an active suppression blocks the recipient,
-// matching either the exact email or its domain.
+// IsSuppressed reports whether an active, unexpired suppression blocks the
+// recipient, matching either the exact email or its domain.
 func (r *DomainSafetyRepo) IsSuppressed(ctx context.Context, recipient string) (bool, error) {
 	domain := biz.RecipientDomain(recipient)
 	var ok bool
@@ -198,6 +274,7 @@ func (r *DomainSafetyRepo) IsSuppressed(ctx context.Context, recipient string) (
 		SELECT EXISTS (
 			SELECT 1 FROM suppression_entries
 			WHERE status = 'active'
+			  AND (expires_at IS NULL OR expires_at > now())
 			  AND ((type = 'email' AND value = $1) OR (type = 'domain' AND value = $2))
 		)`, biz.NormalizeSuppressionValue(biz.SuppressEmail, recipient), domain).Scan(&ok)
 	if err != nil {
