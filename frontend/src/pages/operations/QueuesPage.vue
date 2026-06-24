@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,15 +27,42 @@ const { items, loading, error, notImplemented, load } = useAsyncList<Queue>({
 const { toast } = useToast()
 
 // "What's in the queue" — the deferred mail records (messages waiting/retrying).
+// These are mail-log events, so a message can have many rows (one per retry) and
+// keeps a row after it later left the queue (delivered/bounced/admin-bounced).
 const deferred = ref<MailRecord[]>([])
 async function loadDeferred() {
   try {
-    const res = await mailOperationsService.listMailRecords({ status: 'deferred' }, { pageSize: 100 })
+    const res = await mailOperationsService.listMailRecords({ status: 'deferred' }, { pageSize: 200 })
     deferred.value = res.items ?? []
   } catch {
     deferred.value = []
   }
 }
+
+function recipientDomain(addr?: string): string {
+  const at = (addr ?? '').lastIndexOf('@')
+  return at >= 0 ? addr!.slice(at + 1).toLowerCase() : ''
+}
+
+// Reflect the LIVE queue: only show deferred messages for domains kumod still has
+// queued (depth > 0), and collapse each message to its most recent attempt. When a
+// queue is drained (e.g. after a bounce) its domain drops out and its rows vanish.
+const queued = computed<MailRecord[]>(() => {
+  const live = new Set(
+    items.value.filter((q) => Number(q.depth ?? 0) > 0).map((q) => q.domain.toLowerCase()),
+  )
+  if (live.size === 0) return []
+  const seen = new Set<string>()
+  const out: MailRecord[] = []
+  for (const m of deferred.value) {
+    if (!live.has(recipientDomain(m.recipient))) continue
+    const key = m.messageId || m.id
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(m)
+  }
+  return out
+})
 
 const confirmOpen = ref(false)
 const acting = ref(false)
@@ -163,7 +190,7 @@ onBeforeUnmount(() => timer && clearInterval(timer))
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow v-for="m in deferred" :key="m.id">
+            <TableRow v-for="m in queued" :key="m.id">
               <TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDateTime(m.eventTime) }}</TableCell>
               <TableCell>{{ m.recipient }}</TableCell>
               <TableCell class="text-muted-foreground">{{ m.fromHeader || m.sender }}</TableCell>
@@ -174,9 +201,9 @@ onBeforeUnmount(() => timer && clearInterval(timer))
                 </span>
               </TableCell>
             </TableRow>
-            <TableRow v-if="deferred.length === 0">
+            <TableRow v-if="queued.length === 0">
               <TableCell colspan="4" class="text-center text-sm text-muted-foreground">
-                No deferred messages.
+                No messages in the queue.
               </TableCell>
             </TableRow>
           </TableBody>
