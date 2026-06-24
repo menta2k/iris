@@ -108,6 +108,7 @@ function resetFilters() {
                 <TableHead>Recipient</TableHead>
                 <TableHead>VMTA</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Reason</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -120,6 +121,17 @@ function resetFilters() {
                 <TableCell>{{ m.recipient }}</TableCell>
                 <TableCell class="font-mono text-xs">{{ m.vmtaId }}</TableCell>
                 <TableCell><StatusBadge :status="m.status" /></TableCell>
+                <TableCell class="max-w-md">
+                  <span
+                    v-if="m.smtpStatus || m.diagnostic"
+                    class="font-mono text-xs text-muted-foreground"
+                    :title="`${m.smtpStatus} ${m.diagnostic}`.trim()"
+                  >
+                    <span v-if="m.smtpStatus" class="font-semibold">{{ m.smtpStatus }}</span>
+                    <span class="block truncate">{{ m.diagnostic }}</span>
+                  </span>
+                  <span v-else class="text-muted-foreground">—</span>
+                </TableCell>
               </TableRow>
             </TableBody>
           </Table>

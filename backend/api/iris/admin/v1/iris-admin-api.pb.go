@@ -1754,7 +1754,12 @@ type MailRecord struct {
 	Status          string                 `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"`
 	// Original From header. The envelope sender is VERP-rewritten at reception,
 	// so it no longer reflects who the mail was from.
-	FromHeader    string `protobuf:"bytes,10,opt,name=from_header,json=fromHeader,proto3" json:"from_header,omitempty"`
+	FromHeader string `protobuf:"bytes,10,opt,name=from_header,json=fromHeader,proto3" json:"from_header,omitempty"`
+	// SMTP response for this event: the code (e.g. "451") and the server's text.
+	// Present on Delivery/TransientFailure/Bounce; empty on Reception. Lets the
+	// Logs UI show why a message deferred or bounced.
+	SmtpStatus    string `protobuf:"bytes,11,opt,name=smtp_status,json=smtpStatus,proto3" json:"smtp_status,omitempty"`
+	Diagnostic    string `protobuf:"bytes,12,opt,name=diagnostic,proto3" json:"diagnostic,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1855,6 +1860,20 @@ func (x *MailRecord) GetStatus() string {
 func (x *MailRecord) GetFromHeader() string {
 	if x != nil {
 		return x.FromHeader
+	}
+	return ""
+}
+
+func (x *MailRecord) GetSmtpStatus() string {
+	if x != nil {
+		return x.SmtpStatus
+	}
+	return ""
+}
+
+func (x *MailRecord) GetDiagnostic() string {
+	if x != nil {
+		return x.Diagnostic
 	}
 	return ""
 }
@@ -8630,7 +8649,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06status\x18\b \x01(\tR\x06status\x12!\n" +
 	"\fmatch_header\x18\t \x01(\tR\vmatchHeader\x12)\n" +
 	"\x10assign_mailclass\x18\n" +
-	" \x01(\tR\x0fassignMailclass\"\xc7\x02\n" +
+	" \x01(\tR\x0fassignMailclass\"\x88\x03\n" +
 	"\n" +
 	"MailRecord\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
@@ -8646,7 +8665,12 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06status\x18\t \x01(\tR\x06status\x12\x1f\n" +
 	"\vfrom_header\x18\n" +
 	" \x01(\tR\n" +
-	"fromHeader\"\xc4\x02\n" +
+	"fromHeader\x12\x1f\n" +
+	"\vsmtp_status\x18\v \x01(\tR\n" +
+	"smtpStatus\x12\x1e\n" +
+	"\n" +
+	"diagnostic\x18\f \x01(\tR\n" +
+	"diagnostic\"\xc4\x02\n" +
 	"\x06Bounce\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x129\n" +
 	"\n" +

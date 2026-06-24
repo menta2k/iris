@@ -173,6 +173,9 @@ export interface MailRecord {
   recipientDomain: string
   vmtaId: string
   status: string
+  /** SMTP response for this event (code + text); present on delivery/deferral/bounce. */
+  smtpStatus?: string
+  diagnostic?: string
 }
 
 export interface MailRecordFilters {

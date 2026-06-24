@@ -31,6 +31,11 @@ type MailRecord struct {
 	VMTAID          string
 	RouteID         string
 	Status          string
+	// SMTPStatus and Diagnostic carry the server's SMTP response for this event
+	// (e.g. the 4xx code + text on a deferral, 5xx on a bounce, 250 on delivery).
+	// Empty for events with no response (e.g. Reception).
+	SMTPStatus string
+	Diagnostic string
 }
 
 // MailFilter is a validated, bounded set of mail-log query filters.

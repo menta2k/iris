@@ -5,22 +5,27 @@ import (
 	"testing"
 
 	"github.com/menta2k/iris/backend/internal/biz"
+	"github.com/menta2k/iris/backend/internal/data"
 )
 
 // fakeBounceStore records the bounce-pipeline side effects the policy drives.
 type fakeBounceStore struct {
-	soft            map[string]int
-	suppressed      map[string]string // recipient -> source
+	soft             map[string]int
+	suppressed       map[string]string // recipient -> source
 	recipientByMsgID map[string]string
-	suppressErr     error
+	suppressErr      error
+	mailEvents       []*biz.MailRecord
 }
 
 func newFakeBounceStore() *fakeBounceStore {
 	return &fakeBounceStore{soft: map[string]int{}, suppressed: map[string]string{}, recipientByMsgID: map[string]string{}}
 }
 
-func (f *fakeBounceStore) InsertMailEvent(context.Context, *biz.MailRecord) error { return nil }
-func (f *fakeBounceStore) InsertBounce(context.Context, *biz.BounceRecord) error  { return nil }
+func (f *fakeBounceStore) InsertMailEvent(_ context.Context, m *biz.MailRecord) error {
+	f.mailEvents = append(f.mailEvents, m)
+	return nil
+}
+func (f *fakeBounceStore) InsertBounce(context.Context, *biz.BounceRecord) error { return nil }
 func (f *fakeBounceStore) InsertFeedbackReport(context.Context, *biz.FeedbackReport) error {
 	return nil
 }
@@ -111,6 +116,29 @@ func TestApplyBouncePolicyNilSuppressorIsNoop(t *testing.T) {
 	w.applyBouncePolicy(context.Background(), &biz.BounceRecord{Recipient: "x@y.example", SMTPStatus: "550"})
 	if len(store.suppressed) != 0 {
 		t.Fatal("nil suppressor must be a no-op")
+	}
+}
+
+func TestHandleCapturesDeferralReason(t *testing.T) {
+	store := newFakeBounceStore()
+	w := newWorker(store, store, fakePolicy{biz.BouncePolicy{}})
+	// A TransientFailure (deferral) record carrying the server's 4xx response.
+	payload := `{"type":"TransientFailure","id":"m1","sender":"a@s.example","recipient":"vesco@example.com",` +
+		`"response":{"code":451,"content":"4.7.1 greylisted, try again later"}}`
+	w.handle(context.Background(), data.StreamMessage{ID: "1", Values: map[string]any{"type": "TransientFailure", "data": payload}})
+
+	if len(store.mailEvents) != 1 {
+		t.Fatalf("expected 1 mail event, got %d", len(store.mailEvents))
+	}
+	mr := store.mailEvents[0]
+	if mr.Status != biz.MailDeferred {
+		t.Fatalf("status = %q, want deferred", mr.Status)
+	}
+	if mr.SMTPStatus != "451" {
+		t.Fatalf("smtp_status = %q, want 451", mr.SMTPStatus)
+	}
+	if mr.Diagnostic != "4.7.1 greylisted, try again later" {
+		t.Fatalf("diagnostic = %q", mr.Diagnostic)
 	}
 }
 

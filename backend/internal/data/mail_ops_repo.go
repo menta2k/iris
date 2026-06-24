@@ -25,7 +25,7 @@ var _ biz.MailOpsRepo = (*MailOpsRepo)(nil)
 func (r *MailOpsRepo) ListMailRecords(ctx context.Context, f biz.MailFilter, page biz.Page) ([]*biz.MailRecord, error) {
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT id, message_id, event_time, mailclass, sender, from_header, recipient,
-		       recipient_domain, coalesce(vmta_id::text,''), status
+		       recipient_domain, coalesce(vmta_id::text,''), status, smtp_status, diagnostic
 		FROM mail_records
 		WHERE ($1 = '' OR mailclass = $1)
 		  AND ($2 = '' OR sender = $2)
@@ -45,7 +45,8 @@ func (r *MailOpsRepo) ListMailRecords(ctx context.Context, f biz.MailFilter, pag
 	for rows.Next() {
 		m := &biz.MailRecord{}
 		if err := rows.Scan(&m.ID, &m.MessageID, &m.EventTime, &m.Mailclass, &m.Sender,
-			&m.FromHeader, &m.Recipient, &m.RecipientDomain, &m.VMTAID, &m.Status); err != nil {
+			&m.FromHeader, &m.Recipient, &m.RecipientDomain, &m.VMTAID, &m.Status,
+			&m.SMTPStatus, &m.Diagnostic); err != nil {
 			return nil, fmt.Errorf("scan mail record: %w", err)
 		}
 		out = append(out, m)
@@ -205,11 +206,11 @@ func (r *MailOpsRepo) InsertMailEvent(ctx context.Context, rec *biz.MailRecord) 
 	// persisted record.
 	if err := r.db.Pool.QueryRow(ctx, `
 		INSERT INTO mail_records
-			(message_id, event_time, mailclass, sender, from_header, recipient, recipient_domain, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			(message_id, event_time, mailclass, sender, from_header, recipient, recipient_domain, status, smtp_status, diagnostic)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id`,
 		rec.MessageID, rec.EventTime, rec.Mailclass, rec.Sender, rec.FromHeader, rec.Recipient,
-		rec.RecipientDomain, rec.Status).Scan(&rec.ID); err != nil {
+		rec.RecipientDomain, rec.Status, rec.SMTPStatus, rec.Diagnostic).Scan(&rec.ID); err != nil {
 		return fmt.Errorf("insert mail event: %w", err)
 	}
 	return nil
