@@ -14,13 +14,14 @@ func diagnoseSnap() ConfigSnapshot {
 			{Name: "bulk", MatchType: MatchMailclass, MatchValue: "bulk", Priority: 100,
 				TargetType: TargetVMTA, TargetID: "v1", Status: RoutingStatusActive},
 		},
-		DKIM:         []*DKIMDomain{{Domain: "example.com", Selector: "s1", Status: DKIMReady}},
-		FBLEndpoints: []*FBLEndpoint{{Domain: "example.com", FeedbackAddress: "fbl@example.com", Status: FBLApproved}},
+		DKIM:            []*DKIMDomain{{Domain: "example.com", Selector: "s1", Status: DKIMReady}},
+		FBLEndpoints:    []*FBLEndpoint{{Domain: "example.com", FeedbackAddress: "fbl@example.com", Status: FBLApproved}},
+		DMARCReportAddr: "dmarc@kmx.jobs.bg",
 	}
 }
 
 func TestDiagnoseInvalidEmail(t *testing.T) {
-	uc := NewDiagnoseUsecase(fakeLoader{snap: diagnoseSnap()}, fakeResolver{})
+	uc := NewDiagnoseUsecase(fakeLoader{snap: diagnoseSnap()}, fakeResolver{}, nil)
 	if _, err := uc.Diagnose(ownerCheckCtx(), DiagnoseRequest{FromEmail: "not-an-email"}); err == nil {
 		t.Fatal("expected invalid-email error")
 	}
@@ -30,11 +31,11 @@ func TestDiagnoseItemsAndRouting(t *testing.T) {
 	dns := fakeResolver{
 		txt: map[string][]string{
 			"example.com":               {"v=spf1 ip4:198.51.100.7 -all"},
-			"_dmarc.example.com":        {"v=DMARC1; p=reject"},
+			"_dmarc.example.com":        {"v=DMARC1; p=reject; rua=mailto:dmarc@kmx.jobs.bg!10m"},
 			"s1._domainkey.example.com": {"v=DKIM1; k=rsa; p=abc"},
 		},
 	}
-	uc := NewDiagnoseUsecase(fakeLoader{snap: diagnoseSnap()}, dns)
+	uc := NewDiagnoseUsecase(fakeLoader{snap: diagnoseSnap()}, dns, nil)
 	res, err := uc.Diagnose(ownerCheckCtx(), DiagnoseRequest{FromEmail: "news@Example.com", Mailclass: "bulk"})
 	if err != nil {
 		t.Fatalf("diagnose: %v", err)
@@ -43,10 +44,11 @@ func TestDiagnoseItemsAndRouting(t *testing.T) {
 		t.Fatalf("domain = %q", res.Domain)
 	}
 	for name, want := range map[string]string{
-		"DKIM signing":  CheckPass,
-		"SPF":           CheckPass,
-		"DMARC":         CheckPass,
-		"Feedback loop": CheckPass,
+		"DKIM signing":          CheckPass,
+		"SPF":                   CheckPass,
+		"DMARC":                 CheckPass,
+		"DMARC reporting (rua)": CheckPass, // rua includes the configured address
+		"Feedback loop":         CheckPass,
 	} {
 		it := itemByName(res.Items, name)
 		if it == nil || it.Status != want {
@@ -67,7 +69,7 @@ func TestDiagnoseItemsAndRouting(t *testing.T) {
 }
 
 func TestDiagnoseDefaultRoutingWhenNoMatch(t *testing.T) {
-	uc := NewDiagnoseUsecase(fakeLoader{snap: diagnoseSnap()}, fakeResolver{})
+	uc := NewDiagnoseUsecase(fakeLoader{snap: diagnoseSnap()}, fakeResolver{}, nil)
 	// No mailclass/recipient → no rule matches → default pool, note set.
 	res, err := uc.Diagnose(ownerCheckCtx(), DiagnoseRequest{FromEmail: "news@example.com"})
 	if err != nil {
