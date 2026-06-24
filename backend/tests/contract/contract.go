@@ -67,7 +67,7 @@ func newService(t *testing.T) *service.Service {
 	return service.NewService(service.Deps{
 		Auditor:      auditor,
 		Outbound:     biz.NewOutboundConfigUsecase(outboundRepo, auditor).WithEligibilityChecker(domainSafety),
-		MailOps:      biz.NewMailOpsUsecase(mailOpsRepo, noopProducer{}, auditor),
+		MailOps:      biz.NewMailOpsUsecase(mailOpsRepo, noopProducer{}, auditor).WithQueueAdmin(noopQueueAdmin{}),
 		Identity:     biz.NewIdentityUsecase(data.NewIdentityRepo(db, auditRepo), biz.NewPlaceholderMFA(), auditor),
 		DomainSafety: domainSafety,
 		Inbound:      biz.NewInboundUsecase(data.NewInboundRepo(db), auditor, true),
@@ -89,6 +89,16 @@ func (noopProducer) PublishQueueCommand(context.Context, string, string, string)
 func (noopProducer) PublishServiceCommand(context.Context, string, string) (string, error) {
 	return "noop", nil
 }
+
+// noopQueueAdmin satisfies biz.KumoQueueAdmin without a live kumod.
+type noopQueueAdmin struct{}
+
+func (noopQueueAdmin) QueueSummary(context.Context) ([]*biz.QueueState, error) { return nil, nil }
+func (noopQueueAdmin) SuspendQueue(context.Context, string, string) (string, error) {
+	return "ok", nil
+}
+func (noopQueueAdmin) ResumeQueue(context.Context, string) (string, error)         { return "ok", nil }
+func (noopQueueAdmin) BounceQueue(context.Context, string, string) (string, error) { return "ok", nil }
 
 // seedListener creates a listener and returns its id, for VMTAs to attach to.
 func seedListener(t *testing.T, svc *service.Service, name, ip string) string {

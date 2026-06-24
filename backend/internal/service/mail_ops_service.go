@@ -21,6 +21,7 @@ func (s *Service) ListMailRecords(ctx context.Context, req *adminv1.ListMailReco
 		From:      req.GetFrom(),
 		Recipient: req.GetRecipient(),
 		VMTAID:    req.GetVmtaId(),
+		Status:    req.GetStatus(),
 	}
 	if req.GetFromTime() != nil {
 		t := req.GetFromTime().AsTime()
@@ -87,36 +88,34 @@ func (s *Service) ListFeedbackReports(ctx context.Context, req *adminv1.ListFeed
 	return out, nil
 }
 
-// ListQueues returns mailclass queue snapshots (US2).
-func (s *Service) ListQueues(ctx context.Context, req *adminv1.ListQueuesRequest) (*adminv1.ListQueuesReply, error) {
+// ListQueues returns kumod's live scheduled-queue summary (US2).
+func (s *Service) ListQueues(ctx context.Context, _ *adminv1.ListQueuesRequest) (*adminv1.ListQueuesReply, error) {
 	if s.mailOps == nil {
 		return nil, notImplemented("ListQueues")
 	}
-	page := pageFrom(req.GetPage())
-	items, err := s.mailOps.ListQueues(ctx, page)
+	items, err := s.mailOps.ListQueues(ctx)
 	if err != nil {
 		return nil, s.fail(ctx, "ListQueues", err)
 	}
-	out := &adminv1.ListQueuesReply{Page: &adminv1.PageReply{NextPageToken: page.NextToken(len(items))}}
+	out := &adminv1.ListQueuesReply{Page: &adminv1.PageReply{}}
 	for _, q := range items {
 		out.Items = append(out.Items, &adminv1.Queue{
-			Mailclass: q.Mailclass, State: q.State, Depth: q.Depth,
-			OldestMessageAgeSeconds: q.OldestMessageAgeSeconds,
+			Domain: q.Domain, Depth: q.Depth, Suspended: q.Suspended, SuspendReason: q.SuspendReason,
 		})
 	}
 	return out, nil
 }
 
-// RequestQueueAction enqueues a queue-control command (US2).
+// RequestQueueAction performs a live queue-control action on kumod (US2).
 func (s *Service) RequestQueueAction(ctx context.Context, req *adminv1.RequestQueueActionRequest) (*adminv1.QueueActionReply, error) {
 	if s.mailOps == nil {
 		return nil, notImplemented("RequestQueueAction")
 	}
-	res, err := s.mailOps.RequestQueueAction(ctx, req.GetMailclass(), req.GetAction(), req.GetConfirmationId())
+	res, err := s.mailOps.RequestQueueAction(ctx, req.GetAction(), req.GetDomain(), req.GetReason(), req.GetConfirmationId())
 	if err != nil {
 		return nil, s.fail(ctx, "RequestQueueAction", err)
 	}
-	return &adminv1.QueueActionReply{RequestId: res.RequestID, Status: res.Status}, nil
+	return &adminv1.QueueActionReply{Status: res.Status, Summary: res.Summary}, nil
 }
 
 // RequestServiceControl enqueues a serialized KumoMTA service-control command (US2).

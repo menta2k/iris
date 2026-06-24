@@ -108,7 +108,7 @@ func TestRequestQueueActionDeniedWithoutPermission(t *testing.T) {
 	ctx := WithIdentity(context.Background(), &Identity{
 		Permissions: NewPermissionSet([]string{string(PermMailRead)}), MFAVerified: true,
 	})
-	_, err := uc.RequestQueueAction(ctx, "bulk", "pause", "c1")
+	_, err := uc.RequestQueueAction(ctx, "suspend", "example.com", "", "c1")
 	if de, ok := AsDomainError(err); !ok || de.Kind != KindForbidden {
 		t.Fatalf("expected forbidden, got %v", err)
 	}

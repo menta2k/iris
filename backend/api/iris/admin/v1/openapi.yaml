@@ -772,6 +772,11 @@ paths:
                   description: Case-insensitive substring match on the original From header.
                   schema:
                     type: string
+                - name: status
+                  in: query
+                  description: Filter by mail-record status (e.g. "deferred" to see what's in the queue).
+                  schema:
+                    type: string
             responses:
                 "200":
                     description: OK
@@ -856,17 +861,11 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ListQueuesReply'
-    /v1/queues/{mailclass}:action:
+    /v1/queues:action:
         post:
             tags:
                 - IrisAdminService
             operationId: IrisAdminService_RequestQueueAction
-            parameters:
-                - name: mailclass
-                  in: path
-                  required: true
-                  schema:
-                    type: string
             requestBody:
                 content:
                     application/json:
@@ -2468,20 +2467,21 @@ components:
         Queue:
             type: object
             properties:
-                mailclass:
-                    type: string
-                state:
+                domain:
                     type: string
                 depth:
                     type: string
-                oldest_message_age_seconds:
+                suspended:
+                    type: boolean
+                suspend_reason:
                     type: string
+            description: Queue is a live kumod scheduled-queue summary for one destination domain.
         QueueActionReply:
             type: object
             properties:
-                request_id:
-                    type: string
                 status:
+                    type: string
+                summary:
                     type: string
         RblCheckReply:
             type: object
@@ -2537,9 +2537,11 @@ components:
         RequestQueueActionRequest:
             type: object
             properties:
-                mailclass:
-                    type: string
                 action:
+                    type: string
+                domain:
+                    type: string
+                reason:
                     type: string
                 confirmation_id:
                     type: string

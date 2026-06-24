@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -18,35 +18,37 @@ import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
 import { mailOperationsService } from '@/services'
 import { ApiError, newConfirmationId } from '@/services/http'
-import type { Queue, QueueAction } from '@/types'
+import { formatDateTime } from '@/composables/useTimezone'
+import type { Queue, QueueAction, MailRecord } from '@/types'
 
 const { items, loading, error, notImplemented, load } = useAsyncList<Queue>({
   loader: () => mailOperationsService.listQueues(),
 })
 const { toast } = useToast()
 
+// "What's in the queue" — the deferred mail records (messages waiting/retrying).
+const deferred = ref<MailRecord[]>([])
+async function loadDeferred() {
+  try {
+    const res = await mailOperationsService.listMailRecords({ status: 'deferred' }, { pageSize: 100 })
+    deferred.value = res.items ?? []
+  } catch {
+    deferred.value = []
+  }
+}
+
 const confirmOpen = ref(false)
 const acting = ref(false)
-const pending = ref<{ mailclass: string; action: QueueAction } | null>(null)
+const pending = ref<{ domain: string; action: QueueAction } | null>(null)
 
 const actionLabels: Record<QueueAction, string> = {
-  pause: 'Pause',
+  suspend: 'Suspend',
   resume: 'Resume',
-  drain: 'Drain',
-  flush: 'Flush',
+  bounce: 'Bounce',
 }
 
-function formatAge(value?: string | number): string {
-  const seconds = Number(value ?? 0)
-  if (!seconds || seconds <= 0) return '—'
-  if (seconds < 60) return `${seconds}s`
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`
-  return `${Math.floor(seconds / 86400)}d`
-}
-
-function requestAction(mailclass: string, action: QueueAction) {
-  pending.value = { mailclass, action }
+function requestAction(domain: string, action: QueueAction) {
+  pending.value = { domain, action }
   confirmOpen.value = true
 }
 
@@ -54,17 +56,19 @@ async function confirmAction() {
   if (!pending.value) return
   acting.value = true
   try {
-    const res = await mailOperationsService.queueAction(pending.value.mailclass, {
+    const res = await mailOperationsService.queueAction({
       action: pending.value.action,
-      confirmation_id: newConfirmationId(),
+      domain: pending.value.domain,
+      // Bounce is destructive → kumod requires a confirmation id.
+      confirmation_id: pending.value.action === 'bounce' ? newConfirmationId() : undefined,
     })
     toast({
-      title: `${actionLabels[pending.value.action]} requested`,
-      description: `Request ${res.request_id} — ${res.status}`,
+      title: `${actionLabels[pending.value.action]} done`,
+      description: res.summary || res.status,
       variant: 'success',
     })
     confirmOpen.value = false
-    await load()
+    await Promise.all([load(), loadDeferred()])
   } catch (err) {
     const msg = err instanceof ApiError ? err.message : 'Action failed.'
     toast({ title: 'Queue action failed', description: msg, variant: 'destructive' })
@@ -72,47 +76,68 @@ async function confirmAction() {
     acting.value = false
   }
 }
+
+let timer: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+  loadDeferred()
+  timer = setInterval(() => {
+    load()
+    loadDeferred()
+  }, 15000)
+})
+onBeforeUnmount(() => timer && clearInterval(timer))
 </script>
 
 <template>
   <div>
-    <PageHeader title="Queues" description="Per-mailclass spool queues and their delivery state." />
+    <PageHeader
+      title="Queues"
+      description="Live KumoMTA scheduled queues by destination domain. Suspend or resume delivery, or bounce (purge) queued mail."
+    />
 
     <DataState
       :loading="loading"
       :error="error"
       :not-implemented="notImplemented"
       :empty="items.length === 0"
-      empty-message="No active queues."
+      empty-message="No scheduled queues — nothing waiting for delivery."
     >
-      <Card>
+      <Card class="mb-6">
         <CardContent class="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Mailclass</TableHead>
+                <TableHead>Domain</TableHead>
                 <TableHead>Depth</TableHead>
-                <TableHead>Oldest Message</TableHead>
                 <TableHead>State</TableHead>
                 <TableHead class="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="q in items" :key="q.mailclass">
-                <TableCell class="font-medium">{{ q.mailclass }}</TableCell>
+              <TableRow v-for="q in items" :key="q.domain">
+                <TableCell class="font-medium">{{ q.domain }}</TableCell>
                 <TableCell class="tabular-nums">{{ Number(q.depth ?? 0).toLocaleString() }}</TableCell>
-                <TableCell class="tabular-nums text-muted-foreground">{{ formatAge(q.oldestMessageAgeSeconds) }}</TableCell>
-                <TableCell><StatusBadge :status="q.state" /></TableCell>
+                <TableCell>
+                  <StatusBadge :status="q.suspended ? 'suspended' : 'running'" />
+                  <span v-if="q.suspended && q.suspendReason" class="ml-2 text-xs text-muted-foreground">
+                    {{ q.suspendReason }}
+                  </span>
+                </TableCell>
                 <TableCell class="text-right">
                   <div class="flex justify-end gap-2">
-                    <Button size="sm" variant="outline" @click="requestAction(q.mailclass, 'pause')">
-                      Pause
+                    <Button
+                      v-if="!q.suspended"
+                      size="sm"
+                      variant="outline"
+                      @click="requestAction(q.domain, 'suspend')"
+                    >
+                      Suspend
                     </Button>
-                    <Button size="sm" variant="outline" @click="requestAction(q.mailclass, 'resume')">
+                    <Button v-else size="sm" variant="outline" @click="requestAction(q.domain, 'resume')">
                       Resume
                     </Button>
-                    <Button size="sm" variant="destructive" @click="requestAction(q.mailclass, 'drain')">
-                      Drain
+                    <Button size="sm" variant="destructive" @click="requestAction(q.domain, 'bounce')">
+                      Bounce
                     </Button>
                   </div>
                 </TableCell>
@@ -123,16 +148,54 @@ async function confirmAction() {
       </Card>
     </DataState>
 
+    <Card>
+      <CardHeader>
+        <CardTitle class="text-sm">In the queue — deferred messages</CardTitle>
+      </CardHeader>
+      <CardContent class="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Time</TableHead>
+              <TableHead>Recipient</TableHead>
+              <TableHead>From</TableHead>
+              <TableHead>Last result</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-for="m in deferred" :key="m.id">
+              <TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDateTime(m.eventTime) }}</TableCell>
+              <TableCell>{{ m.recipient }}</TableCell>
+              <TableCell class="text-muted-foreground">{{ m.fromHeader || m.sender }}</TableCell>
+              <TableCell class="max-w-md">
+                <span class="font-mono text-xs">
+                  <span v-if="m.smtpStatus" class="font-semibold">{{ m.smtpStatus }}</span>
+                  <span class="block truncate">{{ m.diagnostic }}</span>
+                </span>
+              </TableCell>
+            </TableRow>
+            <TableRow v-if="deferred.length === 0">
+              <TableCell colspan="4" class="text-center text-sm text-muted-foreground">
+                No deferred messages.
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+
     <ConfirmDialog
       v-model:open="confirmOpen"
       :title="pending ? `${actionLabels[pending.action]} queue` : 'Confirm'"
       :description="
         pending
-          ? `This will ${actionLabels[pending.action].toLowerCase()} the '${pending.mailclass}' queue. This affects live delivery.`
+          ? pending.action === 'bounce'
+            ? `This will permanently delete (bounce) all queued messages for '${pending.domain}'. This cannot be undone.`
+            : `This will ${actionLabels[pending.action].toLowerCase()} delivery for the '${pending.domain}' queue.`
           : ''
       "
       :confirm-label="pending ? actionLabels[pending.action] : 'Confirm'"
-      :confirm-text="pending?.action === 'drain' ? pending.mailclass : undefined"
+      :confirm-text="pending?.action === 'bounce' ? pending.domain : undefined"
       :variant="pending?.action === 'resume' ? 'default' : 'destructive'"
       :loading="acting"
       @confirm="confirmAction"

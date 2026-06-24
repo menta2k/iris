@@ -235,7 +235,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.GET("/v1/bounces", _IrisAdminService_ListBounces0_HTTP_Handler(srv))
 	r.GET("/v1/feedback-reports", _IrisAdminService_ListFeedbackReports0_HTTP_Handler(srv))
 	r.GET("/v1/queues", _IrisAdminService_ListQueues0_HTTP_Handler(srv))
-	r.POST("/v1/queues/{mailclass}:action", _IrisAdminService_RequestQueueAction0_HTTP_Handler(srv))
+	r.POST("/v1/queues:action", _IrisAdminService_RequestQueueAction0_HTTP_Handler(srv))
 	r.GET("/v1/dkim-domains", _IrisAdminService_ListDKIMDomains0_HTTP_Handler(srv))
 	r.POST("/v1/dkim-domains", _IrisAdminService_CreateDKIMDomain0_HTTP_Handler(srv))
 	r.PUT("/v1/dkim-domains/{id}", _IrisAdminService_UpdateDKIMDomain0_HTTP_Handler(srv))
@@ -640,9 +640,6 @@ func _IrisAdminService_RequestQueueAction0_HTTP_Handler(srv IrisAdminServiceHTTP
 			return err
 		}
 		if err := ctx.BindQuery(&in); err != nil {
-			return err
-		}
-		if err := ctx.BindVars(&in); err != nil {
 			return err
 		}
 		http.SetOperation(ctx, OperationIrisAdminServiceRequestQueueAction)
@@ -2725,7 +2722,7 @@ func (c *IrisAdminServiceHTTPClientImpl) RequestAcmeCertificate(ctx context.Cont
 
 func (c *IrisAdminServiceHTTPClientImpl) RequestQueueAction(ctx context.Context, in *RequestQueueActionRequest, opts ...http.CallOption) (*QueueActionReply, error) {
 	var out QueueActionReply
-	pattern := "/v1/queues/{mailclass}:action"
+	pattern := "/v1/queues:action"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceRequestQueueAction))
 	opts = append(opts, http.PathTemplate(pattern))

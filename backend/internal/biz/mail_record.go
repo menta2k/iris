@@ -46,8 +46,11 @@ type MailFilter struct {
 	From      string
 	Recipient string
 	VMTAID    string
-	FromTime  *time.Time
-	ToTime    *time.Time
+	// Status filters by mail-record status (e.g. "deferred" to see what's stuck
+	// in the queue). Empty matches all.
+	Status   string
+	FromTime *time.Time
+	ToTime   *time.Time
 }
 
 // NormalizeMailFilter sanitizes and bounds the free-text filter fields.
@@ -57,6 +60,7 @@ func NormalizeMailFilter(f MailFilter) (MailFilter, error) {
 	f.From = strings.ToLower(SanitizeFilter(f.From))
 	f.Recipient = strings.ToLower(SanitizeFilter(f.Recipient))
 	f.VMTAID = SanitizeFilter(f.VMTAID)
+	f.Status = strings.ToLower(SanitizeFilter(f.Status))
 	if f.FromTime != nil && f.ToTime != nil && f.ToTime.Before(*f.FromTime) {
 		return f, Invalid("MAIL_FILTER_RANGE", "to_time must not be before from_time")
 	}

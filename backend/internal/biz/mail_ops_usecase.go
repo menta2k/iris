@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"strings"
 )
 
 // MailOpsRepo is the persistence boundary for mail operations.
@@ -11,10 +12,17 @@ type MailOpsRepo interface {
 	ListMailRecords(ctx context.Context, f MailFilter, page Page) ([]*MailRecord, error)
 	ListBounces(ctx context.Context, page Page) ([]*BounceRecord, error)
 	ListFeedbackReports(ctx context.Context, page Page) ([]*FeedbackReport, error)
-	ListQueues(ctx context.Context, page Page) ([]*MailclassQueue, error)
 	CreateServiceControlRequest(ctx context.Context, rec *ServiceControlRecord) (*ServiceControlRecord, error)
 	ActiveServiceControlExists(ctx context.Context) (bool, error)
 	UpdateServiceControlStatus(ctx context.Context, id, status, resultSummary string) error
+}
+
+// KumoQueueAdmin controls kumod's live scheduled queues over its admin HTTP API.
+type KumoQueueAdmin interface {
+	QueueSummary(ctx context.Context) ([]*QueueState, error)
+	SuspendQueue(ctx context.Context, domain, reason string) (string, error)
+	ResumeQueue(ctx context.Context, domain string) (string, error)
+	BounceQueue(ctx context.Context, domain, reason string) (string, error)
 }
 
 // CommandProducer enqueues asynchronous queue and service-control commands.
@@ -29,11 +37,19 @@ type MailOpsUsecase struct {
 	repo     MailOpsRepo
 	producer CommandProducer
 	auditor  *Auditor
+	queue    KumoQueueAdmin
 }
 
 // NewMailOpsUsecase constructs the use case.
 func NewMailOpsUsecase(repo MailOpsRepo, producer CommandProducer, auditor *Auditor) *MailOpsUsecase {
 	return &MailOpsUsecase{repo: repo, producer: producer, auditor: auditor}
+}
+
+// WithQueueAdmin wires the live kumod queue controller used by ListQueues and
+// RequestQueueAction. Without it those operations report unavailable.
+func (uc *MailOpsUsecase) WithQueueAdmin(q KumoQueueAdmin) *MailOpsUsecase {
+	uc.queue = q
+	return uc
 }
 
 // ListMailRecords returns filtered mail-log records.
@@ -64,41 +80,68 @@ func (uc *MailOpsUsecase) ListFeedbackReports(ctx context.Context, page Page) ([
 	return uc.repo.ListFeedbackReports(ctx, page)
 }
 
-// ListQueues returns current per-mailclass queue snapshots.
-func (uc *MailOpsUsecase) ListQueues(ctx context.Context, page Page) ([]*MailclassQueue, error) {
+// ListQueues returns kumod's live scheduled-queue summary (per destination
+// domain), including suspended state.
+func (uc *MailOpsUsecase) ListQueues(ctx context.Context) ([]*QueueState, error) {
 	if _, err := RequirePermission(ctx, PermQueueRead); err != nil {
 		return nil, err
 	}
-	return uc.repo.ListQueues(ctx, page)
+	if uc.queue == nil {
+		return nil, Unavailable("QUEUE_ADMIN_UNCONFIGURED", "kumod queue admin is not configured")
+	}
+	return uc.queue.QueueSummary(ctx)
 }
 
-// QueueActionResult is returned after enqueueing a queue command.
+// Queue action verbs.
+const (
+	QueueActionSuspend = "suspend"
+	QueueActionResume  = "resume"
+	QueueActionBounce  = "bounce"
+)
+
+// QueueActionResult is returned after a queue-control action.
 type QueueActionResult struct {
-	RequestID string
-	Status    string
+	Status  string
+	Summary string
 }
 
-// RequestQueueAction validates and enqueues a queue-control command, auditing
-// the request.
-func (uc *MailOpsUsecase) RequestQueueAction(ctx context.Context, mailclass, action, confirmationID string) (*QueueActionResult, error) {
-	id, err := RequirePermission(ctx, PermQueueControl)
-	if err != nil {
-		uc.audit(ctx, "queue.action", "queue", mailclass, AuditDenied, map[string]any{"action": action})
+// RequestQueueAction performs a live queue-control action (suspend/resume/bounce)
+// on kumod for a destination domain, synchronously, and audits it. Bounce is
+// destructive and requires a confirmation id.
+func (uc *MailOpsUsecase) RequestQueueAction(ctx context.Context, action, domain, reason, confirmationID string) (*QueueActionResult, error) {
+	if _, err := RequirePermission(ctx, PermQueueControl); err != nil {
+		uc.audit(ctx, "queue.action", "queue", domain, AuditDenied, map[string]any{"action": action})
 		return nil, err
 	}
-	if err := ValidateQueueActionRequest(mailclass, action, confirmationID); err != nil {
+	if uc.queue == nil {
+		return nil, Unavailable("QUEUE_ADMIN_UNCONFIGURED", "kumod queue admin is not configured")
+	}
+	domain = strings.ToLower(strings.TrimSpace(domain))
+	if domain == "" {
+		return nil, Invalid("QUEUE_DOMAIN_REQUIRED", "domain is required")
+	}
+
+	var summary string
+	var err error
+	switch action {
+	case QueueActionSuspend:
+		summary, err = uc.queue.SuspendQueue(ctx, domain, reason)
+	case QueueActionResume:
+		summary, err = uc.queue.ResumeQueue(ctx, domain)
+	case QueueActionBounce:
+		if strings.TrimSpace(confirmationID) == "" {
+			return nil, Invalid("CONFIRMATION_REQUIRED", "confirmation_id is required to bounce a queue (destructive)")
+		}
+		summary, err = uc.queue.BounceQueue(ctx, domain, reason)
+	default:
+		return nil, Invalid("QUEUE_ACTION_INVALID", "action %q must be suspend, resume, or bounce", action)
+	}
+	if err != nil {
+		uc.audit(ctx, "queue.action", "queue", domain, AuditFailure, map[string]any{"action": action})
 		return nil, err
 	}
-	reqID, err := uc.producer.PublishQueueCommand(ctx, mailclass, action, confirmationID)
-	if err != nil {
-		uc.audit(ctx, "queue.action", "queue", mailclass, AuditFailure, map[string]any{"action": action})
-		return nil, Internal(err, "enqueue queue command")
-	}
-	_ = id
-	uc.audit(ctx, "queue.action", "queue", mailclass, AuditSuccess, map[string]any{
-		"action": action, "request_id": reqID,
-	})
-	return &QueueActionResult{RequestID: reqID, Status: "pending"}, nil
+	uc.audit(ctx, "queue.action", "queue", domain, AuditSuccess, map[string]any{"action": action, "reason": reason})
+	return &QueueActionResult{Status: "ok", Summary: summary}, nil
 }
 
 // RequestServiceControl validates, persists, and enqueues a serialized KumoMTA
