@@ -12,11 +12,12 @@ type KumoConfigRepo struct {
 	outbound *OutboundConfigRepo
 	safety   *DomainSafetyRepo
 	inbound  *InboundRepo
+	fbl      *FBLRepo
 }
 
 // NewKumoConfigRepo constructs the snapshot loader.
-func NewKumoConfigRepo(outbound *OutboundConfigRepo, safety *DomainSafetyRepo, inbound *InboundRepo) *KumoConfigRepo {
-	return &KumoConfigRepo{outbound: outbound, safety: safety, inbound: inbound}
+func NewKumoConfigRepo(outbound *OutboundConfigRepo, safety *DomainSafetyRepo, inbound *InboundRepo, fbl *FBLRepo) *KumoConfigRepo {
+	return &KumoConfigRepo{outbound: outbound, safety: safety, inbound: inbound, fbl: fbl}
 }
 
 var _ biz.ConfigSnapshotLoader = (*KumoConfigRepo)(nil)
@@ -51,6 +52,11 @@ func (r *KumoConfigRepo) Snapshot(ctx context.Context) (biz.ConfigSnapshot, erro
 	}
 	if r.inbound != nil {
 		if snap.InboundWebhooks, err = r.inbound.ListWebhookRulesForPolicy(ctx); err != nil {
+			return snap, err
+		}
+	}
+	if r.fbl != nil {
+		if snap.FBLEndpoints, err = r.fbl.ListFBLEndpointsForPolicy(ctx); err != nil {
 			return snap, err
 		}
 	}

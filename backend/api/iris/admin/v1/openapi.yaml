@@ -421,6 +421,90 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/DomainBounceCheck'
+    /v1/feedback-loops:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                Feedback loops -----------------------------------------------------------
+                 Per-domain FBL enrollments: while awaiting approval, inbound feedback mail
+                 is forwarded to a human; once approved the domain enables the ARF parser.
+            operationId: IrisAdminService_ListFeedbackLoops
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListFeedbackLoopsReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateFeedbackLoop
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateFeedbackLoopRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/FeedbackLoop'
+    /v1/feedback-loops/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateFeedbackLoop
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateFeedbackLoopRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/FeedbackLoop'
+        delete:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_DeleteFeedbackLoop
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteFeedbackLoopReply'
     /v1/feedback-reports:
         get:
             tags:
@@ -1456,6 +1540,17 @@ components:
                     type: string
                 private_key_ref:
                     type: string
+        CreateFeedbackLoopRequest:
+            type: object
+            properties:
+                domain:
+                    type: string
+                feedback_address:
+                    type: string
+                forward_address:
+                    type: string
+                status:
+                    type: string
         CreateListenerRequest:
             type: object
             properties:
@@ -1608,6 +1703,9 @@ components:
         DeleteAcmeCertificateReply:
             type: object
             properties: {}
+        DeleteFeedbackLoopReply:
+            type: object
+            properties: {}
         DeleteTLSPolicyReply:
             type: object
             properties: {}
@@ -1650,6 +1748,20 @@ components:
         EnrollMFARequest:
             type: object
             properties: {}
+        FeedbackLoop:
+            type: object
+            properties:
+                id:
+                    type: string
+                domain:
+                    type: string
+                feedback_address:
+                    type: string
+                forward_address:
+                    type: string
+                status:
+                    type: string
+            description: Feedback loops ------------------------------------------------------------
         FeedbackReport:
             type: object
             properties:
@@ -1720,13 +1832,6 @@ components:
                 soft_bounce_threshold:
                     type: integer
                     format: int32
-                fbl_domains:
-                    type: array
-                    items:
-                        type: string
-                    description: |-
-                        FBL/ARF feedback domains (log_arf): kumod parses ARF reports received at
-                         any of these domains. Empty disables the FBL pipeline.
                 admin_http_addr:
                     type: string
                     description: |-
@@ -1844,6 +1949,15 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/DKIMDomain'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListFeedbackLoopsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/FeedbackLoop'
                 page:
                     $ref: '#/components/schemas/PageReply'
         ListFeedbackReportsReply:
@@ -2269,6 +2383,19 @@ components:
                     description: PEM-encoded RSA private key; empty preserves the stored key.
                 status:
                     type: string
+        UpdateFeedbackLoopRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                domain:
+                    type: string
+                feedback_address:
+                    type: string
+                forward_address:
+                    type: string
+                status:
+                    type: string
         UpdateGlobalSettingsRequest:
             type: object
             properties:
@@ -2297,10 +2424,6 @@ components:
                 soft_bounce_threshold:
                     type: integer
                     format: int32
-                fbl_domains:
-                    type: array
-                    items:
-                        type: string
                 admin_http_addr:
                     type: string
                 admin_tls_enabled:

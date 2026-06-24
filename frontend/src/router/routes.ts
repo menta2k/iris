@@ -105,6 +105,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { permission: 'service:control', title: 'Global Settings' },
       },
       {
+        path: 'settings/feedback-loops',
+        name: 'feedback-loops',
+        component: () => import('@/pages/settings/FeedbackLoopsPage.vue'),
+        meta: { permission: 'service:control', title: 'Feedback Loops' },
+      },
+      {
         path: 'operations/acme',
         name: 'acme',
         component: () => import('@/pages/operations/AcmePage.vue'),

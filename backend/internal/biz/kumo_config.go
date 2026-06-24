@@ -72,11 +72,14 @@ type ConfigSnapshot struct {
 	// (b+<hmac>.<msgid>@<bounce_domain>) so async DSNs correlate to the message.
 	BounceVerpSecret string
 
-	// FBLDomains, when non-empty, makes kumod parse RFC 5965 ARF feedback reports
-	// received at any of these domains (log_arf) and emit a Feedback log record,
-	// which the log hook streams to the feedback consumer (auto-suppression).
-	// Requires the log hook (LogStreamRedisURL) to actually reach iris.
-	FBLDomains []string
+	// FBLEndpoints are the per-domain feedback-loop enrollments. An "approved"
+	// endpoint makes kumod parse RFC 5965 ARF feedback reports at its domain
+	// (log_arf) and emit a Feedback log record, which the log hook streams to the
+	// feedback consumer (auto-suppression; requires LogStreamRedisURL). An
+	// "awaiting_approval" endpoint instead relays its domain and forwards mail
+	// arriving at its feedback address to the forward address (so a human can
+	// read the mailbox provider's enrollment-confirmation email).
+	FBLEndpoints []*FBLEndpoint
 
 	// GeneratedBy/GeneratorVersion annotate the rendered header.
 	GeneratedBy      string
@@ -260,7 +263,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	// Suppression lookup tables.
 	supp := writeSuppression(&b, snap.Suppressions)
 	// Routing table (priority-ordered) and reception hook (which signs DKIM).
-	routes := writeRouting(&b, snap.Routes, vmtaName, groupName, snap.rspamdEnabled(), bounceEnabled(snap), webhookEnabled(snap), verpEnabled(snap))
+	routes := writeRouting(&b, snap.Routes, vmtaName, groupName, snap.rspamdEnabled(), bounceEnabled(snap), webhookEnabled(snap), verpEnabled(snap), fblForwardEnabled(snap))
 	// get_queue_config maps tenant → egress pool (and the log-stream tracker).
 	writeQueueConfig(&b, snap)
 
@@ -413,7 +416,7 @@ end
 	return n
 }
 
-func writeRouting(b *strings.Builder, routes []*RoutingRule, vmtaName, groupName map[string]string, rspamd, bounce, webhook, verp bool) int {
+func writeRouting(b *strings.Builder, routes []*RoutingRule, vmtaName, groupName map[string]string, rspamd, bounce, webhook, verp, fblForward bool) int {
 	b.WriteString("-- ===== routing rules (descending priority: higher priority wins) =====\n")
 	b.WriteString("-- A mailclass match is a header (name + value) pair; recipient matches use\n")
 	b.WriteString("-- the address/domain. The first matching rule (highest priority) wins.\n")
@@ -534,6 +537,22 @@ kumo.on('smtp_server_message_received', function(msg)
     local rdom = (rcpt and rcpt.domain or ''):lower()
     if rdom == BOUNCE_DOMAIN then
       msg:set_meta('queue', DSN_TRACKER)
+      return
+    end
+  end
+`)
+	}
+	if fblForward {
+		// Awaiting-approval FBL forward: mail arriving at a feedback address whose
+		// endpoint is still awaiting approval is forwarded to the human approval
+		// mailbox by rewriting the recipient and letting it relay onward (before
+		// suppression/classification, so the mailbox provider's enrollment
+		// confirmation is never dropped).
+		b.WriteString(`  do
+    local rcpt = msg:recipient()
+    local fwd = FBL_FORWARD[(rcpt and rcpt.email or ''):lower()]
+    if fwd then
+      msg:set_recipient(fwd)
       return
     end
   end
@@ -998,14 +1017,61 @@ func luaLogHeaderList(routes []*RoutingRule) string {
 // the Iris DSN consumer reads it.
 const DSNStreamName = "iris.dsn.events"
 
-// fblEnabled reports whether the FBL/ARF feedback pipeline is rendered. The
-// log_arf parsing works on its own; the resulting Feedback record only reaches
-// iris when the log hook (LogStreamRedisURL) is also configured.
+// fblEnabled reports whether the FBL feedback pipeline is rendered (any approved
+// ARF domain or any awaiting-approval forward). The log_arf parsing works on its
+// own; the resulting Feedback record only reaches iris when the log hook
+// (LogStreamRedisURL) is also configured.
 func fblEnabled(snap ConfigSnapshot) bool {
-	return len(snap.FBLDomains) > 0
+	return len(snap.FBLEndpoints) > 0
+}
+
+// fblApprovedDomains returns the deduped set of domains with an approved FBL
+// endpoint (these enable log_arf ARF parsing).
+func fblApprovedDomains(snap ConfigSnapshot) map[string]bool {
+	out := map[string]bool{}
+	for _, e := range snap.FBLEndpoints {
+		if e == nil || e.Status != FBLApproved {
+			continue
+		}
+		if d := strings.ToLower(strings.TrimSpace(e.Domain)); d != "" {
+			out[d] = true
+		}
+	}
+	return out
+}
+
+// fblForwards returns the awaiting-approval endpoints whose mail should be
+// forwarded. Endpoints on a domain that is also approved are excluded: log_arf
+// is per-domain, so an approved entry forces ARF parsing for the whole domain
+// and the forward could never fire (approved wins).
+func fblForwards(snap ConfigSnapshot) []*FBLEndpoint {
+	approved := fblApprovedDomains(snap)
+	var out []*FBLEndpoint
+	for _, e := range snap.FBLEndpoints {
+		if e == nil || e.Status != FBLAwaitingApproval {
+			continue
+		}
+		d := strings.ToLower(strings.TrimSpace(e.Domain))
+		addr := strings.ToLower(strings.TrimSpace(e.FeedbackAddress))
+		fwd := strings.ToLower(strings.TrimSpace(e.ForwardAddress))
+		if d == "" || addr == "" || fwd == "" || approved[d] {
+			continue
+		}
+		out = append(out, e)
+	}
+	return out
+}
+
+// fblForwardEnabled reports whether any awaiting-approval forward is rendered
+// (and therefore whether the reception-hook forward block is emitted).
+func fblForwardEnabled(snap ConfigSnapshot) bool {
+	return len(fblForwards(snap)) > 0
 }
 
 // writeBounceConsts emits the bounce/DSN + FBL constants (empty when disabled).
+// Three FBL tables are rendered: FBL_DOMAINS (approved domains → ARF parsing),
+// FBL_FORWARD (feedback address → forward address, for awaiting approval), and
+// FBL_RELAY_DOMAINS (awaiting-approval domains the listener must relay).
 func writeBounceConsts(b *strings.Builder, snap ConfigSnapshot) {
 	b.WriteString("-- ===== bounce / DSN + FBL pipeline constants =====\n")
 	bounceDomain, dsnTracker, dsnStream := "", "", ""
@@ -1018,12 +1084,23 @@ func writeBounceConsts(b *strings.Builder, snap ConfigSnapshot) {
 	fmt.Fprintf(b, "local DSN_TRACKER   = %s\n", MustLuaString(dsnTracker))
 	fmt.Fprintf(b, "local DSN_STREAM    = %s\n", MustLuaString(dsnStream))
 	b.WriteString("local FBL_DOMAINS  = {}\n")
-	for _, d := range snap.FBLDomains {
-		d = strings.ToLower(strings.TrimSpace(d))
-		if d == "" {
-			continue
-		}
+	b.WriteString("local FBL_FORWARD  = {}\n")
+	b.WriteString("local FBL_RELAY_DOMAINS = {}\n")
+	approved := fblApprovedDomains(snap)
+	approvedSorted := make([]string, 0, len(approved))
+	for d := range approved {
+		approvedSorted = append(approvedSorted, d)
+	}
+	sort.Strings(approvedSorted)
+	for _, d := range approvedSorted {
 		fmt.Fprintf(b, "FBL_DOMAINS[%s] = true\n", MustLuaString(d))
+	}
+	for _, e := range fblForwards(snap) {
+		addr := strings.ToLower(strings.TrimSpace(e.FeedbackAddress))
+		fwd := strings.ToLower(strings.TrimSpace(e.ForwardAddress))
+		dom := strings.ToLower(strings.TrimSpace(e.Domain))
+		fmt.Fprintf(b, "FBL_FORWARD[%s] = %s\n", MustLuaString(addr), MustLuaString(fwd))
+		fmt.Fprintf(b, "FBL_RELAY_DOMAINS[%s] = true\n", MustLuaString(dom))
 	}
 	b.WriteString("\n")
 }
@@ -1124,22 +1201,29 @@ end)
 
 // writeListenerDomain emits the single get_listener_domain handler: it relays
 // the bounce domain into the chain (DSN catcher), enables ARF parsing (log_arf)
-// for the FBL domain, and relays inbound mail for any webhook domain. Emitted
-// when any of those pipelines is configured (the event may be defined once).
+// for approved FBL domains, relays awaiting-approval FBL domains (the reception
+// hook forwards their feedback mail), and relays inbound mail for any webhook
+// domain. Emitted when any of those pipelines is configured (the event may be
+// defined once). The approved (ARF) check precedes the awaiting (relay) check so
+// an approved domain always parses ARF for the whole domain.
 func writeListenerDomain(b *strings.Builder, snap ConfigSnapshot) {
 	if !bounceEnabled(snap) && !fblEnabled(snap) && !webhookEnabled(snap) {
 		return
 	}
 	b.WriteString(`-- Accept inbound mail for the bounce domain (relayed into the chain, where the
--- reception hook routes it to the DSN tracker), parse ARF reports at any FBL
--- domain (emitting Feedback log records), and relay webhook domains (routed to
--- the webhook poster).
+-- reception hook routes it to the DSN tracker), parse ARF reports at any approved
+-- FBL domain (emitting Feedback log records), relay awaiting-approval FBL domains
+-- (the reception hook forwards their feedback mail), and relay webhook domains
+-- (routed to the webhook poster).
 kumo.on('get_listener_domain', function(domain, listener)
   if BOUNCE_DOMAIN ~= '' and domain == BOUNCE_DOMAIN then
     return kumo.make_listener_domain { relay_to = true }
   end
   if FBL_DOMAINS[domain] then
     return kumo.make_listener_domain { log_arf = 'LogThenDrop' }
+  end
+  if FBL_RELAY_DOMAINS[domain] then
+    return kumo.make_listener_domain { relay_to = true }
   end
 `)
 	if webhookEnabled(snap) {

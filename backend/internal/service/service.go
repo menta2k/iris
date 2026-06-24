@@ -26,6 +26,7 @@ type Service struct {
 	auth         *biz.AuthUsecase
 	domainSafety *biz.DomainSafetyUsecase
 	inbound      *biz.InboundUsecase
+	fbl          *biz.FBLUsecase
 	dashboard    *biz.DashboardUsecase
 	metrics      *biz.MetricsUsecase
 	kumoConfig   *biz.KumoConfigUsecase
@@ -45,6 +46,7 @@ type Deps struct {
 	Auth         *biz.AuthUsecase
 	DomainSafety *biz.DomainSafetyUsecase
 	Inbound      *biz.InboundUsecase
+	FBL          *biz.FBLUsecase
 	Dashboard    *biz.DashboardUsecase
 	Metrics      *biz.MetricsUsecase
 	KumoConfig   *biz.KumoConfigUsecase
@@ -68,6 +70,7 @@ func NewService(d Deps) *Service {
 		auth:         d.Auth,
 		domainSafety: d.DomainSafety,
 		inbound:      d.Inbound,
+		fbl:          d.FBL,
 		dashboard:    d.Dashboard,
 		metrics:      d.Metrics,
 		kumoConfig:   d.KumoConfig,

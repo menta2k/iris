@@ -39,7 +39,6 @@ const form = ref({
   bounce_domain: '',
   auto_suppress_hard_bounces: true,
   soft_bounce_threshold: 0,
-  fbl_domains_text: '',
   admin_http_addr: '',
   admin_tls_enabled: false,
   admin_tls_cert_domain: '',
@@ -62,7 +61,6 @@ function apply(s: GlobalSettings) {
     bounce_domain: s.bounceDomain || '',
     auto_suppress_hard_bounces: s.autoSuppressHardBounces ?? true,
     soft_bounce_threshold: s.softBounceThreshold ?? 0,
-    fbl_domains_text: (s.fblDomains ?? []).join('\n'),
     admin_http_addr: s.adminHttpAddr || '',
     admin_tls_enabled: s.adminTlsEnabled ?? false,
     admin_tls_cert_domain: s.adminTlsCertDomain || '',
@@ -97,14 +95,6 @@ async function load() {
   }
 }
 
-// FBL domains are edited as free text (one per line / comma-separated).
-function parseFblDomains(text: string): string[] {
-  return text
-    .split(/[\n,]+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
-}
-
 async function save() {
   saving.value = true
   try {
@@ -122,7 +112,6 @@ async function save() {
         bounce_domain: form.value.bounce_domain,
         auto_suppress_hard_bounces: form.value.auto_suppress_hard_bounces,
         soft_bounce_threshold: form.value.soft_bounce_threshold,
-        fbl_domains: parseFblDomains(form.value.fbl_domains_text),
         admin_http_addr: form.value.admin_http_addr,
         admin_tls_enabled: form.value.admin_tls_enabled,
         admin_tls_cert_domain: form.value.admin_tls_cert_domain,
@@ -276,21 +265,6 @@ onMounted(load)
               <p class="text-xs text-muted-foreground">
                 Suppress a recipient after this many soft (4xx) bounces. 0 disables soft-bounce
                 suppression.
-              </p>
-            </div>
-            <div class="space-y-1.5">
-              <Label for="fbl-domains">Feedback (FBL/ARF) domains</Label>
-              <textarea
-                id="fbl-domains"
-                v-model="form.fbl_domains_text"
-                rows="3"
-                class="flex w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                placeholder="fbl.example.com&#10;complaints.example.com"
-              ></textarea>
-              <p class="text-xs text-muted-foreground">
-                KumoMTA parses RFC 5965 ARF feedback reports sent to any of these domains and emits
-                Feedback records, which auto-suppress the complainant. One domain per line. Requires
-                the log-stream Redis URL. Leave blank to disable.
               </p>
             </div>
           </CardContent>

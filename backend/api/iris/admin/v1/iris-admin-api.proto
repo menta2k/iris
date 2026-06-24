@@ -119,6 +119,22 @@ service IrisAdminService {
     option (google.api.http) = { get: "/v1/rspamd-results" };
   }
 
+  // Feedback loops -----------------------------------------------------------
+  // Per-domain FBL enrollments: while awaiting approval, inbound feedback mail
+  // is forwarded to a human; once approved the domain enables the ARF parser.
+  rpc ListFeedbackLoops(ListFeedbackLoopsRequest) returns (ListFeedbackLoopsReply) {
+    option (google.api.http) = { get: "/v1/feedback-loops" };
+  }
+  rpc CreateFeedbackLoop(CreateFeedbackLoopRequest) returns (FeedbackLoop) {
+    option (google.api.http) = { post: "/v1/feedback-loops" body: "*" };
+  }
+  rpc UpdateFeedbackLoop(UpdateFeedbackLoopRequest) returns (FeedbackLoop) {
+    option (google.api.http) = { put: "/v1/feedback-loops/{id}" body: "*" };
+  }
+  rpc DeleteFeedbackLoop(DeleteFeedbackLoopRequest) returns (DeleteFeedbackLoopReply) {
+    option (google.api.http) = { delete: "/v1/feedback-loops/{id}" };
+  }
+
   // Authentication -----------------------------------------------------------
   // Login exchanges email + password for a session token. It is exempt from the
   // auth middleware (the operation name contains "Login"). When MFA is required
@@ -652,6 +668,35 @@ message ListRspamdResultsReply {
   PageReply page = 2;
 }
 
+// Feedback loops ------------------------------------------------------------
+message FeedbackLoop {
+  string id = 1;
+  string domain = 2;
+  string feedback_address = 3;
+  string forward_address = 4;
+  string status = 5; // awaiting_approval | approved
+}
+message ListFeedbackLoopsRequest { PageRequest page = 1; }
+message ListFeedbackLoopsReply {
+  repeated FeedbackLoop items = 1;
+  PageReply page = 2;
+}
+message CreateFeedbackLoopRequest {
+  string domain = 1;
+  string feedback_address = 2;
+  string forward_address = 3;
+  string status = 4;
+}
+message UpdateFeedbackLoopRequest {
+  string id = 1;
+  string domain = 2;
+  string feedback_address = 3;
+  string forward_address = 4;
+  string status = 5;
+}
+message DeleteFeedbackLoopRequest { string id = 1; }
+message DeleteFeedbackLoopReply {}
+
 // Security administration ---------------------------------------------------
 message User {
   string id = 1;
@@ -922,9 +967,8 @@ message GlobalSettings {
   string bounce_domain = 10;
   bool auto_suppress_hard_bounces = 11;
   int32 soft_bounce_threshold = 12;
-  // FBL/ARF feedback domains (log_arf): kumod parses ARF reports received at
-  // any of these domains. Empty disables the FBL pipeline.
-  repeated string fbl_domains = 13;
+  // 13 was fbl_domains; FBL is now a per-entry resource (FeedbackLoop).
+  reserved 13;
   // Iris admin server (applied on restart). admin_http_addr overrides the HTTP
   // bind; admin_tls_enabled serves HTTPS using the issued cert whose domain is
   // admin_tls_cert_domain.
@@ -953,7 +997,7 @@ message UpdateGlobalSettingsRequest {
   string bounce_domain = 10;
   bool auto_suppress_hard_bounces = 11;
   int32 soft_bounce_threshold = 12;
-  repeated string fbl_domains = 13;
+  reserved 13; // was fbl_domains
   string admin_http_addr = 14;
   bool admin_tls_enabled = 15;
   string admin_tls_cert_domain = 16;

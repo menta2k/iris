@@ -365,9 +365,13 @@ func TestRenderFBLListenerDomain(t *testing.T) {
 		t.Fatalf("FBL/listener-domain must be absent when unconfigured:\n%s", off.Content)
 	}
 
-	// Enabled: one get_listener_domain handler with log_arf for every FBL domain.
+	// Approved: one get_listener_domain handler with log_arf for every approved
+	// FBL domain. No forward block is rendered.
 	on := base
-	on.FBLDomains = []string{"fbl.example.com", "fbl2.example.com"}
+	on.FBLEndpoints = []*FBLEndpoint{
+		{Domain: "fbl.example.com", FeedbackAddress: "fbl@fbl.example.com", Status: FBLApproved},
+		{Domain: "fbl2.example.com", FeedbackAddress: "fbl@fbl2.example.com", Status: FBLApproved},
+	}
 	r, err := RenderKumoConfig(on)
 	if err != nil || !r.Valid {
 		t.Fatalf("render on: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
@@ -378,9 +382,57 @@ func TestRenderFBLListenerDomain(t *testing.T) {
 		!strings.Contains(r.Content, "log_arf = 'LogThenDrop'") {
 		t.Fatalf("FBL multi-domain log_arf not wired:\n%s", r.Content)
 	}
+	if strings.Contains(r.Content, "FBL_FORWARD[") || strings.Contains(r.Content, "msg:set_recipient(fwd)") {
+		t.Fatalf("approved-only config must not render a forward block:\n%s", r.Content)
+	}
 	// Exactly one get_listener_domain handler (the event may be defined once).
 	if n := strings.Count(r.Content, "kumo.on('get_listener_domain'"); n != 1 {
 		t.Fatalf("expected exactly 1 get_listener_domain handler, got %d", n)
+	}
+}
+
+func TestRenderFBLAwaitingForward(t *testing.T) {
+	base := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "l1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+	}
+
+	// An awaiting-approval endpoint relays its domain and forwards mail at its
+	// feedback address to the forward address (no ARF parse).
+	on := base
+	on.FBLEndpoints = []*FBLEndpoint{
+		{Domain: "fbl.example.com", FeedbackAddress: "fbl@fbl.example.com", ForwardAddress: "ops@example.com", Status: FBLAwaitingApproval},
+	}
+	r, err := RenderKumoConfig(on)
+	if err != nil || !r.Valid {
+		t.Fatalf("render on: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	if !strings.Contains(r.Content, `FBL_FORWARD["fbl@fbl.example.com"] = "ops@example.com"`) ||
+		!strings.Contains(r.Content, `FBL_RELAY_DOMAINS["fbl.example.com"] = true`) ||
+		!strings.Contains(r.Content, "if FBL_RELAY_DOMAINS[domain] then") ||
+		!strings.Contains(r.Content, "msg:set_recipient(fwd)") {
+		t.Fatalf("FBL awaiting-approval forward not wired:\n%s", r.Content)
+	}
+	// Awaiting must not enable ARF parsing for the domain.
+	if strings.Contains(r.Content, `FBL_DOMAINS["fbl.example.com"] = true`) {
+		t.Fatalf("awaiting-approval domain must not enable log_arf:\n%s", r.Content)
+	}
+
+	// Mixed: a domain with both an approved and an awaiting endpoint → approved
+	// wins (ARF for the whole domain, no forward).
+	mixed := base
+	mixed.FBLEndpoints = []*FBLEndpoint{
+		{Domain: "fbl.example.com", FeedbackAddress: "arf@fbl.example.com", Status: FBLApproved},
+		{Domain: "fbl.example.com", FeedbackAddress: "pending@fbl.example.com", ForwardAddress: "ops@example.com", Status: FBLAwaitingApproval},
+	}
+	rm, err := RenderKumoConfig(mixed)
+	if err != nil || !rm.Valid {
+		t.Fatalf("render mixed: err=%v valid=%v issues=%v", err, rm.Valid, rm.LintIssues)
+	}
+	if !strings.Contains(rm.Content, `FBL_DOMAINS["fbl.example.com"] = true`) {
+		t.Fatalf("mixed: approved domain must still enable log_arf:\n%s", rm.Content)
+	}
+	if strings.Contains(rm.Content, "FBL_FORWARD[") || strings.Contains(rm.Content, `FBL_RELAY_DOMAINS["fbl.example.com"]`) {
+		t.Fatalf("mixed: awaiting entry on an approved domain must be excluded from forward:\n%s", rm.Content)
 	}
 }
 

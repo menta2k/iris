@@ -35,9 +35,6 @@ func TestGlobalSettingsValidate(t *testing.T) {
 	// Bounce/DSN pipeline fields.
 	assertReason(t, (&GlobalSettings{BounceDomain: "bounce.example.com"}).Validate(), "")
 	assertReason(t, (&GlobalSettings{BounceDomain: "not a domain"}).Validate(), "SETTINGS_BOUNCE_DOMAIN_INVALID")
-	assertReason(t, (&GlobalSettings{FBLDomains: []string{"fbl.example.com"}}).Validate(), "")
-	assertReason(t, (&GlobalSettings{FBLDomains: []string{"fbl.a.example", "fbl.b.example"}}).Validate(), "")
-	assertReason(t, (&GlobalSettings{FBLDomains: []string{"not a domain"}}).Validate(), "SETTINGS_FBL_DOMAIN_INVALID")
 	assertReason(t, (&GlobalSettings{SoftBounceThreshold: 5}).Validate(), "")
 	assertReason(t, (&GlobalSettings{SoftBounceThreshold: -1}).Validate(), "SETTINGS_SOFT_THRESHOLD_RANGE")
 	assertReason(t, (&GlobalSettings{SoftBounceThreshold: 1001}).Validate(), "SETTINGS_SOFT_THRESHOLD_RANGE")
@@ -46,23 +43,12 @@ func TestGlobalSettingsValidate(t *testing.T) {
 func TestGlobalSettingsNormalizes(t *testing.T) {
 	g := &GlobalSettings{
 		RspamdMode: "  ENFORCE ", RspamdURL: " http://r:1 ", EgressEHLODomain: " MAIL.Example.COM ",
-		// FBL domains are trimmed, lower-cased, de-duped, and empties dropped.
-		FBLDomains: []string{" FBL.example.COM ", "fbl.example.com", "fbl2.example.com", "  "},
 	}
 	if err := g.Validate(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if g.RspamdMode != "enforce" || g.EgressEHLODomain != "mail.example.com" {
 		t.Fatalf("not normalized: %+v", g)
-	}
-	wantFBL := []string{"fbl.example.com", "fbl2.example.com"}
-	if len(g.FBLDomains) != len(wantFBL) {
-		t.Fatalf("FBL domains: got %v want %v", g.FBLDomains, wantFBL)
-	}
-	for i, d := range wantFBL {
-		if g.FBLDomains[i] != d {
-			t.Fatalf("FBL domains: got %v want %v", g.FBLDomains, wantFBL)
-		}
 	}
 }
 
