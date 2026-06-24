@@ -416,20 +416,29 @@ func TestRenderFBLAwaitingForward(t *testing.T) {
 	}
 	if !strings.Contains(r.Content, `FBL_FORWARD["fbl@fbl.example.com"] = "ops@example.com"`) ||
 		!strings.Contains(r.Content, `FBL_RELAY_DOMAINS["fbl.example.com"] = true`) ||
-		!strings.Contains(r.Content, "if FBL_RELAY_DOMAINS[domain] then") ||
-		!strings.Contains(r.Content, "msg:set_recipient(fwd)") {
+		!strings.Contains(r.Content, "if FBL_RELAY_DOMAINS[domain] then") {
 		t.Fatalf("FBL awaiting-approval forward not wired:\n%s", r.Content)
 	}
-	// The forward rewrites the sender (SPF), tags the class, and pins an egress pool.
+	// The forward re-injects a new local message (not set_recipient, which would be
+	// rejected as external relaying), with a local SPF sender + egress pool, and
+	// consumes the carrier via the sink queue.
 	for _, want := range []string{
-		"msg:set_meta('mailclass', 'fbl-forward')",
-		"msg:set_sender('fbl-forward@' .. dom)",
+		"kumo.make_message('fbl-forward@' .. dom, fwd, msg:get_data())",
+		"kumo.inject_message(copy)",
+		"copy:set_meta('mailclass', 'fbl-forward')",
 		`local FBL_FORWARD_POOL = "v1"`,
-		"msg:set_meta('tenant', FBL_FORWARD_POOL)",
+		"copy:set_meta('tenant', FBL_FORWARD_POOL)",
+		"msg:set_meta('queue', FBL_FORWARD_SINK)",
+		"kumo.on('make.fbl_sink'",
+		"if domain == FBL_FORWARD_SINK then",
 	} {
 		if !strings.Contains(r.Content, want) {
-			t.Fatalf("FBL forward hardening missing %q:\n%s", want, r.Content)
+			t.Fatalf("FBL forward re-injection missing %q:\n%s", want, r.Content)
 		}
+	}
+	// It must NOT use set_recipient on the inbound message anymore.
+	if strings.Contains(r.Content, "msg:set_recipient(fwd)") {
+		t.Fatalf("FBL forward must re-inject, not set_recipient on the inbound msg:\n%s", r.Content)
 	}
 	// Awaiting must not enable ARF parsing for the domain.
 	if strings.Contains(r.Content, `FBL_DOMAINS["fbl.example.com"] = true`) {

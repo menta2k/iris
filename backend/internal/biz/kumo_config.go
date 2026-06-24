@@ -250,6 +250,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	writeListenerDomain(&b, snap)
 	writeDsnCatcher(&b, snap)
 	writeDMARCCatcher(&b, snap)
+	writeFBLSink(&b, snap)
 	// VERP envelope rewrite (outbound return-path → bounce domain).
 	writeBounceVerp(&b, snap)
 	// Egress sources (one per active VMTA).
@@ -614,23 +615,27 @@ kumo.on('smtp_server_message_received', function(msg)
     local email = (rcpt and rcpt.email or ''):lower()
     local fwd = FBL_FORWARD[email]
     if fwd then
-      -- Tag the class so the forward is identifiable in the mail log (this hook
-      -- returns before classify_mail runs).
-      msg:set_meta('mailclass', 'fbl-forward')
-      -- Rewrite the envelope sender to a local address at the feedback domain so
-      -- the forwarded mail passes SPF from our egress IP (the provider's original
-      -- sender would fail SPF). Bounces of the forward return here, not to the
-      -- provider.
+      -- Forward by re-injecting a NEW, locally-originated message. Rewriting this
+      -- inbound message's recipient and relaying it would be rejected as relaying
+      -- to an external domain (anti-open-relay, since the sender is external); an
+      -- injected message is treated as a local submission and is not relay-bound.
+      -- The envelope sender is rewritten to a local address at the feedback domain
+      -- so the forward passes SPF from our egress IP; it is pinned to a real
+      -- egress source and tagged for the mail log. The original carrier message is
+      -- then consumed by the sink queue.
       local dom = (rcpt and rcpt.domain or ''):lower()
-      if dom ~= '' then
-        msg:set_sender('fbl-forward@' .. dom)
+      local ok, err = pcall(function()
+        local copy = kumo.make_message('fbl-forward@' .. dom, fwd, msg:get_data())
+        copy:set_meta('mailclass', 'fbl-forward')
+        if FBL_FORWARD_POOL ~= '' then
+          copy:set_meta('tenant', FBL_FORWARD_POOL)
+        end
+        kumo.inject_message(copy)
+      end)
+      if not ok then
+        kumo.log_error('fbl: forward inject failed err=' .. tostring(err))
       end
-      -- Pin to a real egress source so it delivers from a known IP (the default
-      -- pool has no bound source); the feedback domain's SPF must cover it.
-      if FBL_FORWARD_POOL ~= '' then
-        msg:set_meta('tenant', FBL_FORWARD_POOL)
-      end
-      msg:set_recipient(fwd)
+      msg:set_meta('queue', FBL_FORWARD_SINK)
       return
     end
   end
@@ -801,6 +806,16 @@ func writeQueueConfig(b *strings.Builder, snap ConfigSnapshot) {
       protocol = { custom_lua = { constructor = 'make.dmarc_xadd' } },
       retry_interval = '1m',
       max_retry_interval = '30m',
+    }
+  end
+`)
+	}
+	if fblForwardEnabled(snap) {
+		// FBL forward carrier sink: the original message is consumed here after its
+		// content was re-injected to the forward address.
+		b.WriteString(`  if domain == FBL_FORWARD_SINK then
+    return kumo.make_queue_config {
+      protocol = { custom_lua = { constructor = 'make.fbl_sink' } },
     }
   end
 `)
@@ -1243,6 +1258,7 @@ func writeBounceConsts(b *strings.Builder, snap ConfigSnapshot) {
 		dmarcStream = DMARCStreamName
 		dmarcTracker = "iris_dmarc_catcher"
 	}
+	b.WriteString("local FBL_FORWARD_SINK = \"iris_fbl_sink\"\n")
 	fmt.Fprintf(b, "local DMARC_REPORT_ADDR   = %s\n", MustLuaString(dmarcAddr))
 	fmt.Fprintf(b, "local DMARC_REPORT_DOMAIN = %s\n", MustLuaString(dmarcDomain))
 	fmt.Fprintf(b, "local DMARC_STREAM        = %s\n", MustLuaString(dmarcStream))
@@ -1467,6 +1483,24 @@ func writeDMARCCatcher(b *strings.Builder, snap ConfigSnapshot) {
       return '250 dmarc redis unavailable, dropped'
     end
     return '250 dmarc captured'
+  end
+  return connection
+end)
+
+`)
+}
+
+// writeFBLSink emits the make.fbl_sink custom_lua queue that consumes (drops)
+// the original carrier message after its content has been re-injected to the
+// forward address. No-op when no awaiting-approval forward is configured.
+func writeFBLSink(b *strings.Builder, snap ConfigSnapshot) {
+	if !fblForwardEnabled(snap) {
+		return
+	}
+	b.WriteString(`kumo.on('make.fbl_sink', function(_domain, _tenant, _campaign)
+  local connection = {}
+  function connection:send(_message)
+    return '250 fbl carrier consumed'
   end
   return connection
 end)
