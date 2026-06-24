@@ -46,6 +46,7 @@ const OperationIrisAdminServiceGenerateKumoConfig = "/iris.admin.v1.IrisAdminSer
 const OperationIrisAdminServiceGetAcmeAccount = "/iris.admin.v1.IrisAdminService/GetAcmeAccount"
 const OperationIrisAdminServiceGetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/GetAcmeDnsProvider"
 const OperationIrisAdminServiceGetDashboardSummary = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
+const OperationIrisAdminServiceGetDmarcStats = "/iris.admin.v1.IrisAdminService/GetDmarcStats"
 const OperationIrisAdminServiceGetGlobalSettings = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
 const OperationIrisAdminServiceGetMetricsTimeseries = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
 const OperationIrisAdminServiceKumoConfigStatus = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
@@ -54,6 +55,8 @@ const OperationIrisAdminServiceListAcmeDnsProviders = "/iris.admin.v1.IrisAdminS
 const OperationIrisAdminServiceListAuditEntries = "/iris.admin.v1.IrisAdminService/ListAuditEntries"
 const OperationIrisAdminServiceListBounces = "/iris.admin.v1.IrisAdminService/ListBounces"
 const OperationIrisAdminServiceListDKIMDomains = "/iris.admin.v1.IrisAdminService/ListDKIMDomains"
+const OperationIrisAdminServiceListDmarcDomains = "/iris.admin.v1.IrisAdminService/ListDmarcDomains"
+const OperationIrisAdminServiceListDmarcReports = "/iris.admin.v1.IrisAdminService/ListDmarcReports"
 const OperationIrisAdminServiceListFeedbackLoops = "/iris.admin.v1.IrisAdminService/ListFeedbackLoops"
 const OperationIrisAdminServiceListFeedbackReports = "/iris.admin.v1.IrisAdminService/ListFeedbackReports"
 const OperationIrisAdminServiceListListeners = "/iris.admin.v1.IrisAdminService/ListListeners"
@@ -133,6 +136,8 @@ type IrisAdminServiceHTTPServer interface {
 	GetAcmeAccount(context.Context, *GetAcmeAccountRequest) (*AcmeAccount, error)
 	GetAcmeDnsProvider(context.Context, *GetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	GetDashboardSummary(context.Context, *GetDashboardSummaryRequest) (*DashboardSummary, error)
+	// GetDmarcStats DMARC aggregate reports -----------------------------------------------------
+	GetDmarcStats(context.Context, *GetDmarcStatsRequest) (*DmarcStats, error)
 	// GetGlobalSettings Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error)
 	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
@@ -148,6 +153,8 @@ type IrisAdminServiceHTTPServer interface {
 	ListBounces(context.Context, *ListBouncesRequest) (*ListBouncesReply, error)
 	// ListDKIMDomains Domain & recipient safety ------------------------------------------------
 	ListDKIMDomains(context.Context, *ListDKIMDomainsRequest) (*ListDKIMDomainsReply, error)
+	ListDmarcDomains(context.Context, *ListDmarcDomainsRequest) (*ListDmarcDomainsReply, error)
+	ListDmarcReports(context.Context, *ListDmarcReportsRequest) (*ListDmarcReportsReply, error)
 	// ListFeedbackLoops Feedback loops -----------------------------------------------------------
 	// Per-domain FBL enrollments: while awaiting approval, inbound feedback mail
 	// is forwarded to a human; once approved the domain enables the ARF parser.
@@ -279,6 +286,9 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.GET("/v1/domain-check/{domain}", _IrisAdminService_CheckDomainBounceSetup0_HTTP_Handler(srv))
 	r.POST("/v1/tools/diagnose", _IrisAdminService_Diagnose0_HTTP_Handler(srv))
 	r.POST("/v1/tools/rbl-check", _IrisAdminService_RblCheck0_HTTP_Handler(srv))
+	r.GET("/v1/dmarc/stats", _IrisAdminService_GetDmarcStats0_HTTP_Handler(srv))
+	r.GET("/v1/dmarc/reports", _IrisAdminService_ListDmarcReports0_HTTP_Handler(srv))
+	r.GET("/v1/dmarc/domains", _IrisAdminService_ListDmarcDomains0_HTTP_Handler(srv))
 	r.GET("/v1/settings", _IrisAdminService_GetGlobalSettings0_HTTP_Handler(srv))
 	r.PUT("/v1/settings", _IrisAdminService_UpdateGlobalSettings0_HTTP_Handler(srv))
 }
@@ -1709,6 +1719,63 @@ func _IrisAdminService_RblCheck0_HTTP_Handler(srv IrisAdminServiceHTTPServer) fu
 	}
 }
 
+func _IrisAdminService_GetDmarcStats0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetDmarcStatsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetDmarcStats)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetDmarcStats(ctx, req.(*GetDmarcStatsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DmarcStats)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ListDmarcReports0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListDmarcReportsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListDmarcReports)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListDmarcReports(ctx, req.(*ListDmarcReportsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListDmarcReportsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ListDmarcDomains0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListDmarcDomainsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListDmarcDomains)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListDmarcDomains(ctx, req.(*ListDmarcDomainsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListDmarcDomainsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_GetGlobalSettings0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetGlobalSettingsRequest
@@ -1794,6 +1861,8 @@ type IrisAdminServiceHTTPClient interface {
 	GetAcmeAccount(ctx context.Context, req *GetAcmeAccountRequest, opts ...http.CallOption) (rsp *AcmeAccount, err error)
 	GetAcmeDnsProvider(ctx context.Context, req *GetAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	GetDashboardSummary(ctx context.Context, req *GetDashboardSummaryRequest, opts ...http.CallOption) (rsp *DashboardSummary, err error)
+	// GetDmarcStats DMARC aggregate reports -----------------------------------------------------
+	GetDmarcStats(ctx context.Context, req *GetDmarcStatsRequest, opts ...http.CallOption) (rsp *DmarcStats, err error)
 	// GetGlobalSettings Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(ctx context.Context, req *GetGlobalSettingsRequest, opts ...http.CallOption) (rsp *GlobalSettings, err error)
 	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
@@ -1809,6 +1878,8 @@ type IrisAdminServiceHTTPClient interface {
 	ListBounces(ctx context.Context, req *ListBouncesRequest, opts ...http.CallOption) (rsp *ListBouncesReply, err error)
 	// ListDKIMDomains Domain & recipient safety ------------------------------------------------
 	ListDKIMDomains(ctx context.Context, req *ListDKIMDomainsRequest, opts ...http.CallOption) (rsp *ListDKIMDomainsReply, err error)
+	ListDmarcDomains(ctx context.Context, req *ListDmarcDomainsRequest, opts ...http.CallOption) (rsp *ListDmarcDomainsReply, err error)
+	ListDmarcReports(ctx context.Context, req *ListDmarcReportsRequest, opts ...http.CallOption) (rsp *ListDmarcReportsReply, err error)
 	// ListFeedbackLoops Feedback loops -----------------------------------------------------------
 	// Per-domain FBL enrollments: while awaiting approval, inbound feedback mail
 	// is forwarded to a human; once approved the domain enables the ARF parser.
@@ -2246,6 +2317,20 @@ func (c *IrisAdminServiceHTTPClientImpl) GetDashboardSummary(ctx context.Context
 	return &out, nil
 }
 
+// GetDmarcStats DMARC aggregate reports -----------------------------------------------------
+func (c *IrisAdminServiceHTTPClientImpl) GetDmarcStats(ctx context.Context, in *GetDmarcStatsRequest, opts ...http.CallOption) (*DmarcStats, error) {
+	var out DmarcStats
+	pattern := "/v1/dmarc/stats"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetDmarcStats))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // GetGlobalSettings Global settings (deployment-level policy knobs editable in the UI).
 func (c *IrisAdminServiceHTTPClientImpl) GetGlobalSettings(ctx context.Context, in *GetGlobalSettingsRequest, opts ...http.CallOption) (*GlobalSettings, error) {
 	var out GlobalSettings
@@ -2349,6 +2434,32 @@ func (c *IrisAdminServiceHTTPClientImpl) ListDKIMDomains(ctx context.Context, in
 	pattern := "/v1/dkim-domains"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListDKIMDomains))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) ListDmarcDomains(ctx context.Context, in *ListDmarcDomainsRequest, opts ...http.CallOption) (*ListDmarcDomainsReply, error) {
+	var out ListDmarcDomainsReply
+	pattern := "/v1/dmarc/domains"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListDmarcDomains))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) ListDmarcReports(ctx context.Context, in *ListDmarcReportsRequest, opts ...http.CallOption) (*ListDmarcReportsReply, error) {
+	var out ListDmarcReportsReply
+	pattern := "/v1/dmarc/reports"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListDmarcReports))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

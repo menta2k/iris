@@ -204,6 +204,9 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// Tools: sender diagnose + RBL/DNSBL check (live DNS).
 	diagnoseUC := biz.NewDiagnoseUsecase(kumoSnapshotRepo, nil)
 	rblUC := biz.NewRBLUsecase(kumoSnapshotRepo, nil)
+	// DMARC aggregate-report parsing.
+	dmarcRepo := data.NewDMARCRepo(db)
+	dmarcUC := biz.NewDMARCUsecase(dmarcRepo, auditor)
 
 	inboundUC := biz.NewInboundUsecase(inboundRepo, auditor, cfg.KumoMTA.Stub)
 	fblUC := biz.NewFBLUsecase(fblRepo, auditor)
@@ -263,6 +266,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		DomainCheck:  domainCheckUC,
 		Diagnose:     diagnoseUC,
 		RBL:          rblUC,
+		DMARC:        dmarcUC,
 	}
 
 	svc := service.NewService(deps)
@@ -277,6 +281,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, log).Run)
 	// DSN consumer: async bounces captured at the configured bounce domain.
 	startWorker(ctx, log, "dsn", worker.NewDSNWorker(streams, mailOpsRepo, domainSafetyRepo, verpKey, biz.DSNStreamName, log).Run)
+	startWorker(ctx, log, "dmarc", worker.NewDMARCWorker(streams, dmarcUC, biz.DMARCStreamName, log).Run)
 	// ACME: HTTP-01 challenge listener (default off) + periodic renewer.
 	startWorker(ctx, log, "acme-challenge", worker.NewAcmeChallengeWorker(acmeTokens, envOr("IRIS_ACME_HTTP_BIND", "off"), log).Run)
 	startWorker(ctx, log, "acme-renewer", worker.NewAcmeRenewerWorker(acmeUC, renewInterval, renewBefore, log).Run)

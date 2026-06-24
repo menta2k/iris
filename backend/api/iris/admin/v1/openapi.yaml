@@ -400,6 +400,70 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/GenerateDKIMKeyReply'
+    /v1/dmarc/domains:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListDmarcDomains
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListDmarcDomainsReply'
+    /v1/dmarc/reports:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListDmarcReports
+            parameters:
+                - name: domain
+                  in: query
+                  schema:
+                    type: string
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListDmarcReportsReply'
+    /v1/dmarc/stats:
+        get:
+            tags:
+                - IrisAdminService
+            description: DMARC aggregate reports -----------------------------------------------------
+            operationId: IrisAdminService_GetDmarcStats
+            parameters:
+                - name: domain
+                  in: query
+                  schema:
+                    type: string
+                - name: from
+                  in: query
+                  schema:
+                    type: string
+                - name: to
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DmarcStats'
     /v1/domain-check/{domain}:
         get:
             tags:
@@ -1781,6 +1845,101 @@ components:
         DisableMFARequest:
             type: object
             properties: {}
+        DmarcCount:
+            type: object
+            properties:
+                label:
+                    type: string
+                count:
+                    type: integer
+                    format: int32
+        DmarcDay:
+            type: object
+            properties:
+                date:
+                    type: string
+                messages:
+                    type: integer
+                    format: int32
+                pass:
+                    type: integer
+                    format: int32
+        DmarcDomainStat:
+            type: object
+            properties:
+                domain:
+                    type: string
+                messages:
+                    type: integer
+                    format: int32
+                pass:
+                    type: integer
+                    format: int32
+        DmarcReport:
+            type: object
+            properties:
+                org_name:
+                    type: string
+                report_id:
+                    type: string
+                domain:
+                    type: string
+                date_begin:
+                    type: string
+                date_end:
+                    type: string
+                policy_p:
+                    type: string
+                policy_pct:
+                    type: integer
+                    format: int32
+                received_at:
+                    type: string
+        DmarcSource:
+            type: object
+            properties:
+                ip:
+                    type: string
+                total:
+                    type: integer
+                    format: int32
+                pass:
+                    type: integer
+                    format: int32
+                fail:
+                    type: integer
+                    format: int32
+        DmarcStats:
+            type: object
+            properties:
+                total_messages:
+                    type: integer
+                    format: int32
+                dmarc_pass:
+                    type: integer
+                    format: int32
+                spf_pass:
+                    type: integer
+                    format: int32
+                dkim_pass:
+                    type: integer
+                    format: int32
+                dispositions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DmarcCount'
+                top_sources:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DmarcSource'
+                domains:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DmarcDomainStat'
+                series:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DmarcDay'
         DomainBounceCheck:
             type: object
             properties:
@@ -1925,6 +2084,9 @@ components:
                     description: |-
                         Suppression record lifetime (duration form, e.g. "720h", "30d"). Empty =
                          permanent. Applied as the Redis key TTL on the live suppression list.
+                dmarc_report_email:
+                    type: string
+                    description: DMARC aggregate-report address (advertised as rua=). Empty disables it.
             description: Global settings — deployment-level policy knobs an operator edits in the UI.
         KumoConfig:
             type: object
@@ -2020,6 +2182,22 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/DKIMDomain'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListDmarcDomainsReply:
+            type: object
+            properties:
+                domains:
+                    type: array
+                    items:
+                        type: string
+        ListDmarcReportsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DmarcReport'
                 page:
                     $ref: '#/components/schemas/PageReply'
         ListFeedbackLoopsReply:
@@ -2579,6 +2757,8 @@ components:
                 prometheus_url:
                     type: string
                 suppression_ttl:
+                    type: string
+                dmarc_report_email:
                     type: string
         UpdateListenerRequest:
             type: object

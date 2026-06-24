@@ -63,6 +63,11 @@ type ConfigSnapshot struct {
 	// every listener) for the bounce consumer to process.
 	BounceDomain string
 
+	// DMARCReportAddr, when set, enables the DMARC catcher: inbound mail to this
+	// exact address is routed to the DMARC Redis stream (and its domain relayed)
+	// for the report parser to consume.
+	DMARCReportAddr string
+
 	// BounceClassifierFile, when set, makes the init block load KumoMTA's bounce
 	// classifier rules so Bounce log records carry a classification category.
 	BounceClassifierFile string
@@ -244,6 +249,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	// and the DSN XADD constructor.
 	writeListenerDomain(&b, snap)
 	writeDsnCatcher(&b, snap)
+	writeDMARCCatcher(&b, snap)
 	// VERP envelope rewrite (outbound return-path → bounce domain).
 	writeBounceVerp(&b, snap)
 	// Egress sources (one per active VMTA).
@@ -263,7 +269,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	// Suppression lookup (redis-backed; the list is no longer rendered inline).
 	writeSuppression(&b, snap)
 	// Routing table (priority-ordered) and reception hook (which signs DKIM).
-	routes := writeRouting(&b, snap.Routes, vmtaName, groupName, snap.rspamdEnabled(), bounceEnabled(snap), webhookEnabled(snap), verpEnabled(snap), fblForwardEnabled(snap))
+	routes := writeRouting(&b, snap.Routes, vmtaName, groupName, snap.rspamdEnabled(), bounceEnabled(snap), webhookEnabled(snap), verpEnabled(snap), fblForwardEnabled(snap), dmarcEnabled(snap))
 	// get_queue_config maps tenant → egress pool (and the log-stream tracker).
 	writeQueueConfig(&b, snap)
 
@@ -430,7 +436,7 @@ local is_suppressed = kumo.memoize(_supp_lookup, {
 `)
 }
 
-func writeRouting(b *strings.Builder, routes []*RoutingRule, vmtaName, groupName map[string]string, rspamd, bounce, webhook, verp, fblForward bool) int {
+func writeRouting(b *strings.Builder, routes []*RoutingRule, vmtaName, groupName map[string]string, rspamd, bounce, webhook, verp, fblForward, dmarc bool) int {
 	b.WriteString("-- ===== routing rules (descending priority: higher priority wins) =====\n")
 	b.WriteString("-- A mailclass match is a header (name + value) pair; recipient matches use\n")
 	b.WriteString("-- the address/domain. The first matching rule (highest priority) wins.\n")
@@ -579,6 +585,19 @@ kumo.on('smtp_server_message_received', function(msg)
     local rdom = (rcpt and rcpt.domain or ''):lower()
     if rdom == BOUNCE_DOMAIN then
       msg:set_meta('queue', DSN_TRACKER)
+      return
+    end
+  end
+`)
+	}
+	if dmarc {
+		// Inbound DMARC aggregate-report catcher: mail to the configured report
+		// address is funneled to the DMARC tracker queue (XADDed to Redis for the
+		// report parser), before suppression/classification.
+		b.WriteString(`  do
+    local rcpt = msg:recipient()
+    if (rcpt and rcpt.email or ''):lower() == DMARC_REPORT_ADDR then
+      msg:set_meta('queue', DMARC_TRACKER)
       return
     end
   end
@@ -753,6 +772,18 @@ func writeQueueConfig(b *strings.Builder, snap ConfigSnapshot) {
       protocol = { custom_lua = { constructor = 'make.dsn_xadd' } },
       retry_interval = '30s',
       max_retry_interval = '5m',
+    }
+  end
+`)
+	}
+	if dmarcEnabled(snap) {
+		// Inbound DMARC routing: the reception hook tags report mail with
+		// queue=DMARC_TRACKER; route it to the make.dmarc_xadd custom_lua queue.
+		b.WriteString(`  if domain == DMARC_TRACKER then
+    return kumo.make_queue_config {
+      protocol = { custom_lua = { constructor = 'make.dmarc_xadd' } },
+      retry_interval = '1m',
+      max_retry_interval = '30m',
     }
   end
 `)
@@ -1156,7 +1187,30 @@ func writeBounceConsts(b *strings.Builder, snap ConfigSnapshot) {
 		fmt.Fprintf(b, "FBL_FORWARD[%s] = %s\n", MustLuaString(addr), MustLuaString(fwd))
 		fmt.Fprintf(b, "FBL_RELAY_DOMAINS[%s] = true\n", MustLuaString(dom))
 	}
+	// DMARC aggregate-report catcher constants (empty when disabled).
+	dmarcAddr, dmarcDomain, dmarcStream, dmarcTracker := "", "", "", ""
+	if dmarcEnabled(snap) {
+		dmarcAddr = strings.ToLower(strings.TrimSpace(snap.DMARCReportAddr))
+		dmarcDomain = RecipientDomain(dmarcAddr)
+		dmarcStream = DMARCStreamName
+		dmarcTracker = "iris_dmarc_catcher"
+	}
+	fmt.Fprintf(b, "local DMARC_REPORT_ADDR   = %s\n", MustLuaString(dmarcAddr))
+	fmt.Fprintf(b, "local DMARC_REPORT_DOMAIN = %s\n", MustLuaString(dmarcDomain))
+	fmt.Fprintf(b, "local DMARC_STREAM        = %s\n", MustLuaString(dmarcStream))
+	fmt.Fprintf(b, "local DMARC_TRACKER       = %s\n", MustLuaString(dmarcTracker))
 	b.WriteString("\n")
+}
+
+// DMARCStreamName is the Redis stream the DMARC catcher XADDs inbound aggregate
+// reports onto; the Iris DMARC consumer reads it.
+const DMARCStreamName = "iris.dmarc.events"
+
+// dmarcEnabled reports whether the DMARC aggregate-report capture pipeline is
+// rendered. It needs the report address plus the log-stream Redis (the catcher
+// XADDs onto Redis).
+func dmarcEnabled(snap ConfigSnapshot) bool {
+	return strings.TrimSpace(snap.DMARCReportAddr) != "" && snap.LogStreamRedisURL != ""
 }
 
 // webhookEnabled reports whether any active webhook rule with a destination is
@@ -1261,7 +1315,7 @@ end)
 // defined once). The approved (ARF) check precedes the awaiting (relay) check so
 // an approved domain always parses ARF for the whole domain.
 func writeListenerDomain(b *strings.Builder, snap ConfigSnapshot) {
-	if !bounceEnabled(snap) && !fblEnabled(snap) && !webhookEnabled(snap) {
+	if !bounceEnabled(snap) && !fblEnabled(snap) && !webhookEnabled(snap) && !dmarcEnabled(snap) {
 		return
 	}
 	b.WriteString(`-- Accept inbound mail for the bounce domain (relayed into the chain, where the
@@ -1277,6 +1331,9 @@ kumo.on('get_listener_domain', function(domain, listener)
     return kumo.make_listener_domain { log_arf = 'LogThenDrop' }
   end
   if FBL_RELAY_DOMAINS[domain] then
+    return kumo.make_listener_domain { relay_to = true }
+  end
+  if DMARC_REPORT_DOMAIN ~= '' and domain == DMARC_REPORT_DOMAIN then
     return kumo.make_listener_domain { relay_to = true }
   end
 `)
@@ -1334,6 +1391,34 @@ func writeDsnCatcher(b *strings.Builder, snap ConfigSnapshot) {
       return '250 dsn redis unavailable, dropped'
     end
     return '250 dsn captured'
+  end
+  return connection
+end)
+
+`)
+}
+
+// writeDMARCCatcher emits the make.dmarc_xadd custom_lua queue constructor that
+// XADDs raw inbound DMARC aggregate reports onto the DMARC Redis stream. No-op
+// when the DMARC pipeline is disabled. The report parser consumes the stream.
+func writeDMARCCatcher(b *strings.Builder, snap ConfigSnapshot) {
+	if !dmarcEnabled(snap) {
+		return
+	}
+	b.WriteString(`kumo.on('make.dmarc_xadd', function(_domain, _tenant, _campaign)
+  local redis = require 'redis'
+  local conn = redis.open { node = LOGSTREAM_REDIS_URL, pool_size = 3 }
+  local connection = {}
+  function connection:send(message)
+    local payload = message:get_data()
+    local ok, err = pcall(function()
+      conn:query('XADD', DMARC_STREAM, 'MAXLEN', '~', '50000', '*', 'data', payload)
+    end)
+    if not ok then
+      kumo.log_error('dmarc: xadd failed err=' .. tostring(err))
+      return '250 dmarc redis unavailable, dropped'
+    end
+    return '250 dmarc captured'
   end
   return connection
 end)

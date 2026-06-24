@@ -86,6 +86,9 @@ const (
 	IrisAdminService_CheckDomainBounceSetup_FullMethodName = "/iris.admin.v1.IrisAdminService/CheckDomainBounceSetup"
 	IrisAdminService_Diagnose_FullMethodName               = "/iris.admin.v1.IrisAdminService/Diagnose"
 	IrisAdminService_RblCheck_FullMethodName               = "/iris.admin.v1.IrisAdminService/RblCheck"
+	IrisAdminService_GetDmarcStats_FullMethodName          = "/iris.admin.v1.IrisAdminService/GetDmarcStats"
+	IrisAdminService_ListDmarcReports_FullMethodName       = "/iris.admin.v1.IrisAdminService/ListDmarcReports"
+	IrisAdminService_ListDmarcDomains_FullMethodName       = "/iris.admin.v1.IrisAdminService/ListDmarcDomains"
 	IrisAdminService_GetGlobalSettings_FullMethodName      = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
 	IrisAdminService_UpdateGlobalSettings_FullMethodName   = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
 )
@@ -209,6 +212,10 @@ type IrisAdminServiceClient interface {
 	// RblCheck tests the deployment's listener and VMTA egress IPs against DNS
 	// blocklists.
 	RblCheck(ctx context.Context, in *RblCheckRequest, opts ...grpc.CallOption) (*RblCheckReply, error)
+	// DMARC aggregate reports -----------------------------------------------------
+	GetDmarcStats(ctx context.Context, in *GetDmarcStatsRequest, opts ...grpc.CallOption) (*DmarcStats, error)
+	ListDmarcReports(ctx context.Context, in *ListDmarcReportsRequest, opts ...grpc.CallOption) (*ListDmarcReportsReply, error)
+	ListDmarcDomains(ctx context.Context, in *ListDmarcDomainsRequest, opts ...grpc.CallOption) (*ListDmarcDomainsReply, error)
 	// Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(ctx context.Context, in *GetGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error)
 	UpdateGlobalSettings(ctx context.Context, in *UpdateGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error)
@@ -892,6 +899,36 @@ func (c *irisAdminServiceClient) RblCheck(ctx context.Context, in *RblCheckReque
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) GetDmarcStats(ctx context.Context, in *GetDmarcStatsRequest, opts ...grpc.CallOption) (*DmarcStats, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DmarcStats)
+	err := c.cc.Invoke(ctx, IrisAdminService_GetDmarcStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ListDmarcReports(ctx context.Context, in *ListDmarcReportsRequest, opts ...grpc.CallOption) (*ListDmarcReportsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDmarcReportsReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListDmarcReports_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ListDmarcDomains(ctx context.Context, in *ListDmarcDomainsRequest, opts ...grpc.CallOption) (*ListDmarcDomainsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDmarcDomainsReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListDmarcDomains_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) GetGlobalSettings(ctx context.Context, in *GetGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GlobalSettings)
@@ -1031,6 +1068,10 @@ type IrisAdminServiceServer interface {
 	// RblCheck tests the deployment's listener and VMTA egress IPs against DNS
 	// blocklists.
 	RblCheck(context.Context, *RblCheckRequest) (*RblCheckReply, error)
+	// DMARC aggregate reports -----------------------------------------------------
+	GetDmarcStats(context.Context, *GetDmarcStatsRequest) (*DmarcStats, error)
+	ListDmarcReports(context.Context, *ListDmarcReportsRequest) (*ListDmarcReportsReply, error)
+	ListDmarcDomains(context.Context, *ListDmarcDomainsRequest) (*ListDmarcDomainsReply, error)
 	// Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error)
 	UpdateGlobalSettings(context.Context, *UpdateGlobalSettingsRequest) (*GlobalSettings, error)
@@ -1244,6 +1285,15 @@ func (UnimplementedIrisAdminServiceServer) Diagnose(context.Context, *DiagnoseRe
 }
 func (UnimplementedIrisAdminServiceServer) RblCheck(context.Context, *RblCheckRequest) (*RblCheckReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method RblCheck not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) GetDmarcStats(context.Context, *GetDmarcStatsRequest) (*DmarcStats, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetDmarcStats not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListDmarcReports(context.Context, *ListDmarcReportsRequest) (*ListDmarcReportsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDmarcReports not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListDmarcDomains(context.Context, *ListDmarcDomainsRequest) (*ListDmarcDomainsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDmarcDomains not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetGlobalSettings not implemented")
@@ -2478,6 +2528,60 @@ func _IrisAdminService_RblCheck_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_GetDmarcStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDmarcStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).GetDmarcStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_GetDmarcStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).GetDmarcStats(ctx, req.(*GetDmarcStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListDmarcReports_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDmarcReportsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListDmarcReports(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListDmarcReports_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListDmarcReports(ctx, req.(*ListDmarcReportsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListDmarcDomains_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDmarcDomainsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListDmarcDomains(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListDmarcDomains_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListDmarcDomains(ctx, req.(*ListDmarcDomainsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_GetGlobalSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetGlobalSettingsRequest)
 	if err := dec(in); err != nil {
@@ -2788,6 +2892,18 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RblCheck",
 			Handler:    _IrisAdminService_RblCheck_Handler,
+		},
+		{
+			MethodName: "GetDmarcStats",
+			Handler:    _IrisAdminService_GetDmarcStats_Handler,
+		},
+		{
+			MethodName: "ListDmarcReports",
+			Handler:    _IrisAdminService_ListDmarcReports_Handler,
+		},
+		{
+			MethodName: "ListDmarcDomains",
+			Handler:    _IrisAdminService_ListDmarcDomains_Handler,
 		},
 		{
 			MethodName: "GetGlobalSettings",
