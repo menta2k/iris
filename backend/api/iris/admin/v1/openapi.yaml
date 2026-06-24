@@ -2175,6 +2175,14 @@ components:
                     description: |-
                         Original From header. The envelope sender is VERP-rewritten at reception,
                          so it no longer reflects who the mail was from.
+                smtp_status:
+                    type: string
+                    description: |-
+                        SMTP response for this event: the code (e.g. "451") and the server's text.
+                         Present on Delivery/TransientFailure/Bounce; empty on Reception. Lets the
+                         Logs UI show why a message deferred or bounced.
+                diagnostic:
+                    type: string
             description: Mail operations -----------------------------------------------------------
         MetricPoint:
             type: object

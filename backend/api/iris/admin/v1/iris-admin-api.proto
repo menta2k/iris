@@ -448,6 +448,11 @@ message MailRecord {
   // Original From header. The envelope sender is VERP-rewritten at reception,
   // so it no longer reflects who the mail was from.
   string from_header = 10;
+  // SMTP response for this event: the code (e.g. "451") and the server's text.
+  // Present on Delivery/TransientFailure/Bounce; empty on Reception. Lets the
+  // Logs UI show why a message deferred or bounced.
+  string smtp_status = 11;
+  string diagnostic = 12;
 }
 message Bounce {
   string id = 1;

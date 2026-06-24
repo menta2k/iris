@@ -196,6 +196,12 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 		Recipient:       rec.Recipient,
 		RecipientDomain: rec.RecipientDomainOf(),
 		Status:          status,
+		Diagnostic:      strings.TrimSpace(rec.Response.Content),
+	}
+	// Carry the SMTP response code (e.g. 4xx on a deferral) so the Logs UI can
+	// show why a message deferred/bounced, not just that it did.
+	if rec.Response.Code > 0 {
+		mr.SMTPStatus = strconv.Itoa(int(rec.Response.Code))
 	}
 	if err := w.store.InsertMailEvent(ctx, mr); err != nil {
 		w.log.Error("persist mail event", "type", rec.Type, "error", err.Error())

@@ -40,7 +40,7 @@ func (s *Service) ListMailRecords(ctx context.Context, req *adminv1.ListMailReco
 			Id: m.ID, MessageId: m.MessageID, EventTime: timestamppb.New(m.EventTime),
 			Mailclass: m.Mailclass, Sender: m.Sender, Recipient: m.Recipient,
 			RecipientDomain: m.RecipientDomain, VmtaId: m.VMTAID, Status: m.Status,
-			FromHeader: m.FromHeader,
+			FromHeader: m.FromHeader, SmtpStatus: m.SMTPStatus, Diagnostic: m.Diagnostic,
 		})
 	}
 	return out, nil
