@@ -25,6 +25,7 @@ const OperationIrisAdminServiceCheckDomainBounceSetup = "/iris.admin.v1.IrisAdmi
 const OperationIrisAdminServiceClearAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/ClearAcmeDnsProvider"
 const OperationIrisAdminServiceConfirmMFA = "/iris.admin.v1.IrisAdminService/ConfirmMFA"
 const OperationIrisAdminServiceCreateDKIMDomain = "/iris.admin.v1.IrisAdminService/CreateDKIMDomain"
+const OperationIrisAdminServiceCreateFeedbackLoop = "/iris.admin.v1.IrisAdminService/CreateFeedbackLoop"
 const OperationIrisAdminServiceCreateListener = "/iris.admin.v1.IrisAdminService/CreateListener"
 const OperationIrisAdminServiceCreateRoutingRule = "/iris.admin.v1.IrisAdminService/CreateRoutingRule"
 const OperationIrisAdminServiceCreateSuppression = "/iris.admin.v1.IrisAdminService/CreateSuppression"
@@ -35,6 +36,7 @@ const OperationIrisAdminServiceCreateVMTAGroups = "/iris.admin.v1.IrisAdminServi
 const OperationIrisAdminServiceCreateWebhookRule = "/iris.admin.v1.IrisAdminService/CreateWebhookRule"
 const OperationIrisAdminServiceCurrentUser = "/iris.admin.v1.IrisAdminService/CurrentUser"
 const OperationIrisAdminServiceDeleteAcmeCertificate = "/iris.admin.v1.IrisAdminService/DeleteAcmeCertificate"
+const OperationIrisAdminServiceDeleteFeedbackLoop = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
 const OperationIrisAdminServiceDeleteTLSPolicy = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
 const OperationIrisAdminServiceDisableMFA = "/iris.admin.v1.IrisAdminService/DisableMFA"
 const OperationIrisAdminServiceEnrollMFA = "/iris.admin.v1.IrisAdminService/EnrollMFA"
@@ -51,6 +53,7 @@ const OperationIrisAdminServiceListAcmeDnsProviders = "/iris.admin.v1.IrisAdminS
 const OperationIrisAdminServiceListAuditEntries = "/iris.admin.v1.IrisAdminService/ListAuditEntries"
 const OperationIrisAdminServiceListBounces = "/iris.admin.v1.IrisAdminService/ListBounces"
 const OperationIrisAdminServiceListDKIMDomains = "/iris.admin.v1.IrisAdminService/ListDKIMDomains"
+const OperationIrisAdminServiceListFeedbackLoops = "/iris.admin.v1.IrisAdminService/ListFeedbackLoops"
 const OperationIrisAdminServiceListFeedbackReports = "/iris.admin.v1.IrisAdminService/ListFeedbackReports"
 const OperationIrisAdminServiceListListeners = "/iris.admin.v1.IrisAdminService/ListListeners"
 const OperationIrisAdminServiceListMailRecords = "/iris.admin.v1.IrisAdminService/ListMailRecords"
@@ -73,6 +76,7 @@ const OperationIrisAdminServiceResetUserPassword = "/iris.admin.v1.IrisAdminServ
 const OperationIrisAdminServiceSaveAcmeAccount = "/iris.admin.v1.IrisAdminService/SaveAcmeAccount"
 const OperationIrisAdminServiceSetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
 const OperationIrisAdminServiceUpdateDKIMDomain = "/iris.admin.v1.IrisAdminService/UpdateDKIMDomain"
+const OperationIrisAdminServiceUpdateFeedbackLoop = "/iris.admin.v1.IrisAdminService/UpdateFeedbackLoop"
 const OperationIrisAdminServiceUpdateGlobalSettings = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
 const OperationIrisAdminServiceUpdateListener = "/iris.admin.v1.IrisAdminService/UpdateListener"
 const OperationIrisAdminServiceUpdateRoutingRule = "/iris.admin.v1.IrisAdminService/UpdateRoutingRule"
@@ -95,6 +99,7 @@ type IrisAdminServiceHTTPServer interface {
 	ClearAcmeDnsProvider(context.Context, *ClearAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	ConfirmMFA(context.Context, *ConfirmMFARequest) (*ConfirmMFAReply, error)
 	CreateDKIMDomain(context.Context, *CreateDKIMDomainRequest) (*DKIMDomain, error)
+	CreateFeedbackLoop(context.Context, *CreateFeedbackLoopRequest) (*FeedbackLoop, error)
 	CreateListener(context.Context, *CreateListenerRequest) (*Listener, error)
 	CreateRoutingRule(context.Context, *CreateRoutingRuleRequest) (*RoutingRule, error)
 	CreateSuppression(context.Context, *CreateSuppressionRequest) (*Suppression, error)
@@ -107,6 +112,7 @@ type IrisAdminServiceHTTPServer interface {
 	// the SPA calls it on load to restore a session from a stored token.
 	CurrentUser(context.Context, *CurrentUserRequest) (*CurrentUserReply, error)
 	DeleteAcmeCertificate(context.Context, *DeleteAcmeCertificateRequest) (*DeleteAcmeCertificateReply, error)
+	DeleteFeedbackLoop(context.Context, *DeleteFeedbackLoopRequest) (*DeleteFeedbackLoopReply, error)
 	DeleteTLSPolicy(context.Context, *DeleteTLSPolicyRequest) (*DeleteTLSPolicyReply, error)
 	DisableMFA(context.Context, *DisableMFARequest) (*DisableMFAReply, error)
 	// EnrollMFA MFA enrollment for the calling user (TOTP).
@@ -136,6 +142,10 @@ type IrisAdminServiceHTTPServer interface {
 	ListBounces(context.Context, *ListBouncesRequest) (*ListBouncesReply, error)
 	// ListDKIMDomains Domain & recipient safety ------------------------------------------------
 	ListDKIMDomains(context.Context, *ListDKIMDomainsRequest) (*ListDKIMDomainsReply, error)
+	// ListFeedbackLoops Feedback loops -----------------------------------------------------------
+	// Per-domain FBL enrollments: while awaiting approval, inbound feedback mail
+	// is forwarded to a human; once approved the domain enables the ARF parser.
+	ListFeedbackLoops(context.Context, *ListFeedbackLoopsRequest) (*ListFeedbackLoopsReply, error)
 	ListFeedbackReports(context.Context, *ListFeedbackReportsRequest) (*ListFeedbackReportsReply, error)
 	// ListListeners Listeners (ESMTP) --------------------------------------------------------
 	ListListeners(context.Context, *ListListenersRequest) (*ListListenersReply, error)
@@ -177,6 +187,7 @@ type IrisAdminServiceHTTPServer interface {
 	SaveAcmeAccount(context.Context, *SaveAcmeAccountRequest) (*AcmeAccount, error)
 	SetAcmeDnsProvider(context.Context, *SetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	UpdateDKIMDomain(context.Context, *UpdateDKIMDomainRequest) (*DKIMDomain, error)
+	UpdateFeedbackLoop(context.Context, *UpdateFeedbackLoopRequest) (*FeedbackLoop, error)
 	UpdateGlobalSettings(context.Context, *UpdateGlobalSettingsRequest) (*GlobalSettings, error)
 	UpdateListener(context.Context, *UpdateListenerRequest) (*Listener, error)
 	UpdateRoutingRule(context.Context, *UpdateRoutingRuleRequest) (*RoutingRule, error)
@@ -224,6 +235,10 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.PUT("/v1/webhook-rules/{id}", _IrisAdminService_UpdateWebhookRule0_HTTP_Handler(srv))
 	r.GET("/v1/webhook-deliveries", _IrisAdminService_ListWebhookDeliveries0_HTTP_Handler(srv))
 	r.GET("/v1/rspamd-results", _IrisAdminService_ListRspamdResults0_HTTP_Handler(srv))
+	r.GET("/v1/feedback-loops", _IrisAdminService_ListFeedbackLoops0_HTTP_Handler(srv))
+	r.POST("/v1/feedback-loops", _IrisAdminService_CreateFeedbackLoop0_HTTP_Handler(srv))
+	r.PUT("/v1/feedback-loops/{id}", _IrisAdminService_UpdateFeedbackLoop0_HTTP_Handler(srv))
+	r.DELETE("/v1/feedback-loops/{id}", _IrisAdminService_DeleteFeedbackLoop0_HTTP_Handler(srv))
 	r.POST("/v1/auth:login", _IrisAdminService_Login0_HTTP_Handler(srv))
 	r.POST("/v1/auth:verify-mfa", _IrisAdminService_VerifyMFA0_HTTP_Handler(srv))
 	r.GET("/v1/auth:me", _IrisAdminService_CurrentUser0_HTTP_Handler(srv))
@@ -943,6 +958,94 @@ func _IrisAdminService_ListRspamdResults0_HTTP_Handler(srv IrisAdminServiceHTTPS
 	}
 }
 
+func _IrisAdminService_ListFeedbackLoops0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListFeedbackLoopsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListFeedbackLoops)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListFeedbackLoops(ctx, req.(*ListFeedbackLoopsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListFeedbackLoopsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CreateFeedbackLoop0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateFeedbackLoopRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCreateFeedbackLoop)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateFeedbackLoop(ctx, req.(*CreateFeedbackLoopRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*FeedbackLoop)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateFeedbackLoop0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateFeedbackLoopRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateFeedbackLoop)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateFeedbackLoop(ctx, req.(*UpdateFeedbackLoopRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*FeedbackLoop)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_DeleteFeedbackLoop0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteFeedbackLoopRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceDeleteFeedbackLoop)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteFeedbackLoop(ctx, req.(*DeleteFeedbackLoopRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteFeedbackLoopReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_Login0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in LoginRequest
@@ -1604,6 +1707,7 @@ type IrisAdminServiceHTTPClient interface {
 	ClearAcmeDnsProvider(ctx context.Context, req *ClearAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	ConfirmMFA(ctx context.Context, req *ConfirmMFARequest, opts ...http.CallOption) (rsp *ConfirmMFAReply, err error)
 	CreateDKIMDomain(ctx context.Context, req *CreateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
+	CreateFeedbackLoop(ctx context.Context, req *CreateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
 	CreateListener(ctx context.Context, req *CreateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
 	CreateRoutingRule(ctx context.Context, req *CreateRoutingRuleRequest, opts ...http.CallOption) (rsp *RoutingRule, err error)
 	CreateSuppression(ctx context.Context, req *CreateSuppressionRequest, opts ...http.CallOption) (rsp *Suppression, err error)
@@ -1616,6 +1720,7 @@ type IrisAdminServiceHTTPClient interface {
 	// the SPA calls it on load to restore a session from a stored token.
 	CurrentUser(ctx context.Context, req *CurrentUserRequest, opts ...http.CallOption) (rsp *CurrentUserReply, err error)
 	DeleteAcmeCertificate(ctx context.Context, req *DeleteAcmeCertificateRequest, opts ...http.CallOption) (rsp *DeleteAcmeCertificateReply, err error)
+	DeleteFeedbackLoop(ctx context.Context, req *DeleteFeedbackLoopRequest, opts ...http.CallOption) (rsp *DeleteFeedbackLoopReply, err error)
 	DeleteTLSPolicy(ctx context.Context, req *DeleteTLSPolicyRequest, opts ...http.CallOption) (rsp *DeleteTLSPolicyReply, err error)
 	DisableMFA(ctx context.Context, req *DisableMFARequest, opts ...http.CallOption) (rsp *DisableMFAReply, err error)
 	// EnrollMFA MFA enrollment for the calling user (TOTP).
@@ -1645,6 +1750,10 @@ type IrisAdminServiceHTTPClient interface {
 	ListBounces(ctx context.Context, req *ListBouncesRequest, opts ...http.CallOption) (rsp *ListBouncesReply, err error)
 	// ListDKIMDomains Domain & recipient safety ------------------------------------------------
 	ListDKIMDomains(ctx context.Context, req *ListDKIMDomainsRequest, opts ...http.CallOption) (rsp *ListDKIMDomainsReply, err error)
+	// ListFeedbackLoops Feedback loops -----------------------------------------------------------
+	// Per-domain FBL enrollments: while awaiting approval, inbound feedback mail
+	// is forwarded to a human; once approved the domain enables the ARF parser.
+	ListFeedbackLoops(ctx context.Context, req *ListFeedbackLoopsRequest, opts ...http.CallOption) (rsp *ListFeedbackLoopsReply, err error)
 	ListFeedbackReports(ctx context.Context, req *ListFeedbackReportsRequest, opts ...http.CallOption) (rsp *ListFeedbackReportsReply, err error)
 	// ListListeners Listeners (ESMTP) --------------------------------------------------------
 	ListListeners(ctx context.Context, req *ListListenersRequest, opts ...http.CallOption) (rsp *ListListenersReply, err error)
@@ -1686,6 +1795,7 @@ type IrisAdminServiceHTTPClient interface {
 	SaveAcmeAccount(ctx context.Context, req *SaveAcmeAccountRequest, opts ...http.CallOption) (rsp *AcmeAccount, err error)
 	SetAcmeDnsProvider(ctx context.Context, req *SetAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	UpdateDKIMDomain(ctx context.Context, req *UpdateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
+	UpdateFeedbackLoop(ctx context.Context, req *UpdateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
 	UpdateGlobalSettings(ctx context.Context, req *UpdateGlobalSettingsRequest, opts ...http.CallOption) (rsp *GlobalSettings, err error)
 	UpdateListener(ctx context.Context, req *UpdateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
 	UpdateRoutingRule(ctx context.Context, req *UpdateRoutingRuleRequest, opts ...http.CallOption) (rsp *RoutingRule, err error)
@@ -1782,6 +1892,19 @@ func (c *IrisAdminServiceHTTPClientImpl) CreateDKIMDomain(ctx context.Context, i
 	pattern := "/v1/dkim-domains"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateDKIMDomain))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) CreateFeedbackLoop(ctx context.Context, in *CreateFeedbackLoopRequest, opts ...http.CallOption) (*FeedbackLoop, error) {
+	var out FeedbackLoop
+	pattern := "/v1/feedback-loops"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateFeedbackLoop))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -1914,6 +2037,19 @@ func (c *IrisAdminServiceHTTPClientImpl) DeleteAcmeCertificate(ctx context.Conte
 	pattern := "/v1/acme/certificates/{id}"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteAcmeCertificate))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) DeleteFeedbackLoop(ctx context.Context, in *DeleteFeedbackLoopRequest, opts ...http.CallOption) (*DeleteFeedbackLoopReply, error) {
+	var out DeleteFeedbackLoopReply
+	pattern := "/v1/feedback-loops/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteFeedbackLoop))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {
@@ -2135,6 +2271,22 @@ func (c *IrisAdminServiceHTTPClientImpl) ListDKIMDomains(ctx context.Context, in
 	pattern := "/v1/dkim-domains"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListDKIMDomains))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListFeedbackLoops Feedback loops -----------------------------------------------------------
+// Per-domain FBL enrollments: while awaiting approval, inbound feedback mail
+// is forwarded to a human; once approved the domain enables the ARF parser.
+func (c *IrisAdminServiceHTTPClientImpl) ListFeedbackLoops(ctx context.Context, in *ListFeedbackLoopsRequest, opts ...http.CallOption) (*ListFeedbackLoopsReply, error) {
+	var out ListFeedbackLoopsReply
+	pattern := "/v1/feedback-loops"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListFeedbackLoops))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -2440,6 +2592,19 @@ func (c *IrisAdminServiceHTTPClientImpl) UpdateDKIMDomain(ctx context.Context, i
 	pattern := "/v1/dkim-domains/{id}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateDKIMDomain))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) UpdateFeedbackLoop(ctx context.Context, in *UpdateFeedbackLoopRequest, opts ...http.CallOption) (*FeedbackLoop, error) {
+	var out FeedbackLoop
+	pattern := "/v1/feedback-loops/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateFeedbackLoop))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {

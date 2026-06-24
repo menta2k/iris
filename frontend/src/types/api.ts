@@ -420,6 +420,32 @@ export interface UpdateWebhookRuleRequest {
   timeout_seconds: number
 }
 
+// ---- Feedback loops ----
+
+export type FeedbackLoopStatus = 'awaiting_approval' | 'approved'
+
+export interface FeedbackLoop {
+  id: string
+  domain: string
+  feedbackAddress: string
+  forwardAddress: string
+  status: string
+}
+
+export interface CreateFeedbackLoopRequest {
+  domain: string
+  feedback_address: string
+  forward_address: string
+  status: FeedbackLoopStatus
+}
+
+export interface UpdateFeedbackLoopRequest {
+  domain: string
+  feedback_address: string
+  forward_address: string
+  status: FeedbackLoopStatus
+}
+
 export interface WebhookDeliveryEvent {
   id: string
   eventTime: string
@@ -477,7 +503,6 @@ export interface GlobalSettings {
   bounceDomain: string
   autoSuppressHardBounces: boolean
   softBounceThreshold: number
-  fblDomains: string[]
   adminHttpAddr: string
   adminTlsEnabled: boolean
   adminTlsCertDomain: string
@@ -501,7 +526,6 @@ export interface UpdateGlobalSettingsRequest {
   bounce_domain: string
   auto_suppress_hard_bounces: boolean
   soft_bounce_threshold: number
-  fbl_domains: string[]
   admin_http_addr: string
   admin_tls_enabled: boolean
   admin_tls_cert_domain: string

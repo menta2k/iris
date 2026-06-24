@@ -51,6 +51,10 @@ const (
 	IrisAdminService_UpdateWebhookRule_FullMethodName      = "/iris.admin.v1.IrisAdminService/UpdateWebhookRule"
 	IrisAdminService_ListWebhookDeliveries_FullMethodName  = "/iris.admin.v1.IrisAdminService/ListWebhookDeliveries"
 	IrisAdminService_ListRspamdResults_FullMethodName      = "/iris.admin.v1.IrisAdminService/ListRspamdResults"
+	IrisAdminService_ListFeedbackLoops_FullMethodName      = "/iris.admin.v1.IrisAdminService/ListFeedbackLoops"
+	IrisAdminService_CreateFeedbackLoop_FullMethodName     = "/iris.admin.v1.IrisAdminService/CreateFeedbackLoop"
+	IrisAdminService_UpdateFeedbackLoop_FullMethodName     = "/iris.admin.v1.IrisAdminService/UpdateFeedbackLoop"
+	IrisAdminService_DeleteFeedbackLoop_FullMethodName     = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
 	IrisAdminService_Login_FullMethodName                  = "/iris.admin.v1.IrisAdminService/Login"
 	IrisAdminService_VerifyMFA_FullMethodName              = "/iris.admin.v1.IrisAdminService/VerifyMFA"
 	IrisAdminService_CurrentUser_FullMethodName            = "/iris.admin.v1.IrisAdminService/CurrentUser"
@@ -129,6 +133,13 @@ type IrisAdminServiceClient interface {
 	// Webhook delivery events (the outcomes of webhook fan-out).
 	ListWebhookDeliveries(ctx context.Context, in *ListWebhookDeliveriesRequest, opts ...grpc.CallOption) (*ListWebhookDeliveriesReply, error)
 	ListRspamdResults(ctx context.Context, in *ListRspamdResultsRequest, opts ...grpc.CallOption) (*ListRspamdResultsReply, error)
+	// Feedback loops -----------------------------------------------------------
+	// Per-domain FBL enrollments: while awaiting approval, inbound feedback mail
+	// is forwarded to a human; once approved the domain enables the ARF parser.
+	ListFeedbackLoops(ctx context.Context, in *ListFeedbackLoopsRequest, opts ...grpc.CallOption) (*ListFeedbackLoopsReply, error)
+	CreateFeedbackLoop(ctx context.Context, in *CreateFeedbackLoopRequest, opts ...grpc.CallOption) (*FeedbackLoop, error)
+	UpdateFeedbackLoop(ctx context.Context, in *UpdateFeedbackLoopRequest, opts ...grpc.CallOption) (*FeedbackLoop, error)
+	DeleteFeedbackLoop(ctx context.Context, in *DeleteFeedbackLoopRequest, opts ...grpc.CallOption) (*DeleteFeedbackLoopReply, error)
 	// Authentication -----------------------------------------------------------
 	// Login exchanges email + password for a session token. It is exempt from the
 	// auth middleware (the operation name contains "Login"). When MFA is required
@@ -522,6 +533,46 @@ func (c *irisAdminServiceClient) ListRspamdResults(ctx context.Context, in *List
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) ListFeedbackLoops(ctx context.Context, in *ListFeedbackLoopsRequest, opts ...grpc.CallOption) (*ListFeedbackLoopsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListFeedbackLoopsReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListFeedbackLoops_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) CreateFeedbackLoop(ctx context.Context, in *CreateFeedbackLoopRequest, opts ...grpc.CallOption) (*FeedbackLoop, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FeedbackLoop)
+	err := c.cc.Invoke(ctx, IrisAdminService_CreateFeedbackLoop_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) UpdateFeedbackLoop(ctx context.Context, in *UpdateFeedbackLoopRequest, opts ...grpc.CallOption) (*FeedbackLoop, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FeedbackLoop)
+	err := c.cc.Invoke(ctx, IrisAdminService_UpdateFeedbackLoop_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) DeleteFeedbackLoop(ctx context.Context, in *DeleteFeedbackLoopRequest, opts ...grpc.CallOption) (*DeleteFeedbackLoopReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteFeedbackLoopReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_DeleteFeedbackLoop_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(LoginReply)
@@ -877,6 +928,13 @@ type IrisAdminServiceServer interface {
 	// Webhook delivery events (the outcomes of webhook fan-out).
 	ListWebhookDeliveries(context.Context, *ListWebhookDeliveriesRequest) (*ListWebhookDeliveriesReply, error)
 	ListRspamdResults(context.Context, *ListRspamdResultsRequest) (*ListRspamdResultsReply, error)
+	// Feedback loops -----------------------------------------------------------
+	// Per-domain FBL enrollments: while awaiting approval, inbound feedback mail
+	// is forwarded to a human; once approved the domain enables the ARF parser.
+	ListFeedbackLoops(context.Context, *ListFeedbackLoopsRequest) (*ListFeedbackLoopsReply, error)
+	CreateFeedbackLoop(context.Context, *CreateFeedbackLoopRequest) (*FeedbackLoop, error)
+	UpdateFeedbackLoop(context.Context, *UpdateFeedbackLoopRequest) (*FeedbackLoop, error)
+	DeleteFeedbackLoop(context.Context, *DeleteFeedbackLoopRequest) (*DeleteFeedbackLoopReply, error)
 	// Authentication -----------------------------------------------------------
 	// Login exchanges email + password for a session token. It is exempt from the
 	// auth middleware (the operation name contains "Login"). When MFA is required
@@ -1045,6 +1103,18 @@ func (UnimplementedIrisAdminServiceServer) ListWebhookDeliveries(context.Context
 }
 func (UnimplementedIrisAdminServiceServer) ListRspamdResults(context.Context, *ListRspamdResultsRequest) (*ListRspamdResultsReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRspamdResults not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListFeedbackLoops(context.Context, *ListFeedbackLoopsRequest) (*ListFeedbackLoopsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListFeedbackLoops not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) CreateFeedbackLoop(context.Context, *CreateFeedbackLoopRequest) (*FeedbackLoop, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateFeedbackLoop not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) UpdateFeedbackLoop(context.Context, *UpdateFeedbackLoopRequest) (*FeedbackLoop, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateFeedbackLoop not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) DeleteFeedbackLoop(context.Context, *DeleteFeedbackLoopRequest) (*DeleteFeedbackLoopReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteFeedbackLoop not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) Login(context.Context, *LoginRequest) (*LoginReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method Login not implemented")
@@ -1732,6 +1802,78 @@ func _IrisAdminService_ListRspamdResults_Handler(srv interface{}, ctx context.Co
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IrisAdminServiceServer).ListRspamdResults(ctx, req.(*ListRspamdResultsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListFeedbackLoops_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListFeedbackLoopsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListFeedbackLoops(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListFeedbackLoops_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListFeedbackLoops(ctx, req.(*ListFeedbackLoopsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_CreateFeedbackLoop_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateFeedbackLoopRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).CreateFeedbackLoop(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_CreateFeedbackLoop_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).CreateFeedbackLoop(ctx, req.(*CreateFeedbackLoopRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_UpdateFeedbackLoop_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateFeedbackLoopRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).UpdateFeedbackLoop(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_UpdateFeedbackLoop_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).UpdateFeedbackLoop(ctx, req.(*UpdateFeedbackLoopRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_DeleteFeedbackLoop_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteFeedbackLoopRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).DeleteFeedbackLoop(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_DeleteFeedbackLoop_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).DeleteFeedbackLoop(ctx, req.(*DeleteFeedbackLoopRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2428,6 +2570,22 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListRspamdResults",
 			Handler:    _IrisAdminService_ListRspamdResults_Handler,
+		},
+		{
+			MethodName: "ListFeedbackLoops",
+			Handler:    _IrisAdminService_ListFeedbackLoops_Handler,
+		},
+		{
+			MethodName: "CreateFeedbackLoop",
+			Handler:    _IrisAdminService_CreateFeedbackLoop_Handler,
+		},
+		{
+			MethodName: "UpdateFeedbackLoop",
+			Handler:    _IrisAdminService_UpdateFeedbackLoop_Handler,
+		},
+		{
+			MethodName: "DeleteFeedbackLoop",
+			Handler:    _IrisAdminService_DeleteFeedbackLoop_Handler,
 		},
 		{
 			MethodName: "Login",

@@ -181,13 +181,15 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	settingsUC := biz.NewGlobalSettingsUsecase(settingsRepo, auditor, settingsDefaults)
 	// US5 inbound automation: webhook + Rspamd use case and workers.
 	inboundRepo := data.NewInboundRepo(db)
+	fblRepo := data.NewFBLRepo(db)
 
-	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo)
+	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo, fblRepo)
 	kumoConfigUC := biz.NewKumoConfigUsecase(kumoSnapshotRepo, kumo, mailOpsRepo, auditor, settingsUC)
 	// Domain bounce-readiness checker (MX/SPF/DKIM via live DNS).
 	domainCheckUC := biz.NewDomainCheckUsecase(kumoSnapshotRepo, nil)
 
 	inboundUC := biz.NewInboundUsecase(inboundRepo, auditor, cfg.KumoMTA.Stub)
+	fblUC := biz.NewFBLUsecase(fblRepo, auditor)
 
 	// ACME (Let's Encrypt) certificate management. The HTTP-01 token store is
 	// shared between the issuer and the challenge listener. Issued PEMs are
@@ -235,6 +237,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		Auth:         authUC,
 		DomainSafety: domainSafetyUC,
 		Inbound:      inboundUC,
+		FBL:          fblUC,
 		Dashboard:    biz.NewDashboardUsecase(data.NewDashboardRepo(db)),
 		Metrics:      biz.NewMetricsUsecase(settingsUC, nil),
 		KumoConfig:   kumoConfigUC,

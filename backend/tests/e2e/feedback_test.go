@@ -86,9 +86,11 @@ func TestFeedbackReportAutoSuppresses(t *testing.T) {
 	safetyRepo := data.NewDomainSafetyRepo(db)
 	const stream = "iris.mail.events.e2e"
 
-	// Enable ARF parsing at the FBL domain.
+	// Enable ARF parsing at the FBL domain via an approved feedback-loop endpoint.
 	snap := routingSnapshot(kumodIP)
-	snap.FBLDomains = []string{"fbl.test"}
+	snap.FBLEndpoints = []*biz.FBLEndpoint{
+		{Domain: "fbl.test", FeedbackAddress: "fbl@fbl.test", Status: biz.FBLApproved},
+	}
 	r := startRig(t, snap)
 
 	w := worker.NewLogStreamWorker(streams, mailRepo, safetyRepo, nil, stream, biz.NewLogger("error"))
@@ -129,5 +131,42 @@ func TestFeedbackReportAutoSuppresses(t *testing.T) {
 	}
 	if !gotSuppress {
 		t.Errorf("expected complainant %s to be auto-suppressed via the FBL pipeline", complainant)
+	}
+}
+
+// TestFeedbackAwaitingForwards proves the awaiting-approval path through a real
+// kumod: an endpoint that is awaiting approval relays its feedback domain and
+// forwards mail arriving at its feedback address to the forward address (by
+// rewriting the recipient) so it delivers outbound — instead of being ARF-parsed
+// and dropped. The sink stands in for the human approval mailbox.
+func TestFeedbackAwaitingForwards(t *testing.T) {
+	requireE2E(t)
+	requireDocker(t)
+
+	// Forward to the sink's domain so kumod relays the rewritten recipient there.
+	snap := routingSnapshot(kumodIP)
+	snap.FBLEndpoints = []*biz.FBLEndpoint{
+		{Domain: "fbl.test", FeedbackAddress: "fbl@fbl.test", ForwardAddress: "approver@sink.test", Status: biz.FBLAwaitingApproval},
+	}
+	r := startRig(t, snap)
+
+	// A mailbox provider's enrollment-confirmation mail arrives at the feedback
+	// address while the loop is awaiting approval.
+	r.injectFull("noreply@provider.test", "fbl@fbl.test",
+		"Your feedback loop confirmation code is 123456.",
+		"Subject: Confirm your feedback loop")
+
+	msgs := r.waitForSink(1, 40*time.Second)
+	var forwarded bool
+	for _, m := range msgs {
+		for _, rcpt := range m.Rcpts {
+			if rcpt == "approver@sink.test" {
+				forwarded = true
+			}
+		}
+	}
+	if !forwarded {
+		t.Errorf("expected feedback mail forwarded to approver@sink.test; sink got %+v\nkumod logs:\n%s",
+			msgs, lastLines(r.kumodLogs(), 20))
 	}
 }
