@@ -201,6 +201,9 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	kumoConfigUC := biz.NewKumoConfigUsecase(kumoSnapshotRepo, kumo, mailOpsRepo, auditor, settingsUC)
 	// Domain bounce-readiness checker (MX/SPF/DKIM via live DNS).
 	domainCheckUC := biz.NewDomainCheckUsecase(kumoSnapshotRepo, nil)
+	// Tools: sender diagnose + RBL/DNSBL check (live DNS).
+	diagnoseUC := biz.NewDiagnoseUsecase(kumoSnapshotRepo, nil)
+	rblUC := biz.NewRBLUsecase(kumoSnapshotRepo, nil)
 
 	inboundUC := biz.NewInboundUsecase(inboundRepo, auditor, cfg.KumoMTA.Stub)
 	fblUC := biz.NewFBLUsecase(fblRepo, auditor)
@@ -258,6 +261,8 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		Settings:     settingsUC,
 		Acme:         acmeUC,
 		DomainCheck:  domainCheckUC,
+		Diagnose:     diagnoseUC,
+		RBL:          rblUC,
 	}
 
 	svc := service.NewService(deps)

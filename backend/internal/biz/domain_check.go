@@ -83,17 +83,17 @@ func (uc *DomainCheckUsecase) Check(ctx context.Context, domain string) (*Domain
 	}
 
 	out := &DomainBounceCheck{Domain: domain}
-	out.Items = append(out.Items, uc.checkMX(ctx, domain, listenerIPs))
-	out.Items = append(out.Items, uc.checkSPF(ctx, domain, egressIPs))
-	out.Items = append(out.Items, uc.checkDKIM(ctx, domain, snap.DKIM)...)
+	out.Items = append(out.Items, checkMX(ctx, uc.dns, domain, listenerIPs))
+	out.Items = append(out.Items, checkSPF(ctx, uc.dns, domain, egressIPs))
+	out.Items = append(out.Items, checkDKIM(ctx, uc.dns, domain, snap.DKIM)...)
 	return out, nil
 }
 
 // checkMX verifies the domain has MX records and that at least one resolves to a
 // listener IP of this deployment (so bounces land here).
-func (uc *DomainCheckUsecase) checkMX(ctx context.Context, domain string, listenerIPs map[string]struct{}) CheckItem {
+func checkMX(ctx context.Context, dns DNSResolver, domain string, listenerIPs map[string]struct{}) CheckItem {
 	item := CheckItem{Name: "MX"}
-	mxs, err := uc.dns.LookupMX(ctx, domain)
+	mxs, err := dns.LookupMX(ctx, domain)
 	if err != nil || len(mxs) == 0 {
 		item.Status = CheckFail
 		item.Detail = "No MX record found — the domain can't receive bounce/DSN mail."
@@ -103,7 +103,7 @@ func (uc *DomainCheckUsecase) checkMX(ctx context.Context, domain string, listen
 	for _, mx := range mxs {
 		host := strings.TrimSuffix(mx.Host, ".")
 		item.Records = append(item.Records, host)
-		ips, _ := uc.dns.LookupHost(ctx, host)
+		ips, _ := dns.LookupHost(ctx, host)
 		for _, ip := range ips {
 			if _, ok := listenerIPs[ip]; ok {
 				pointsToUs = true
@@ -127,9 +127,9 @@ func (uc *DomainCheckUsecase) checkMX(ctx context.Context, domain string, listen
 // checkSPF verifies an SPF record exists and explicitly authorizes the egress
 // (VMTA) IPs via ip4 mechanisms. a/mx/include are reported as needing manual
 // verification (they can't be fully resolved here).
-func (uc *DomainCheckUsecase) checkSPF(ctx context.Context, domain string, egressIPs []string) CheckItem {
+func checkSPF(ctx context.Context, dns DNSResolver, domain string, egressIPs []string) CheckItem {
 	item := CheckItem{Name: "SPF"}
-	txts, err := uc.dns.LookupTXT(ctx, domain)
+	txts, err := dns.LookupTXT(ctx, domain)
 	if err != nil {
 		item.Status = CheckFail
 		item.Detail = "TXT lookup failed: " + err.Error()
@@ -208,7 +208,7 @@ func (uc *DomainCheckUsecase) checkSPF(ctx context.Context, domain string, egres
 
 // checkDKIM verifies the published DKIM TXT record for each selector Iris has
 // configured for the domain.
-func (uc *DomainCheckUsecase) checkDKIM(ctx context.Context, domain string, dkims []*DKIMDomain) []CheckItem {
+func checkDKIM(ctx context.Context, dns DNSResolver, domain string, dkims []*DKIMDomain) []CheckItem {
 	var selectors []string
 	for _, d := range dkims {
 		if strings.EqualFold(strings.TrimSpace(d.Domain), domain) && strings.TrimSpace(d.Selector) != "" {
@@ -226,7 +226,7 @@ func (uc *DomainCheckUsecase) checkDKIM(ctx context.Context, domain string, dkim
 	for _, sel := range selectors {
 		item := CheckItem{Name: fmt.Sprintf("DKIM (%s)", sel)}
 		host := sel + "._domainkey." + domain
-		txts, err := uc.dns.LookupTXT(ctx, host)
+		txts, err := dns.LookupTXT(ctx, host)
 		joined := strings.Join(txts, "")
 		switch {
 		case err != nil || joined == "":
@@ -243,4 +243,51 @@ func (uc *DomainCheckUsecase) checkDKIM(ctx context.Context, domain string, dkim
 		items = append(items, item)
 	}
 	return items
+}
+
+// checkDMARC verifies a DMARC policy is published at _dmarc.<domain>. A policy of
+// p=none is reported as a warning (monitor-only, no enforcement).
+func checkDMARC(ctx context.Context, dns DNSResolver, domain string) CheckItem {
+	item := CheckItem{Name: "DMARC"}
+	host := "_dmarc." + domain
+	txts, err := dns.LookupTXT(ctx, host)
+	var dmarc string
+	for _, t := range txts {
+		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(t)), "v=dmarc1") {
+			dmarc = strings.TrimSpace(t)
+			break
+		}
+	}
+	switch {
+	case err != nil && dmarc == "":
+		item.Status = CheckFail
+		item.Detail = "No DMARC record at " + host + " — receivers have no alignment policy for this domain."
+	case dmarc == "":
+		item.Status = CheckFail
+		item.Detail = "No v=DMARC1 record at " + host + "."
+	default:
+		item.Records = []string{dmarc}
+		policy := ""
+		for _, tok := range strings.Split(dmarc, ";") {
+			tok = strings.TrimSpace(strings.ToLower(tok))
+			if strings.HasPrefix(tok, "p=") {
+				policy = strings.TrimSpace(tok[2:])
+			}
+		}
+		if policy == "" || policy == "none" {
+			item.Status = CheckWarn
+			item.Detail = "DMARC present but p=" + orValue(policy, "none") + " (monitor-only, not enforced)."
+		} else {
+			item.Status = CheckPass
+			item.Detail = "DMARC policy published (p=" + policy + ")."
+		}
+	}
+	return item
+}
+
+func orValue(s, fallback string) string {
+	if s == "" {
+		return fallback
+	}
+	return s
 }

@@ -1060,6 +1060,49 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/DeleteTLSPolicyReply'
+    /v1/tools/diagnose:
+        post:
+            tags:
+                - IrisAdminService
+            description: |-
+                Tools ---------------------------------------------------------------------
+                 Diagnose reports how mail from a given address is handled and whether the
+                 sending domain is set up correctly (DKIM/SPF/DMARC/MX/FBL + routing preview).
+            operationId: IrisAdminService_Diagnose
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/DiagnoseRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DiagnoseResult'
+    /v1/tools/rbl-check:
+        post:
+            tags:
+                - IrisAdminService
+            description: |-
+                RblCheck tests the deployment's listener and VMTA egress IPs against DNS
+                 blocklists.
+            operationId: IrisAdminService_RblCheck
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RblCheckRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RblCheckReply'
     /v1/users:
         get:
             tags:
@@ -1709,6 +1752,29 @@ components:
         DeleteTLSPolicyReply:
             type: object
             properties: {}
+        DiagnoseRequest:
+            type: object
+            properties:
+                from_email:
+                    type: string
+                recipient:
+                    type: string
+                mailclass:
+                    type: string
+            description: 'Tools: Diagnose + RBL check.'
+        DiagnoseResult:
+            type: object
+            properties:
+                from_email:
+                    type: string
+                domain:
+                    type: string
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DomainCheckItem'
+                routing:
+                    $ref: '#/components/schemas/RoutingOutcome'
         DisableMFAReply:
             type: object
             properties: {}
@@ -2239,6 +2305,48 @@ components:
                     type: string
                 status:
                     type: string
+        RblCheckReply:
+            type: object
+            properties:
+                results:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/RblIpResult'
+                zones:
+                    type: array
+                    items:
+                        type: string
+                checked_at:
+                    type: string
+                skipped:
+                    type: array
+                    items:
+                        type: string
+        RblCheckRequest:
+            type: object
+            properties: {}
+        RblIpResult:
+            type: object
+            properties:
+                ip:
+                    type: string
+                source:
+                    type: string
+                listed:
+                    type: boolean
+                listings:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/RblListing'
+        RblListing:
+            type: object
+            properties:
+                zone:
+                    type: string
+                listed:
+                    type: boolean
+                reason:
+                    type: string
         RequestAcmeCertificateRequest:
             type: object
             properties:
@@ -2276,6 +2384,27 @@ components:
                 password:
                     type: string
                     description: New password; strength-validated server-side (>= 12 chars) and bcrypt-hashed.
+        RoutingOutcome:
+            type: object
+            properties:
+                matched_rule:
+                    type: string
+                egress_pool:
+                    type: string
+                vmtas:
+                    type: array
+                    items:
+                        type: string
+                egress_ips:
+                    type: array
+                    items:
+                        type: string
+                listeners:
+                    type: array
+                    items:
+                        type: string
+                note:
+                    type: string
         RoutingRule:
             type: object
             properties:

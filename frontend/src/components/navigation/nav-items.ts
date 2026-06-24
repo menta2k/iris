@@ -90,6 +90,13 @@ export const navSections: NavSection[] = [
     ],
   },
   {
+    label: 'Tools',
+    items: [
+      { label: 'Diagnose', to: '/tools/diagnose', permission: 'service:control' },
+      { label: 'RBL Check', to: '/tools/rbl-check', permission: 'service:control' },
+    ],
+  },
+  {
     label: 'Security & Audit',
     items: [
       { label: 'Users', to: '/security/users', permission: 'security:read' },

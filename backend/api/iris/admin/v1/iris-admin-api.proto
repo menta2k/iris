@@ -258,6 +258,18 @@ service IrisAdminService {
     option (google.api.http) = { get: "/v1/domain-check/{domain}" };
   }
 
+  // Tools ---------------------------------------------------------------------
+  // Diagnose reports how mail from a given address is handled and whether the
+  // sending domain is set up correctly (DKIM/SPF/DMARC/MX/FBL + routing preview).
+  rpc Diagnose(DiagnoseRequest) returns (DiagnoseResult) {
+    option (google.api.http) = { post: "/v1/tools/diagnose" body: "*" };
+  }
+  // RblCheck tests the deployment's listener and VMTA egress IPs against DNS
+  // blocklists.
+  rpc RblCheck(RblCheckRequest) returns (RblCheckReply) {
+    option (google.api.http) = { post: "/v1/tools/rbl-check" body: "*" };
+  }
+
   // Global settings (deployment-level policy knobs editable in the UI).
   rpc GetGlobalSettings(GetGlobalSettingsRequest) returns (GlobalSettings) {
     option (google.api.http) = { get: "/v1/settings" };
@@ -921,6 +933,45 @@ message DomainCheckItem {
 message DomainBounceCheck {
   string domain = 1;
   repeated DomainCheckItem items = 2;
+}
+
+// Tools: Diagnose + RBL check.
+message DiagnoseRequest {
+  string from_email = 1;
+  string recipient = 2;  // optional: refine routing simulation
+  string mailclass = 3;  // optional: the X-Mail-Class value to simulate
+}
+message RoutingOutcome {
+  string matched_rule = 1;
+  string egress_pool = 2;
+  repeated string vmtas = 3;
+  repeated string egress_ips = 4;
+  repeated string listeners = 5;
+  string note = 6;
+}
+message DiagnoseResult {
+  string from_email = 1;
+  string domain = 2;
+  repeated DomainCheckItem items = 3;
+  RoutingOutcome routing = 4;
+}
+message RblCheckRequest {}
+message RblListing {
+  string zone = 1;
+  bool listed = 2;
+  string reason = 3;
+}
+message RblIpResult {
+  string ip = 1;
+  string source = 2;
+  bool listed = 3;
+  repeated RblListing listings = 4;
+}
+message RblCheckReply {
+  repeated RblIpResult results = 1;
+  repeated string zones = 2;
+  string checked_at = 3;
+  repeated string skipped = 4;
 }
 
 message GetDashboardSummaryRequest {}
