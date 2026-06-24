@@ -1049,7 +1049,22 @@ func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolic
 	}
 	b.WriteString(`
 kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
-  local params = {}
+  -- SMTP client timeouts: KumoMTA's per-command defaults (~5s) are too aggressive
+  -- for slow/tarpitting receivers, which accept the connection instantly but stall
+  -- on a later command (commonly the RSET sent when reusing a connection between
+  -- messages), causing spurious deferrals. Be generous; these only make us more
+  -- tolerant of slow peers, never less so for fast ones.
+  local params = {
+    connect_timeout = '30s',
+    ehlo_timeout = '30s',
+    mail_from_timeout = '30s',
+    rcpt_to_timeout = '30s',
+    rset_timeout = '30s',
+    starttls_timeout = '30s',
+    data_timeout = '60s',
+    data_dot_timeout = '120s',
+    idle_timeout = '60s',
+  }
   local limit = SOURCE_LIMITS[egress_source]
   if limit and limit > 0 then
     params.connection_limit = limit
