@@ -628,6 +628,12 @@ func TestInboundWebhookGeneration(t *testing.T) {
 	if !strings.Contains(r.Content, "msg:set_meta('mailclass', 'webhook')") {
 		t.Fatalf("webhook mailclass tag not emitted:\n%s", r.Content)
 	}
+	// A recipient at a webhook-relayed domain that matches no rule is rejected so
+	// the sending MTA bounces it, rather than relaying to the domain's real MX.
+	if !strings.Contains(r.Content, "if WEBHOOK_DOMAINS[rdom] then") ||
+		!strings.Contains(r.Content, "recipient rejected, no matching route") {
+		t.Fatalf("unknown-recipient reject for webhook domains not emitted:\n%s", r.Content)
+	}
 }
 
 func TestSuppressedLogRecordGeneration(t *testing.T) {
