@@ -16,12 +16,13 @@ func (s *Service) ListMailRecords(ctx context.Context, req *adminv1.ListMailReco
 	}
 	page := pageFrom(req.GetPage())
 	f := biz.MailFilter{
-		Mailclass: req.GetMailclass(),
-		Sender:    req.GetSender(),
-		From:      req.GetFrom(),
-		Recipient: req.GetRecipient(),
-		VMTAID:    req.GetVmtaId(),
-		Status:    req.GetStatus(),
+		Mailclass:  req.GetMailclass(),
+		Sender:     req.GetSender(),
+		From:       req.GetFrom(),
+		Recipient:  req.GetRecipient(),
+		VMTAID:     req.GetVmtaId(),
+		Status:     req.GetStatus(),
+		RecordType: req.GetRecordType(),
 	}
 	if req.GetFromTime() != nil {
 		t := req.GetFromTime().AsTime()
@@ -40,7 +41,8 @@ func (s *Service) ListMailRecords(ctx context.Context, req *adminv1.ListMailReco
 		out.Items = append(out.Items, &adminv1.MailRecord{
 			Id: m.ID, MessageId: m.MessageID, EventTime: timestamppb.New(m.EventTime),
 			Mailclass: m.Mailclass, Sender: m.Sender, Recipient: m.Recipient,
-			RecipientDomain: m.RecipientDomain, VmtaId: m.VMTAID, Status: m.Status,
+			RecipientDomain: m.RecipientDomain, VmtaId: m.VMTAID, EgressSource: m.EgressSource, Status: m.Status,
+			RecordType: m.RecordType,
 			FromHeader: m.FromHeader, SmtpStatus: m.SMTPStatus, Diagnostic: m.Diagnostic,
 		})
 	}

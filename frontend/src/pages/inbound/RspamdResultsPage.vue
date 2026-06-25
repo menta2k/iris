@@ -58,7 +58,7 @@ function scoreVariant(score: number) {
                   <Badge :variant="scoreVariant(r.score)">{{ r.score }}</Badge>
                 </TableCell>
                 <TableCell>{{ r.action }}</TableCell>
-                <TableCell class="font-mono text-xs text-muted-foreground">{{ r.symbols }}</TableCell>
+                <TableCell class="font-mono text-xs text-muted-foreground">{{ r.symbols?.length ? r.symbols.join(', ') : '—' }}</TableCell>
                 <TableCell class="text-muted-foreground">{{ r.reason }}</TableCell>
               </TableRow>
             </TableBody>

@@ -171,7 +171,7 @@ func TestRenderDefinesSpoolsAndLocalLogs(t *testing.T) {
 	for _, want := range []string{
 		`kumo.define_spool { name = 'data', path = '/var/spool/kumomta/data' }`,
 		`kumo.define_spool { name = 'meta', path = '/var/spool/kumomta/meta' }`,
-		`kumo.configure_local_logs { log_dir = '/var/log/kumomta' }`,
+		`kumo.configure_local_logs { log_dir = '/var/log/kumomta', max_segment_duration = '1 minute' }`,
 	} {
 		if !strings.Contains(r.Content, want) {
 			t.Fatalf("generated init must contain %q:\n%s", want, r.Content)
@@ -256,12 +256,34 @@ func TestRenderRspamdAndLogHook(t *testing.T) {
 		!strings.Contains(r.Content, "iris_rspamd_scan(msg)") {
 		t.Fatalf("rspamd scan not wired into reception:\n%s", r.Content)
 	}
+	// The scan verdict is published to the results stream the ingestion worker
+	// drains (the producer half of the Rspamd Results page).
+	if !strings.Contains(r.Content, `RSPAMD_RESULTS_STREAM = "`+RspamdResultsStream+`"`) ||
+		!strings.Contains(r.Content, "'XADD', RSPAMD_RESULTS_STREAM") {
+		t.Fatalf("rspamd verdict not published to results stream:\n%s", r.Content)
+	}
 	// log hook: configure_log_hook in init + XADD constructor + tracker queue.
 	if !strings.Contains(r.Content, "configure_log_hook") ||
 		!strings.Contains(r.Content, "make.redis_tracker") ||
 		!strings.Contains(r.Content, "'XADD'") ||
 		!strings.Contains(r.Content, "domain == LOGSTREAM_TRACKER") {
 		t.Fatalf("log hook not fully wired:\n%s", r.Content)
+	}
+
+	// rspamd enabled but no Redis stream: scanning still tags mail, but the
+	// results producer must be omitted (no stream to write to).
+	noRedis := base
+	noRedis.RspamdMode = "tag"
+	noRedis.RspamdURL = "http://rspamd:11334"
+	nr, err := RenderKumoConfig(noRedis)
+	if err != nil || !nr.Valid {
+		t.Fatalf("render no-redis: err=%v valid=%v issues=%v", err, nr.Valid, nr.LintIssues)
+	}
+	if !strings.Contains(nr.Content, "iris_rspamd_scan(msg)") {
+		t.Fatalf("rspamd scan must still run without redis:\n%s", nr.Content)
+	}
+	if strings.Contains(nr.Content, "RSPAMD_RESULTS_STREAM") {
+		t.Fatalf("results producer must be absent without a redis stream:\n%s", nr.Content)
 	}
 }
 

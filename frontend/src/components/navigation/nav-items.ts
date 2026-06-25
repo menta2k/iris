@@ -33,6 +33,7 @@ export const navSections: NavSection[] = [
       { label: 'Feedback', to: '/operations/feedback', permission: 'operations:read' },
       { label: 'DMARC Reports', to: '/operations/dmarc', permission: 'operations:read' },
       { label: 'Queues', to: '/operations/queues', permission: 'operations:read' },
+      { label: 'Worker Errors', to: '/operations/worker-errors', permission: 'operations:read' },
       {
         label: 'Service Control',
         to: '/operations/service-control',

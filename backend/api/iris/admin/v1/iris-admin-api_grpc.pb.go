@@ -89,6 +89,7 @@ const (
 	IrisAdminService_GetDmarcStats_FullMethodName          = "/iris.admin.v1.IrisAdminService/GetDmarcStats"
 	IrisAdminService_ListDmarcReports_FullMethodName       = "/iris.admin.v1.IrisAdminService/ListDmarcReports"
 	IrisAdminService_ListDmarcDomains_FullMethodName       = "/iris.admin.v1.IrisAdminService/ListDmarcDomains"
+	IrisAdminService_ListWorkerErrorLogs_FullMethodName    = "/iris.admin.v1.IrisAdminService/ListWorkerErrorLogs"
 	IrisAdminService_GetGlobalSettings_FullMethodName      = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
 	IrisAdminService_UpdateGlobalSettings_FullMethodName   = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
 )
@@ -216,6 +217,9 @@ type IrisAdminServiceClient interface {
 	GetDmarcStats(ctx context.Context, in *GetDmarcStatsRequest, opts ...grpc.CallOption) (*DmarcStats, error)
 	ListDmarcReports(ctx context.Context, in *ListDmarcReportsRequest, opts ...grpc.CallOption) (*ListDmarcReportsReply, error)
 	ListDmarcDomains(ctx context.Context, in *ListDmarcDomainsRequest, opts ...grpc.CallOption) (*ListDmarcDomainsReply, error)
+	// Generic worker error log: Warn/Error events emitted by background workers
+	// (e.g. an unparseable DMARC report dropped by the dmarc worker).
+	ListWorkerErrorLogs(ctx context.Context, in *ListWorkerErrorLogsRequest, opts ...grpc.CallOption) (*ListWorkerErrorLogsReply, error)
 	// Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(ctx context.Context, in *GetGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error)
 	UpdateGlobalSettings(ctx context.Context, in *UpdateGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error)
@@ -929,6 +933,16 @@ func (c *irisAdminServiceClient) ListDmarcDomains(ctx context.Context, in *ListD
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) ListWorkerErrorLogs(ctx context.Context, in *ListWorkerErrorLogsRequest, opts ...grpc.CallOption) (*ListWorkerErrorLogsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListWorkerErrorLogsReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListWorkerErrorLogs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) GetGlobalSettings(ctx context.Context, in *GetGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GlobalSettings)
@@ -1072,6 +1086,9 @@ type IrisAdminServiceServer interface {
 	GetDmarcStats(context.Context, *GetDmarcStatsRequest) (*DmarcStats, error)
 	ListDmarcReports(context.Context, *ListDmarcReportsRequest) (*ListDmarcReportsReply, error)
 	ListDmarcDomains(context.Context, *ListDmarcDomainsRequest) (*ListDmarcDomainsReply, error)
+	// Generic worker error log: Warn/Error events emitted by background workers
+	// (e.g. an unparseable DMARC report dropped by the dmarc worker).
+	ListWorkerErrorLogs(context.Context, *ListWorkerErrorLogsRequest) (*ListWorkerErrorLogsReply, error)
 	// Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error)
 	UpdateGlobalSettings(context.Context, *UpdateGlobalSettingsRequest) (*GlobalSettings, error)
@@ -1294,6 +1311,9 @@ func (UnimplementedIrisAdminServiceServer) ListDmarcReports(context.Context, *Li
 }
 func (UnimplementedIrisAdminServiceServer) ListDmarcDomains(context.Context, *ListDmarcDomainsRequest) (*ListDmarcDomainsReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListDmarcDomains not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListWorkerErrorLogs(context.Context, *ListWorkerErrorLogsRequest) (*ListWorkerErrorLogsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListWorkerErrorLogs not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetGlobalSettings not implemented")
@@ -2582,6 +2602,24 @@ func _IrisAdminService_ListDmarcDomains_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_ListWorkerErrorLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListWorkerErrorLogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListWorkerErrorLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListWorkerErrorLogs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListWorkerErrorLogs(ctx, req.(*ListWorkerErrorLogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_GetGlobalSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetGlobalSettingsRequest)
 	if err := dec(in); err != nil {
@@ -2904,6 +2942,10 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListDmarcDomains",
 			Handler:    _IrisAdminService_ListDmarcDomains_Handler,
+		},
+		{
+			MethodName: "ListWorkerErrorLogs",
+			Handler:    _IrisAdminService_ListWorkerErrorLogs_Handler,
 		},
 		{
 			MethodName: "GetGlobalSettings",

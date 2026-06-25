@@ -195,7 +195,9 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 		FromHeader:      rec.FromHeader(),
 		Recipient:       rec.Recipient,
 		RecipientDomain: rec.RecipientDomainOf(),
+		EgressSource:    strings.TrimSpace(rec.EgressSource),
 		Status:          status,
+		RecordType:      rec.Type,
 		Diagnostic:      strings.TrimSpace(rec.Response.Content),
 	}
 	// Carry the SMTP response code (e.g. 4xx on a deferral) so the Logs UI can

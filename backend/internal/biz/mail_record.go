@@ -29,8 +29,16 @@ type MailRecord struct {
 	Recipient       string
 	RecipientDomain string
 	VMTAID          string
-	RouteID         string
-	Status          string
+	// EgressSource is the sending VMTA's name as reported by KumoMTA on
+	// Delivery/Bounce/TransientFailure records; empty on Reception (no egress yet).
+	EgressSource string
+	RouteID      string
+	Status       string
+	// RecordType is the raw KumoMTA log record type (Reception/Delivery/Bounce/
+	// TransientFailure/AdminBounce/Expiration). Several types map to the same
+	// Status (Bounce/AdminBounce/Expiration → "bounced"); RecordType keeps them
+	// distinguishable for coverage queries and the Logs filter.
+	RecordType string
 	// SMTPStatus and Diagnostic carry the server's SMTP response for this event
 	// (e.g. the 4xx code + text on a deferral, 5xx on a bounce, 250 on delivery).
 	// Empty for events with no response (e.g. Reception).
@@ -48,9 +56,12 @@ type MailFilter struct {
 	VMTAID    string
 	// Status filters by mail-record status (e.g. "deferred" to see what's stuck
 	// in the queue). Empty matches all.
-	Status   string
-	FromTime *time.Time
-	ToTime   *time.Time
+	Status string
+	// RecordType filters by the raw KumoMTA log record type (e.g. "AdminBounce"
+	// to isolate operator purges from ordinary bounces). Empty matches all.
+	RecordType string
+	FromTime   *time.Time
+	ToTime     *time.Time
 }
 
 // NormalizeMailFilter sanitizes and bounds the free-text filter fields.
@@ -61,6 +72,7 @@ func NormalizeMailFilter(f MailFilter) (MailFilter, error) {
 	f.Recipient = strings.ToLower(SanitizeFilter(f.Recipient))
 	f.VMTAID = SanitizeFilter(f.VMTAID)
 	f.Status = strings.ToLower(SanitizeFilter(f.Status))
+	f.RecordType = SanitizeFilter(f.RecordType)
 	if f.FromTime != nil && f.ToTime != nil && f.ToTime.Before(*f.FromTime) {
 		return f, Invalid("MAIL_FILTER_RANGE", "to_time must not be before from_time")
 	}

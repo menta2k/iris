@@ -45,3 +45,6 @@ tmp/
 /specs/
 /AGENTS.md
 /skills-lock.json
+
+# Local Claude Code agent files
+.claude/

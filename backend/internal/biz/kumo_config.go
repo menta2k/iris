@@ -984,7 +984,12 @@ func writeInit(b *strings.Builder, snap ConfigSnapshot) {
 	// Redis hook below) to disk for operator inspection.
 	b.WriteString("  kumo.define_spool { name = 'data', path = '/var/spool/kumomta/data' }\n")
 	b.WriteString("  kumo.define_spool { name = 'meta', path = '/var/spool/kumomta/meta' }\n")
-	b.WriteString("  kumo.configure_local_logs { log_dir = '/var/log/kumomta' }\n")
+	// max_segment_duration forces time-based rotation. Without it KumoMTA only
+	// rotates the (gzip-compressed) segment when it reaches max_file_size, so on a
+	// low-volume relay the current segment stays open and buffered for hours and
+	// recent records are not yet readable on disk (zcat/grep find nothing). One
+	// minute keeps on-disk logs current for operator inspection.
+	b.WriteString("  kumo.configure_local_logs { log_dir = '/var/log/kumomta', max_segment_duration = '1 minute' }\n")
 	if f := strings.TrimSpace(snap.BounceClassifierFile); f != "" {
 		// Load KumoMTA's bounce-classifier rules so Bounce log records carry a
 		// classification (InvalidRecipient, SpamBlock, QuotaIssue, …).
@@ -1585,6 +1590,14 @@ func writeRspamd(b *strings.Builder, snap ConfigSnapshot) {
 	b.WriteString("-- ===== inbound spam filtering (rspamd) =====\n")
 	fmt.Fprintf(b, "local RSPAMD_URL = %s\n", MustLuaString(strings.TrimSpace(snap.RspamdURL)))
 	fmt.Fprintf(b, "local RSPAMD_ENFORCE = %t\n", snap.rspamdEnforce())
+	// publishResults emits the verdict-recording block when a Redis stream is
+	// configured; without it scanning still tags mail but the Rspamd Results page
+	// has no producer. Stream name is shared with the ingestion worker via
+	// RspamdResultsStream. The XADD is fail-open and runs before the enforce-mode
+	// reject branches so rejected mail is still recorded.
+	if snap.LogStreamRedisURL != "" {
+		fmt.Fprintf(b, "local RSPAMD_RESULTS_STREAM = %s\n", MustLuaString(RspamdResultsStream))
+	}
 	b.WriteString(`local function iris_rspamd_scan(msg)
   local rcpt = msg:recipient()
   local rdom = (rcpt and rcpt.domain or ''):lower()
@@ -1612,7 +1625,35 @@ func writeRspamd(b *strings.Builder, snap ConfigSnapshot) {
   local action = r.action or 'no action'
   msg:prepend_header('X-Spam-Score', string.format('%.2f', score))
   msg:prepend_header('X-Rspamd-Action', tostring(action))
-  if action == 'reject' then
+`)
+	if snap.LogStreamRedisURL != "" {
+		b.WriteString(`  -- Record the verdict on the Redis stream the rspamd ingestion worker drains.
+  -- Symbols are flattened to a sorted name array; reason is rspamd's smtp_message
+  -- when present. Fail-open: a Redis hiccup logs and never blocks the message.
+  local symbols = {}
+  if type(r.symbols) == 'table' then
+    for name, _ in pairs(r.symbols) do symbols[#symbols + 1] = name end
+    table.sort(symbols)
+  end
+  local reason = ''
+  if type(r.messages) == 'table' and r.messages.smtp_message then
+    reason = tostring(r.messages.smtp_message)
+  end
+  local okx, errx = pcall(function()
+    local redis = require 'redis'
+    local conn = redis.open { node = LOGSTREAM_REDIS_URL, pool_size = 5 }
+    conn:query('XADD', RSPAMD_RESULTS_STREAM, 'MAXLEN', '~', '50000', '*',
+               'action', tostring(action),
+               'score', string.format('%.4f', score),
+               'symbols', kumo.serde.json_encode(symbols),
+               'reason', reason)
+  end)
+  if not okx then
+    kumo.log_error('rspamd: results xadd failed err=' .. tostring(errx))
+  end
+`)
+	}
+	b.WriteString(`  if action == 'reject' then
     if RSPAMD_ENFORCE then
       kumo.reject(550, '5.7.1 message rejected as spam')
       return

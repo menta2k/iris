@@ -36,6 +36,7 @@ type Service struct {
 	diagnose     *biz.DiagnoseUsecase
 	rbl          *biz.RBLUsecase
 	dmarc        *biz.DMARCUsecase
+	workerErrors *biz.WorkerErrorUsecase
 }
 
 // Deps bundles the use cases the service delegates to. Fields may be nil for
@@ -59,6 +60,7 @@ type Deps struct {
 	Diagnose     *biz.DiagnoseUsecase
 	RBL          *biz.RBLUsecase
 	DMARC        *biz.DMARCUsecase
+	WorkerErrors *biz.WorkerErrorUsecase
 }
 
 // NewService constructs the admin API service.
@@ -86,6 +88,7 @@ func NewService(d Deps) *Service {
 		diagnose:     d.Diagnose,
 		rbl:          d.RBL,
 		dmarc:        d.DMARC,
+		workerErrors: d.WorkerErrors,
 	}
 }
 

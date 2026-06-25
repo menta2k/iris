@@ -87,6 +87,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { permission: 'operations:read', title: 'Queues' },
       },
       {
+        path: 'operations/worker-errors',
+        name: 'worker-errors',
+        component: () => import('@/pages/operations/WorkerErrorsPage.vue'),
+        meta: { permission: 'operations:read', title: 'Worker Errors' },
+      },
+      {
         path: 'operations/service-control',
         name: 'service-control',
         component: () => import('@/pages/operations/ServiceControlPage.vue'),

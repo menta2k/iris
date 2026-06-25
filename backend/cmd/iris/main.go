@@ -22,6 +22,7 @@ import (
 	"github.com/menta2k/iris/backend/internal/biz"
 	"github.com/menta2k/iris/backend/internal/conf"
 	"github.com/menta2k/iris/backend/internal/data"
+	"github.com/menta2k/iris/backend/internal/errlog"
 	"github.com/menta2k/iris/backend/internal/server"
 	"github.com/menta2k/iris/backend/internal/service"
 	"github.com/menta2k/iris/backend/internal/worker"
@@ -211,6 +212,11 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	dmarcRepo := data.NewDMARCRepo(db)
 	dmarcUC := biz.NewDMARCUsecase(dmarcRepo, auditor)
 
+	// Generic worker error log: the repo is both the read API source and the
+	// sink behind the errlog slog handler that captures worker Warn/Error events.
+	workerErrorRepo := data.NewWorkerErrorRepo(db)
+	workerErrorUC := biz.NewWorkerErrorUsecase(workerErrorRepo)
+
 	inboundUC := biz.NewInboundUsecase(inboundRepo, auditor, cfg.KumoMTA.Stub)
 	fblUC := biz.NewFBLUsecase(fblRepo, auditor)
 
@@ -270,24 +276,39 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		Diagnose:     diagnoseUC,
 		RBL:          rblUC,
 		DMARC:        dmarcUC,
+		WorkerErrors: workerErrorUC,
 	}
 
 	svc := service.NewService(deps)
 
+	// Wrap the base log handler so every Warn/Error a worker emits is also
+	// mirrored into the worker_error_logs store. Workers get a logger tagged with
+	// their name; the supervisor (startWorker) keeps the plain stdout logger so a
+	// sink failure can never recurse back through the DB handler.
+	errHandler := errlog.New(log.Handler(), workerErrorRepo, errlog.Options{
+		Redact: biz.IsSensitiveKey,
+		OnError: func(err error) {
+			fmt.Fprintf(os.Stderr, "errlog sink: %v\n", err)
+		},
+	})
+	workerLog := slog.New(errHandler)
+	wlog := func(name string) *slog.Logger { return workerLog.With("worker", name) }
+
 	// Start background workers. Each exits cleanly on context cancellation.
-	startWorker(ctx, log, "service-control", worker.NewServiceControlWorker(streams, mailOpsRepo, kumo, log).Run)
-	startWorker(ctx, log, "rspamd-ingest", worker.NewRspamdWorker(streams, inboundUC, log).Run)
+	startWorker(ctx, log, "errlog-flush", errHandler.Run)
+	startWorker(ctx, log, "service-control", worker.NewServiceControlWorker(streams, mailOpsRepo, kumo, wlog("service-control")).Run)
+	startWorker(ctx, log, "rspamd-ingest", worker.NewRspamdWorker(streams, inboundUC, wlog("rspamd-ingest")).Run)
 	// Ingest KumoMTA's structured logs (streamed by the generated policy's
 	// log_hook) into the mail_records hypertable that powers the Logs UI.
 	// Inbound webhooks are delivered in-policy by kumod (make.webhook_post),
 	// which forwards the raw message — so no webhook fan-out worker here.
-	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, log).Run)
+	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, wlog("log-stream")).Run)
 	// DSN consumer: async bounces captured at the configured bounce domain.
-	startWorker(ctx, log, "dsn", worker.NewDSNWorker(streams, mailOpsRepo, domainSafetyRepo, verpKey, biz.DSNStreamName, log).Run)
-	startWorker(ctx, log, "dmarc", worker.NewDMARCWorker(streams, dmarcUC, biz.DMARCStreamName, log).Run)
+	startWorker(ctx, log, "dsn", worker.NewDSNWorker(streams, mailOpsRepo, domainSafetyRepo, verpKey, biz.DSNStreamName, wlog("dsn")).Run)
+	startWorker(ctx, log, "dmarc", worker.NewDMARCWorker(streams, dmarcUC, biz.DMARCStreamName, wlog("dmarc")).Run)
 	// ACME: HTTP-01 challenge listener (default off) + periodic renewer.
-	startWorker(ctx, log, "acme-challenge", worker.NewAcmeChallengeWorker(acmeTokens, envOr("IRIS_ACME_HTTP_BIND", "off"), log).Run)
-	startWorker(ctx, log, "acme-renewer", worker.NewAcmeRenewerWorker(acmeUC, renewInterval, renewBefore, log).Run)
+	startWorker(ctx, log, "acme-challenge", worker.NewAcmeChallengeWorker(acmeTokens, envOr("IRIS_ACME_HTTP_BIND", "off"), wlog("acme-challenge")).Run)
+	startWorker(ctx, log, "acme-renewer", worker.NewAcmeRenewerWorker(acmeUC, renewInterval, renewBefore, wlog("acme-renewer")).Run)
 
 	authMW := service.AuthMiddleware(cfg.Auth, authUC)
 	checks := []server.ReadinessChecker{db, streams}

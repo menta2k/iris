@@ -755,6 +755,7 @@ paths:
                     type: string
                 - name: vmta_id
                   in: query
+                  description: Filters by egress source = the sending VMTA's name (e.g. "vmta-1").
                   schema:
                     type: string
                 - name: from_time
@@ -775,6 +776,11 @@ paths:
                 - name: status
                   in: query
                   description: Filter by mail-record status (e.g. "deferred" to see what's in the queue).
+                  schema:
+                    type: string
+                - name: record_type
+                  in: query
+                  description: Filter by raw KumoMTA log record type (e.g. "AdminBounce"). Empty = all.
                   schema:
                     type: string
             responses:
@@ -1475,6 +1481,47 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/WebhookRule'
+    /v1/worker-error-logs:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                Generic worker error log: Warn/Error events emitted by background workers
+                 (e.g. an unparseable DMARC report dropped by the dmarc worker).
+            operationId: IrisAdminService_ListWorkerErrorLogs
+            parameters:
+                - name: level
+                  in: query
+                  schema:
+                    type: string
+                - name: worker
+                  in: query
+                  schema:
+                    type: string
+                - name: from
+                  in: query
+                  schema:
+                    type: string
+                - name: to
+                  in: query
+                  schema:
+                    type: string
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListWorkerErrorLogsReply'
 components:
     schemas:
         AcmeAccount:
@@ -2325,6 +2372,15 @@ components:
                         $ref: '#/components/schemas/WebhookRule'
                 page:
                     $ref: '#/components/schemas/PageReply'
+        ListWorkerErrorLogsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/WorkerErrorLog'
+                page:
+                    $ref: '#/components/schemas/PageReply'
         Listener:
             type: object
             properties:
@@ -2426,6 +2482,17 @@ components:
                          Logs UI show why a message deferred or bounced.
                 diagnostic:
                     type: string
+                egress_source:
+                    type: string
+                    description: |-
+                        EgressSource is the sending VMTA's name for this event (Delivery/Bounce/
+                         TransientFailure); empty on Reception.
+                record_type:
+                    type: string
+                    description: |-
+                        RecordType is the raw KumoMTA log record type (Reception/Delivery/Bounce/
+                         TransientFailure/AdminBounce/Expiration). Distinguishes the three types that
+                         share status="bounced".
             description: Mail operations -----------------------------------------------------------
         MetricPoint:
             type: object
@@ -3002,5 +3069,21 @@ components:
                     type: integer
                     format: int32
             description: Inbound automation --------------------------------------------------------
+        WorkerErrorLog:
+            type: object
+            properties:
+                id:
+                    type: string
+                event_time:
+                    type: string
+                level:
+                    type: string
+                worker:
+                    type: string
+                message:
+                    type: string
+                detail:
+                    type: string
+            description: Worker error log ----------------------------------------------------------
 tags:
     - name: IrisAdminService
