@@ -281,6 +281,12 @@ service IrisAdminService {
     option (google.api.http) = { get: "/v1/dmarc/domains" };
   }
 
+  // Generic worker error log: Warn/Error events emitted by background workers
+  // (e.g. an unparseable DMARC report dropped by the dmarc worker).
+  rpc ListWorkerErrorLogs(ListWorkerErrorLogsRequest) returns (ListWorkerErrorLogsReply) {
+    option (google.api.http) = { get: "/v1/worker-error-logs" };
+  }
+
   // Global settings (deployment-level policy knobs editable in the UI).
   rpc GetGlobalSettings(GetGlobalSettingsRequest) returns (GlobalSettings) {
     option (google.api.http) = { get: "/v1/settings" };
@@ -476,6 +482,13 @@ message MailRecord {
   // Logs UI show why a message deferred or bounced.
   string smtp_status = 11;
   string diagnostic = 12;
+  // EgressSource is the sending VMTA's name for this event (Delivery/Bounce/
+  // TransientFailure); empty on Reception.
+  string egress_source = 13;
+  // RecordType is the raw KumoMTA log record type (Reception/Delivery/Bounce/
+  // TransientFailure/AdminBounce/Expiration). Distinguishes the three types that
+  // share status="bounced".
+  string record_type = 14;
 }
 message Bounce {
   string id = 1;
@@ -511,6 +524,7 @@ message ListMailRecordsRequest {
   string mailclass = 2;
   string sender = 3;
   string recipient = 4;
+  // Filters by egress source = the sending VMTA's name (e.g. "vmta-1").
   string vmta_id = 5;
   google.protobuf.Timestamp from_time = 6;
   google.protobuf.Timestamp to_time = 7;
@@ -518,6 +532,8 @@ message ListMailRecordsRequest {
   string from = 8;
   // Filter by mail-record status (e.g. "deferred" to see what's in the queue).
   string status = 9;
+  // Filter by raw KumoMTA log record type (e.g. "AdminBounce"). Empty = all.
+  string record_type = 10;
 }
 message ListMailRecordsReply {
   repeated MailRecord items = 1;
@@ -1023,6 +1039,27 @@ message ListDmarcReportsRequest { string domain = 1; PageRequest page = 2; }
 message ListDmarcReportsReply { repeated DmarcReport items = 1; PageReply page = 2; }
 message ListDmarcDomainsRequest {}
 message ListDmarcDomainsReply { repeated string domains = 1; }
+
+// Worker error log ----------------------------------------------------------
+message WorkerErrorLog {
+  string id = 1;
+  string event_time = 2; // RFC3339
+  string level = 3;      // "warn" | "error"
+  string worker = 4;
+  string message = 5;
+  string detail = 6;     // structured slog attributes as a JSON object string
+}
+message ListWorkerErrorLogsRequest {
+  string level = 1;  // "" | "warn" | "error"
+  string worker = 2;
+  string from = 3;   // RFC3339, optional lower bound on event_time
+  string to = 4;     // RFC3339, optional upper bound on event_time
+  PageRequest page = 5;
+}
+message ListWorkerErrorLogsReply {
+  repeated WorkerErrorLog items = 1;
+  PageReply page = 2;
+}
 
 message GetDashboardSummaryRequest {}
 message DashboardSummary {

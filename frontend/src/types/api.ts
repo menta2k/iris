@@ -172,7 +172,12 @@ export interface MailRecord {
   recipient: string
   recipientDomain: string
   vmtaId: string
+  /** Sending VMTA name for this event (delivery/bounce); empty on reception. */
+  egressSource?: string
   status: string
+  /** Raw KumoMTA log record type (Reception/Delivery/Bounce/TransientFailure/
+   * AdminBounce/Expiration); distinguishes the three types that share status="bounced". */
+  recordType?: string
   /** SMTP response for this event (code + text); present on delivery/deferral/bounce. */
   smtpStatus?: string
   diagnostic?: string
@@ -186,6 +191,29 @@ export interface MailRecordFilters {
   recipient?: string
   vmta_id?: string
   status?: string
+  /** Filter by raw KumoMTA log record type (e.g. "AdminBounce"). */
+  record_type?: string
+  [key: string]: string | undefined
+}
+
+/** One persisted worker error-log entry (a Warn/Error a background worker emitted). */
+export interface WorkerErrorLog {
+  id: string
+  eventTime: string
+  /** "warn" | "error" */
+  level: string
+  worker: string
+  message: string
+  /** Structured slog attributes as a JSON object string. */
+  detail: string
+}
+
+export interface WorkerErrorLogFilters {
+  level?: string
+  worker?: string
+  /** RFC3339 lower/upper bounds on event_time. */
+  from?: string
+  to?: string
   [key: string]: string | undefined
 }
 
@@ -472,7 +500,8 @@ export interface RspamdResult {
   mailRecordId: string
   action: string
   score: number
-  symbols: string
+  /** Rspamd symbol names that fired for this message (proto: repeated string). */
+  symbols: string[]
   reason: string
 }
 

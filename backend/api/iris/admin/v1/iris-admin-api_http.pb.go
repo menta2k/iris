@@ -71,6 +71,7 @@ const OperationIrisAdminServiceListVMTAGroups = "/iris.admin.v1.IrisAdminService
 const OperationIrisAdminServiceListVMTAs = "/iris.admin.v1.IrisAdminService/ListVMTAs"
 const OperationIrisAdminServiceListWebhookDeliveries = "/iris.admin.v1.IrisAdminService/ListWebhookDeliveries"
 const OperationIrisAdminServiceListWebhookRules = "/iris.admin.v1.IrisAdminService/ListWebhookRules"
+const OperationIrisAdminServiceListWorkerErrorLogs = "/iris.admin.v1.IrisAdminService/ListWorkerErrorLogs"
 const OperationIrisAdminServiceLogin = "/iris.admin.v1.IrisAdminService/Login"
 const OperationIrisAdminServiceLogout = "/iris.admin.v1.IrisAdminService/Logout"
 const OperationIrisAdminServiceRblCheck = "/iris.admin.v1.IrisAdminService/RblCheck"
@@ -179,6 +180,9 @@ type IrisAdminServiceHTTPServer interface {
 	ListWebhookDeliveries(context.Context, *ListWebhookDeliveriesRequest) (*ListWebhookDeliveriesReply, error)
 	// ListWebhookRules Inbound automation -------------------------------------------------------
 	ListWebhookRules(context.Context, *ListWebhookRulesRequest) (*ListWebhookRulesReply, error)
+	// ListWorkerErrorLogs Generic worker error log: Warn/Error events emitted by background workers
+	// (e.g. an unparseable DMARC report dropped by the dmarc worker).
+	ListWorkerErrorLogs(context.Context, *ListWorkerErrorLogsRequest) (*ListWorkerErrorLogsReply, error)
 	// Login Authentication -----------------------------------------------------------
 	// Login exchanges email + password for a session token. It is exempt from the
 	// auth middleware (the operation name contains "Login"). When MFA is required
@@ -289,6 +293,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.GET("/v1/dmarc/stats", _IrisAdminService_GetDmarcStats0_HTTP_Handler(srv))
 	r.GET("/v1/dmarc/reports", _IrisAdminService_ListDmarcReports0_HTTP_Handler(srv))
 	r.GET("/v1/dmarc/domains", _IrisAdminService_ListDmarcDomains0_HTTP_Handler(srv))
+	r.GET("/v1/worker-error-logs", _IrisAdminService_ListWorkerErrorLogs0_HTTP_Handler(srv))
 	r.GET("/v1/settings", _IrisAdminService_GetGlobalSettings0_HTTP_Handler(srv))
 	r.PUT("/v1/settings", _IrisAdminService_UpdateGlobalSettings0_HTTP_Handler(srv))
 }
@@ -1773,6 +1778,25 @@ func _IrisAdminService_ListDmarcDomains0_HTTP_Handler(srv IrisAdminServiceHTTPSe
 	}
 }
 
+func _IrisAdminService_ListWorkerErrorLogs0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListWorkerErrorLogsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListWorkerErrorLogs)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListWorkerErrorLogs(ctx, req.(*ListWorkerErrorLogsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListWorkerErrorLogsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_GetGlobalSettings0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetGlobalSettingsRequest
@@ -1901,6 +1925,9 @@ type IrisAdminServiceHTTPClient interface {
 	ListWebhookDeliveries(ctx context.Context, req *ListWebhookDeliveriesRequest, opts ...http.CallOption) (rsp *ListWebhookDeliveriesReply, err error)
 	// ListWebhookRules Inbound automation -------------------------------------------------------
 	ListWebhookRules(ctx context.Context, req *ListWebhookRulesRequest, opts ...http.CallOption) (rsp *ListWebhookRulesReply, err error)
+	// ListWorkerErrorLogs Generic worker error log: Warn/Error events emitted by background workers
+	// (e.g. an unparseable DMARC report dropped by the dmarc worker).
+	ListWorkerErrorLogs(ctx context.Context, req *ListWorkerErrorLogsRequest, opts ...http.CallOption) (rsp *ListWorkerErrorLogsReply, err error)
 	// Login Authentication -----------------------------------------------------------
 	// Login exchanges email + password for a session token. It is exempt from the
 	// auth middleware (the operation name contains "Login"). When MFA is required
@@ -2649,6 +2676,21 @@ func (c *IrisAdminServiceHTTPClientImpl) ListWebhookRules(ctx context.Context, i
 	pattern := "/v1/webhook-rules"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListWebhookRules))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListWorkerErrorLogs Generic worker error log: Warn/Error events emitted by background workers
+// (e.g. an unparseable DMARC report dropped by the dmarc worker).
+func (c *IrisAdminServiceHTTPClientImpl) ListWorkerErrorLogs(ctx context.Context, in *ListWorkerErrorLogsRequest, opts ...http.CallOption) (*ListWorkerErrorLogsReply, error) {
+	var out ListWorkerErrorLogsReply
+	pattern := "/v1/worker-error-logs"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListWorkerErrorLogs))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

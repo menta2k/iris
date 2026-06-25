@@ -9,6 +9,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
+	"github.com/menta2k/iris/backend/internal/biz"
 	"github.com/menta2k/iris/backend/internal/conf"
 )
 
@@ -19,7 +20,9 @@ const (
 	StreamFeedbackEvents  = "iris.feedback.events"
 	StreamWebhookDelivery = "iris.webhook.deliveries"
 	StreamQueueCommands   = "iris.queue.commands"
-	StreamRspamdResults   = "iris.rspamd.results"
+	// StreamRspamdResults aliases biz.RspamdResultsStream so the kumod policy
+	// producer and this consumer share one canonical name.
+	StreamRspamdResults   = biz.RspamdResultsStream
 	StreamServiceCommands = "iris.service.commands"
 )
 

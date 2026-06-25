@@ -16,10 +16,22 @@ import { StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
 import { usePagedList } from '@/composables/usePagedList'
 import { mailOperationsService } from '@/services'
 import { formatDateTime } from '@/composables/useTimezone'
 import type { MailRecord, MailRecordFilters } from '@/types'
+
+// The 7 KumoMTA log record types the log hook streams into mail_records.
+const RECORD_TYPES = [
+  'Reception',
+  'Delivery',
+  'Bounce',
+  'TransientFailure',
+  'AdminBounce',
+  'Expiration',
+  'Feedback',
+] as const
 
 const filters = ref<MailRecordFilters>({
   mailclass: '',
@@ -27,6 +39,7 @@ const filters = ref<MailRecordFilters>({
   from: '',
   recipient: '',
   vmta_id: '',
+  record_type: '',
 })
 
 // The loader reads filters at call time, so reload() applies the current values.
@@ -48,7 +61,7 @@ const {
 })
 
 function resetFilters() {
-  filters.value = { mailclass: '', sender: '', from: '', recipient: '', vmta_id: '' }
+  filters.value = { mailclass: '', sender: '', from: '', recipient: '', vmta_id: '', record_type: '' }
   reload()
 }
 </script>
@@ -80,6 +93,13 @@ function resetFilters() {
             <Label for="f-vmta">VMTA</Label>
             <Input id="f-vmta" v-model="filters.vmta_id" placeholder="vmta-1" />
           </div>
+          <div class="space-y-1">
+            <Label for="f-type">Type</Label>
+            <Select id="f-type" v-model="filters.record_type" data-testid="mail-record-type">
+              <option value="">All types</option>
+              <option v-for="t in RECORD_TYPES" :key="t" :value="t">{{ t }}</option>
+            </Select>
+          </div>
           <div class="flex gap-2">
             <Button type="submit" data-testid="apply-filters">Filter</Button>
             <Button type="button" variant="outline" @click="resetFilters">Reset</Button>
@@ -108,6 +128,7 @@ function resetFilters() {
                 <TableHead>Recipient</TableHead>
                 <TableHead>VMTA</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Reason</TableHead>
               </TableRow>
             </TableHeader>
@@ -119,8 +140,9 @@ function resetFilters() {
                 <TableCell>{{ m.fromHeader || '—' }}</TableCell>
                 <TableCell class="text-muted-foreground">{{ m.sender }}</TableCell>
                 <TableCell>{{ m.recipient }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ m.vmtaId }}</TableCell>
+                <TableCell class="font-mono text-xs">{{ m.egressSource || m.vmtaId || '—' }}</TableCell>
                 <TableCell><StatusBadge :status="m.status" /></TableCell>
+                <TableCell class="whitespace-nowrap text-xs text-muted-foreground">{{ m.recordType || '—' }}</TableCell>
                 <TableCell class="max-w-md">
                   <span
                     v-if="m.smtpStatus || m.diagnostic"

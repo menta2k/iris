@@ -15,6 +15,8 @@ const (
 	PermQueueRead      Permission = "queue:read"
 	PermQueueControl   Permission = "queue:control"
 	PermServiceControl Permission = "service:control"
+	// PermWorkerLogsRead grants read access to the generic worker error log.
+	PermWorkerLogsRead Permission = "worker-logs:read"
 
 	// Domain & recipient safety.
 	PermDKIMRead         Permission = "dkim:read"
@@ -57,18 +59,20 @@ var BuiltinRolePermissions = map[string][]Permission{
 	RoleOperator: {
 		PermVMTARead, PermVMTAWrite, PermRoutingRead, PermRoutingWrite,
 		PermMailRead, PermQueueRead, PermQueueControl, PermServiceControl,
+		PermWorkerLogsRead,
 		PermDKIMRead, PermDKIMWrite, PermSuppressionRead, PermSuppressionWrite,
 		PermWebhookRead, PermWebhookWrite, PermRspamdRead, PermDashboardRead,
 		PermSettingsRead, PermSettingsWrite,
 	},
 	RoleSecurity: {
 		PermUserRead, PermUserWrite, PermAuditRead, PermDashboardRead,
-		PermMailRead, PermQueueRead,
+		PermMailRead, PermQueueRead, PermWorkerLogsRead,
 	},
 	RoleViewer: {
 		PermVMTARead, PermRoutingRead, PermMailRead, PermQueueRead,
 		PermDKIMRead, PermSuppressionRead, PermWebhookRead, PermRspamdRead,
 		PermDashboardRead, PermUserRead, PermAuditRead, PermSettingsRead,
+		PermWorkerLogsRead,
 	},
 }
 

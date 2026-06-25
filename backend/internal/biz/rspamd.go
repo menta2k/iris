@@ -2,6 +2,12 @@ package biz
 
 import "time"
 
+// RspamdResultsStream is the Redis stream the generated kumod policy XADDs each
+// inbound spam-scan verdict onto, and which the rspamd ingestion worker consumes.
+// data.StreamRspamdResults is an alias of this so the producer (Lua) and consumer
+// (Go) never drift.
+const RspamdResultsStream = "iris.rspamd.results"
+
 // Rspamd actions.
 const (
 	RspamdNoAction    = "no action"
