@@ -35,8 +35,16 @@ type Listener struct {
 	TLSKeyPath     string
 	RequireAuth    bool
 	MaxMessageSize int64
-	RelayHosts     []string
-	Status         string
+	// RelayHosts is the CIDR/IP allowlist permitted to relay (submit outbound)
+	// through this listener. As of 3.0.0 the list is authoritative — there is no
+	// RFC-1918 fallback. Loopback (127.0.0.1/32) is ALWAYS permitted on every
+	// listener so on-box local injection/submission works regardless of config;
+	// everything else must be listed explicitly. An EMPTY list therefore means
+	// loopback-only: the listener relays only for localhost and otherwise accepts
+	// mail only for local/hosted domains (an inbound-only / MX listener). Populate
+	// it (e.g. on a :587 submission listener) to authorize additional senders.
+	RelayHosts []string
+	Status     string
 }
 
 // ListenAddr returns the "ip:port" bind string for the listener.

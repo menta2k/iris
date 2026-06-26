@@ -1013,9 +1013,10 @@ func writeInit(b *strings.Builder, snap ConfigSnapshot) {
 	b.WriteString("end)\n\n")
 }
 
-// defaultRelayHosts is the relay allowlist used when a listener configures none
-// (RFC 1918 private ranges + loopback).
-var defaultRelayHosts = []string{"127.0.0.1/32", "::1/128", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"}
+// loopbackRelayHost is always added to every listener's relay allowlist so
+// on-box processes (local injection / submission) can always relay, independent
+// of the operator-configured list.
+const loopbackRelayHost = "127.0.0.1/32"
 
 // writeEsmtpListener emits one kumo.start_esmtp_listener block for a listener.
 func writeEsmtpListener(b *strings.Builder, l *Listener) {
@@ -1029,16 +1030,21 @@ func writeEsmtpListener(b *strings.Builder, l *Listener) {
 	if l.MaxMessageSize > 0 {
 		fmt.Fprintf(b, "    max_message_size = %d,\n", l.MaxMessageSize)
 	}
-	relay := l.RelayHosts
-	if len(relay) == 0 {
-		relay = defaultRelayHosts
-	}
-	parts := make([]string, 0, len(relay))
-	for _, h := range relay {
+	// The relay allowlist is authoritative (3.0.0): no RFC-1918 fallback. Loopback
+	// (loopbackRelayHost) is ALWAYS permitted on every listener (:25 and :587
+	// alike) so on-box local injection / submission works regardless of config;
+	// everything else must be listed explicitly. An empty configured list
+	// therefore renders loopback-only — the listener relays only for localhost and
+	// otherwise accepts mail only for local/hosted domains (inbound-only / MX).
+	parts := []string{MustLuaString(loopbackRelayHost)}
+	seen := map[string]bool{loopbackRelayHost: true}
+	for _, h := range l.RelayHosts {
 		h = strings.TrimSpace(h)
-		if h != "" {
-			parts = append(parts, MustLuaString(h))
+		if h == "" || seen[h] {
+			continue
 		}
+		seen[h] = true
+		parts = append(parts, MustLuaString(h))
 	}
 	fmt.Fprintf(b, "    relay_hosts = { %s },\n", strings.Join(parts, ", "))
 	b.WriteString("  }\n")
