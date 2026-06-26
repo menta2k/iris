@@ -29,6 +29,7 @@ const sampleListener: Listener = {
   maxMessageSize: '0',
   relayHosts: [],
   status: 'active',
+  role: 'inbound',
 }
 
 vi.mock('@/services', () => {
@@ -81,17 +82,22 @@ describe('VmtasPage edit dialog', () => {
     const statusSelect = document.body.querySelector('#vmta-status') as HTMLSelectElement
     expect(statusSelect.value).toBe('active')
 
-    // The Listener dropdown is present and prefilled from the row, and the
-    // resolved IP/EHLO read-only fields reflect the selected listener.
+    // IP/EHLO are now EDITABLE fields owned by the VMTA, prefilled from the row;
+    // the listener dropdown is an optional association, also prefilled.
     const listenerSelect = document.body.querySelector(
       '[data-testid="vmta-listener"]',
     ) as HTMLSelectElement
     expect(listenerSelect.value).toBe('lst-1')
     const ipInput = document.body.querySelector('#vmta-ip') as HTMLInputElement
     expect(ipInput.value).toBe('203.0.113.10')
-    expect(ipInput.disabled).toBe(true)
+    expect(ipInput.disabled).toBe(false)
+    const ehloInput = document.body.querySelector('#vmta-ehlo') as HTMLInputElement
+    expect(ehloInput.value).toBe('mail.example.com')
+    expect(ehloInput.disabled).toBe(false)
 
     // Change a couple of fields and submit.
+    ipInput.value = '203.0.113.99'
+    ipInput.dispatchEvent(new Event('input'))
     notesInput.value = 'updated notes'
     notesInput.dispatchEvent(new Event('input'))
     statusSelect.value = 'disabled'
@@ -108,6 +114,8 @@ describe('VmtasPage edit dialog', () => {
     expect(outboundConfigService.updateVmta).toHaveBeenCalledTimes(1)
     expect(outboundConfigService.updateVmta).toHaveBeenCalledWith('vmta-1', {
       name: 'vmta-east-1',
+      ip_address: '203.0.113.99',
+      ehlo_name: 'mail.example.com',
       listener_id: 'lst-1',
       max_connections: 5,
       status: 'disabled',

@@ -136,6 +136,7 @@ type Listener struct {
 	MaxMessageSize int64                  `protobuf:"varint,10,opt,name=max_message_size,json=maxMessageSize,proto3" json:"max_message_size,omitempty"`
 	RelayHosts     []string               `protobuf:"bytes,11,rep,name=relay_hosts,json=relayHosts,proto3" json:"relay_hosts,omitempty"`
 	Status         string                 `protobuf:"bytes,12,opt,name=status,proto3" json:"status,omitempty"`
+	Role           string                 `protobuf:"bytes,13,opt,name=role,proto3" json:"role,omitempty"` // "inbound" (MX) | "submission"
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -254,6 +255,13 @@ func (x *Listener) GetStatus() string {
 	return ""
 }
 
+func (x *Listener) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
 type ListListenersRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Page          *PageRequest           `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
@@ -362,6 +370,7 @@ type CreateListenerRequest struct {
 	RequireAuth    bool                   `protobuf:"varint,8,opt,name=require_auth,json=requireAuth,proto3" json:"require_auth,omitempty"`
 	MaxMessageSize int64                  `protobuf:"varint,9,opt,name=max_message_size,json=maxMessageSize,proto3" json:"max_message_size,omitempty"`
 	RelayHosts     []string               `protobuf:"bytes,10,rep,name=relay_hosts,json=relayHosts,proto3" json:"relay_hosts,omitempty"`
+	Role           string                 `protobuf:"bytes,11,opt,name=role,proto3" json:"role,omitempty"` // "inbound" (default) | "submission"
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -466,6 +475,13 @@ func (x *CreateListenerRequest) GetRelayHosts() []string {
 	return nil
 }
 
+func (x *CreateListenerRequest) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
 type UpdateListenerRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -480,6 +496,7 @@ type UpdateListenerRequest struct {
 	MaxMessageSize int64                  `protobuf:"varint,10,opt,name=max_message_size,json=maxMessageSize,proto3" json:"max_message_size,omitempty"`
 	RelayHosts     []string               `protobuf:"bytes,11,rep,name=relay_hosts,json=relayHosts,proto3" json:"relay_hosts,omitempty"`
 	Status         string                 `protobuf:"bytes,12,opt,name=status,proto3" json:"status,omitempty"`
+	Role           string                 `protobuf:"bytes,13,opt,name=role,proto3" json:"role,omitempty"` // "inbound" | "submission"
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -594,6 +611,13 @@ func (x *UpdateListenerRequest) GetRelayHosts() []string {
 func (x *UpdateListenerRequest) GetStatus() string {
 	if x != nil {
 		return x.Status
+	}
+	return ""
+}
+
+func (x *UpdateListenerRequest) GetRole() string {
+	if x != nil {
+		return x.Role
 	}
 	return ""
 }
@@ -9931,7 +9955,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\"3\n" +
 	"\tPageReply\x12&\n" +
-	"\x0fnext_page_token\x18\x01 \x01(\tR\rnextPageToken\"\xea\x02\n" +
+	"\x0fnext_page_token\x18\x01 \x01(\tR\rnextPageToken\"\xfe\x02\n" +
 	"\bListener\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
@@ -9949,12 +9973,13 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	" \x01(\x03R\x0emaxMessageSize\x12\x1f\n" +
 	"\vrelay_hosts\x18\v \x03(\tR\n" +
 	"relayHosts\x12\x16\n" +
-	"\x06status\x18\f \x01(\tR\x06status\"F\n" +
+	"\x06status\x18\f \x01(\tR\x06status\x12\x12\n" +
+	"\x04role\x18\r \x01(\tR\x04role\"F\n" +
 	"\x14ListListenersRequest\x12.\n" +
 	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\"q\n" +
 	"\x12ListListenersReply\x12-\n" +
 	"\x05items\x18\x01 \x03(\v2\x17.iris.admin.v1.ListenerR\x05items\x12,\n" +
-	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\xcf\x02\n" +
+	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\xe3\x02\n" +
 	"\x15CreateListenerRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
@@ -9970,7 +9995,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x10max_message_size\x18\t \x01(\x03R\x0emaxMessageSize\x12\x1f\n" +
 	"\vrelay_hosts\x18\n" +
 	" \x03(\tR\n" +
-	"relayHosts\"\xf7\x02\n" +
+	"relayHosts\x12\x12\n" +
+	"\x04role\x18\v \x01(\tR\x04role\"\x8b\x03\n" +
 	"\x15UpdateListenerRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
@@ -9988,7 +10014,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	" \x01(\x03R\x0emaxMessageSize\x12\x1f\n" +
 	"\vrelay_hosts\x18\v \x03(\tR\n" +
 	"relayHosts\x12\x16\n" +
-	"\x06status\x18\f \x01(\tR\x06status\"\x83\x02\n" +
+	"\x06status\x18\f \x01(\tR\x06status\x12\x12\n" +
+	"\x04role\x18\r \x01(\tR\x04role\"\x83\x02\n" +
 	"\x04VMTA\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +

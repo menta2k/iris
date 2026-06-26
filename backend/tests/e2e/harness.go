@@ -73,11 +73,11 @@ func representativeSnapshot() biz.ConfigSnapshot {
 	return biz.ConfigSnapshot{
 		Listeners: []*biz.Listener{
 			{ID: "lst-1", Name: "edge", IPAddress: "198.51.100.1", Port: 2525, Hostname: "mx.example.com",
-				MaxMessageSize: 26214400, Status: biz.ListenerStatusActive},
+				MaxMessageSize: 26214400, Role: biz.ListenerRoleInbound, Status: biz.ListenerStatusActive},
 			{ID: "lst-2", Name: "submission", IPAddress: "198.51.100.2", Port: 2587, Hostname: "submit.example.com",
-				RelayHosts: []string{"10.0.0.0/8"}, Status: biz.ListenerStatusActive},
+				RelayHosts: []string{"10.0.0.0/8"}, Role: biz.ListenerRoleSubmission, Status: biz.ListenerStatusActive},
 			{ID: "lst-off", Name: "legacy", IPAddress: "198.51.100.3", Port: 2526, Hostname: "old.example.com",
-				Status: biz.ListenerStatusDisabled},
+				Role: biz.ListenerRoleInbound, Status: biz.ListenerStatusDisabled},
 		},
 		VMTAs: []*biz.VMTA{
 			{ID: "v1", Name: "vmta-a", ListenerID: "lst-1", IPAddress: "203.0.113.10", EHLOName: "a.example.com",

@@ -11,9 +11,13 @@ import (
 // exactly those hosts.
 func TestRelayHostsAuthoritative(t *testing.T) {
 	mk := func(name, ip string, relay []string) *Listener {
+		role := ListenerRoleInbound
+		if len(relay) > 0 {
+			role = ListenerRoleSubmission
+		}
 		return &Listener{
 			ID: name, Name: name, IPAddress: ip, Port: 25,
-			Hostname: "mx.example.com", RelayHosts: relay, Status: ListenerStatusActive,
+			Hostname: "mx.example.com", RelayHosts: relay, Role: role, Status: ListenerStatusActive,
 		}
 	}
 

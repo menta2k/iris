@@ -17,11 +17,11 @@ func TestOutboundConfigPersistence(t *testing.T) {
 
 	la := seedListenerUC(t, uc, "lst-a", "203.0.113.20")
 	lb := seedListenerUC(t, uc, "lst-b", "203.0.113.21")
-	a, err := uc.CreateVMTA(ctx, &biz.VMTA{Name: "vmta-a", ListenerID: la})
+	a, err := uc.CreateVMTA(ctx, &biz.VMTA{Name: "vmta-a", IPAddress: "203.0.113.20", EHLOName: "a.example.com", ListenerID: la})
 	if err != nil {
 		t.Fatalf("create vmta a: %v", err)
 	}
-	b, err := uc.CreateVMTA(ctx, &biz.VMTA{Name: "vmta-b", ListenerID: lb})
+	b, err := uc.CreateVMTA(ctx, &biz.VMTA{Name: "vmta-b", IPAddress: "203.0.113.21", EHLOName: "b.example.com", ListenerID: lb})
 	if err != nil {
 		t.Fatalf("create vmta b: %v", err)
 	}

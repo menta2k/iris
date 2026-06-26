@@ -21,7 +21,7 @@ import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
 import { outboundConfigService } from '@/services'
 import { ApiError } from '@/services/http'
-import type { Listener } from '@/types'
+import type { Listener, ListenerRole } from '@/types'
 
 const { items, loading, error, notImplemented, load } = useAsyncList<Listener>({
   loader: () => outboundConfigService.listListeners(),
@@ -49,6 +49,7 @@ function emptyForm() {
     max_message_size: '0',
     relay_hosts_text: '',
     status: 'active',
+    role: 'inbound' as ListenerRole,
   }
 }
 const form = ref(emptyForm())
@@ -56,12 +57,19 @@ const form = ref(emptyForm())
 const isEdit = computed(() => mode.value === 'edit')
 
 // Split the free-text relay hosts on commas/newlines; blank yields an empty
-// array (the server then defaults to RFC1918 + loopback).
+// array (loopback-only, i.e. an inbound/MX listener).
 function parseRelayHosts(text: string): string[] {
   return text
     .split(/[\n,]+/)
     .map((s) => s.trim())
     .filter((s) => s.length > 0)
+}
+
+// Picking a role suggests its conventional port, but only when the current port
+// is still the other role's default (never clobber an explicit port).
+function onRoleChange() {
+  if (form.value.role === 'submission' && Number(form.value.port) === 25) form.value.port = 587
+  if (form.value.role === 'inbound' && Number(form.value.port) === 587) form.value.port = 25
 }
 
 function openCreate() {
@@ -86,6 +94,7 @@ function openEdit(l: Listener) {
     max_message_size: l.maxMessageSize ?? '0',
     relay_hosts_text: (l.relayHosts ?? []).join('\n'),
     status: (l.status || 'active').toLowerCase(),
+    role: l.role ?? 'inbound',
   }
   dialogOpen.value = true
 }
@@ -104,6 +113,7 @@ async function submit() {
     require_auth: form.value.require_auth,
     max_message_size: String(form.value.max_message_size || '0'),
     relay_hosts: parseRelayHosts(form.value.relay_hosts_text),
+    role: form.value.role,
   }
   try {
     if (isEdit.value && editId.value) {
@@ -198,6 +208,18 @@ async function submit() {
         <div class="space-y-1.5">
           <Label for="listener-name">Name</Label>
           <Input id="listener-name" v-model="form.name" placeholder="esmtp-east-1" />
+        </div>
+        <div class="space-y-1.5">
+          <Label for="listener-role">Role</Label>
+          <Select id="listener-role" v-model="form.role" data-testid="listener-role" @change="onRoleChange">
+            <option value="inbound">Inbound (MX — receives mail, no relay)</option>
+            <option value="submission">Submission (authorized senders relay outbound)</option>
+          </Select>
+          <p class="text-xs text-muted-foreground">
+            <strong>Inbound</strong> accepts mail for local domains and must leave the relay
+            allowlist empty. <strong>Submission</strong> requires at least one relay host. Loopback
+            always relays. (Picking a role suggests its conventional port.)
+          </p>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="space-y-1.5">

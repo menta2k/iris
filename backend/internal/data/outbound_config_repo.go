@@ -107,12 +107,12 @@ func (r *OutboundConfigRepo) VMTAExists(ctx context.Context, id string) (bool, e
 // --- Listeners --------------------------------------------------------------
 
 const listenerSelect = `id, name, host(ip_address), port, hostname, tls_enabled,
-	tls_cert_path, tls_key_path, require_auth, max_message_size, relay_hosts, status`
+	tls_cert_path, tls_key_path, require_auth, max_message_size, relay_hosts, status, role`
 
 func scanListener(row interface{ Scan(...any) error }) (*biz.Listener, error) {
 	l := &biz.Listener{}
 	if err := row.Scan(&l.ID, &l.Name, &l.IPAddress, &l.Port, &l.Hostname, &l.TLSEnabled,
-		&l.TLSCertPath, &l.TLSKeyPath, &l.RequireAuth, &l.MaxMessageSize, &l.RelayHosts, &l.Status); err != nil {
+		&l.TLSCertPath, &l.TLSKeyPath, &l.RequireAuth, &l.MaxMessageSize, &l.RelayHosts, &l.Status, &l.Role); err != nil {
 		return nil, err
 	}
 	return l, nil
@@ -122,11 +122,11 @@ func scanListener(row interface{ Scan(...any) error }) (*biz.Listener, error) {
 func (r *OutboundConfigRepo) CreateListener(ctx context.Context, l *biz.Listener) (*biz.Listener, error) {
 	out, err := scanListener(r.db.Pool.QueryRow(ctx, `
 		INSERT INTO listeners (name, ip_address, port, hostname, tls_enabled,
-			tls_cert_path, tls_key_path, require_auth, max_message_size, relay_hosts, status)
-		VALUES ($1, $2::inet, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+			tls_cert_path, tls_key_path, require_auth, max_message_size, relay_hosts, status, role)
+		VALUES ($1, $2::inet, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING `+listenerSelect,
 		l.Name, l.IPAddress, l.Port, l.Hostname, l.TLSEnabled, l.TLSCertPath, l.TLSKeyPath,
-		l.RequireAuth, l.MaxMessageSize, nonNilStrings(l.RelayHosts), l.Status))
+		l.RequireAuth, l.MaxMessageSize, nonNilStrings(l.RelayHosts), l.Status, l.Role))
 	if err != nil {
 		return nil, mapConstraint(err, "listener")
 	}
@@ -138,11 +138,11 @@ func (r *OutboundConfigRepo) UpdateListener(ctx context.Context, id string, l *b
 	out, err := scanListener(r.db.Pool.QueryRow(ctx, `
 		UPDATE listeners SET name = $2, ip_address = $3::inet, port = $4, hostname = $5,
 			tls_enabled = $6, tls_cert_path = $7, tls_key_path = $8, require_auth = $9,
-			max_message_size = $10, relay_hosts = $11, status = $12, updated_at = now()
+			max_message_size = $10, relay_hosts = $11, status = $12, role = $13, updated_at = now()
 		WHERE id = $1
 		RETURNING `+listenerSelect,
 		id, l.Name, l.IPAddress, l.Port, l.Hostname, l.TLSEnabled, l.TLSCertPath, l.TLSKeyPath,
-		l.RequireAuth, l.MaxMessageSize, nonNilStrings(l.RelayHosts), l.Status))
+		l.RequireAuth, l.MaxMessageSize, nonNilStrings(l.RelayHosts), l.Status, l.Role))
 	if err != nil {
 		return nil, mapConstraint(err, "listener")
 	}

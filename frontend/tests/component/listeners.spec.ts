@@ -17,6 +17,7 @@ const sampleListener: Listener = {
   maxMessageSize: '0',
   relayHosts: [],
   status: 'active',
+  role: 'inbound',
 }
 
 vi.mock('@/services', () => ({
