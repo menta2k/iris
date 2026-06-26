@@ -1171,7 +1171,7 @@ func fblApprovedDomains(snap ConfigSnapshot) map[string]bool {
 		if e == nil || e.Status != FBLApproved {
 			continue
 		}
-		if d := strings.ToLower(strings.TrimSpace(e.Domain)); d != "" {
+		if d := SanitizeAddress(e.Domain); d != "" {
 			out[d] = true
 		}
 	}
@@ -1226,7 +1226,7 @@ func writeBounceConsts(b *strings.Builder, snap ConfigSnapshot) {
 	b.WriteString("-- ===== bounce / DSN + FBL pipeline constants =====\n")
 	bounceDomain, dsnTracker, dsnStream := "", "", ""
 	if bounceEnabled(snap) {
-		bounceDomain = strings.ToLower(strings.TrimSpace(snap.BounceDomain))
+		bounceDomain = SanitizeAddress(snap.BounceDomain)
 		dsnTracker = "iris_dsn_catcher"
 		dsnStream = DSNStreamName
 	}
@@ -1246,9 +1246,9 @@ func writeBounceConsts(b *strings.Builder, snap ConfigSnapshot) {
 		fmt.Fprintf(b, "FBL_DOMAINS[%s] = true\n", MustLuaString(d))
 	}
 	for _, e := range fblForwards(snap) {
-		addr := strings.ToLower(strings.TrimSpace(e.FeedbackAddress))
-		fwd := strings.ToLower(strings.TrimSpace(e.ForwardAddress))
-		dom := strings.ToLower(strings.TrimSpace(e.Domain))
+		addr := SanitizeAddress(e.FeedbackAddress)
+		fwd := SanitizeAddress(e.ForwardAddress)
+		dom := SanitizeAddress(e.Domain)
 		fmt.Fprintf(b, "FBL_FORWARD[%s] = %s\n", MustLuaString(addr), MustLuaString(fwd))
 		fmt.Fprintf(b, "FBL_RELAY_DOMAINS[%s] = true\n", MustLuaString(dom))
 	}
@@ -1259,7 +1259,7 @@ func writeBounceConsts(b *strings.Builder, snap ConfigSnapshot) {
 	// DMARC aggregate-report catcher constants (empty when disabled).
 	dmarcAddr, dmarcDomain, dmarcStream, dmarcTracker := "", "", "", ""
 	if dmarcEnabled(snap) {
-		dmarcAddr = strings.ToLower(strings.TrimSpace(snap.DMARCReportAddr))
+		dmarcAddr = SanitizeAddress(snap.DMARCReportAddr)
 		dmarcDomain = RecipientDomain(dmarcAddr)
 		dmarcStream = DMARCStreamName
 		dmarcTracker = "iris_dmarc_catcher"

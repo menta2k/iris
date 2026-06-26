@@ -40,9 +40,12 @@ type FBLRepo interface {
 
 // Validate normalizes and checks a feedback-loop endpoint before persistence.
 func (f *FBLEndpoint) Validate() error {
-	f.Domain = strings.ToLower(strings.TrimSpace(f.Domain))
-	f.FeedbackAddress = strings.ToLower(strings.TrimSpace(f.FeedbackAddress))
-	f.ForwardAddress = strings.ToLower(strings.TrimSpace(f.ForwardAddress))
+	// SanitizeAddress strips zero-width / format runes (copy-paste contaminants)
+	// that TrimSpace misses and that would otherwise render into the policy and
+	// break exact-match comparisons in the reception hook / get_listener_domain.
+	f.Domain = SanitizeAddress(f.Domain)
+	f.FeedbackAddress = SanitizeAddress(f.FeedbackAddress)
+	f.ForwardAddress = SanitizeAddress(f.ForwardAddress)
 	f.Status = strings.ToLower(strings.TrimSpace(f.Status))
 	if f.Status == "" {
 		f.Status = FBLAwaitingApproval
