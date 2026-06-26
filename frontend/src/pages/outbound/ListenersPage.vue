@@ -262,16 +262,19 @@ async function submit() {
           </div>
         </div>
         <div class="space-y-1.5">
-          <Label for="listener-relay">Relay Hosts</Label>
+          <Label for="listener-relay">Relay allowlist (IPs / CIDRs)</Label>
           <textarea
             id="listener-relay"
             v-model="form.relay_hosts_text"
             rows="3"
             class="flex w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            placeholder="10.0.0.0/8, 192.168.1.5"
+            placeholder="10.1.111.0/24, 192.168.1.5"
           ></textarea>
           <p class="text-xs text-muted-foreground">
-            IPs or CIDRs, comma/newline-separated. Leave blank to default to RFC1918 + loopback.
+            Hosts allowed to relay (submit outbound) through this listener — comma/newline-separated.
+            Loopback (127.0.0.1) is always allowed. <strong>Leave blank for loopback-only</strong>
+            (inbound-only / MX listener that otherwise accepts mail only for local domains). Add CIDRs
+            on a submission listener (e.g. :587) to authorize other senders.
           </p>
         </div>
         <div v-if="isEdit" class="space-y-1.5">
