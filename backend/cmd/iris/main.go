@@ -302,7 +302,8 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// log_hook) into the mail_records hypertable that powers the Logs UI.
 	// Inbound webhooks are delivered in-policy by kumod (make.webhook_post),
 	// which forwards the raw message — so no webhook fan-out worker here.
-	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, wlog("log-stream")).Run)
+	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, wlog("log-stream")).
+		WithFeedbackVerification(domainSafetyRepo, settingsUC).Run)
 	// DSN consumer: async bounces captured at the configured bounce domain.
 	startWorker(ctx, log, "dsn", worker.NewDSNWorker(streams, mailOpsRepo, domainSafetyRepo, verpKey, biz.DSNStreamName, wlog("dsn")).Run)
 	startWorker(ctx, log, "dmarc", worker.NewDMARCWorker(streams, dmarcUC, biz.DMARCStreamName, wlog("dmarc")).Run)

@@ -44,6 +44,27 @@ func (r *DomainSafetyRepo) suppressionExpiry(ctx context.Context) (*time.Time, t
 
 var _ biz.DomainSafetyRepo = (*DomainSafetyRepo)(nil)
 
+// DKIMPublicKey returns the published DKIM TXT record value for one of our active
+// signing keys (domain+selector), derived from the stored private key, and false
+// when we hold none. Used to verify that an FBL report's embedded original was
+// signed by us — no DNS lookup, so it proves WE signed it. Case-insensitive.
+func (r *DomainSafetyRepo) DKIMPublicKey(ctx context.Context, domain, selector string) (string, bool) {
+	var pem string
+	err := r.db.Pool.QueryRow(ctx, `
+		SELECT private_key_ref FROM dkim_domains
+		WHERE lower(domain) = lower($1) AND lower(selector) = lower($2)
+		  AND status = $3 AND private_key_ref <> ''
+		LIMIT 1`, domain, selector, biz.DKIMReady).Scan(&pem)
+	if err != nil {
+		return "", false
+	}
+	record, _, err := biz.DKIMPublicRecord(pem)
+	if err != nil {
+		return "", false
+	}
+	return record, true
+}
+
 // CreateDKIMDomain inserts a DKIM domain configuration.
 func (r *DomainSafetyRepo) CreateDKIMDomain(ctx context.Context, d *biz.DKIMDomain) (*biz.DKIMDomain, error) {
 	row := r.db.Pool.QueryRow(ctx, `

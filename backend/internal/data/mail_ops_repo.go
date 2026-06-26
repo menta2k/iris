@@ -84,7 +84,7 @@ func (r *MailOpsRepo) ListBounces(ctx context.Context, page biz.Page) ([]*biz.Bo
 func (r *MailOpsRepo) ListFeedbackReports(ctx context.Context, page biz.Page) ([]*biz.FeedbackReport, error) {
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT id, received_at, source, report_type, recipient,
-		       coalesce(mail_record_id::text,''), processing_state, raw_ref
+		       coalesce(mail_record_id::text,''), processing_state, raw_ref, verified, verification
 		FROM feedback_reports ORDER BY received_at DESC LIMIT $1 OFFSET $2`,
 		page.Size, page.Offset)
 	if err != nil {
@@ -95,7 +95,7 @@ func (r *MailOpsRepo) ListFeedbackReports(ctx context.Context, page biz.Page) ([
 	for rows.Next() {
 		fr := &biz.FeedbackReport{}
 		if err := rows.Scan(&fr.ID, &fr.ReceivedAt, &fr.Source, &fr.ReportType, &fr.Recipient,
-			&fr.MailRecordID, &fr.ProcessingState, &fr.RawRef); err != nil {
+			&fr.MailRecordID, &fr.ProcessingState, &fr.RawRef, &fr.Verified, &fr.Verification); err != nil {
 			return nil, fmt.Errorf("scan feedback: %w", err)
 		}
 		out = append(out, fr)
@@ -252,10 +252,10 @@ func (r *MailOpsRepo) RecipientForMessageID(ctx context.Context, messageID strin
 func (r *MailOpsRepo) InsertFeedbackReport(ctx context.Context, f *biz.FeedbackReport) error {
 	_, err := r.db.Pool.Exec(ctx, `
 		INSERT INTO feedback_reports
-			(received_at, source, report_type, recipient, processing_state, raw_ref)
-		VALUES ($1, $2, $3, $4, $5, $6)`,
+			(received_at, source, report_type, recipient, processing_state, raw_ref, verified, verification)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		f.ReceivedAt, f.Source, f.ReportType, f.Recipient,
-		strOrDefault(f.ProcessingState, biz.ProcessingNew), f.RawRef)
+		strOrDefault(f.ProcessingState, biz.ProcessingNew), f.RawRef, f.Verified, f.Verification)
 	if err != nil {
 		return fmt.Errorf("insert feedback report: %w", err)
 	}

@@ -2139,6 +2139,9 @@ components:
                 dmarc_report_email:
                     type: string
                     description: DMARC aggregate-report address (advertised as rua=). Empty disables it.
+                fbl_require_verification:
+                    type: boolean
+                    description: Gate FBL auto-suppression on proven provenance (X-KumoRef/send-log/DKIM).
             description: Global settings — deployment-level policy knobs an operator edits in the UI.
         KumoConfig:
             type: object
@@ -2837,6 +2840,8 @@ components:
                     type: string
                 dmarc_report_email:
                     type: string
+                fbl_require_verification:
+                    type: boolean
         UpdateListenerRequest:
             type: object
             properties:

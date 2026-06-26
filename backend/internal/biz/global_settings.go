@@ -39,6 +39,12 @@ type GlobalSettings struct {
 	AutoSuppressHardBounces bool
 	SoftBounceThreshold     int
 
+	// FBLRequireVerification gates FBL auto-suppression on provenance: when true,
+	// a complainant is suppressed only if the report was proven to be about mail
+	// we sent (X-KumoRef trace, send-log, or our DKIM signature). Default false
+	// preserves the prior behavior (suppress every complaint).
+	FBLRequireVerification bool
+
 	// SuppressionTTL is the lifetime applied to suppression records (Go/KumoMTA
 	// duration form, e.g. "720h", "30d"). Empty = permanent. Enforced as the
 	// Redis key TTL on the live suppression list and mirrored to expires_at.
