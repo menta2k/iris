@@ -21,6 +21,32 @@ const (
 	ListenerStatusDisabled = "disabled"
 )
 
+// Listener role values: inbound MX vs authenticated/authorized submission.
+const (
+	// ListenerRoleInbound is an MX bind point: it accepts mail for local/hosted
+	// domains and relays for no one but loopback (relay allowlist must be empty).
+	ListenerRoleInbound = "inbound"
+	// ListenerRoleSubmission is an outbound submission bind point: the listed
+	// relay hosts may submit mail for onward delivery (relay allowlist required).
+	ListenerRoleSubmission = "submission"
+)
+
+// ValidListenerRole reports whether role is a known listener role.
+func ValidListenerRole(role string) bool {
+	return role == ListenerRoleInbound || role == ListenerRoleSubmission
+}
+
+// nonEmpty returns the entries of s that are non-blank after trimming.
+func nonEmpty(s []string) []string {
+	var out []string
+	for _, v := range s {
+		if strings.TrimSpace(v) != "" {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
 // Listener is an ESMTP listener: an IP + port where mail is received, with an
 // EHLO/banner hostname and TLS/relay settings. A VMTA attaches to a listener
 // and uses its IP as the outbound egress source and its hostname as the EHLO.
@@ -45,6 +71,10 @@ type Listener struct {
 	// it (e.g. on a :587 submission listener) to authorize additional senders.
 	RelayHosts []string
 	Status     string
+	// Role declares the listener's purpose and is kept consistent with RelayHosts:
+	// "inbound" (MX) forbids relay hosts; "submission" requires at least one.
+	// Defaults to "inbound".
+	Role string
 }
 
 // ListenAddr returns the "ip:port" bind string for the listener.
@@ -59,6 +89,10 @@ func (l *Listener) Validate() error {
 	l.Hostname = strings.TrimSpace(l.Hostname)
 	l.TLSCertPath = strings.TrimSpace(l.TLSCertPath)
 	l.TLSKeyPath = strings.TrimSpace(l.TLSKeyPath)
+	l.Role = strings.TrimSpace(l.Role)
+	if l.Role == "" {
+		l.Role = ListenerRoleInbound
+	}
 	if l.Status == "" {
 		l.Status = ListenerStatusActive
 	}
@@ -106,6 +140,19 @@ func (l *Listener) Validate() error {
 		if _, _, err := net.ParseCIDR(h); err != nil && net.ParseIP(h) == nil {
 			return Invalid("LISTENER_RELAY_HOST_INVALID", "relay host %q is not a valid IP or CIDR", h)
 		}
+	}
+	// Role must be consistent with the relay allowlist: an inbound MX relays for
+	// no one (beyond loopback), a submission listener requires authorized senders.
+	if !ValidListenerRole(l.Role) {
+		return Invalid("LISTENER_ROLE_INVALID", "role %q must be %q or %q", l.Role, ListenerRoleInbound, ListenerRoleSubmission)
+	}
+	if l.Role == ListenerRoleInbound && len(nonEmpty(l.RelayHosts)) > 0 {
+		return Invalid("LISTENER_INBOUND_RELAY_FORBIDDEN",
+			"an inbound listener must not list relay hosts; use a submission listener for outbound relay")
+	}
+	if l.Role == ListenerRoleSubmission && len(nonEmpty(l.RelayHosts)) == 0 {
+		return Invalid("LISTENER_SUBMISSION_RELAY_REQUIRED",
+			"a submission listener must list at least one relay host (the senders allowed to submit)")
 	}
 	if l.Status != ListenerStatusActive && l.Status != ListenerStatusDisabled {
 		return Invalid("LISTENER_STATUS_INVALID", "status %q is not valid", l.Status)

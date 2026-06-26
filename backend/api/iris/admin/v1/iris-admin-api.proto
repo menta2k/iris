@@ -320,6 +320,7 @@ message Listener {
   int64 max_message_size = 10;
   repeated string relay_hosts = 11;
   string status = 12;
+  string role = 13; // "inbound" (MX) | "submission"
 }
 message ListListenersRequest { PageRequest page = 1; }
 message ListListenersReply {
@@ -337,6 +338,7 @@ message CreateListenerRequest {
   bool require_auth = 8;
   int64 max_message_size = 9;
   repeated string relay_hosts = 10;
+  string role = 11; // "inbound" (default) | "submission"
 }
 message UpdateListenerRequest {
   string id = 1;
@@ -351,6 +353,7 @@ message UpdateListenerRequest {
   int64 max_message_size = 10;
   repeated string relay_hosts = 11;
   string status = 12;
+  string role = 13; // "inbound" | "submission"
 }
 
 // VMTA is a self-contained outbound sending identity that OWNS its egress

@@ -32,7 +32,11 @@ export interface Listener {
   maxMessageSize: string
   relayHosts: string[]
   status: ListenerStatus
+  // "inbound" (MX) | "submission".
+  role: ListenerRole
 }
+
+export type ListenerRole = 'inbound' | 'submission'
 
 // Request body: the HTTP transcoder accepts proto field (snake_case) names.
 export interface CreateListenerRequest {
@@ -47,6 +51,7 @@ export interface CreateListenerRequest {
   // int64 field: sent as a JSON string.
   max_message_size: string
   relay_hosts: string[]
+  role: ListenerRole
 }
 
 // Update body adds the editable status field.

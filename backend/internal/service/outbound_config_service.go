@@ -217,7 +217,7 @@ func (s *Service) UpdateListener(ctx context.Context, req *adminv1.UpdateListene
 		Hostname: req.GetHostname(), TLSEnabled: req.GetTlsEnabled(),
 		TLSCertPath: req.GetTlsCertPath(), TLSKeyPath: req.GetTlsKeyPath(),
 		RequireAuth: req.GetRequireAuth(), MaxMessageSize: req.GetMaxMessageSize(),
-		RelayHosts: req.GetRelayHosts(), Status: req.GetStatus(),
+		RelayHosts: req.GetRelayHosts(), Status: req.GetStatus(), Role: req.GetRole(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "UpdateListener", err)
@@ -231,7 +231,7 @@ func listenerFromCreate(req *adminv1.CreateListenerRequest) *biz.Listener {
 		Hostname: req.GetHostname(), TLSEnabled: req.GetTlsEnabled(),
 		TLSCertPath: req.GetTlsCertPath(), TLSKeyPath: req.GetTlsKeyPath(),
 		RequireAuth: req.GetRequireAuth(), MaxMessageSize: req.GetMaxMessageSize(),
-		RelayHosts: req.GetRelayHosts(),
+		RelayHosts: req.GetRelayHosts(), Role: req.GetRole(),
 	}
 }
 
@@ -239,7 +239,8 @@ func listenerToProto(l *biz.Listener) *adminv1.Listener {
 	return &adminv1.Listener{
 		Id: l.ID, Name: l.Name, IpAddress: l.IPAddress, Port: int32(l.Port), Hostname: l.Hostname,
 		TlsEnabled: l.TLSEnabled, TlsCertPath: l.TLSCertPath, TlsKeyPath: l.TLSKeyPath,
-		RequireAuth: l.RequireAuth, MaxMessageSize: l.MaxMessageSize, RelayHosts: l.RelayHosts, Status: l.Status,
+		RequireAuth: l.RequireAuth, MaxMessageSize: l.MaxMessageSize, RelayHosts: l.RelayHosts,
+		Status: l.Status, Role: l.Role,
 	}
 }
 

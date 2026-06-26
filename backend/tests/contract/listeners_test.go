@@ -24,16 +24,17 @@ func TestListenerVMTAContract(t *testing.T) {
 		t.Fatalf("unexpected listener: %+v", l)
 	}
 
-	// VMTA attaches to the listener; ip/ehlo are resolved from it.
+	// VMTA owns its egress ip/ehlo; the listener is an optional association.
 	v, err := svc.CreateVMTA(ctx, &adminv1.CreateVMTARequest{
-		Name: "vmta-fast", ListenerId: l.GetId(), MaxConnections: 10,
+		Name: "vmta-fast", IpAddress: "203.0.113.50", EhloName: "mta1.example.com",
+		ListenerId: l.GetId(), MaxConnections: 10,
 	})
 	if err != nil {
 		t.Fatalf("CreateVMTA: %v", err)
 	}
 	if v.GetIpAddress() != "203.0.113.50" || v.GetEhloName() != "mta1.example.com" ||
 		v.GetListenerName() != "mx-public" || v.GetMaxConnections() != 10 {
-		t.Fatalf("VMTA did not resolve listener fields: %+v", v)
+		t.Fatalf("VMTA did not persist its egress fields / listener name: %+v", v)
 	}
 
 	// A VMTA referencing a missing listener is rejected.
