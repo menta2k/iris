@@ -123,7 +123,7 @@ func (g *GlobalSettings) Validate() error {
 	}
 
 	// Bounce / DSN pipeline.
-	g.BounceDomain = strings.ToLower(strings.TrimSpace(g.BounceDomain))
+	g.BounceDomain = SanitizeAddress(g.BounceDomain)
 	if g.BounceDomain != "" && (len(g.BounceDomain) > 253 || !dnsNameRe.MatchString(g.BounceDomain)) {
 		return Invalid("SETTINGS_BOUNCE_DOMAIN_INVALID", "bounce_domain %q is not a valid DNS name", g.BounceDomain)
 	}
@@ -136,7 +136,10 @@ func (g *GlobalSettings) Validate() error {
 		return Invalid("SETTINGS_DURATION_INVALID", "suppression_ttl %q is not a valid duration (e.g. 720h, 30d)", g.SuppressionTTL)
 	}
 	// DMARC aggregate-report address (optional; must be a valid email when set).
-	g.DMARCReportEmail = strings.ToLower(strings.TrimSpace(g.DMARCReportEmail))
+	// SanitizeAddress (not just TrimSpace) strips zero-width / format runes that
+	// copy-paste injects; a hidden rune here would otherwise be stored, render
+	// into the policy, and silently break the reception-hook catcher.
+	g.DMARCReportEmail = SanitizeAddress(g.DMARCReportEmail)
 	if g.DMARCReportEmail != "" && !isValidEmail(g.DMARCReportEmail) {
 		return Invalid("SETTINGS_DMARC_EMAIL_INVALID", "dmarc_report_email %q is not a valid email address", g.DMARCReportEmail)
 	}

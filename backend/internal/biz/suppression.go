@@ -3,7 +3,34 @@ package biz
 import (
 	"strings"
 	"time"
+	"unicode"
 )
+
+// SanitizeAddress normalizes a configured email address or domain for safe use
+// in exact-match policy comparisons. Beyond trimming and lowercasing, it strips
+// control characters, Unicode whitespace, and zero-width / format runes (e.g.
+// U+200B ZERO WIDTH SPACE, U+FEFF, U+00AD SOFT HYPHEN) that copy-paste commonly
+// injects and that strings.TrimSpace does NOT remove. A single such hidden rune
+// in, say, the DMARC report address otherwise renders verbatim into the
+// generated KumoMTA policy and silently breaks the reception-hook exact-address
+// catcher, while the domain derived from the part after '@' stays clean — so the
+// listener relays the mail (RCPT 250) but the report is never captured.
+func SanitizeAddress(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		// Strip control characters and Unicode format runes (Cf: U+200B ZERO
+		// WIDTH SPACE, U+200C/D, U+2060, U+FEFF, U+00AD …). Regular/visible
+		// whitespace is intentionally LEFT IN so existing validation still rejects
+		// addresses/domains that contain spaces; only the surrounding whitespace
+		// is trimmed below.
+		if unicode.IsControl(r) || unicode.Is(unicode.Cf, r) {
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return strings.ToLower(strings.TrimSpace(b.String()))
+}
 
 // Suppression types.
 const (
@@ -68,7 +95,7 @@ func NormalizeSuppressionValue(typ, value string) string {
 
 // RecipientDomain extracts the domain part of an email address (lowercased).
 func RecipientDomain(email string) string {
-	email = strings.ToLower(strings.TrimSpace(email))
+	email = SanitizeAddress(email)
 	if i := strings.LastIndexByte(email, '@'); i >= 0 {
 		return email[i+1:]
 	}
