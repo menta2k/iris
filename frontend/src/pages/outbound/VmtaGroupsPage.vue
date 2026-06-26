@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
 import { Card, CardContent } from '@/components/ui/card'
@@ -50,6 +50,25 @@ async function loadVmtas() {
   }
 }
 
+// VMTAs are loaded on mount too, so the table can resolve member ids to names.
+onMounted(loadVmtas)
+
+// Resolve a member's VMTA id to a readable "name (ip)"; falls back to the id.
+function vmtaLabel(id: string): string {
+  const v = availableVmtas.value.find((x) => x.id === id)
+  return v ? `${v.name} (${v.ipAddress})` : id
+}
+
+// A member's weight as a percentage of the pool's total weight.
+function weightPct(weight: number, list: ReadonlyArray<{ weight: number }>): number {
+  const total = list.reduce((s, m) => s + (Number(m.weight) || 0), 0)
+  return total > 0 ? Math.round((Number(weight) / total) * 100) : 0
+}
+
+// VMTAs already chosen by a member row, so other rows can't pick a duplicate
+// (the backend rejects VMTA_GROUP_MEMBER_DUPLICATE).
+const chosenVmtaIds = computed(() => new Set(members.value.map((m) => m.vmta_id).filter(Boolean)))
+
 async function openCreate() {
   mode.value = 'create'
   editId.value = null
@@ -71,8 +90,10 @@ async function openEdit(g: VMTAGroup) {
 }
 
 function addMember() {
-  const first = availableVmtas.value[0]
-  members.value.push({ vmta_id: first?.id ?? '', weight: 1 })
+  // Default to the first VMTA not already in the group to avoid an instant dupe.
+  const taken = chosenVmtaIds.value
+  const next = availableVmtas.value.find((v) => !taken.has(v.id)) ?? availableVmtas.value[0]
+  members.value.push({ vmta_id: next?.id ?? '', weight: 1 })
 }
 
 function removeMember(index: number) {
@@ -144,7 +165,7 @@ async function submit() {
                 <TableCell>
                   <div class="flex flex-wrap gap-1">
                     <Badge v-for="m in g.members" :key="m.vmtaId" variant="secondary">
-                      {{ m.vmtaId }} · w{{ m.weight }}
+                      {{ vmtaLabel(m.vmtaId) }} · {{ weightPct(m.weight, g.members) }}%
                     </Badge>
                     <span v-if="!g.members?.length" class="text-xs text-muted-foreground">—</span>
                   </div>
@@ -189,16 +210,28 @@ async function submit() {
             <Label>Weighted Members</Label>
             <Button type="button" variant="outline" size="sm" @click="addMember">Add member</Button>
           </div>
-          <p v-if="members.length === 0" class="text-xs text-muted-foreground">
-            Add at least one VMTA member.
+          <p v-if="availableVmtas.length === 0" class="text-xs text-muted-foreground">
+            No VMTAs available — create a VMTA first.
+          </p>
+          <p v-else-if="members.length === 0" class="text-xs text-muted-foreground">
+            Add at least one VMTA member. Weights are relative; each member's share of the pool is
+            shown as a percentage.
           </p>
           <div v-for="(m, i) in members" :key="i" class="flex items-center gap-2">
             <Select v-model="m.vmta_id" class="flex-1">
-              <option v-for="v in availableVmtas" :key="v.id" :value="v.id">
+              <option
+                v-for="v in availableVmtas"
+                :key="v.id"
+                :value="v.id"
+                :disabled="m.vmta_id !== v.id && chosenVmtaIds.has(v.id)"
+              >
                 {{ v.name }} ({{ v.ipAddress }})
               </option>
             </Select>
-            <Input v-model.number="m.weight" type="number" class="w-24" placeholder="weight" />
+            <Input v-model.number="m.weight" type="number" min="1" class="w-24" placeholder="weight" />
+            <span class="w-10 text-right text-xs tabular-nums text-muted-foreground">
+              {{ weightPct(m.weight, members) }}%
+            </span>
             <Button type="button" variant="ghost" size="icon" @click="removeMember(i)">×</Button>
           </div>
         </div>
