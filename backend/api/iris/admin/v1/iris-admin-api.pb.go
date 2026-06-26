@@ -598,8 +598,9 @@ func (x *UpdateListenerRequest) GetStatus() string {
 	return ""
 }
 
-// VMTA attaches to a listener; ip_address/ehlo_name/listener_name are resolved
-// (read-only) from the attached listener.
+// VMTA is a self-contained outbound sending identity that OWNS its egress
+// ip_address and ehlo_name (3.0.0). listener_id/listener_name are an optional
+// association only; listener_name is read-only.
 type VMTA struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1055,8 +1056,10 @@ func (x *ListVMTAsReply) GetPage() *PageReply {
 type CreateVMTARequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Name           string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	ListenerId     string                 `protobuf:"bytes,2,opt,name=listener_id,json=listenerId,proto3" json:"listener_id,omitempty"`
+	ListenerId     string                 `protobuf:"bytes,2,opt,name=listener_id,json=listenerId,proto3" json:"listener_id,omitempty"` // optional association
 	MaxConnections int32                  `protobuf:"varint,3,opt,name=max_connections,json=maxConnections,proto3" json:"max_connections,omitempty"`
+	IpAddress      string                 `protobuf:"bytes,4,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"` // egress source IP (required)
+	EhloName       string                 `protobuf:"bytes,5,opt,name=ehlo_name,json=ehloName,proto3" json:"ehlo_name,omitempty"`    // outbound EHLO hostname (required)
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1112,14 +1115,30 @@ func (x *CreateVMTARequest) GetMaxConnections() int32 {
 	return 0
 }
 
+func (x *CreateVMTARequest) GetIpAddress() string {
+	if x != nil {
+		return x.IpAddress
+	}
+	return ""
+}
+
+func (x *CreateVMTARequest) GetEhloName() string {
+	if x != nil {
+		return x.EhloName
+	}
+	return ""
+}
+
 type UpdateVMTARequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	ListenerId     string                 `protobuf:"bytes,3,opt,name=listener_id,json=listenerId,proto3" json:"listener_id,omitempty"`
+	ListenerId     string                 `protobuf:"bytes,3,opt,name=listener_id,json=listenerId,proto3" json:"listener_id,omitempty"` // optional association
 	MaxConnections int32                  `protobuf:"varint,4,opt,name=max_connections,json=maxConnections,proto3" json:"max_connections,omitempty"`
 	Status         string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	Notes          string                 `protobuf:"bytes,6,opt,name=notes,proto3" json:"notes,omitempty"`
+	IpAddress      string                 `protobuf:"bytes,7,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"` // egress source IP (required)
+	EhloName       string                 `protobuf:"bytes,8,opt,name=ehlo_name,json=ehloName,proto3" json:"ehlo_name,omitempty"`    // outbound EHLO hostname (required)
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1192,6 +1211,20 @@ func (x *UpdateVMTARequest) GetStatus() string {
 func (x *UpdateVMTARequest) GetNotes() string {
 	if x != nil {
 		return x.Notes
+	}
+	return ""
+}
+
+func (x *UpdateVMTARequest) GetIpAddress() string {
+	if x != nil {
+		return x.IpAddress
+	}
+	return ""
+}
+
+func (x *UpdateVMTARequest) GetEhloName() string {
+	if x != nil {
+		return x.EhloName
 	}
 	return ""
 }
@@ -9996,12 +10029,15 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06status\x18\x02 \x01(\tR\x06status\"i\n" +
 	"\x0eListVMTAsReply\x12)\n" +
 	"\x05items\x18\x01 \x03(\v2\x13.iris.admin.v1.VMTAR\x05items\x12,\n" +
-	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"q\n" +
+	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\xad\x01\n" +
 	"\x11CreateVMTARequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
 	"\vlistener_id\x18\x02 \x01(\tR\n" +
 	"listenerId\x12'\n" +
-	"\x0fmax_connections\x18\x03 \x01(\x05R\x0emaxConnections\"\xaf\x01\n" +
+	"\x0fmax_connections\x18\x03 \x01(\x05R\x0emaxConnections\x12\x1d\n" +
+	"\n" +
+	"ip_address\x18\x04 \x01(\tR\tipAddress\x12\x1b\n" +
+	"\tehlo_name\x18\x05 \x01(\tR\behloName\"\xeb\x01\n" +
 	"\x11UpdateVMTARequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
@@ -10009,7 +10045,10 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"listenerId\x12'\n" +
 	"\x0fmax_connections\x18\x04 \x01(\x05R\x0emaxConnections\x12\x16\n" +
 	"\x06status\x18\x05 \x01(\tR\x06status\x12\x14\n" +
-	"\x05notes\x18\x06 \x01(\tR\x05notes\"G\n" +
+	"\x05notes\x18\x06 \x01(\tR\x05notes\x12\x1d\n" +
+	"\n" +
+	"ip_address\x18\a \x01(\tR\tipAddress\x12\x1b\n" +
+	"\tehlo_name\x18\b \x01(\tR\behloName\"G\n" +
 	"\x15ListVMTAGroupsRequest\x12.\n" +
 	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\"s\n" +
 	"\x13ListVMTAGroupsReply\x12.\n" +

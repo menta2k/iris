@@ -70,17 +70,21 @@ export interface VMTA {
   maxConnections: number
 }
 
-// Request body: a VMTA attaches to a listener; there is no ip/ehlo anymore.
+// Request body: a VMTA owns its egress ip/ehlo (3.0.0); listener_id is optional.
 export interface CreateVMTARequest {
   name: string
-  listener_id: string
+  ip_address: string
+  ehlo_name: string
+  listener_id?: string
   max_connections: number
 }
 
 // Update body: status and notes become editable on edit.
 export interface UpdateVMTARequest {
   name: string
-  listener_id: string
+  ip_address: string
+  ehlo_name: string
+  listener_id?: string
   max_connections: number
   status: string
   notes: string

@@ -1803,6 +1803,10 @@ components:
                 max_connections:
                     type: integer
                     format: int32
+                ip_address:
+                    type: string
+                ehlo_name:
+                    type: string
         CreateWebhookRuleRequest:
             type: object
             properties:
@@ -2936,6 +2940,10 @@ components:
                     type: string
                 notes:
                     type: string
+                ip_address:
+                    type: string
+                ehlo_name:
+                    type: string
         UpdateWebhookRuleRequest:
             type: object
             properties:
@@ -2997,8 +3005,9 @@ components:
                     type: integer
                     format: int32
             description: |-
-                VMTA attaches to a listener; ip_address/ehlo_name/listener_name are resolved
-                 (read-only) from the attached listener.
+                VMTA is a self-contained outbound sending identity that OWNS its egress
+                 ip_address and ehlo_name (3.0.0). listener_id/listener_name are an optional
+                 association only; listener_name is read-only.
         VMTAGroup:
             type: object
             properties:

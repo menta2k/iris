@@ -34,11 +34,11 @@ INSERT INTO listeners (name, ip_address, port, hostname) VALUES
 ON CONFLICT (name) DO NOTHING;
 
 -- Example VMTAs (attached to listeners) and group ---------------------------
-INSERT INTO vmtas (name, listener_id, status)
-SELECT 'vmta-a', l.id, 'active' FROM listeners l WHERE l.name = 'listener-a'
+INSERT INTO vmtas (name, ip_address, ehlo_name, listener_id, status)
+SELECT 'vmta-a', l.ip_address, l.hostname, l.id, 'active' FROM listeners l WHERE l.name = 'listener-a'
 ON CONFLICT (name) DO NOTHING;
-INSERT INTO vmtas (name, listener_id, status)
-SELECT 'vmta-b', l.id, 'active' FROM listeners l WHERE l.name = 'listener-b'
+INSERT INTO vmtas (name, ip_address, ehlo_name, listener_id, status)
+SELECT 'vmta-b', l.ip_address, l.hostname, l.id, 'active' FROM listeners l WHERE l.name = 'listener-b'
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO vmta_groups (name, status) VALUES ('bulk-pool', 'active')

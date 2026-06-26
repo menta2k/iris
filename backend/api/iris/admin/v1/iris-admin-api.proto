@@ -353,8 +353,9 @@ message UpdateListenerRequest {
   string status = 12;
 }
 
-// VMTA attaches to a listener; ip_address/ehlo_name/listener_name are resolved
-// (read-only) from the attached listener.
+// VMTA is a self-contained outbound sending identity that OWNS its egress
+// ip_address and ehlo_name (3.0.0). listener_id/listener_name are an optional
+// association only; listener_name is read-only.
 message VMTA {
   string id = 1;
   string name = 2;
@@ -403,16 +404,20 @@ message ListVMTAsReply {
 }
 message CreateVMTARequest {
   string name = 1;
-  string listener_id = 2;
+  string listener_id = 2; // optional association
   int32 max_connections = 3;
+  string ip_address = 4; // egress source IP (required)
+  string ehlo_name = 5;  // outbound EHLO hostname (required)
 }
 message UpdateVMTARequest {
   string id = 1;
   string name = 2;
-  string listener_id = 3;
+  string listener_id = 3; // optional association
   int32 max_connections = 4;
   string status = 5;
   string notes = 6;
+  string ip_address = 7; // egress source IP (required)
+  string ehlo_name = 8;  // outbound EHLO hostname (required)
 }
 message ListVMTAGroupsRequest {
   PageRequest page = 1;
