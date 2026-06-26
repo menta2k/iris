@@ -9525,8 +9525,10 @@ type GlobalSettings struct {
 	SuppressionTtl string `protobuf:"bytes,22,opt,name=suppression_ttl,json=suppressionTtl,proto3" json:"suppression_ttl,omitempty"`
 	// DMARC aggregate-report address (advertised as rua=). Empty disables it.
 	DmarcReportEmail string `protobuf:"bytes,23,opt,name=dmarc_report_email,json=dmarcReportEmail,proto3" json:"dmarc_report_email,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Gate FBL auto-suppression on proven provenance (X-KumoRef/send-log/DKIM).
+	FblRequireVerification bool `protobuf:"varint,24,opt,name=fbl_require_verification,json=fblRequireVerification,proto3" json:"fbl_require_verification,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GlobalSettings) Reset() {
@@ -9713,6 +9715,13 @@ func (x *GlobalSettings) GetDmarcReportEmail() string {
 	return ""
 }
 
+func (x *GlobalSettings) GetFblRequireVerification() bool {
+	if x != nil {
+		return x.FblRequireVerification
+	}
+	return false
+}
+
 type GetGlobalSettingsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -9771,6 +9780,7 @@ type UpdateGlobalSettingsRequest struct {
 	PrometheusUrl           string                 `protobuf:"bytes,19,opt,name=prometheus_url,json=prometheusUrl,proto3" json:"prometheus_url,omitempty"`
 	SuppressionTtl          string                 `protobuf:"bytes,20,opt,name=suppression_ttl,json=suppressionTtl,proto3" json:"suppression_ttl,omitempty"`
 	DmarcReportEmail        string                 `protobuf:"bytes,21,opt,name=dmarc_report_email,json=dmarcReportEmail,proto3" json:"dmarc_report_email,omitempty"`
+	FblRequireVerification  bool                   `protobuf:"varint,22,opt,name=fbl_require_verification,json=fblRequireVerification,proto3" json:"fbl_require_verification,omitempty"`
 	unknownFields           protoimpl.UnknownFields
 	sizeCache               protoimpl.SizeCache
 }
@@ -9943,6 +9953,13 @@ func (x *UpdateGlobalSettingsRequest) GetDmarcReportEmail() string {
 		return x.DmarcReportEmail
 	}
 	return ""
+}
+
+func (x *UpdateGlobalSettingsRequest) GetFblRequireVerification() bool {
+	if x != nil {
+		return x.FblRequireVerification
+	}
+	return false
 }
 
 var File_iris_admin_v1_iris_admin_api_proto protoreflect.FileDescriptor
@@ -10702,7 +10719,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06series\x18\x01 \x03(\v2\x1c.iris.admin.v1.MetricsSeriesR\x06series\x12\x14\n" +
 	"\x05range\x18\x02 \x01(\tR\x05range\x12!\n" +
 	"\fstep_seconds\x18\x03 \x01(\x03R\vstepSeconds\x121\n" +
-	"\x14prometheus_available\x18\x04 \x01(\bR\x13prometheusAvailable\"\xc3\a\n" +
+	"\x14prometheus_available\x18\x04 \x01(\bR\x13prometheusAvailable\"\xfd\a\n" +
 	"\x0eGlobalSettings\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -10731,8 +10748,9 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\n" +
 	"updated_by\x18\x15 \x01(\tR\tupdatedBy\x12'\n" +
 	"\x0fsuppression_ttl\x18\x16 \x01(\tR\x0esuppressionTtl\x12,\n" +
-	"\x12dmarc_report_email\x18\x17 \x01(\tR\x10dmarcReportEmailJ\x04\b\r\x10\x0e\"\x1a\n" +
-	"\x18GetGlobalSettingsRequest\"\x92\a\n" +
+	"\x12dmarc_report_email\x18\x17 \x01(\tR\x10dmarcReportEmail\x128\n" +
+	"\x18fbl_require_verification\x18\x18 \x01(\bR\x16fblRequireVerificationJ\x04\b\r\x10\x0e\"\x1a\n" +
+	"\x18GetGlobalSettingsRequest\"\xcc\a\n" +
 	"\x1bUpdateGlobalSettingsRequest\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -10757,7 +10775,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x11acme_renew_before\x18\x12 \x01(\tR\x0facmeRenewBefore\x12%\n" +
 	"\x0eprometheus_url\x18\x13 \x01(\tR\rprometheusUrl\x12'\n" +
 	"\x0fsuppression_ttl\x18\x14 \x01(\tR\x0esuppressionTtl\x12,\n" +
-	"\x12dmarc_report_email\x18\x15 \x01(\tR\x10dmarcReportEmailJ\x04\b\r\x10\x0e2\xebD\n" +
+	"\x12dmarc_report_email\x18\x15 \x01(\tR\x10dmarcReportEmail\x128\n" +
+	"\x18fbl_require_verification\x18\x16 \x01(\bR\x16fblRequireVerificationJ\x04\b\r\x10\x0e2\xebD\n" +
 	"\x10IrisAdminService\x12n\n" +
 	"\rListListeners\x12#.iris.admin.v1.ListListenersRequest\x1a!.iris.admin.v1.ListListenersReply\"\x15\x82\xd3\xe4\x93\x02\x0f\x12\r/v1/listeners\x12i\n" +
 	"\x0eCreateListener\x12$.iris.admin.v1.CreateListenerRequest\x1a\x17.iris.admin.v1.Listener\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/v1/listeners\x12n\n" +

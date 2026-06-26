@@ -113,6 +113,24 @@ type BouncePolicy struct {
 	SoftBounceThreshold     int
 }
 
+// FeedbackPolicy is the runtime FBL-handling configuration consumed by the
+// log-stream worker.
+type FeedbackPolicy struct {
+	// RequireVerification suppresses a complainant only when the report was proven
+	// to be about mail we sent.
+	RequireVerification bool
+}
+
+// FeedbackPolicyNow returns the current FBL policy from the stored settings.
+// Defaults to permissive (no verification required) on read failure.
+func (uc *GlobalSettingsUsecase) FeedbackPolicyNow(ctx context.Context) FeedbackPolicy {
+	row, err := uc.repo.Get(ctx)
+	if err != nil || row == nil {
+		return FeedbackPolicy{}
+	}
+	return FeedbackPolicy{RequireVerification: row.FBLRequireVerification}
+}
+
 // BouncePolicyNow returns the current bounce policy from the stored settings.
 func (uc *GlobalSettingsUsecase) BouncePolicyNow(ctx context.Context) BouncePolicy {
 	row, err := uc.repo.Get(ctx)

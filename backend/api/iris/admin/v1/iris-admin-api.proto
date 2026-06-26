@@ -1138,6 +1138,8 @@ message GlobalSettings {
   string suppression_ttl = 22;
   // DMARC aggregate-report address (advertised as rua=). Empty disables it.
   string dmarc_report_email = 23;
+  // Gate FBL auto-suppression on proven provenance (X-KumoRef/send-log/DKIM).
+  bool fbl_require_verification = 24;
 }
 message GetGlobalSettingsRequest {}
 message UpdateGlobalSettingsRequest {
@@ -1162,4 +1164,5 @@ message UpdateGlobalSettingsRequest {
   string prometheus_url = 19;
   string suppression_ttl = 20;
   string dmarc_report_email = 21;
+  bool fbl_require_verification = 22;
 }

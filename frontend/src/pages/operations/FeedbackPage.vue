@@ -52,6 +52,7 @@ const {
                 <TableHead>Source</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Recipient</TableHead>
+                <TableHead>Verified</TableHead>
                 <TableHead>State</TableHead>
               </TableRow>
             </TableHeader>
@@ -61,6 +62,12 @@ const {
                 <TableCell class="font-mono text-xs">{{ f.source }}</TableCell>
                 <TableCell><Badge variant="warning">{{ f.reportType }}</Badge></TableCell>
                 <TableCell>{{ f.recipient }}</TableCell>
+                <TableCell>
+                  <Badge v-if="f.verified" variant="success" :title="`verified via ${f.verification}`">
+                    {{ f.verification || 'verified' }}
+                  </Badge>
+                  <Badge v-else variant="secondary">unverified</Badge>
+                </TableCell>
                 <TableCell><StatusBadge :status="f.processingState" /></TableCell>
               </TableRow>
             </TableBody>

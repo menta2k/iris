@@ -46,24 +46,49 @@ type WebhookEnqueuer interface {
 	EnqueueWebhook(ctx context.Context, recipient, mailRecordID, payload string) error
 }
 
+// DKIMKeyResolver returns the published DKIM TXT value for one of our own
+// domain+selector keys (derived from the stored private key), for verifying that
+// an FBL report's embedded original was signed by us. Optional (nil disables the
+// DKIM provenance check).
+type DKIMKeyResolver interface {
+	DKIMPublicKey(ctx context.Context, domain, selector string) (string, bool)
+}
+
+// FeedbackPolicyProvider supplies the FBL-handling policy (whether suppression
+// requires proven provenance). Optional (nil = permissive, suppress all).
+type FeedbackPolicyProvider interface {
+	FeedbackPolicyNow(ctx context.Context) biz.FeedbackPolicy
+}
+
 // LogStreamWorker consumes KumoMTA structured log records from the Redis stream
 // (produced by the generated policy's log_hook) and persists them into the
 // mail_records / bounce_records hypertables. This is how the Logs UI is
 // populated — from KumoMTA's own logs, not manual inserts.
 type LogStreamWorker struct {
-	streams    *data.Streams
-	store      MailEventStore
-	suppressor Suppressor
-	policy     BouncePolicyProvider
-	webhooks   WebhookEnqueuer
-	stream     string
-	log        *slog.Logger
+	streams     *data.Streams
+	store       MailEventStore
+	suppressor  Suppressor
+	policy      BouncePolicyProvider
+	webhooks    WebhookEnqueuer
+	dkimKeys    DKIMKeyResolver
+	feedbackPol FeedbackPolicyProvider
+	stream      string
+	log         *slog.Logger
 }
 
 // WithWebhooks enables inbound-webhook fan-out: each received message is
 // published to the webhook-delivery stream. Returns the worker for chaining.
 func (w *LogStreamWorker) WithWebhooks(e WebhookEnqueuer) *LogStreamWorker {
 	w.webhooks = e
+	return w
+}
+
+// WithFeedbackVerification enables FBL provenance verification: complaints are
+// checked (X-KumoRef trace / send-log / DKIM-by-us) and, when policy requires it,
+// only verified complaints auto-suppress. Returns the worker for chaining.
+func (w *LogStreamWorker) WithFeedbackVerification(keys DKIMKeyResolver, policy FeedbackPolicyProvider) *LogStreamWorker {
+	w.dkimKeys = keys
+	w.feedbackPol = policy
 	return w
 }
 
@@ -144,18 +169,49 @@ func (w *LogStreamWorker) Run(ctx context.Context) error {
 // suppression entry as a side effect" behavior).
 func (w *LogStreamWorker) handleFeedback(ctx context.Context, rec *biz.KumoLogRecord, now time.Time) {
 	recipient := rec.ComplainantRecipient()
+
+	// Prove the complaint is about mail we sent (X-KumoRef trace / send-log / our
+	// DKIM signature). kumod already guarantees the report is structurally valid.
+	var keyFn biz.DKIMPublicKeyFunc
+	if w.dkimKeys != nil {
+		keyFn = func(domain, selector string) (string, bool) { return w.dkimKeys.DKIMPublicKey(ctx, domain, selector) }
+	}
+	sentFn := func(messageID string) string {
+		r, _ := w.store.RecipientForMessageID(ctx, messageID)
+		return r
+	}
+	verified, method := biz.VerifyFeedback(rec, keyFn, sentFn)
+
 	if err := w.store.InsertFeedbackReport(ctx, &biz.FeedbackReport{
 		ReceivedAt:      rec.EventTime(now),
 		Source:          rec.FeedbackSource(),
 		ReportType:      rec.FeedbackReportType(),
 		Recipient:       recipient,
 		ProcessingState: biz.ProcessingProcessed,
+		Verified:        verified,
+		Verification:    method,
 	}); err != nil {
 		w.log.Error("persist feedback report", "error", err.Error())
 		return
 	}
+
+	// Gate suppression on verification when the policy requires it (default
+	// permissive: suppress every complaint, as before).
+	requireVerification := false
+	if w.feedbackPol != nil {
+		requireVerification = w.feedbackPol.FeedbackPolicyNow(ctx).RequireVerification
+	}
+	if requireVerification && !verified {
+		w.log.Warn("fbl complaint unverified; not auto-suppressing",
+			"recipient", recipient, "type", rec.FeedbackReportType())
+		return
+	}
 	if w.suppressor != nil && recipient != "" {
-		if err := w.suppressor.SuppressRecipient(ctx, recipient, "fbl", "feedback complaint ("+rec.FeedbackReportType()+")"); err != nil {
+		reason := "feedback complaint (" + rec.FeedbackReportType() + ")"
+		if verified {
+			reason += " [verified:" + method + "]"
+		}
+		if err := w.suppressor.SuppressRecipient(ctx, recipient, "fbl", reason); err != nil {
 			w.log.Error("auto-suppress complainant", "recipient", recipient, "error", err.Error())
 		}
 	}

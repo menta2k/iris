@@ -46,6 +46,7 @@ func (s *Service) UpdateGlobalSettings(ctx context.Context, req *adminv1.UpdateG
 		AcmeRenewInterval:       req.GetAcmeRenewInterval(),
 		AcmeRenewBefore:         req.GetAcmeRenewBefore(),
 		PrometheusURL:           req.GetPrometheusUrl(),
+		FBLRequireVerification:  req.GetFblRequireVerification(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "UpdateGlobalSettings", err)
@@ -79,6 +80,7 @@ func settingsToProto(g *biz.GlobalSettings) *adminv1.GlobalSettings {
 		AcmeRenewInterval:       g.AcmeRenewInterval,
 		AcmeRenewBefore:         g.AcmeRenewBefore,
 		PrometheusUrl:           g.PrometheusURL,
+		FblRequireVerification:  g.FBLRequireVerification,
 		UpdatedAt:               updatedAt,
 		UpdatedBy:               g.UpdatedBy,
 	}

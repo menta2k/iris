@@ -80,4 +80,9 @@ type FeedbackReport struct {
 	MailRecordID    string
 	ProcessingState string
 	RawRef          string
+	// Verified is true when the complaint was proven to be about mail we sent;
+	// Verification is the method that proved it (supplemental-trace/send-log/dkim)
+	// or "" when unverified. Auto-suppression can be gated on Verified.
+	Verified     bool
+	Verification string
 }

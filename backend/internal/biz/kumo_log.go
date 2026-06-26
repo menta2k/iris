@@ -68,6 +68,46 @@ type KumoFeedbackData struct {
 	OriginalRcptTo []string `json:"original_rcpto_to"`
 	// ReportingMTA is an object { mta_type, name }, not a string.
 	ReportingMTA *KumoRemoteMTA `json:"reporting_mta"`
+	// OriginalMessage is the embedded complained-about message (or its headers),
+	// as kumod extracted it from the message/rfc822 / text/rfc822-headers part.
+	// kumod normalizes its line endings to LF.
+	OriginalMessage string `json:"original_message"`
+	// SupplementalTrace is kumod's own X-KumoRef provenance payload, decoded back
+	// from the embedded original — present only when WE sent the original. Its
+	// recipient is the address we recorded at send time.
+	SupplementalTrace *KumoSupplementalTrace `json:"supplemental_trace"`
+}
+
+// KumoSupplementalTrace is the decoded X-KumoRef payload kumod injects on
+// outbound mail and recovers from a feedback report's embedded original.
+type KumoSupplementalTrace struct {
+	// Recipient may be a single string or an array in the source JSON.
+	Recipient flexStrings `json:"recipient"`
+}
+
+// flexStrings unmarshals a JSON value that is either a string or an array of
+// strings (kumod writes a bare string for one recipient, an array for several).
+type flexStrings []string
+
+func (f *flexStrings) UnmarshalJSON(b []byte) error {
+	b = []byte(strings.TrimSpace(string(b)))
+	if len(b) == 0 || string(b) == "null" {
+		return nil
+	}
+	if b[0] == '[' {
+		var a []string
+		if err := json.Unmarshal(b, &a); err != nil {
+			return err
+		}
+		*f = a
+		return nil
+	}
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	*f = flexStrings{s}
+	return nil
 }
 
 // KumoRemoteMTA mirrors KumoMTA's RemoteMta (the reporting_mta object).
@@ -165,6 +205,25 @@ func (r *KumoLogRecord) ComplainantRecipient() string {
 		v = r.Feedback.OriginalRcptTo[0]
 	}
 	return strings.ToLower(strings.TrimSpace(v))
+}
+
+// TraceRecipient returns the recipient kumod recorded in its X-KumoRef
+// supplemental trace on the embedded original (lowercased), or "" when absent.
+// Its presence is strong evidence that WE sent the complained-about message.
+func (r *KumoLogRecord) TraceRecipient() string {
+	if r.Feedback != nil && r.Feedback.SupplementalTrace != nil && len(r.Feedback.SupplementalTrace.Recipient) > 0 {
+		return strings.ToLower(strings.TrimSpace(r.Feedback.SupplementalTrace.Recipient[0]))
+	}
+	return ""
+}
+
+// OriginalMessage returns the embedded complained-about message (or its headers),
+// or "" when the report did not include one.
+func (r *KumoLogRecord) OriginalMessage() string {
+	if r.Feedback != nil {
+		return r.Feedback.OriginalMessage
+	}
+	return ""
 }
 
 // FeedbackReportType returns the ARF feedback type (e.g. "abuse"), defaulting

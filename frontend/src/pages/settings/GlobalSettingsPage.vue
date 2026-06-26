@@ -39,6 +39,7 @@ const form = ref({
   bounce_domain: '',
   auto_suppress_hard_bounces: true,
   soft_bounce_threshold: 0,
+  fbl_require_verification: false,
   suppression_ttl: '',
   dmarc_report_email: '',
   admin_http_addr: '',
@@ -63,6 +64,7 @@ function apply(s: GlobalSettings) {
     bounce_domain: s.bounceDomain || '',
     auto_suppress_hard_bounces: s.autoSuppressHardBounces ?? true,
     soft_bounce_threshold: s.softBounceThreshold ?? 0,
+    fbl_require_verification: s.fblRequireVerification ?? false,
     suppression_ttl: s.suppressionTtl || '',
     dmarc_report_email: s.dmarcReportEmail || '',
     admin_http_addr: s.adminHttpAddr || '',
@@ -116,6 +118,7 @@ async function save() {
         bounce_domain: form.value.bounce_domain,
         auto_suppress_hard_bounces: form.value.auto_suppress_hard_bounces,
         soft_bounce_threshold: form.value.soft_bounce_threshold,
+        fbl_require_verification: form.value.fbl_require_verification,
         suppression_ttl: form.value.suppression_ttl,
         dmarc_report_email: form.value.dmarc_report_email,
         admin_http_addr: form.value.admin_http_addr,
@@ -272,6 +275,23 @@ onMounted(load)
                 Suppress a recipient after this many soft (4xx) bounces. 0 disables soft-bounce
                 suppression.
               </p>
+            </div>
+            <div class="flex items-start gap-2">
+              <input
+                id="fbl-require-verification"
+                v-model="form.fbl_require_verification"
+                type="checkbox"
+                class="mt-1"
+                data-testid="fbl-require-verification"
+              />
+              <Label for="fbl-require-verification" class="font-normal">
+                Require FBL verification before auto-suppressing
+                <span class="block text-xs text-muted-foreground">
+                  Only suppress a complainant when the feedback report is proven to be about mail we
+                  sent (X-KumoRef trace, send log, or our DKIM signature). Off = suppress every
+                  complaint.
+                </span>
+              </Label>
             </div>
             <div class="space-y-1.5">
               <Label for="suppression-ttl">Suppression record lifetime</Label>

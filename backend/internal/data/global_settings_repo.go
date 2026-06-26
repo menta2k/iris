@@ -24,7 +24,7 @@ const globalSettingsCols = `rspamd_mode, rspamd_url, egress_ehlo_domain,
 	egress_retry_interval, egress_max_retry_interval, egress_max_age,
 	bounce_domain, auto_suppress_hard_bounces, soft_bounce_threshold,
 	suppression_ttl, dmarc_report_email, admin_http_addr, admin_tls_enabled, admin_tls_cert_domain,
-	acme_renew_interval, acme_renew_before, prometheus_url, updated_at, updated_by`
+	acme_renew_interval, acme_renew_before, prometheus_url, fbl_require_verification, updated_at, updated_by`
 
 // scanGlobalSettings scans a row in globalSettingsCols order.
 func scanGlobalSettings(row interface{ Scan(...any) error }) (*biz.GlobalSettings, error) {
@@ -34,7 +34,7 @@ func scanGlobalSettings(row interface{ Scan(...any) error }) (*biz.GlobalSetting
 		&out.EgressRetryInterval, &out.EgressMaxRetryInterval, &out.EgressMaxAge,
 		&out.BounceDomain, &out.AutoSuppressHardBounces, &out.SoftBounceThreshold,
 		&out.SuppressionTTL, &out.DMARCReportEmail, &out.AdminHTTPAddr, &out.AdminTLSEnabled, &out.AdminTLSCertDomain,
-		&out.AcmeRenewInterval, &out.AcmeRenewBefore, &out.PrometheusURL, &out.UpdatedAt, &out.UpdatedBy)
+		&out.AcmeRenewInterval, &out.AcmeRenewBefore, &out.PrometheusURL, &out.FBLRequireVerification, &out.UpdatedAt, &out.UpdatedBy)
 	return out, err
 }
 
@@ -64,7 +64,7 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in *biz.GlobalSettings,
 			bounce_domain = $10, auto_suppress_hard_bounces = $11, soft_bounce_threshold = $12,
 			suppression_ttl = $13, dmarc_report_email = $14, admin_http_addr = $15, admin_tls_enabled = $16,
 			admin_tls_cert_domain = $17, acme_renew_interval = $18, acme_renew_before = $19,
-			prometheus_url = $20, updated_at = now(), updated_by = $21
+			prometheus_url = $20, fbl_require_verification = $21, updated_at = now(), updated_by = $22
 		WHERE id = 1
 		RETURNING `+globalSettingsCols,
 		in.RspamdMode, in.RspamdURL, in.EgressEHLODomain,
@@ -72,7 +72,7 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in *biz.GlobalSettings,
 		in.EgressRetryInterval, in.EgressMaxRetryInterval, in.EgressMaxAge,
 		in.BounceDomain, in.AutoSuppressHardBounces, in.SoftBounceThreshold,
 		in.SuppressionTTL, in.DMARCReportEmail, in.AdminHTTPAddr, in.AdminTLSEnabled, in.AdminTLSCertDomain,
-		in.AcmeRenewInterval, in.AcmeRenewBefore, in.PrometheusURL, actor))
+		in.AcmeRenewInterval, in.AcmeRenewBefore, in.PrometheusURL, in.FBLRequireVerification, actor))
 	if err != nil {
 		return nil, mapConstraint(err, "global_settings")
 	}

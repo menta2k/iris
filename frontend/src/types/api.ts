@@ -245,6 +245,10 @@ export interface FeedbackReport {
   reportType: string
   recipient: string
   processingState: string
+  /** True when the complaint was proven to be about mail we sent. */
+  verified: boolean
+  /** How it was proven: supplemental-trace | send-log | dkim | "" (unverified). */
+  verification: string
 }
 
 // Queue is a live kumod scheduled-queue summary for a destination domain.
@@ -556,6 +560,7 @@ export interface GlobalSettings {
   acmeRenewInterval: string
   acmeRenewBefore: string
   prometheusUrl: string
+  fblRequireVerification: boolean
   updatedAt?: string
   updatedBy?: string
 }
@@ -581,6 +586,7 @@ export interface UpdateGlobalSettingsRequest {
   acme_renew_interval: string
   acme_renew_before: string
   prometheus_url: string
+  fbl_require_verification: boolean
 }
 
 // ---- Dashboard metrics (Prometheus-backed time-series) ----
