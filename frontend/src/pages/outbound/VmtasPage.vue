@@ -40,6 +40,8 @@ const mode = ref<'create' | 'edit'>('create')
 const editId = ref<string | null>(null)
 const form = ref({
   name: '',
+  ip_address: '',
+  ehlo_name: '',
   listener_id: '',
   max_connections: 0,
   status: 'active',
@@ -68,21 +70,30 @@ async function loadListeners() {
   } catch {
     availableListeners.value = []
   }
-  ensureListenerSelected()
 }
 
-// Default the Listener dropdown to the first option when nothing is chosen yet,
-// so a freshly opened create dialog isn't stuck with a disabled Create button.
-function ensureListenerSelected() {
-  if (!form.value.listener_id && listenerOptions.value.length) {
-    form.value.listener_id = listenerOptions.value[0].id
-  }
+// Convenience: when a listener is picked, copy its IP/EHLO into the (editable)
+// fields if they are still empty. The VMTA OWNS these values now — the listener
+// is just an optional source to copy from — so we never clobber operator input.
+function fillFromListener() {
+  const l = selectedListener.value
+  if (!l) return
+  if (!form.value.ip_address) form.value.ip_address = l.ipAddress
+  if (!form.value.ehlo_name) form.value.ehlo_name = l.hostname
 }
 
 async function openCreate() {
   mode.value = 'create'
   editId.value = null
-  form.value = { name: '', listener_id: '', max_connections: 0, status: 'active', notes: '' }
+  form.value = {
+    name: '',
+    ip_address: '',
+    ehlo_name: '',
+    listener_id: '',
+    max_connections: 0,
+    status: 'active',
+    notes: '',
+  }
   dialogOpen.value = true
   await loadListeners()
 }
@@ -92,7 +103,9 @@ async function openEdit(v: VMTA) {
   editId.value = v.id
   form.value = {
     name: v.name,
-    listener_id: v.listenerId,
+    ip_address: v.ipAddress ?? '',
+    ehlo_name: v.ehloName ?? '',
+    listener_id: v.listenerId ?? '',
     max_connections: v.maxConnections ?? 0,
     status: (v.status || 'active').toLowerCase(),
     notes: v.notes ?? '',
@@ -102,12 +115,14 @@ async function openEdit(v: VMTA) {
 }
 
 async function submit() {
-  if (!form.value.name || !form.value.listener_id) return
+  if (!form.value.name || !form.value.ip_address || !form.value.ehlo_name) return
   saving.value = true
   try {
     if (isEdit.value && editId.value) {
       await outboundConfigService.updateVmta(editId.value, {
         name: form.value.name,
+        ip_address: form.value.ip_address,
+        ehlo_name: form.value.ehlo_name,
         listener_id: form.value.listener_id,
         max_connections: Number(form.value.max_connections),
         status: form.value.status,
@@ -117,6 +132,8 @@ async function submit() {
     } else {
       await outboundConfigService.createVmta({
         name: form.value.name,
+        ip_address: form.value.ip_address,
+        ehlo_name: form.value.ehlo_name,
         listener_id: form.value.listener_id,
         max_connections: Number(form.value.max_connections),
       })
@@ -202,38 +219,31 @@ async function submit() {
           <Label for="vmta-name">Name</Label>
           <Input id="vmta-name" v-model="form.name" placeholder="vmta-east-1" />
         </div>
-        <div class="space-y-1.5">
-          <Label for="vmta-listener">Listener</Label>
-          <Select id="vmta-listener" v-model="form.listener_id" data-testid="vmta-listener">
-            <option value="" disabled>
-              {{
-                listenerOptions.length
-                  ? 'Select a listener…'
-                  : 'No listeners — create one first'
-              }}
-            </option>
-            <option v-for="o in listenerOptions" :key="o.id" :value="o.id">{{ o.label }}</option>
-          </Select>
-        </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="space-y-1.5">
-            <Label for="vmta-ip">IP Address (from listener)</Label>
-            <Input
-              id="vmta-ip"
-              :model-value="selectedListener?.ipAddress ?? ''"
-              disabled
-              placeholder="—"
-            />
+            <Label for="vmta-ip">IP Address</Label>
+            <Input id="vmta-ip" v-model="form.ip_address" placeholder="203.0.113.10" />
           </div>
           <div class="space-y-1.5">
-            <Label for="vmta-ehlo">EHLO Name (from listener)</Label>
-            <Input
-              id="vmta-ehlo"
-              :model-value="selectedListener?.hostname ?? ''"
-              disabled
-              placeholder="—"
-            />
+            <Label for="vmta-ehlo">EHLO Name</Label>
+            <Input id="vmta-ehlo" v-model="form.ehlo_name" placeholder="mta1.example.com" />
           </div>
+        </div>
+        <div class="space-y-1.5">
+          <Label for="vmta-listener">Listener (optional)</Label>
+          <Select
+            id="vmta-listener"
+            v-model="form.listener_id"
+            data-testid="vmta-listener"
+            @change="fillFromListener"
+          >
+            <option value="">— None —</option>
+            <option v-for="o in listenerOptions" :key="o.id" :value="o.id">{{ o.label }}</option>
+          </Select>
+          <p class="text-xs text-muted-foreground">
+            Optional association (e.g. the listener that receives this IP's bounces). Selecting one
+            pre-fills the IP/EHLO above if they're empty — the VMTA owns those values.
+          </p>
         </div>
         <div class="space-y-1.5">
           <Label for="vmta-max-conn">Max Connections</Label>

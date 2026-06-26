@@ -21,30 +21,32 @@ func NewOutboundConfigRepo(db *DB) *OutboundConfigRepo { return &OutboundConfigR
 
 var _ biz.OutboundConfigRepo = (*OutboundConfigRepo)(nil)
 
-// vmtaSelect is the VMTA projection joined to its listener for display/render.
-const vmtaSelect = `v.id, v.name, v.listener_id, v.max_connections, v.status, v.notes,
-	l.name, host(l.ip_address), l.hostname`
+// vmtaSelect is the VMTA projection. IP/EHLO are owned by the VMTA; the listener
+// is an OPTIONAL reference, LEFT JOINed only to resolve its display name.
+const vmtaSelect = `v.id, v.name, host(v.ip_address), v.ehlo_name,
+	coalesce(v.listener_id::text, ''), v.max_connections, v.status, v.notes,
+	coalesce(l.name, '')`
 
 func scanVMTA(row interface{ Scan(...any) error }) (*biz.VMTA, error) {
 	v := &biz.VMTA{}
-	if err := row.Scan(&v.ID, &v.Name, &v.ListenerID, &v.MaxConnections, &v.Status, &v.Notes,
-		&v.ListenerName, &v.IPAddress, &v.EHLOName); err != nil {
+	if err := row.Scan(&v.ID, &v.Name, &v.IPAddress, &v.EHLOName,
+		&v.ListenerID, &v.MaxConnections, &v.Status, &v.Notes, &v.ListenerName); err != nil {
 		return nil, err
 	}
 	return v, nil
 }
 
-// CreateVMTA inserts a VMTA and returns the stored record with its listener's
-// resolved IP/EHLO.
+// CreateVMTA inserts a VMTA (owning its egress IP/EHLO) and returns the stored
+// record. The listener association is optional.
 func (r *OutboundConfigRepo) CreateVMTA(ctx context.Context, v *biz.VMTA) (*biz.VMTA, error) {
 	out, err := scanVMTA(r.db.Pool.QueryRow(ctx, `
 		WITH ins AS (
-			INSERT INTO vmtas (name, listener_id, max_connections, status, notes)
-			VALUES ($1, $2, $3, $4, $5)
-			RETURNING id, name, listener_id, max_connections, status, notes
+			INSERT INTO vmtas (name, ip_address, ehlo_name, listener_id, max_connections, status, notes)
+			VALUES ($1, $2::inet, $3, $4, $5, $6, $7)
+			RETURNING id, name, ip_address, ehlo_name, listener_id, max_connections, status, notes
 		)
-		SELECT `+vmtaSelect+` FROM ins v JOIN listeners l ON l.id = v.listener_id`,
-		v.Name, v.ListenerID, v.MaxConnections, v.Status, v.Notes))
+		SELECT `+vmtaSelect+` FROM ins v LEFT JOIN listeners l ON l.id = v.listener_id`,
+		v.Name, v.IPAddress, v.EHLOName, nullableUUID(v.ListenerID), v.MaxConnections, v.Status, v.Notes))
 	if err != nil {
 		return nil, mapConstraint(err, "vmta")
 	}
@@ -55,24 +57,24 @@ func (r *OutboundConfigRepo) CreateVMTA(ctx context.Context, v *biz.VMTA) (*biz.
 func (r *OutboundConfigRepo) UpdateVMTA(ctx context.Context, id string, v *biz.VMTA) (*biz.VMTA, error) {
 	out, err := scanVMTA(r.db.Pool.QueryRow(ctx, `
 		WITH upd AS (
-			UPDATE vmtas SET name = $2, listener_id = $3, max_connections = $4,
-				status = $5, notes = $6, updated_at = now()
+			UPDATE vmtas SET name = $2, ip_address = $3::inet, ehlo_name = $4,
+				listener_id = $5, max_connections = $6, status = $7, notes = $8, updated_at = now()
 			WHERE id = $1
-			RETURNING id, name, listener_id, max_connections, status, notes
+			RETURNING id, name, ip_address, ehlo_name, listener_id, max_connections, status, notes
 		)
-		SELECT `+vmtaSelect+` FROM upd v JOIN listeners l ON l.id = v.listener_id`,
-		id, v.Name, v.ListenerID, v.MaxConnections, v.Status, v.Notes))
+		SELECT `+vmtaSelect+` FROM upd v LEFT JOIN listeners l ON l.id = v.listener_id`,
+		id, v.Name, v.IPAddress, v.EHLOName, nullableUUID(v.ListenerID), v.MaxConnections, v.Status, v.Notes))
 	if err != nil {
 		return nil, mapConstraint(err, "vmta")
 	}
 	return out, nil
 }
 
-// ListVMTAs returns VMTAs (joined to their listener) filtered by optional status.
+// ListVMTAs returns VMTAs (with their optional listener name) filtered by status.
 func (r *OutboundConfigRepo) ListVMTAs(ctx context.Context, status string, page biz.Page) ([]*biz.VMTA, error) {
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT `+vmtaSelect+`
-		FROM vmtas v JOIN listeners l ON l.id = v.listener_id
+		FROM vmtas v LEFT JOIN listeners l ON l.id = v.listener_id
 		WHERE ($1 = '' OR v.status = $1)
 		ORDER BY v.name
 		LIMIT $2 OFFSET $3`, status, page.Size, page.Offset)

@@ -31,6 +31,8 @@ func (s *Service) CreateVMTA(ctx context.Context, req *adminv1.CreateVMTARequest
 	}
 	v, err := s.outbound.CreateVMTA(ctx, &biz.VMTA{
 		Name:           req.GetName(),
+		IPAddress:      req.GetIpAddress(),
+		EHLOName:       req.GetEhloName(),
 		ListenerID:     req.GetListenerId(),
 		MaxConnections: int(req.GetMaxConnections()),
 	})
@@ -47,6 +49,8 @@ func (s *Service) UpdateVMTA(ctx context.Context, req *adminv1.UpdateVMTARequest
 	}
 	v, err := s.outbound.UpdateVMTA(ctx, req.GetId(), &biz.VMTA{
 		Name:           req.GetName(),
+		IPAddress:      req.GetIpAddress(),
+		EHLOName:       req.GetEhloName(),
 		ListenerID:     req.GetListenerId(),
 		MaxConnections: int(req.GetMaxConnections()),
 		Status:         req.GetStatus(),

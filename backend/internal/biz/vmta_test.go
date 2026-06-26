@@ -8,12 +8,16 @@ func TestVMTAValidate(t *testing.T) {
 		vmta    VMTA
 		wantErr string // empty means no error
 	}{
-		{"valid", VMTA{Name: "v1", ListenerID: "lst-1"}, ""},
-		{"valid with max conns", VMTA{Name: "v1", ListenerID: "lst-1", MaxConnections: 50}, ""},
-		{"missing name", VMTA{ListenerID: "lst-1"}, "VMTA_NAME_REQUIRED"},
-		{"missing listener", VMTA{Name: "v1"}, "VMTA_LISTENER_REQUIRED"},
-		{"negative max conns", VMTA{Name: "v1", ListenerID: "lst-1", MaxConnections: -1}, "VMTA_MAX_CONNECTIONS_RANGE"},
-		{"bad status", VMTA{Name: "v1", ListenerID: "lst-1", Status: "nope"}, "VMTA_STATUS_INVALID"},
+		// The VMTA now owns its egress identity: IP + EHLO required, listener optional.
+		{"valid", VMTA{Name: "v1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com"}, ""},
+		{"valid with listener + max conns", VMTA{Name: "v1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", ListenerID: "lst-1", MaxConnections: 50}, ""},
+		{"missing name", VMTA{IPAddress: "203.0.113.1", EHLOName: "v1.example.com"}, "VMTA_NAME_REQUIRED"},
+		{"missing ip", VMTA{Name: "v1", EHLOName: "v1.example.com"}, "VMTA_IP_INVALID"},
+		{"wildcard ip", VMTA{Name: "v1", IPAddress: "0.0.0.0", EHLOName: "v1.example.com"}, "VMTA_IP_WILDCARD"},
+		{"missing ehlo", VMTA{Name: "v1", IPAddress: "203.0.113.1"}, "VMTA_EHLO_REQUIRED"},
+		{"bad ehlo", VMTA{Name: "v1", IPAddress: "203.0.113.1", EHLOName: "not a host!"}, "VMTA_EHLO_INVALID"},
+		{"negative max conns", VMTA{Name: "v1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", MaxConnections: -1}, "VMTA_MAX_CONNECTIONS_RANGE"},
+		{"bad status", VMTA{Name: "v1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: "nope"}, "VMTA_STATUS_INVALID"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
