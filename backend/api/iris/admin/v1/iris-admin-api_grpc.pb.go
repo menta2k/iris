@@ -49,6 +49,10 @@ const (
 	IrisAdminService_ListWebhookRules_FullMethodName       = "/iris.admin.v1.IrisAdminService/ListWebhookRules"
 	IrisAdminService_CreateWebhookRule_FullMethodName      = "/iris.admin.v1.IrisAdminService/CreateWebhookRule"
 	IrisAdminService_UpdateWebhookRule_FullMethodName      = "/iris.admin.v1.IrisAdminService/UpdateWebhookRule"
+	IrisAdminService_ListInboundRoutes_FullMethodName      = "/iris.admin.v1.IrisAdminService/ListInboundRoutes"
+	IrisAdminService_CreateInboundRoute_FullMethodName     = "/iris.admin.v1.IrisAdminService/CreateInboundRoute"
+	IrisAdminService_UpdateInboundRoute_FullMethodName     = "/iris.admin.v1.IrisAdminService/UpdateInboundRoute"
+	IrisAdminService_DeleteInboundRoute_FullMethodName     = "/iris.admin.v1.IrisAdminService/DeleteInboundRoute"
 	IrisAdminService_ListWebhookDeliveries_FullMethodName  = "/iris.admin.v1.IrisAdminService/ListWebhookDeliveries"
 	IrisAdminService_ListRspamdResults_FullMethodName      = "/iris.admin.v1.IrisAdminService/ListRspamdResults"
 	IrisAdminService_ListFeedbackLoops_FullMethodName      = "/iris.admin.v1.IrisAdminService/ListFeedbackLoops"
@@ -136,6 +140,12 @@ type IrisAdminServiceClient interface {
 	ListWebhookRules(ctx context.Context, in *ListWebhookRulesRequest, opts ...grpc.CallOption) (*ListWebhookRulesReply, error)
 	CreateWebhookRule(ctx context.Context, in *CreateWebhookRuleRequest, opts ...grpc.CallOption) (*WebhookRule, error)
 	UpdateWebhookRule(ctx context.Context, in *UpdateWebhookRuleRequest, opts ...grpc.CallOption) (*WebhookRule, error)
+	// Inbound routes (maildir / forward / webhook) — the unified inbound mail
+	// routing model that subsumes webhook rules.
+	ListInboundRoutes(ctx context.Context, in *ListInboundRoutesRequest, opts ...grpc.CallOption) (*ListInboundRoutesReply, error)
+	CreateInboundRoute(ctx context.Context, in *CreateInboundRouteRequest, opts ...grpc.CallOption) (*InboundRoute, error)
+	UpdateInboundRoute(ctx context.Context, in *UpdateInboundRouteRequest, opts ...grpc.CallOption) (*InboundRoute, error)
+	DeleteInboundRoute(ctx context.Context, in *DeleteInboundRouteRequest, opts ...grpc.CallOption) (*DeleteInboundRouteReply, error)
 	// Webhook delivery events (the outcomes of webhook fan-out).
 	ListWebhookDeliveries(ctx context.Context, in *ListWebhookDeliveriesRequest, opts ...grpc.CallOption) (*ListWebhookDeliveriesReply, error)
 	ListRspamdResults(ctx context.Context, in *ListRspamdResultsRequest, opts ...grpc.CallOption) (*ListRspamdResultsReply, error)
@@ -527,6 +537,46 @@ func (c *irisAdminServiceClient) UpdateWebhookRule(ctx context.Context, in *Upda
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(WebhookRule)
 	err := c.cc.Invoke(ctx, IrisAdminService_UpdateWebhookRule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ListInboundRoutes(ctx context.Context, in *ListInboundRoutesRequest, opts ...grpc.CallOption) (*ListInboundRoutesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListInboundRoutesReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListInboundRoutes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) CreateInboundRoute(ctx context.Context, in *CreateInboundRouteRequest, opts ...grpc.CallOption) (*InboundRoute, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InboundRoute)
+	err := c.cc.Invoke(ctx, IrisAdminService_CreateInboundRoute_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) UpdateInboundRoute(ctx context.Context, in *UpdateInboundRouteRequest, opts ...grpc.CallOption) (*InboundRoute, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InboundRoute)
+	err := c.cc.Invoke(ctx, IrisAdminService_UpdateInboundRoute_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) DeleteInboundRoute(ctx context.Context, in *DeleteInboundRouteRequest, opts ...grpc.CallOption) (*DeleteInboundRouteReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteInboundRouteReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_DeleteInboundRoute_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1005,6 +1055,12 @@ type IrisAdminServiceServer interface {
 	ListWebhookRules(context.Context, *ListWebhookRulesRequest) (*ListWebhookRulesReply, error)
 	CreateWebhookRule(context.Context, *CreateWebhookRuleRequest) (*WebhookRule, error)
 	UpdateWebhookRule(context.Context, *UpdateWebhookRuleRequest) (*WebhookRule, error)
+	// Inbound routes (maildir / forward / webhook) — the unified inbound mail
+	// routing model that subsumes webhook rules.
+	ListInboundRoutes(context.Context, *ListInboundRoutesRequest) (*ListInboundRoutesReply, error)
+	CreateInboundRoute(context.Context, *CreateInboundRouteRequest) (*InboundRoute, error)
+	UpdateInboundRoute(context.Context, *UpdateInboundRouteRequest) (*InboundRoute, error)
+	DeleteInboundRoute(context.Context, *DeleteInboundRouteRequest) (*DeleteInboundRouteReply, error)
 	// Webhook delivery events (the outcomes of webhook fan-out).
 	ListWebhookDeliveries(context.Context, *ListWebhookDeliveriesRequest) (*ListWebhookDeliveriesReply, error)
 	ListRspamdResults(context.Context, *ListRspamdResultsRequest) (*ListRspamdResultsReply, error)
@@ -1191,6 +1247,18 @@ func (UnimplementedIrisAdminServiceServer) CreateWebhookRule(context.Context, *C
 }
 func (UnimplementedIrisAdminServiceServer) UpdateWebhookRule(context.Context, *UpdateWebhookRuleRequest) (*WebhookRule, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateWebhookRule not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListInboundRoutes(context.Context, *ListInboundRoutesRequest) (*ListInboundRoutesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListInboundRoutes not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) CreateInboundRoute(context.Context, *CreateInboundRouteRequest) (*InboundRoute, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateInboundRoute not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) UpdateInboundRoute(context.Context, *UpdateInboundRouteRequest) (*InboundRoute, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateInboundRoute not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) DeleteInboundRoute(context.Context, *DeleteInboundRouteRequest) (*DeleteInboundRouteReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteInboundRoute not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) ListWebhookDeliveries(context.Context, *ListWebhookDeliveriesRequest) (*ListWebhookDeliveriesReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListWebhookDeliveries not implemented")
@@ -1878,6 +1946,78 @@ func _IrisAdminService_UpdateWebhookRule_Handler(srv interface{}, ctx context.Co
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IrisAdminServiceServer).UpdateWebhookRule(ctx, req.(*UpdateWebhookRuleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListInboundRoutes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListInboundRoutesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListInboundRoutes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListInboundRoutes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListInboundRoutes(ctx, req.(*ListInboundRoutesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_CreateInboundRoute_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateInboundRouteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).CreateInboundRoute(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_CreateInboundRoute_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).CreateInboundRoute(ctx, req.(*CreateInboundRouteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_UpdateInboundRoute_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateInboundRouteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).UpdateInboundRoute(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_UpdateInboundRoute_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).UpdateInboundRoute(ctx, req.(*UpdateInboundRouteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_DeleteInboundRoute_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteInboundRouteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).DeleteInboundRoute(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_DeleteInboundRoute_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).DeleteInboundRoute(ctx, req.(*DeleteInboundRouteRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2782,6 +2922,22 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateWebhookRule",
 			Handler:    _IrisAdminService_UpdateWebhookRule_Handler,
+		},
+		{
+			MethodName: "ListInboundRoutes",
+			Handler:    _IrisAdminService_ListInboundRoutes_Handler,
+		},
+		{
+			MethodName: "CreateInboundRoute",
+			Handler:    _IrisAdminService_CreateInboundRoute_Handler,
+		},
+		{
+			MethodName: "UpdateInboundRoute",
+			Handler:    _IrisAdminService_UpdateInboundRoute_Handler,
+		},
+		{
+			MethodName: "DeleteInboundRoute",
+			Handler:    _IrisAdminService_DeleteInboundRoute_Handler,
 		},
 		{
 			MethodName: "ListWebhookDeliveries",

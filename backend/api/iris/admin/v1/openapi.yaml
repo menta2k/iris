@@ -591,6 +591,89 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ListFeedbackReportsReply'
+    /v1/inbound-routes:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                Inbound routes (maildir / forward / webhook) — the unified inbound mail
+                 routing model that subsumes webhook rules.
+            operationId: IrisAdminService_ListInboundRoutes
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListInboundRoutesReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateInboundRoute
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateInboundRouteRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InboundRoute'
+    /v1/inbound-routes/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateInboundRoute
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateInboundRouteRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InboundRoute'
+        delete:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_DeleteInboundRoute
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteInboundRouteReply'
     /v1/kumomta/config:apply:
         post:
             tags:
@@ -1704,6 +1787,38 @@ components:
                     type: string
                 status:
                     type: string
+        CreateInboundRouteRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                match_type:
+                    type: string
+                match_value:
+                    type: string
+                action:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                status:
+                    type: string
+                forward_host:
+                    type: string
+                forward_port:
+                    type: integer
+                    format: int32
+                forward_tls:
+                    type: string
+                maildir_path:
+                    type: string
+                destination_url:
+                    type: string
+                timeout_seconds:
+                    type: integer
+                    format: int32
+                secret_ref:
+                    type: string
         CreateListenerRequest:
             type: object
             properties:
@@ -1865,6 +1980,11 @@ components:
         DeleteFeedbackLoopReply:
             type: object
             properties: {}
+        DeleteInboundRouteReply:
+            type: object
+            properties:
+                ok:
+                    type: boolean
         DeleteTLSPolicyReply:
             type: object
             properties: {}
@@ -2142,7 +2262,53 @@ components:
                 fbl_require_verification:
                     type: boolean
                     description: Gate FBL auto-suppression on proven provenance (X-KumoRef/send-log/DKIM).
+                inbound_maildir_base_path:
+                    type: string
+                    description: |-
+                        Deployment-wide Maildir root for inbound maildir routes without their own
+                         path (one Maildir per recipient under <base>/<domain>/<local-part>).
             description: Global settings — deployment-level policy knobs an operator edits in the UI.
+        InboundRoute:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                match_type:
+                    type: string
+                match_value:
+                    type: string
+                action:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                status:
+                    type: string
+                forward_host:
+                    type: string
+                    description: forward
+                forward_port:
+                    type: integer
+                    format: int32
+                forward_tls:
+                    type: string
+                maildir_path:
+                    type: string
+                    description: maildir
+                destination_url:
+                    type: string
+                    description: webhook
+                timeout_seconds:
+                    type: integer
+                    format: int32
+                secret_ref:
+                    type: string
+            description: |-
+                InboundRoute routes inbound mail for a recipient/domain to a maildir, a
+                 forwarding smarthost, or an HTTP webhook. Action-specific fields are only
+                 meaningful for the matching action. secret_ref is write-only (never returned).
         KumoConfig:
             type: object
             properties:
@@ -2271,6 +2437,15 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/FeedbackReport'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+        ListInboundRoutesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/InboundRoute'
                 page:
                     $ref: '#/components/schemas/PageReply'
         ListListenersReply:
@@ -2842,6 +3017,42 @@ components:
                     type: string
                 fbl_require_verification:
                     type: boolean
+                inbound_maildir_base_path:
+                    type: string
+        UpdateInboundRouteRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                match_type:
+                    type: string
+                match_value:
+                    type: string
+                action:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                status:
+                    type: string
+                forward_host:
+                    type: string
+                forward_port:
+                    type: integer
+                    format: int32
+                forward_tls:
+                    type: string
+                maildir_path:
+                    type: string
+                destination_url:
+                    type: string
+                timeout_seconds:
+                    type: integer
+                    format: int32
+                secret_ref:
+                    type: string
         UpdateListenerRequest:
             type: object
             properties:

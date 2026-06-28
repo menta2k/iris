@@ -103,6 +103,9 @@ func (uc *GlobalSettingsUsecase) Effective(ctx context.Context) (KumoConfigSetti
 	if row.DMARCReportEmail != "" {
 		s.DMARCReportAddr = row.DMARCReportEmail
 	}
+	if row.InboundMaildirBasePath != "" {
+		s.InboundMaildirBase = row.InboundMaildirBasePath
+	}
 	return s, nil
 }
 

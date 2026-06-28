@@ -45,6 +45,11 @@ type GlobalSettings struct {
 	// preserves the prior behavior (suppress every complaint).
 	FBLRequireVerification bool
 
+	// InboundMaildirBasePath is the deployment-wide Maildir root. Inbound maildir
+	// routes with no explicit path land under this base, one Maildir per
+	// recipient (<base>/<domain>/<local-part>). Empty falls back to the default.
+	InboundMaildirBasePath string
+
 	// SuppressionTTL is the lifetime applied to suppression records (Go/KumoMTA
 	// duration form, e.g. "720h", "30d"). Empty = permanent. Enforced as the
 	// Redis key TTL on the live suppression list and mirrored to expires_at.

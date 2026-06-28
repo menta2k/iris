@@ -628,11 +628,11 @@ func TestBounceClassifierGeneration(t *testing.T) {
 func TestInboundWebhookGeneration(t *testing.T) {
 	snap := ConfigSnapshot{
 		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
-		InboundWebhooks: []*WebhookRule{
+		InboundRoutes: []*InboundRoute{
 			{ID: "w1", Name: "support", MatchType: MatchRecipientEmail, MatchValue: "support@server-lab.info",
-				DestinationURL: "https://portal.example/hook", SecretRef: "s3cr3t", Status: WebhookActive},
+				Action: InboundActionWebhook, DestinationURL: "https://portal.example/hook", SecretRef: "s3cr3t", Status: InboundRouteActive},
 			{ID: "w2", Name: "dom", MatchType: MatchRecipientDomain, MatchValue: "leads.example.com",
-				DestinationURL: "https://portal.example/leads", Status: WebhookActive},
+				Action: InboundActionWebhook, DestinationURL: "https://portal.example/leads", Status: InboundRouteActive},
 		},
 		LogStreamRedisURL: "redis://redis:6379",
 	}
@@ -648,12 +648,12 @@ func TestInboundWebhookGeneration(t *testing.T) {
 		t.Fatalf("WEBHOOK_BY_DOMAIN not emitted:\n%s", r.Content)
 	}
 	// Relay-accept the recipient's domain (derived from the email match).
-	if !strings.Contains(r.Content, `WEBHOOK_DOMAINS["server-lab.info"] = true`) ||
-		!strings.Contains(r.Content, `WEBHOOK_DOMAINS["leads.example.com"] = true`) {
-		t.Fatalf("WEBHOOK_DOMAINS not emitted:\n%s", r.Content)
+	if !strings.Contains(r.Content, `ROUTE_DOMAINS["server-lab.info"] = true`) ||
+		!strings.Contains(r.Content, `ROUTE_DOMAINS["leads.example.com"] = true`) {
+		t.Fatalf("ROUTE_DOMAINS not emitted:\n%s", r.Content)
 	}
-	if !strings.Contains(r.Content, "if WEBHOOK_DOMAINS[domain] then") {
-		t.Fatalf("get_listener_domain must relay webhook domains:\n%s", r.Content)
+	if !strings.Contains(r.Content, "if ROUTE_DOMAINS[domain] then") {
+		t.Fatalf("get_listener_domain must relay route domains:\n%s", r.Content)
 	}
 	// The poster forwards the raw message exactly as the previous release did.
 	for _, want := range []string{
@@ -668,21 +668,68 @@ func TestInboundWebhookGeneration(t *testing.T) {
 			t.Fatalf("webhook poster missing %q:\n%s", want, r.Content)
 		}
 	}
-	// Reception routes matched mail to the webhook queue; queue config wires it.
-	if !strings.Contains(r.Content, "msg:set_meta('queue', WEBHOOK_TRACKER)") ||
+	// Reception routes matched mail to the action queue; queue config wires it.
+	if !strings.Contains(r.Content, "msg:set_meta('queue', route.queue)") ||
 		!strings.Contains(r.Content, "if domain == WEBHOOK_TRACKER then") {
 		t.Fatalf("webhook reception/queue routing not wired:\n%s", r.Content)
 	}
-	// Webhook-captured mail is tagged with the 'webhook' class so it is
-	// identifiable in the mail log (the hook returns before classify_mail).
-	if !strings.Contains(r.Content, "msg:set_meta('mailclass', 'webhook')") {
-		t.Fatalf("webhook mailclass tag not emitted:\n%s", r.Content)
+	// Route-captured mail is tagged with the action's class (here 'webhook').
+	if !strings.Contains(r.Content, `ROUTE_BY_EMAIL["support@server-lab.info"] = { queue = "iris_webhook", class = "webhook" }`) {
+		t.Fatalf("ROUTE_BY_EMAIL entry not emitted:\n%s", r.Content)
 	}
-	// A recipient at a webhook-relayed domain that matches no rule is rejected so
-	// the sending MTA bounces it, rather than relaying to the domain's real MX.
-	if !strings.Contains(r.Content, "if WEBHOOK_DOMAINS[rdom] then") ||
+	// A recipient at a relayed domain that matches no route is rejected so the
+	// sending MTA bounces it, rather than relaying to the domain's real MX.
+	if !strings.Contains(r.Content, "if ROUTE_DOMAINS[rdom] then") ||
 		!strings.Contains(r.Content, "recipient rejected, no matching route") {
-		t.Fatalf("unknown-recipient reject for webhook domains not emitted:\n%s", r.Content)
+		t.Fatalf("unknown-recipient reject for route domains not emitted:\n%s", r.Content)
+	}
+}
+
+func TestInboundMaildirAndForwardGeneration(t *testing.T) {
+	snap := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+		InboundRoutes: []*InboundRoute{
+			{ID: "m1", Name: "store", MatchType: MatchRecipientDomain, MatchValue: "archive.example.com",
+				Action: InboundActionMaildir, Status: InboundRouteActive},
+			{ID: "m2", Name: "store-custom", MatchType: MatchRecipientEmail, MatchValue: "ceo@example.com",
+				Action: InboundActionMaildir, MaildirPath: "/srv/mail/ceo", Status: InboundRouteActive},
+			{ID: "f1", Name: "relay", MatchType: MatchRecipientDomain, MatchValue: "legacy.example.com",
+				Action: InboundActionForward, ForwardHost: "mail.internal", ForwardPort: 2525, ForwardTLS: ForwardTLSRequired, Status: InboundRouteActive},
+		},
+		InboundMaildirBase: "/var/mail",
+		LogStreamRedisURL:  "redis://redis:6379",
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil || !r.Valid {
+		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	// Default maildir path uses the deployment base + per-user template.
+	if !strings.Contains(r.Content, `MAILDIR_PATHS["iris_maildir_0"] = "/var/mail/{{ domain_part }}/{{ local_part }}"`) {
+		t.Fatalf("default maildir path not emitted:\n%s", r.Content)
+	}
+	// Explicit per-route maildir path is honored as its own destination.
+	if !strings.Contains(r.Content, `MAILDIR_PATHS["iris_maildir_1"] = "/srv/mail/ceo"`) {
+		t.Fatalf("explicit maildir path not emitted:\n%s", r.Content)
+	}
+	if !strings.Contains(r.Content, "maildir_path = MAILDIR_PATHS[domain]") {
+		t.Fatalf("maildir queue config not wired:\n%s", r.Content)
+	}
+	// Forward pins the smarthost and requires TLS on its egress path.
+	if !strings.Contains(r.Content, `FORWARD_SMARTHOSTS["iris_forward_0"] = { mx = "mail.internal:2525" }`) {
+		t.Fatalf("forward smarthost not emitted:\n%s", r.Content)
+	}
+	if !strings.Contains(r.Content, "mx_list = { fwd.mx }") {
+		t.Fatalf("forward queue config not wired:\n%s", r.Content)
+	}
+	if !strings.Contains(r.Content, `REQUIRE_TLS_DOMAINS["iris_forward_0"] = "Required"`) {
+		t.Fatalf("forward require-TLS not emitted:\n%s", r.Content)
+	}
+	// Each recipient maps to its action queue.
+	if !strings.Contains(r.Content, `ROUTE_BY_EMAIL["ceo@example.com"] = { queue = "iris_maildir_1", class = "maildir" }`) {
+		t.Fatalf("maildir route entry not emitted:\n%s", r.Content)
+	}
+	if !strings.Contains(r.Content, `ROUTE_BY_DOMAIN["legacy.example.com"] = { queue = "iris_forward_0", class = "forward" }`) {
+		t.Fatalf("forward route entry not emitted:\n%s", r.Content)
 	}
 }
 

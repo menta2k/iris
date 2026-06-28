@@ -468,6 +468,45 @@ export interface UpdateWebhookRuleRequest {
   timeout_seconds: number
 }
 
+// ---- Inbound routes (maildir / forward / webhook) ----
+
+export type InboundRouteAction = 'maildir' | 'forward' | 'webhook'
+export type InboundRouteMatchType = 'recipient_email' | 'recipient_domain'
+export type ForwardTLS = 'none' | 'opportunistic' | 'required'
+
+export interface InboundRoute {
+  id: string
+  name: string
+  matchType: string
+  matchValue: string
+  action: string
+  priority: number
+  status: string
+  forwardHost: string
+  forwardPort: number
+  forwardTls: string
+  maildirPath: string
+  destinationUrl: string
+  timeoutSeconds: number
+}
+
+// secret_ref is write-only; blank preserves the existing secret on edit.
+export interface InboundRouteRequest {
+  name: string
+  match_type: InboundRouteMatchType
+  match_value: string
+  action: InboundRouteAction
+  priority: number
+  status: string
+  forward_host: string
+  forward_port: number
+  forward_tls: ForwardTLS
+  maildir_path: string
+  destination_url: string
+  timeout_seconds: number
+  secret_ref: string
+}
+
 // ---- Feedback loops ----
 
 export type FeedbackLoopStatus = 'awaiting_approval' | 'approved'
@@ -561,6 +600,7 @@ export interface GlobalSettings {
   acmeRenewBefore: string
   prometheusUrl: string
   fblRequireVerification: boolean
+  inboundMaildirBasePath: string
   updatedAt?: string
   updatedBy?: string
 }
@@ -587,6 +627,7 @@ export interface UpdateGlobalSettingsRequest {
   acme_renew_before: string
   prometheus_url: string
   fbl_require_verification: boolean
+  inbound_maildir_base_path: string
 }
 
 // ---- Dashboard metrics (Prometheus-backed time-series) ----

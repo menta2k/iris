@@ -199,9 +199,10 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	}
 	// US5 inbound automation: webhook + Rspamd use case and workers.
 	inboundRepo := data.NewInboundRepo(db)
+	inboundRouteRepo := data.NewInboundRouteRepo(db)
 	fblRepo := data.NewFBLRepo(db)
 
-	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo, fblRepo)
+	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo, inboundRouteRepo, fblRepo)
 	kumoConfigUC := biz.NewKumoConfigUsecase(kumoSnapshotRepo, kumo, mailOpsRepo, auditor, settingsUC)
 	// Domain bounce-readiness checker (MX/SPF/DKIM via live DNS).
 	domainCheckUC := biz.NewDomainCheckUsecase(kumoSnapshotRepo, nil)
@@ -218,6 +219,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	workerErrorUC := biz.NewWorkerErrorUsecase(workerErrorRepo)
 
 	inboundUC := biz.NewInboundUsecase(inboundRepo, auditor, cfg.KumoMTA.Stub)
+	inboundRouteUC := biz.NewInboundRouteUsecase(inboundRouteRepo, auditor, cfg.KumoMTA.Stub)
 	fblUC := biz.NewFBLUsecase(fblRepo, auditor)
 
 	// ACME (Let's Encrypt) certificate management. The HTTP-01 token store is
@@ -258,25 +260,26 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	}
 
 	deps := service.Deps{
-		Log:          log,
-		Auditor:      auditor,
-		Outbound:     outboundUC,
-		MailOps:      biz.NewMailOpsUsecase(mailOpsRepo, opsProducer, auditor).WithQueueAdmin(queueAdmin),
-		Identity:     identityUC,
-		Auth:         authUC,
-		DomainSafety: domainSafetyUC,
-		Inbound:      inboundUC,
-		FBL:          fblUC,
-		Dashboard:    biz.NewDashboardUsecase(data.NewDashboardRepo(db)),
-		Metrics:      biz.NewMetricsUsecase(settingsUC, nil),
-		KumoConfig:   kumoConfigUC,
-		Settings:     settingsUC,
-		Acme:         acmeUC,
-		DomainCheck:  domainCheckUC,
-		Diagnose:     diagnoseUC,
-		RBL:          rblUC,
-		DMARC:        dmarcUC,
-		WorkerErrors: workerErrorUC,
+		Log:           log,
+		Auditor:       auditor,
+		Outbound:      outboundUC,
+		MailOps:       biz.NewMailOpsUsecase(mailOpsRepo, opsProducer, auditor).WithQueueAdmin(queueAdmin),
+		Identity:      identityUC,
+		Auth:          authUC,
+		DomainSafety:  domainSafetyUC,
+		Inbound:       inboundUC,
+		InboundRoutes: inboundRouteUC,
+		FBL:           fblUC,
+		Dashboard:     biz.NewDashboardUsecase(data.NewDashboardRepo(db)),
+		Metrics:       biz.NewMetricsUsecase(settingsUC, nil),
+		KumoConfig:    kumoConfigUC,
+		Settings:      settingsUC,
+		Acme:          acmeUC,
+		DomainCheck:   domainCheckUC,
+		Diagnose:      diagnoseUC,
+		RBL:           rblUC,
+		DMARC:         dmarcUC,
+		WorkerErrors:  workerErrorUC,
 	}
 
 	svc := service.NewService(deps)

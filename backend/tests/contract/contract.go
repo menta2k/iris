@@ -39,7 +39,7 @@ func newService(t *testing.T) *service.Service {
 	}
 	if _, err := db.Pool.Exec(ctx, `
 		TRUNCATE routing_rules, vmta_group_members, vmta_groups, vmtas, listeners,
-		         suppression_entries, dkim_domains, webhook_rules,
+		         suppression_entries, dkim_domains, webhook_rules, inbound_routes,
 		         rspamd_filter_results, mail_records, config_state,
 		         user_roles, iris_users, roles,
 		         audit_entries, service_control_requests RESTART IDENTITY CASCADE`); err != nil {
@@ -65,16 +65,17 @@ func newService(t *testing.T) *service.Service {
 		biz.KumoConfigSettings{LogStreamName: data.StreamMailEvents})
 
 	return service.NewService(service.Deps{
-		Auditor:      auditor,
-		Outbound:     biz.NewOutboundConfigUsecase(outboundRepo, auditor).WithEligibilityChecker(domainSafety),
-		MailOps:      biz.NewMailOpsUsecase(mailOpsRepo, noopProducer{}, auditor).WithQueueAdmin(noopQueueAdmin{}),
-		Identity:     biz.NewIdentityUsecase(data.NewIdentityRepo(db, auditRepo), biz.NewPlaceholderMFA(), auditor),
-		DomainSafety: domainSafety,
-		Inbound:      biz.NewInboundUsecase(data.NewInboundRepo(db), auditor, true),
-		FBL:          biz.NewFBLUsecase(data.NewFBLRepo(db), auditor),
-		Dashboard:    biz.NewDashboardUsecase(data.NewDashboardRepo(db)),
+		Auditor:       auditor,
+		Outbound:      biz.NewOutboundConfigUsecase(outboundRepo, auditor).WithEligibilityChecker(domainSafety),
+		MailOps:       biz.NewMailOpsUsecase(mailOpsRepo, noopProducer{}, auditor).WithQueueAdmin(noopQueueAdmin{}),
+		Identity:      biz.NewIdentityUsecase(data.NewIdentityRepo(db, auditRepo), biz.NewPlaceholderMFA(), auditor),
+		DomainSafety:  domainSafety,
+		Inbound:       biz.NewInboundUsecase(data.NewInboundRepo(db), auditor, true),
+		InboundRoutes: biz.NewInboundRouteUsecase(data.NewInboundRouteRepo(db), auditor, true),
+		FBL:           biz.NewFBLUsecase(data.NewFBLRepo(db), auditor),
+		Dashboard:     biz.NewDashboardUsecase(data.NewDashboardRepo(db)),
 		KumoConfig: biz.NewKumoConfigUsecase(
-			data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, data.NewInboundRepo(db), data.NewFBLRepo(db)), biz.NewStubKumoMTA(), mailOpsRepo, auditor,
+			data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, data.NewInboundRepo(db), data.NewInboundRouteRepo(db), data.NewFBLRepo(db)), biz.NewStubKumoMTA(), mailOpsRepo, auditor,
 			settingsUC),
 		Settings: settingsUC,
 	})

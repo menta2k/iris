@@ -26,6 +26,7 @@ const OperationIrisAdminServiceClearAcmeDnsProvider = "/iris.admin.v1.IrisAdminS
 const OperationIrisAdminServiceConfirmMFA = "/iris.admin.v1.IrisAdminService/ConfirmMFA"
 const OperationIrisAdminServiceCreateDKIMDomain = "/iris.admin.v1.IrisAdminService/CreateDKIMDomain"
 const OperationIrisAdminServiceCreateFeedbackLoop = "/iris.admin.v1.IrisAdminService/CreateFeedbackLoop"
+const OperationIrisAdminServiceCreateInboundRoute = "/iris.admin.v1.IrisAdminService/CreateInboundRoute"
 const OperationIrisAdminServiceCreateListener = "/iris.admin.v1.IrisAdminService/CreateListener"
 const OperationIrisAdminServiceCreateRoutingRule = "/iris.admin.v1.IrisAdminService/CreateRoutingRule"
 const OperationIrisAdminServiceCreateSuppression = "/iris.admin.v1.IrisAdminService/CreateSuppression"
@@ -37,6 +38,7 @@ const OperationIrisAdminServiceCreateWebhookRule = "/iris.admin.v1.IrisAdminServ
 const OperationIrisAdminServiceCurrentUser = "/iris.admin.v1.IrisAdminService/CurrentUser"
 const OperationIrisAdminServiceDeleteAcmeCertificate = "/iris.admin.v1.IrisAdminService/DeleteAcmeCertificate"
 const OperationIrisAdminServiceDeleteFeedbackLoop = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
+const OperationIrisAdminServiceDeleteInboundRoute = "/iris.admin.v1.IrisAdminService/DeleteInboundRoute"
 const OperationIrisAdminServiceDeleteTLSPolicy = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
 const OperationIrisAdminServiceDiagnose = "/iris.admin.v1.IrisAdminService/Diagnose"
 const OperationIrisAdminServiceDisableMFA = "/iris.admin.v1.IrisAdminService/DisableMFA"
@@ -59,6 +61,7 @@ const OperationIrisAdminServiceListDmarcDomains = "/iris.admin.v1.IrisAdminServi
 const OperationIrisAdminServiceListDmarcReports = "/iris.admin.v1.IrisAdminService/ListDmarcReports"
 const OperationIrisAdminServiceListFeedbackLoops = "/iris.admin.v1.IrisAdminService/ListFeedbackLoops"
 const OperationIrisAdminServiceListFeedbackReports = "/iris.admin.v1.IrisAdminService/ListFeedbackReports"
+const OperationIrisAdminServiceListInboundRoutes = "/iris.admin.v1.IrisAdminService/ListInboundRoutes"
 const OperationIrisAdminServiceListListeners = "/iris.admin.v1.IrisAdminService/ListListeners"
 const OperationIrisAdminServiceListMailRecords = "/iris.admin.v1.IrisAdminService/ListMailRecords"
 const OperationIrisAdminServiceListQueues = "/iris.admin.v1.IrisAdminService/ListQueues"
@@ -84,6 +87,7 @@ const OperationIrisAdminServiceSetAcmeDnsProvider = "/iris.admin.v1.IrisAdminSer
 const OperationIrisAdminServiceUpdateDKIMDomain = "/iris.admin.v1.IrisAdminService/UpdateDKIMDomain"
 const OperationIrisAdminServiceUpdateFeedbackLoop = "/iris.admin.v1.IrisAdminService/UpdateFeedbackLoop"
 const OperationIrisAdminServiceUpdateGlobalSettings = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
+const OperationIrisAdminServiceUpdateInboundRoute = "/iris.admin.v1.IrisAdminService/UpdateInboundRoute"
 const OperationIrisAdminServiceUpdateListener = "/iris.admin.v1.IrisAdminService/UpdateListener"
 const OperationIrisAdminServiceUpdateRoutingRule = "/iris.admin.v1.IrisAdminService/UpdateRoutingRule"
 const OperationIrisAdminServiceUpdateSuppression = "/iris.admin.v1.IrisAdminService/UpdateSuppression"
@@ -106,6 +110,7 @@ type IrisAdminServiceHTTPServer interface {
 	ConfirmMFA(context.Context, *ConfirmMFARequest) (*ConfirmMFAReply, error)
 	CreateDKIMDomain(context.Context, *CreateDKIMDomainRequest) (*DKIMDomain, error)
 	CreateFeedbackLoop(context.Context, *CreateFeedbackLoopRequest) (*FeedbackLoop, error)
+	CreateInboundRoute(context.Context, *CreateInboundRouteRequest) (*InboundRoute, error)
 	CreateListener(context.Context, *CreateListenerRequest) (*Listener, error)
 	CreateRoutingRule(context.Context, *CreateRoutingRuleRequest) (*RoutingRule, error)
 	CreateSuppression(context.Context, *CreateSuppressionRequest) (*Suppression, error)
@@ -119,6 +124,7 @@ type IrisAdminServiceHTTPServer interface {
 	CurrentUser(context.Context, *CurrentUserRequest) (*CurrentUserReply, error)
 	DeleteAcmeCertificate(context.Context, *DeleteAcmeCertificateRequest) (*DeleteAcmeCertificateReply, error)
 	DeleteFeedbackLoop(context.Context, *DeleteFeedbackLoopRequest) (*DeleteFeedbackLoopReply, error)
+	DeleteInboundRoute(context.Context, *DeleteInboundRouteRequest) (*DeleteInboundRouteReply, error)
 	DeleteTLSPolicy(context.Context, *DeleteTLSPolicyRequest) (*DeleteTLSPolicyReply, error)
 	// Diagnose Tools ---------------------------------------------------------------------
 	// Diagnose reports how mail from a given address is handled and whether the
@@ -161,6 +167,9 @@ type IrisAdminServiceHTTPServer interface {
 	// is forwarded to a human; once approved the domain enables the ARF parser.
 	ListFeedbackLoops(context.Context, *ListFeedbackLoopsRequest) (*ListFeedbackLoopsReply, error)
 	ListFeedbackReports(context.Context, *ListFeedbackReportsRequest) (*ListFeedbackReportsReply, error)
+	// ListInboundRoutes Inbound routes (maildir / forward / webhook) — the unified inbound mail
+	// routing model that subsumes webhook rules.
+	ListInboundRoutes(context.Context, *ListInboundRoutesRequest) (*ListInboundRoutesReply, error)
 	// ListListeners Listeners (ESMTP) --------------------------------------------------------
 	ListListeners(context.Context, *ListListenersRequest) (*ListListenersReply, error)
 	// ListMailRecords Mail operations ----------------------------------------------------------
@@ -209,6 +218,7 @@ type IrisAdminServiceHTTPServer interface {
 	UpdateDKIMDomain(context.Context, *UpdateDKIMDomainRequest) (*DKIMDomain, error)
 	UpdateFeedbackLoop(context.Context, *UpdateFeedbackLoopRequest) (*FeedbackLoop, error)
 	UpdateGlobalSettings(context.Context, *UpdateGlobalSettingsRequest) (*GlobalSettings, error)
+	UpdateInboundRoute(context.Context, *UpdateInboundRouteRequest) (*InboundRoute, error)
 	UpdateListener(context.Context, *UpdateListenerRequest) (*Listener, error)
 	UpdateRoutingRule(context.Context, *UpdateRoutingRuleRequest) (*RoutingRule, error)
 	UpdateSuppression(context.Context, *UpdateSuppressionRequest) (*Suppression, error)
@@ -253,6 +263,10 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.GET("/v1/webhook-rules", _IrisAdminService_ListWebhookRules0_HTTP_Handler(srv))
 	r.POST("/v1/webhook-rules", _IrisAdminService_CreateWebhookRule0_HTTP_Handler(srv))
 	r.PUT("/v1/webhook-rules/{id}", _IrisAdminService_UpdateWebhookRule0_HTTP_Handler(srv))
+	r.GET("/v1/inbound-routes", _IrisAdminService_ListInboundRoutes0_HTTP_Handler(srv))
+	r.POST("/v1/inbound-routes", _IrisAdminService_CreateInboundRoute0_HTTP_Handler(srv))
+	r.PUT("/v1/inbound-routes/{id}", _IrisAdminService_UpdateInboundRoute0_HTTP_Handler(srv))
+	r.DELETE("/v1/inbound-routes/{id}", _IrisAdminService_DeleteInboundRoute0_HTTP_Handler(srv))
 	r.GET("/v1/webhook-deliveries", _IrisAdminService_ListWebhookDeliveries0_HTTP_Handler(srv))
 	r.GET("/v1/rspamd-results", _IrisAdminService_ListRspamdResults0_HTTP_Handler(srv))
 	r.GET("/v1/feedback-loops", _IrisAdminService_ListFeedbackLoops0_HTTP_Handler(srv))
@@ -939,6 +953,94 @@ func _IrisAdminService_UpdateWebhookRule0_HTTP_Handler(srv IrisAdminServiceHTTPS
 			return err
 		}
 		reply := out.(*WebhookRule)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ListInboundRoutes0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListInboundRoutesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListInboundRoutes)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListInboundRoutes(ctx, req.(*ListInboundRoutesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListInboundRoutesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CreateInboundRoute0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateInboundRouteRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCreateInboundRoute)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateInboundRoute(ctx, req.(*CreateInboundRouteRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*InboundRoute)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateInboundRoute0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateInboundRouteRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateInboundRoute)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateInboundRoute(ctx, req.(*UpdateInboundRouteRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*InboundRoute)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_DeleteInboundRoute0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteInboundRouteRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceDeleteInboundRoute)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteInboundRoute(ctx, req.(*DeleteInboundRouteRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteInboundRouteReply)
 		return ctx.Result(200, reply)
 	}
 }
@@ -1851,6 +1953,7 @@ type IrisAdminServiceHTTPClient interface {
 	ConfirmMFA(ctx context.Context, req *ConfirmMFARequest, opts ...http.CallOption) (rsp *ConfirmMFAReply, err error)
 	CreateDKIMDomain(ctx context.Context, req *CreateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
 	CreateFeedbackLoop(ctx context.Context, req *CreateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
+	CreateInboundRoute(ctx context.Context, req *CreateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
 	CreateListener(ctx context.Context, req *CreateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
 	CreateRoutingRule(ctx context.Context, req *CreateRoutingRuleRequest, opts ...http.CallOption) (rsp *RoutingRule, err error)
 	CreateSuppression(ctx context.Context, req *CreateSuppressionRequest, opts ...http.CallOption) (rsp *Suppression, err error)
@@ -1864,6 +1967,7 @@ type IrisAdminServiceHTTPClient interface {
 	CurrentUser(ctx context.Context, req *CurrentUserRequest, opts ...http.CallOption) (rsp *CurrentUserReply, err error)
 	DeleteAcmeCertificate(ctx context.Context, req *DeleteAcmeCertificateRequest, opts ...http.CallOption) (rsp *DeleteAcmeCertificateReply, err error)
 	DeleteFeedbackLoop(ctx context.Context, req *DeleteFeedbackLoopRequest, opts ...http.CallOption) (rsp *DeleteFeedbackLoopReply, err error)
+	DeleteInboundRoute(ctx context.Context, req *DeleteInboundRouteRequest, opts ...http.CallOption) (rsp *DeleteInboundRouteReply, err error)
 	DeleteTLSPolicy(ctx context.Context, req *DeleteTLSPolicyRequest, opts ...http.CallOption) (rsp *DeleteTLSPolicyReply, err error)
 	// Diagnose Tools ---------------------------------------------------------------------
 	// Diagnose reports how mail from a given address is handled and whether the
@@ -1906,6 +2010,9 @@ type IrisAdminServiceHTTPClient interface {
 	// is forwarded to a human; once approved the domain enables the ARF parser.
 	ListFeedbackLoops(ctx context.Context, req *ListFeedbackLoopsRequest, opts ...http.CallOption) (rsp *ListFeedbackLoopsReply, err error)
 	ListFeedbackReports(ctx context.Context, req *ListFeedbackReportsRequest, opts ...http.CallOption) (rsp *ListFeedbackReportsReply, err error)
+	// ListInboundRoutes Inbound routes (maildir / forward / webhook) — the unified inbound mail
+	// routing model that subsumes webhook rules.
+	ListInboundRoutes(ctx context.Context, req *ListInboundRoutesRequest, opts ...http.CallOption) (rsp *ListInboundRoutesReply, err error)
 	// ListListeners Listeners (ESMTP) --------------------------------------------------------
 	ListListeners(ctx context.Context, req *ListListenersRequest, opts ...http.CallOption) (rsp *ListListenersReply, err error)
 	// ListMailRecords Mail operations ----------------------------------------------------------
@@ -1954,6 +2061,7 @@ type IrisAdminServiceHTTPClient interface {
 	UpdateDKIMDomain(ctx context.Context, req *UpdateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
 	UpdateFeedbackLoop(ctx context.Context, req *UpdateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
 	UpdateGlobalSettings(ctx context.Context, req *UpdateGlobalSettingsRequest, opts ...http.CallOption) (rsp *GlobalSettings, err error)
+	UpdateInboundRoute(ctx context.Context, req *UpdateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
 	UpdateListener(ctx context.Context, req *UpdateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
 	UpdateRoutingRule(ctx context.Context, req *UpdateRoutingRuleRequest, opts ...http.CallOption) (rsp *RoutingRule, err error)
 	UpdateSuppression(ctx context.Context, req *UpdateSuppressionRequest, opts ...http.CallOption) (rsp *Suppression, err error)
@@ -2062,6 +2170,19 @@ func (c *IrisAdminServiceHTTPClientImpl) CreateFeedbackLoop(ctx context.Context,
 	pattern := "/v1/feedback-loops"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateFeedbackLoop))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) CreateInboundRoute(ctx context.Context, in *CreateInboundRouteRequest, opts ...http.CallOption) (*InboundRoute, error) {
+	var out InboundRoute
+	pattern := "/v1/inbound-routes"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateInboundRoute))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -2207,6 +2328,19 @@ func (c *IrisAdminServiceHTTPClientImpl) DeleteFeedbackLoop(ctx context.Context,
 	pattern := "/v1/feedback-loops/{id}"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteFeedbackLoop))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) DeleteInboundRoute(ctx context.Context, in *DeleteInboundRouteRequest, opts ...http.CallOption) (*DeleteInboundRouteReply, error) {
+	var out DeleteInboundRouteReply
+	pattern := "/v1/inbound-routes/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteInboundRoute))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {
@@ -2513,6 +2647,21 @@ func (c *IrisAdminServiceHTTPClientImpl) ListFeedbackReports(ctx context.Context
 	pattern := "/v1/feedback-reports"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListFeedbackReports))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListInboundRoutes Inbound routes (maildir / forward / webhook) — the unified inbound mail
+// routing model that subsumes webhook rules.
+func (c *IrisAdminServiceHTTPClientImpl) ListInboundRoutes(ctx context.Context, in *ListInboundRoutesRequest, opts ...http.CallOption) (*ListInboundRoutesReply, error) {
+	var out ListInboundRoutesReply
+	pattern := "/v1/inbound-routes"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListInboundRoutes))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -2861,6 +3010,19 @@ func (c *IrisAdminServiceHTTPClientImpl) UpdateGlobalSettings(ctx context.Contex
 	pattern := "/v1/settings"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateGlobalSettings))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) UpdateInboundRoute(ctx context.Context, in *UpdateInboundRouteRequest, opts ...http.CallOption) (*InboundRoute, error) {
+	var out InboundRoute
+	pattern := "/v1/inbound-routes/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateInboundRoute))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {

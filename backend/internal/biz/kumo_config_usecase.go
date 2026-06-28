@@ -43,6 +43,10 @@ type KumoConfigSettings struct {
 	// BounceVerpSecret signs the VERP envelope return-path. Empty disables VERP
 	// (the bounce pipeline still works, but async DSNs aren't correlated).
 	BounceVerpSecret string
+
+	// InboundMaildirBase is the deployment-wide Maildir root for inbound maildir
+	// routes that don't set their own path.
+	InboundMaildirBase string
 }
 
 // KumoConfigUsecase renders Iris configuration into KumoMTA policy and applies
@@ -131,6 +135,7 @@ func (uc *KumoConfigUsecase) render(ctx context.Context) (RenderedConfig, error)
 	snap.DMARCReportAddr = settings.DMARCReportAddr
 	snap.BounceClassifierFile = settings.BounceClassifierFile
 	snap.BounceVerpSecret = settings.BounceVerpSecret
+	snap.InboundMaildirBase = settings.InboundMaildirBase
 	return RenderKumoConfig(snap)
 }
 

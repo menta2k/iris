@@ -111,6 +111,20 @@ service IrisAdminService {
   rpc UpdateWebhookRule(UpdateWebhookRuleRequest) returns (WebhookRule) {
     option (google.api.http) = { put: "/v1/webhook-rules/{id}" body: "*" };
   }
+  // Inbound routes (maildir / forward / webhook) — the unified inbound mail
+  // routing model that subsumes webhook rules.
+  rpc ListInboundRoutes(ListInboundRoutesRequest) returns (ListInboundRoutesReply) {
+    option (google.api.http) = { get: "/v1/inbound-routes" };
+  }
+  rpc CreateInboundRoute(CreateInboundRouteRequest) returns (InboundRoute) {
+    option (google.api.http) = { post: "/v1/inbound-routes" body: "*" };
+  }
+  rpc UpdateInboundRoute(UpdateInboundRouteRequest) returns (InboundRoute) {
+    option (google.api.http) = { put: "/v1/inbound-routes/{id}" body: "*" };
+  }
+  rpc DeleteInboundRoute(DeleteInboundRouteRequest) returns (DeleteInboundRouteReply) {
+    option (google.api.http) = { delete: "/v1/inbound-routes/{id}" };
+  }
   // Webhook delivery events (the outcomes of webhook fan-out).
   rpc ListWebhookDeliveries(ListWebhookDeliveriesRequest) returns (ListWebhookDeliveriesReply) {
     option (google.api.http) = { get: "/v1/webhook-deliveries" };
@@ -668,6 +682,67 @@ message WebhookRule {
   string status = 6;
   int32 timeout_seconds = 7;
 }
+// InboundRoute routes inbound mail for a recipient/domain to a maildir, a
+// forwarding smarthost, or an HTTP webhook. Action-specific fields are only
+// meaningful for the matching action. secret_ref is write-only (never returned).
+message InboundRoute {
+  string id = 1;
+  string name = 2;
+  string match_type = 3;   // recipient_email | recipient_domain
+  string match_value = 4;
+  string action = 5;       // maildir | forward | webhook
+  int32 priority = 6;
+  string status = 7;       // active | disabled
+  // forward
+  string forward_host = 8;
+  int32 forward_port = 9;
+  string forward_tls = 10; // none | opportunistic | required
+  // maildir
+  string maildir_path = 11;
+  // webhook
+  string destination_url = 12;
+  int32 timeout_seconds = 13;
+  string secret_ref = 14;  // write-only on create/update
+}
+message ListInboundRoutesRequest { PageRequest page = 1; }
+message ListInboundRoutesReply {
+  repeated InboundRoute items = 1;
+  PageReply page = 2;
+}
+message CreateInboundRouteRequest {
+  string name = 1;
+  string match_type = 2;
+  string match_value = 3;
+  string action = 4;
+  int32 priority = 5;
+  string status = 6;
+  string forward_host = 7;
+  int32 forward_port = 8;
+  string forward_tls = 9;
+  string maildir_path = 10;
+  string destination_url = 11;
+  int32 timeout_seconds = 12;
+  string secret_ref = 13;
+}
+message UpdateInboundRouteRequest {
+  string id = 1;
+  string name = 2;
+  string match_type = 3;
+  string match_value = 4;
+  string action = 5;
+  int32 priority = 6;
+  string status = 7;
+  string forward_host = 8;
+  int32 forward_port = 9;
+  string forward_tls = 10;
+  string maildir_path = 11;
+  string destination_url = 12;
+  int32 timeout_seconds = 13;
+  string secret_ref = 14;
+}
+message DeleteInboundRouteRequest { string id = 1; }
+message DeleteInboundRouteReply { bool ok = 1; }
+
 message RspamdResult {
   string id = 1;
   google.protobuf.Timestamp event_time = 2;
@@ -1140,6 +1215,9 @@ message GlobalSettings {
   string dmarc_report_email = 23;
   // Gate FBL auto-suppression on proven provenance (X-KumoRef/send-log/DKIM).
   bool fbl_require_verification = 24;
+  // Deployment-wide Maildir root for inbound maildir routes without their own
+  // path (one Maildir per recipient under <base>/<domain>/<local-part>).
+  string inbound_maildir_base_path = 25;
 }
 message GetGlobalSettingsRequest {}
 message UpdateGlobalSettingsRequest {
@@ -1165,4 +1243,5 @@ message UpdateGlobalSettingsRequest {
   string suppression_ttl = 20;
   string dmarc_report_email = 21;
   bool fbl_require_verification = 22;
+  string inbound_maildir_base_path = 23;
 }

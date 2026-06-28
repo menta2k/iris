@@ -40,6 +40,7 @@ const form = ref({
   auto_suppress_hard_bounces: true,
   soft_bounce_threshold: 0,
   fbl_require_verification: false,
+  inbound_maildir_base_path: '',
   suppression_ttl: '',
   dmarc_report_email: '',
   admin_http_addr: '',
@@ -65,6 +66,7 @@ function apply(s: GlobalSettings) {
     auto_suppress_hard_bounces: s.autoSuppressHardBounces ?? true,
     soft_bounce_threshold: s.softBounceThreshold ?? 0,
     fbl_require_verification: s.fblRequireVerification ?? false,
+    inbound_maildir_base_path: s.inboundMaildirBasePath || '',
     suppression_ttl: s.suppressionTtl || '',
     dmarc_report_email: s.dmarcReportEmail || '',
     admin_http_addr: s.adminHttpAddr || '',
@@ -119,6 +121,7 @@ async function save() {
         auto_suppress_hard_bounces: form.value.auto_suppress_hard_bounces,
         soft_bounce_threshold: form.value.soft_bounce_threshold,
         fbl_require_verification: form.value.fbl_require_verification,
+        inbound_maildir_base_path: form.value.inbound_maildir_base_path,
         suppression_ttl: form.value.suppression_ttl,
         dmarc_report_email: form.value.dmarc_report_email,
         admin_http_addr: form.value.admin_http_addr,
@@ -319,6 +322,21 @@ onMounted(load)
                 Address to advertise as <code>rua=</code> in your domains' DMARC DNS records.
                 Inbound aggregate reports arriving here are parsed into the DMARC Reports page. One
                 address serves all your domains. Leave blank to disable.
+              </p>
+            </div>
+            <div class="space-y-1.5">
+              <Label for="maildir-base">Inbound maildir base path</Label>
+              <Input
+                id="maildir-base"
+                v-model="form.inbound_maildir_base_path"
+                placeholder="/var/spool/iris/maildirs"
+                data-testid="inbound-maildir-base-path"
+              />
+              <p class="text-xs text-muted-foreground">
+                Filesystem root for inbound <strong>maildir</strong> routes that don't set their own
+                path. kumod writes one Maildir per recipient under
+                <code>&lt;base&gt;/&lt;domain&gt;/&lt;local-part&gt;</code>. Leave blank for the
+                default <code>/var/spool/iris/maildirs</code>.
               </p>
             </div>
           </CardContent>

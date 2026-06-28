@@ -169,6 +169,12 @@ export const routes: RouteRecordRaw[] = [
 
       // Inbound automation
       {
+        path: 'inbound/routes',
+        name: 'inbound-routes',
+        component: () => import('@/pages/inbound/InboundRoutesPage.vue'),
+        meta: { permission: 'inbound:read', title: 'Inbound Routes' },
+      },
+      {
         path: 'inbound/webhooks',
         name: 'webhook-rules',
         component: () => import('@/pages/inbound/WebhookRulesPage.vue'),

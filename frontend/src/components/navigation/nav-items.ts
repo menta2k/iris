@@ -86,6 +86,7 @@ export const navSections: NavSection[] = [
   {
     label: 'Inbound Automation',
     items: [
+      { label: 'Inbound Routes', to: '/inbound/routes', permission: 'inbound:read' },
       { label: 'Webhook Rules', to: '/inbound/webhooks', permission: 'inbound:read' },
       { label: 'Delivery Events', to: '/inbound/delivery-events', permission: 'inbound:read' },
       { label: 'Rspamd Results', to: '/inbound/rspamd', permission: 'inbound:read' },
