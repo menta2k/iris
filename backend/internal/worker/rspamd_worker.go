@@ -68,6 +68,7 @@ func (w *RspamdWorker) handle(ctx context.Context, m data.StreamMessage) {
 	}
 	res := &biz.RspamdFilterResult{
 		MailRecordID: stringValue(m.Values["mail_record_id"]),
+		MessageID:    stringValue(m.Values["message_id"]),
 		Action:       stringValue(m.Values["action"]),
 		Score:        score,
 		Symbols:      parseSymbols(m.Values["symbols"]),

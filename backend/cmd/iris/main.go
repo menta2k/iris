@@ -197,7 +197,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	} else {
 		log.Info("suppression cache backfilled", "entries", n)
 	}
-	// US5 inbound automation: webhook + Rspamd use case and workers.
+	// US5 inbound automation: Rspamd result ingestion + inbound routing.
 	inboundRepo := data.NewInboundRepo(db)
 	inboundRouteRepo := data.NewInboundRouteRepo(db)
 	fblRepo := data.NewFBLRepo(db)
@@ -303,8 +303,8 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	startWorker(ctx, log, "rspamd-ingest", worker.NewRspamdWorker(streams, inboundUC, wlog("rspamd-ingest")).Run)
 	// Ingest KumoMTA's structured logs (streamed by the generated policy's
 	// log_hook) into the mail_records hypertable that powers the Logs UI.
-	// Inbound webhooks are delivered in-policy by kumod (make.webhook_post),
-	// which forwards the raw message — so no webhook fan-out worker here.
+	// Inbound-route webhooks are delivered in-policy by kumod (make.webhook_post),
+	// which forwards the raw message — there is no webhook fan-out worker.
 	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, wlog("log-stream")).
 		WithFeedbackVerification(domainSafetyRepo, settingsUC).Run)
 	// DSN consumer: async bounces captured at the configured bounce domain.

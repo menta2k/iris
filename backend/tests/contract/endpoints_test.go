@@ -75,12 +75,12 @@ func TestDomainSafetyContract(t *testing.T) {
 	}
 }
 
-// TestInboundContract covers webhook and Rspamd handlers (T097).
+// TestInboundContract covers the inbound-route and Rspamd handlers (T097).
 func TestInboundContract(t *testing.T) {
 	svc := newService(t)
 	ctx := ownerCtx()
-	if _, err := svc.ListWebhookRules(ctx, &adminv1.ListWebhookRulesRequest{}); err != nil {
-		t.Fatalf("ListWebhookRules: %v", err)
+	if _, err := svc.ListInboundRoutes(ctx, &adminv1.ListInboundRoutesRequest{}); err != nil {
+		t.Fatalf("ListInboundRoutes: %v", err)
 	}
 	if _, err := svc.ListRspamdResults(ctx, &adminv1.ListRspamdResultsRequest{}); err != nil {
 		t.Fatalf("ListRspamdResults: %v", err)

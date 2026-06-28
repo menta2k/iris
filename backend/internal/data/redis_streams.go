@@ -15,11 +15,10 @@ import (
 
 // Stream names carried over Redis Streams. They mirror data-model.md.
 const (
-	StreamMailEvents      = "iris.mail.events"
-	StreamBounceEvents    = "iris.bounce.events"
-	StreamFeedbackEvents  = "iris.feedback.events"
-	StreamWebhookDelivery = "iris.webhook.deliveries"
-	StreamQueueCommands   = "iris.queue.commands"
+	StreamMailEvents     = "iris.mail.events"
+	StreamBounceEvents   = "iris.bounce.events"
+	StreamFeedbackEvents = "iris.feedback.events"
+	StreamQueueCommands  = "iris.queue.commands"
 	// StreamRspamdResults aliases biz.RspamdResultsStream so the kumod policy
 	// producer and this consumer share one canonical name.
 	StreamRspamdResults   = biz.RspamdResultsStream

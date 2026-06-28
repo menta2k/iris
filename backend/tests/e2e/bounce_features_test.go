@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/menta2k/iris/backend/internal/biz"
 	"github.com/menta2k/iris/backend/internal/conf"
 	"github.com/menta2k/iris/backend/internal/data"
-	"github.com/menta2k/iris/backend/internal/biz"
 	"github.com/menta2k/iris/backend/internal/worker"
 )
 

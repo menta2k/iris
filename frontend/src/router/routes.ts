@@ -175,18 +175,6 @@ export const routes: RouteRecordRaw[] = [
         meta: { permission: 'inbound:read', title: 'Inbound Routes' },
       },
       {
-        path: 'inbound/webhooks',
-        name: 'webhook-rules',
-        component: () => import('@/pages/inbound/WebhookRulesPage.vue'),
-        meta: { permission: 'inbound:read', title: 'Webhook Rules' },
-      },
-      {
-        path: 'inbound/delivery-events',
-        name: 'delivery-events',
-        component: () => import('@/pages/inbound/DeliveryEventsPage.vue'),
-        meta: { permission: 'inbound:read', title: 'Delivery Events' },
-      },
-      {
         path: 'inbound/rspamd',
         name: 'rspamd-results',
         component: () => import('@/pages/inbound/RspamdResultsPage.vue'),

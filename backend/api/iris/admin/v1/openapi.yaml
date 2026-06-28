@@ -596,8 +596,9 @@ paths:
             tags:
                 - IrisAdminService
             description: |-
-                Inbound routes (maildir / forward / webhook) — the unified inbound mail
-                 routing model that subsumes webhook rules.
+                Inbound automation -------------------------------------------------------
+                 Inbound routes (maildir / forward / webhook) — the unified inbound mail
+                 routing model. A webhook route POSTs the raw RFC822 message to an endpoint.
             operationId: IrisAdminService_ListInboundRoutes
             parameters:
                 - name: page.page_size
@@ -1477,93 +1478,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/VMTA'
-    /v1/webhook-deliveries:
-        get:
-            tags:
-                - IrisAdminService
-            description: Webhook delivery events (the outcomes of webhook fan-out).
-            operationId: IrisAdminService_ListWebhookDeliveries
-            parameters:
-                - name: page.page_size
-                  in: query
-                  schema:
-                    type: integer
-                    format: int32
-                - name: page.page_token
-                  in: query
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ListWebhookDeliveriesReply'
-    /v1/webhook-rules:
-        get:
-            tags:
-                - IrisAdminService
-            description: Inbound automation -------------------------------------------------------
-            operationId: IrisAdminService_ListWebhookRules
-            parameters:
-                - name: page.page_size
-                  in: query
-                  schema:
-                    type: integer
-                    format: int32
-                - name: page.page_token
-                  in: query
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ListWebhookRulesReply'
-        post:
-            tags:
-                - IrisAdminService
-            operationId: IrisAdminService_CreateWebhookRule
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/CreateWebhookRuleRequest'
-                required: true
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/WebhookRule'
-    /v1/webhook-rules/{id}:
-        put:
-            tags:
-                - IrisAdminService
-            operationId: IrisAdminService_UpdateWebhookRule
-            parameters:
-                - name: id
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/UpdateWebhookRuleRequest'
-                required: true
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/WebhookRule'
     /v1/worker-error-logs:
         get:
             tags:
@@ -1926,22 +1840,6 @@ components:
                     type: string
                 ehlo_name:
                     type: string
-        CreateWebhookRuleRequest:
-            type: object
-            properties:
-                name:
-                    type: string
-                match_type:
-                    type: string
-                match_value:
-                    type: string
-                destination_url:
-                    type: string
-                secret_ref:
-                    type: string
-                timeout_seconds:
-                    type: integer
-                    format: int32
         CurrentUserReply:
             type: object
             properties:
@@ -2311,7 +2209,8 @@ components:
                     type: string
                     description: 'rspamd scanning for this route: default | off | tag | enforce'
             description: |-
-                InboundRoute routes inbound mail for a recipient/domain to a maildir, a
+                Inbound automation --------------------------------------------------------
+                 InboundRoute routes inbound mail for a recipient/domain to a maildir, a
                  forwarding smarthost, or an HTTP webhook. Action-specific fields are only
                  meaningful for the matching action. secret_ref is write-only (never returned).
         KumoConfig:
@@ -2541,24 +2440,6 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/VMTA'
-                page:
-                    $ref: '#/components/schemas/PageReply'
-        ListWebhookDeliveriesReply:
-            type: object
-            properties:
-                items:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/WebhookDeliveryEvent'
-                page:
-                    $ref: '#/components/schemas/PageReply'
-        ListWebhookRulesReply:
-            type: object
-            properties:
-                items:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/WebhookRule'
                 page:
                     $ref: '#/components/schemas/PageReply'
         ListWorkerErrorLogsReply:
@@ -2894,6 +2775,10 @@ components:
                         type: string
                 reason:
                     type: string
+                message_id:
+                    type: string
+                recipient:
+                    type: string
         SaveAcmeAccountRequest:
             type: object
             properties:
@@ -3173,26 +3058,6 @@ components:
                     type: string
                 ehlo_name:
                     type: string
-        UpdateWebhookRuleRequest:
-            type: object
-            properties:
-                id:
-                    type: string
-                name:
-                    type: string
-                match_type:
-                    type: string
-                match_value:
-                    type: string
-                destination_url:
-                    type: string
-                secret_ref:
-                    type: string
-                timeout_seconds:
-                    type: integer
-                    format: int32
-                status:
-                    type: string
         User:
             type: object
             properties:
@@ -3263,50 +3128,6 @@ components:
             properties:
                 code:
                     type: string
-        WebhookDeliveryEvent:
-            type: object
-            properties:
-                id:
-                    type: string
-                event_time:
-                    type: string
-                webhook_rule_id:
-                    type: string
-                webhook_name:
-                    type: string
-                mail_record_id:
-                    type: string
-                recipient:
-                    type: string
-                attempt:
-                    type: integer
-                    format: int32
-                status:
-                    type: string
-                response_code:
-                    type: integer
-                    format: int32
-                error_summary:
-                    type: string
-        WebhookRule:
-            type: object
-            properties:
-                id:
-                    type: string
-                name:
-                    type: string
-                match_type:
-                    type: string
-                match_value:
-                    type: string
-                destination_url:
-                    type: string
-                status:
-                    type: string
-                timeout_seconds:
-                    type: integer
-                    format: int32
-            description: Inbound automation --------------------------------------------------------
         WorkerErrorLog:
             type: object
             properties:

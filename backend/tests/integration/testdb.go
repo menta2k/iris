@@ -44,8 +44,7 @@ func truncate(t *testing.T, db *data.DB) {
 	ctx := context.Background()
 	_, err := db.Pool.Exec(ctx, `
 		TRUNCATE config_state, routing_rules, vmta_group_members, vmta_groups, vmtas, listeners,
-		         suppression_entries, dkim_domains, webhook_rules,
-		         webhook_delivery_events, rspamd_filter_results,
+		         suppression_entries, dkim_domains, rspamd_filter_results,
 		         mail_records, bounce_records, feedback_reports,
 		         mailclass_queues, queue_snapshots,
 		         user_roles, iris_users, roles,

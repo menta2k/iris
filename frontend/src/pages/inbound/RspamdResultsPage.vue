@@ -43,7 +43,8 @@ function scoreVariant(score: number) {
             <TableHeader>
               <TableRow>
                 <TableHead>Time</TableHead>
-                <TableHead>Mail Record</TableHead>
+                <TableHead>Recipient</TableHead>
+                <TableHead>Message ID</TableHead>
                 <TableHead>Score</TableHead>
                 <TableHead>Action</TableHead>
                 <TableHead>Symbols</TableHead>
@@ -53,7 +54,8 @@ function scoreVariant(score: number) {
             <TableBody>
               <TableRow v-for="r in items" :key="r.id">
                 <TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDateTime(r.eventTime) }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ r.mailRecordId }}</TableCell>
+                <TableCell class="font-mono text-xs">{{ r.recipient || '—' }}</TableCell>
+                <TableCell class="font-mono text-xs text-muted-foreground">{{ r.messageId || '—' }}</TableCell>
                 <TableCell>
                   <Badge :variant="scoreVariant(r.score)">{{ r.score }}</Badge>
                 </TableCell>

@@ -34,7 +34,6 @@ const OperationIrisAdminServiceCreateTLSPolicy = "/iris.admin.v1.IrisAdminServic
 const OperationIrisAdminServiceCreateUser = "/iris.admin.v1.IrisAdminService/CreateUser"
 const OperationIrisAdminServiceCreateVMTA = "/iris.admin.v1.IrisAdminService/CreateVMTA"
 const OperationIrisAdminServiceCreateVMTAGroups = "/iris.admin.v1.IrisAdminService/CreateVMTAGroups"
-const OperationIrisAdminServiceCreateWebhookRule = "/iris.admin.v1.IrisAdminService/CreateWebhookRule"
 const OperationIrisAdminServiceCurrentUser = "/iris.admin.v1.IrisAdminService/CurrentUser"
 const OperationIrisAdminServiceDeleteAcmeCertificate = "/iris.admin.v1.IrisAdminService/DeleteAcmeCertificate"
 const OperationIrisAdminServiceDeleteFeedbackLoop = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
@@ -72,8 +71,6 @@ const OperationIrisAdminServiceListTLSPolicies = "/iris.admin.v1.IrisAdminServic
 const OperationIrisAdminServiceListUsers = "/iris.admin.v1.IrisAdminService/ListUsers"
 const OperationIrisAdminServiceListVMTAGroups = "/iris.admin.v1.IrisAdminService/ListVMTAGroups"
 const OperationIrisAdminServiceListVMTAs = "/iris.admin.v1.IrisAdminService/ListVMTAs"
-const OperationIrisAdminServiceListWebhookDeliveries = "/iris.admin.v1.IrisAdminService/ListWebhookDeliveries"
-const OperationIrisAdminServiceListWebhookRules = "/iris.admin.v1.IrisAdminService/ListWebhookRules"
 const OperationIrisAdminServiceListWorkerErrorLogs = "/iris.admin.v1.IrisAdminService/ListWorkerErrorLogs"
 const OperationIrisAdminServiceLogin = "/iris.admin.v1.IrisAdminService/Login"
 const OperationIrisAdminServiceLogout = "/iris.admin.v1.IrisAdminService/Logout"
@@ -94,7 +91,6 @@ const OperationIrisAdminServiceUpdateSuppression = "/iris.admin.v1.IrisAdminServ
 const OperationIrisAdminServiceUpdateUser = "/iris.admin.v1.IrisAdminService/UpdateUser"
 const OperationIrisAdminServiceUpdateVMTA = "/iris.admin.v1.IrisAdminService/UpdateVMTA"
 const OperationIrisAdminServiceUpdateVMTAGroup = "/iris.admin.v1.IrisAdminService/UpdateVMTAGroup"
-const OperationIrisAdminServiceUpdateWebhookRule = "/iris.admin.v1.IrisAdminService/UpdateWebhookRule"
 const OperationIrisAdminServiceVerifyMFA = "/iris.admin.v1.IrisAdminService/VerifyMFA"
 
 type IrisAdminServiceHTTPServer interface {
@@ -118,7 +114,6 @@ type IrisAdminServiceHTTPServer interface {
 	CreateUser(context.Context, *CreateUserRequest) (*User, error)
 	CreateVMTA(context.Context, *CreateVMTARequest) (*VMTA, error)
 	CreateVMTAGroups(context.Context, *CreateVMTAGroupRequest) (*VMTAGroup, error)
-	CreateWebhookRule(context.Context, *CreateWebhookRuleRequest) (*WebhookRule, error)
 	// CurrentUser CurrentUser returns the calling user's profile and effective permissions;
 	// the SPA calls it on load to restore a session from a stored token.
 	CurrentUser(context.Context, *CurrentUserRequest) (*CurrentUserReply, error)
@@ -167,8 +162,9 @@ type IrisAdminServiceHTTPServer interface {
 	// is forwarded to a human; once approved the domain enables the ARF parser.
 	ListFeedbackLoops(context.Context, *ListFeedbackLoopsRequest) (*ListFeedbackLoopsReply, error)
 	ListFeedbackReports(context.Context, *ListFeedbackReportsRequest) (*ListFeedbackReportsReply, error)
-	// ListInboundRoutes Inbound routes (maildir / forward / webhook) — the unified inbound mail
-	// routing model that subsumes webhook rules.
+	// ListInboundRoutes Inbound automation -------------------------------------------------------
+	// Inbound routes (maildir / forward / webhook) — the unified inbound mail
+	// routing model. A webhook route POSTs the raw RFC822 message to an endpoint.
 	ListInboundRoutes(context.Context, *ListInboundRoutesRequest) (*ListInboundRoutesReply, error)
 	// ListListeners Listeners (ESMTP) --------------------------------------------------------
 	ListListeners(context.Context, *ListListenersRequest) (*ListListenersReply, error)
@@ -185,10 +181,6 @@ type IrisAdminServiceHTTPServer interface {
 	ListVMTAGroups(context.Context, *ListVMTAGroupsRequest) (*ListVMTAGroupsReply, error)
 	// ListVMTAs Outbound configuration ---------------------------------------------------
 	ListVMTAs(context.Context, *ListVMTAsRequest) (*ListVMTAsReply, error)
-	// ListWebhookDeliveries Webhook delivery events (the outcomes of webhook fan-out).
-	ListWebhookDeliveries(context.Context, *ListWebhookDeliveriesRequest) (*ListWebhookDeliveriesReply, error)
-	// ListWebhookRules Inbound automation -------------------------------------------------------
-	ListWebhookRules(context.Context, *ListWebhookRulesRequest) (*ListWebhookRulesReply, error)
 	// ListWorkerErrorLogs Generic worker error log: Warn/Error events emitted by background workers
 	// (e.g. an unparseable DMARC report dropped by the dmarc worker).
 	ListWorkerErrorLogs(context.Context, *ListWorkerErrorLogsRequest) (*ListWorkerErrorLogsReply, error)
@@ -225,7 +217,6 @@ type IrisAdminServiceHTTPServer interface {
 	UpdateUser(context.Context, *UpdateUserRequest) (*User, error)
 	UpdateVMTA(context.Context, *UpdateVMTARequest) (*VMTA, error)
 	UpdateVMTAGroup(context.Context, *UpdateVMTAGroupRequest) (*VMTAGroup, error)
-	UpdateWebhookRule(context.Context, *UpdateWebhookRuleRequest) (*WebhookRule, error)
 	// VerifyMFA VerifyMFA completes a login by validating a TOTP code, upgrading the
 	// partially-authenticated session token to a fully-authenticated one.
 	VerifyMFA(context.Context, *VerifyMFARequest) (*LoginReply, error)
@@ -260,14 +251,10 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.GET("/v1/tls-policies", _IrisAdminService_ListTLSPolicies0_HTTP_Handler(srv))
 	r.POST("/v1/tls-policies", _IrisAdminService_CreateTLSPolicy0_HTTP_Handler(srv))
 	r.DELETE("/v1/tls-policies/{id}", _IrisAdminService_DeleteTLSPolicy0_HTTP_Handler(srv))
-	r.GET("/v1/webhook-rules", _IrisAdminService_ListWebhookRules0_HTTP_Handler(srv))
-	r.POST("/v1/webhook-rules", _IrisAdminService_CreateWebhookRule0_HTTP_Handler(srv))
-	r.PUT("/v1/webhook-rules/{id}", _IrisAdminService_UpdateWebhookRule0_HTTP_Handler(srv))
 	r.GET("/v1/inbound-routes", _IrisAdminService_ListInboundRoutes0_HTTP_Handler(srv))
 	r.POST("/v1/inbound-routes", _IrisAdminService_CreateInboundRoute0_HTTP_Handler(srv))
 	r.PUT("/v1/inbound-routes/{id}", _IrisAdminService_UpdateInboundRoute0_HTTP_Handler(srv))
 	r.DELETE("/v1/inbound-routes/{id}", _IrisAdminService_DeleteInboundRoute0_HTTP_Handler(srv))
-	r.GET("/v1/webhook-deliveries", _IrisAdminService_ListWebhookDeliveries0_HTTP_Handler(srv))
 	r.GET("/v1/rspamd-results", _IrisAdminService_ListRspamdResults0_HTTP_Handler(srv))
 	r.GET("/v1/feedback-loops", _IrisAdminService_ListFeedbackLoops0_HTTP_Handler(srv))
 	r.POST("/v1/feedback-loops", _IrisAdminService_CreateFeedbackLoop0_HTTP_Handler(srv))
@@ -891,72 +878,6 @@ func _IrisAdminService_DeleteTLSPolicy0_HTTP_Handler(srv IrisAdminServiceHTTPSer
 	}
 }
 
-func _IrisAdminService_ListWebhookRules0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
-	return func(ctx http.Context) error {
-		var in ListWebhookRulesRequest
-		if err := ctx.BindQuery(&in); err != nil {
-			return err
-		}
-		http.SetOperation(ctx, OperationIrisAdminServiceListWebhookRules)
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.ListWebhookRules(ctx, req.(*ListWebhookRulesRequest))
-		})
-		out, err := h(ctx, &in)
-		if err != nil {
-			return err
-		}
-		reply := out.(*ListWebhookRulesReply)
-		return ctx.Result(200, reply)
-	}
-}
-
-func _IrisAdminService_CreateWebhookRule0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
-	return func(ctx http.Context) error {
-		var in CreateWebhookRuleRequest
-		if err := ctx.Bind(&in); err != nil {
-			return err
-		}
-		if err := ctx.BindQuery(&in); err != nil {
-			return err
-		}
-		http.SetOperation(ctx, OperationIrisAdminServiceCreateWebhookRule)
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.CreateWebhookRule(ctx, req.(*CreateWebhookRuleRequest))
-		})
-		out, err := h(ctx, &in)
-		if err != nil {
-			return err
-		}
-		reply := out.(*WebhookRule)
-		return ctx.Result(200, reply)
-	}
-}
-
-func _IrisAdminService_UpdateWebhookRule0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
-	return func(ctx http.Context) error {
-		var in UpdateWebhookRuleRequest
-		if err := ctx.Bind(&in); err != nil {
-			return err
-		}
-		if err := ctx.BindQuery(&in); err != nil {
-			return err
-		}
-		if err := ctx.BindVars(&in); err != nil {
-			return err
-		}
-		http.SetOperation(ctx, OperationIrisAdminServiceUpdateWebhookRule)
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.UpdateWebhookRule(ctx, req.(*UpdateWebhookRuleRequest))
-		})
-		out, err := h(ctx, &in)
-		if err != nil {
-			return err
-		}
-		reply := out.(*WebhookRule)
-		return ctx.Result(200, reply)
-	}
-}
-
 func _IrisAdminService_ListInboundRoutes0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in ListInboundRoutesRequest
@@ -1041,25 +962,6 @@ func _IrisAdminService_DeleteInboundRoute0_HTTP_Handler(srv IrisAdminServiceHTTP
 			return err
 		}
 		reply := out.(*DeleteInboundRouteReply)
-		return ctx.Result(200, reply)
-	}
-}
-
-func _IrisAdminService_ListWebhookDeliveries0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
-	return func(ctx http.Context) error {
-		var in ListWebhookDeliveriesRequest
-		if err := ctx.BindQuery(&in); err != nil {
-			return err
-		}
-		http.SetOperation(ctx, OperationIrisAdminServiceListWebhookDeliveries)
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.ListWebhookDeliveries(ctx, req.(*ListWebhookDeliveriesRequest))
-		})
-		out, err := h(ctx, &in)
-		if err != nil {
-			return err
-		}
-		reply := out.(*ListWebhookDeliveriesReply)
 		return ctx.Result(200, reply)
 	}
 }
@@ -1961,7 +1863,6 @@ type IrisAdminServiceHTTPClient interface {
 	CreateUser(ctx context.Context, req *CreateUserRequest, opts ...http.CallOption) (rsp *User, err error)
 	CreateVMTA(ctx context.Context, req *CreateVMTARequest, opts ...http.CallOption) (rsp *VMTA, err error)
 	CreateVMTAGroups(ctx context.Context, req *CreateVMTAGroupRequest, opts ...http.CallOption) (rsp *VMTAGroup, err error)
-	CreateWebhookRule(ctx context.Context, req *CreateWebhookRuleRequest, opts ...http.CallOption) (rsp *WebhookRule, err error)
 	// CurrentUser CurrentUser returns the calling user's profile and effective permissions;
 	// the SPA calls it on load to restore a session from a stored token.
 	CurrentUser(ctx context.Context, req *CurrentUserRequest, opts ...http.CallOption) (rsp *CurrentUserReply, err error)
@@ -2010,8 +1911,9 @@ type IrisAdminServiceHTTPClient interface {
 	// is forwarded to a human; once approved the domain enables the ARF parser.
 	ListFeedbackLoops(ctx context.Context, req *ListFeedbackLoopsRequest, opts ...http.CallOption) (rsp *ListFeedbackLoopsReply, err error)
 	ListFeedbackReports(ctx context.Context, req *ListFeedbackReportsRequest, opts ...http.CallOption) (rsp *ListFeedbackReportsReply, err error)
-	// ListInboundRoutes Inbound routes (maildir / forward / webhook) — the unified inbound mail
-	// routing model that subsumes webhook rules.
+	// ListInboundRoutes Inbound automation -------------------------------------------------------
+	// Inbound routes (maildir / forward / webhook) — the unified inbound mail
+	// routing model. A webhook route POSTs the raw RFC822 message to an endpoint.
 	ListInboundRoutes(ctx context.Context, req *ListInboundRoutesRequest, opts ...http.CallOption) (rsp *ListInboundRoutesReply, err error)
 	// ListListeners Listeners (ESMTP) --------------------------------------------------------
 	ListListeners(ctx context.Context, req *ListListenersRequest, opts ...http.CallOption) (rsp *ListListenersReply, err error)
@@ -2028,10 +1930,6 @@ type IrisAdminServiceHTTPClient interface {
 	ListVMTAGroups(ctx context.Context, req *ListVMTAGroupsRequest, opts ...http.CallOption) (rsp *ListVMTAGroupsReply, err error)
 	// ListVMTAs Outbound configuration ---------------------------------------------------
 	ListVMTAs(ctx context.Context, req *ListVMTAsRequest, opts ...http.CallOption) (rsp *ListVMTAsReply, err error)
-	// ListWebhookDeliveries Webhook delivery events (the outcomes of webhook fan-out).
-	ListWebhookDeliveries(ctx context.Context, req *ListWebhookDeliveriesRequest, opts ...http.CallOption) (rsp *ListWebhookDeliveriesReply, err error)
-	// ListWebhookRules Inbound automation -------------------------------------------------------
-	ListWebhookRules(ctx context.Context, req *ListWebhookRulesRequest, opts ...http.CallOption) (rsp *ListWebhookRulesReply, err error)
 	// ListWorkerErrorLogs Generic worker error log: Warn/Error events emitted by background workers
 	// (e.g. an unparseable DMARC report dropped by the dmarc worker).
 	ListWorkerErrorLogs(ctx context.Context, req *ListWorkerErrorLogsRequest, opts ...http.CallOption) (rsp *ListWorkerErrorLogsReply, err error)
@@ -2068,7 +1966,6 @@ type IrisAdminServiceHTTPClient interface {
 	UpdateUser(ctx context.Context, req *UpdateUserRequest, opts ...http.CallOption) (rsp *User, err error)
 	UpdateVMTA(ctx context.Context, req *UpdateVMTARequest, opts ...http.CallOption) (rsp *VMTA, err error)
 	UpdateVMTAGroup(ctx context.Context, req *UpdateVMTAGroupRequest, opts ...http.CallOption) (rsp *VMTAGroup, err error)
-	UpdateWebhookRule(ctx context.Context, req *UpdateWebhookRuleRequest, opts ...http.CallOption) (rsp *WebhookRule, err error)
 	// VerifyMFA VerifyMFA completes a login by validating a TOTP code, upgrading the
 	// partially-authenticated session token to a fully-authenticated one.
 	VerifyMFA(ctx context.Context, req *VerifyMFARequest, opts ...http.CallOption) (rsp *LoginReply, err error)
@@ -2274,19 +2171,6 @@ func (c *IrisAdminServiceHTTPClientImpl) CreateVMTAGroups(ctx context.Context, i
 	pattern := "/v1/vmta-groups"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateVMTAGroups))
-	opts = append(opts, http.PathTemplate(pattern))
-	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
-func (c *IrisAdminServiceHTTPClientImpl) CreateWebhookRule(ctx context.Context, in *CreateWebhookRuleRequest, opts ...http.CallOption) (*WebhookRule, error) {
-	var out WebhookRule
-	pattern := "/v1/webhook-rules"
-	path := binding.EncodeURL(pattern, in, false)
-	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateWebhookRule))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -2655,8 +2539,9 @@ func (c *IrisAdminServiceHTTPClientImpl) ListFeedbackReports(ctx context.Context
 	return &out, nil
 }
 
-// ListInboundRoutes Inbound routes (maildir / forward / webhook) — the unified inbound mail
-// routing model that subsumes webhook rules.
+// ListInboundRoutes Inbound automation -------------------------------------------------------
+// Inbound routes (maildir / forward / webhook) — the unified inbound mail
+// routing model. A webhook route POSTs the raw RFC822 message to an endpoint.
 func (c *IrisAdminServiceHTTPClientImpl) ListInboundRoutes(ctx context.Context, in *ListInboundRoutesRequest, opts ...http.CallOption) (*ListInboundRoutesReply, error) {
 	var out ListInboundRoutesReply
 	pattern := "/v1/inbound-routes"
@@ -2797,34 +2682,6 @@ func (c *IrisAdminServiceHTTPClientImpl) ListVMTAs(ctx context.Context, in *List
 	pattern := "/v1/vmtas"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListVMTAs))
-	opts = append(opts, http.PathTemplate(pattern))
-	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
-// ListWebhookDeliveries Webhook delivery events (the outcomes of webhook fan-out).
-func (c *IrisAdminServiceHTTPClientImpl) ListWebhookDeliveries(ctx context.Context, in *ListWebhookDeliveriesRequest, opts ...http.CallOption) (*ListWebhookDeliveriesReply, error) {
-	var out ListWebhookDeliveriesReply
-	pattern := "/v1/webhook-deliveries"
-	path := binding.EncodeURL(pattern, in, true)
-	opts = append(opts, http.Operation(OperationIrisAdminServiceListWebhookDeliveries))
-	opts = append(opts, http.PathTemplate(pattern))
-	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
-// ListWebhookRules Inbound automation -------------------------------------------------------
-func (c *IrisAdminServiceHTTPClientImpl) ListWebhookRules(ctx context.Context, in *ListWebhookRulesRequest, opts ...http.CallOption) (*ListWebhookRulesReply, error) {
-	var out ListWebhookRulesReply
-	pattern := "/v1/webhook-rules"
-	path := binding.EncodeURL(pattern, in, true)
-	opts = append(opts, http.Operation(OperationIrisAdminServiceListWebhookRules))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -3101,19 +2958,6 @@ func (c *IrisAdminServiceHTTPClientImpl) UpdateVMTAGroup(ctx context.Context, in
 	pattern := "/v1/vmta-groups/{id}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateVMTAGroup))
-	opts = append(opts, http.PathTemplate(pattern))
-	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
-func (c *IrisAdminServiceHTTPClientImpl) UpdateWebhookRule(ctx context.Context, in *UpdateWebhookRuleRequest, opts ...http.CallOption) (*WebhookRule, error) {
-	var out WebhookRule
-	pattern := "/v1/webhook-rules/{id}"
-	path := binding.EncodeURL(pattern, in, false)
-	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateWebhookRule))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {

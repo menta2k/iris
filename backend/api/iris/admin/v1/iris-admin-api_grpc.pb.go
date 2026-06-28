@@ -46,14 +46,10 @@ const (
 	IrisAdminService_ListTLSPolicies_FullMethodName        = "/iris.admin.v1.IrisAdminService/ListTLSPolicies"
 	IrisAdminService_CreateTLSPolicy_FullMethodName        = "/iris.admin.v1.IrisAdminService/CreateTLSPolicy"
 	IrisAdminService_DeleteTLSPolicy_FullMethodName        = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
-	IrisAdminService_ListWebhookRules_FullMethodName       = "/iris.admin.v1.IrisAdminService/ListWebhookRules"
-	IrisAdminService_CreateWebhookRule_FullMethodName      = "/iris.admin.v1.IrisAdminService/CreateWebhookRule"
-	IrisAdminService_UpdateWebhookRule_FullMethodName      = "/iris.admin.v1.IrisAdminService/UpdateWebhookRule"
 	IrisAdminService_ListInboundRoutes_FullMethodName      = "/iris.admin.v1.IrisAdminService/ListInboundRoutes"
 	IrisAdminService_CreateInboundRoute_FullMethodName     = "/iris.admin.v1.IrisAdminService/CreateInboundRoute"
 	IrisAdminService_UpdateInboundRoute_FullMethodName     = "/iris.admin.v1.IrisAdminService/UpdateInboundRoute"
 	IrisAdminService_DeleteInboundRoute_FullMethodName     = "/iris.admin.v1.IrisAdminService/DeleteInboundRoute"
-	IrisAdminService_ListWebhookDeliveries_FullMethodName  = "/iris.admin.v1.IrisAdminService/ListWebhookDeliveries"
 	IrisAdminService_ListRspamdResults_FullMethodName      = "/iris.admin.v1.IrisAdminService/ListRspamdResults"
 	IrisAdminService_ListFeedbackLoops_FullMethodName      = "/iris.admin.v1.IrisAdminService/ListFeedbackLoops"
 	IrisAdminService_CreateFeedbackLoop_FullMethodName     = "/iris.admin.v1.IrisAdminService/CreateFeedbackLoop"
@@ -137,17 +133,12 @@ type IrisAdminServiceClient interface {
 	CreateTLSPolicy(ctx context.Context, in *CreateTLSPolicyRequest, opts ...grpc.CallOption) (*TLSPolicy, error)
 	DeleteTLSPolicy(ctx context.Context, in *DeleteTLSPolicyRequest, opts ...grpc.CallOption) (*DeleteTLSPolicyReply, error)
 	// Inbound automation -------------------------------------------------------
-	ListWebhookRules(ctx context.Context, in *ListWebhookRulesRequest, opts ...grpc.CallOption) (*ListWebhookRulesReply, error)
-	CreateWebhookRule(ctx context.Context, in *CreateWebhookRuleRequest, opts ...grpc.CallOption) (*WebhookRule, error)
-	UpdateWebhookRule(ctx context.Context, in *UpdateWebhookRuleRequest, opts ...grpc.CallOption) (*WebhookRule, error)
 	// Inbound routes (maildir / forward / webhook) — the unified inbound mail
-	// routing model that subsumes webhook rules.
+	// routing model. A webhook route POSTs the raw RFC822 message to an endpoint.
 	ListInboundRoutes(ctx context.Context, in *ListInboundRoutesRequest, opts ...grpc.CallOption) (*ListInboundRoutesReply, error)
 	CreateInboundRoute(ctx context.Context, in *CreateInboundRouteRequest, opts ...grpc.CallOption) (*InboundRoute, error)
 	UpdateInboundRoute(ctx context.Context, in *UpdateInboundRouteRequest, opts ...grpc.CallOption) (*InboundRoute, error)
 	DeleteInboundRoute(ctx context.Context, in *DeleteInboundRouteRequest, opts ...grpc.CallOption) (*DeleteInboundRouteReply, error)
-	// Webhook delivery events (the outcomes of webhook fan-out).
-	ListWebhookDeliveries(ctx context.Context, in *ListWebhookDeliveriesRequest, opts ...grpc.CallOption) (*ListWebhookDeliveriesReply, error)
 	ListRspamdResults(ctx context.Context, in *ListRspamdResultsRequest, opts ...grpc.CallOption) (*ListRspamdResultsReply, error)
 	// Feedback loops -----------------------------------------------------------
 	// Per-domain FBL enrollments: while awaiting approval, inbound feedback mail
@@ -513,36 +504,6 @@ func (c *irisAdminServiceClient) DeleteTLSPolicy(ctx context.Context, in *Delete
 	return out, nil
 }
 
-func (c *irisAdminServiceClient) ListWebhookRules(ctx context.Context, in *ListWebhookRulesRequest, opts ...grpc.CallOption) (*ListWebhookRulesReply, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListWebhookRulesReply)
-	err := c.cc.Invoke(ctx, IrisAdminService_ListWebhookRules_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *irisAdminServiceClient) CreateWebhookRule(ctx context.Context, in *CreateWebhookRuleRequest, opts ...grpc.CallOption) (*WebhookRule, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(WebhookRule)
-	err := c.cc.Invoke(ctx, IrisAdminService_CreateWebhookRule_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *irisAdminServiceClient) UpdateWebhookRule(ctx context.Context, in *UpdateWebhookRuleRequest, opts ...grpc.CallOption) (*WebhookRule, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(WebhookRule)
-	err := c.cc.Invoke(ctx, IrisAdminService_UpdateWebhookRule_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *irisAdminServiceClient) ListInboundRoutes(ctx context.Context, in *ListInboundRoutesRequest, opts ...grpc.CallOption) (*ListInboundRoutesReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListInboundRoutesReply)
@@ -577,16 +538,6 @@ func (c *irisAdminServiceClient) DeleteInboundRoute(ctx context.Context, in *Del
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DeleteInboundRouteReply)
 	err := c.cc.Invoke(ctx, IrisAdminService_DeleteInboundRoute_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *irisAdminServiceClient) ListWebhookDeliveries(ctx context.Context, in *ListWebhookDeliveriesRequest, opts ...grpc.CallOption) (*ListWebhookDeliveriesReply, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListWebhookDeliveriesReply)
-	err := c.cc.Invoke(ctx, IrisAdminService_ListWebhookDeliveries_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1052,17 +1003,12 @@ type IrisAdminServiceServer interface {
 	CreateTLSPolicy(context.Context, *CreateTLSPolicyRequest) (*TLSPolicy, error)
 	DeleteTLSPolicy(context.Context, *DeleteTLSPolicyRequest) (*DeleteTLSPolicyReply, error)
 	// Inbound automation -------------------------------------------------------
-	ListWebhookRules(context.Context, *ListWebhookRulesRequest) (*ListWebhookRulesReply, error)
-	CreateWebhookRule(context.Context, *CreateWebhookRuleRequest) (*WebhookRule, error)
-	UpdateWebhookRule(context.Context, *UpdateWebhookRuleRequest) (*WebhookRule, error)
 	// Inbound routes (maildir / forward / webhook) — the unified inbound mail
-	// routing model that subsumes webhook rules.
+	// routing model. A webhook route POSTs the raw RFC822 message to an endpoint.
 	ListInboundRoutes(context.Context, *ListInboundRoutesRequest) (*ListInboundRoutesReply, error)
 	CreateInboundRoute(context.Context, *CreateInboundRouteRequest) (*InboundRoute, error)
 	UpdateInboundRoute(context.Context, *UpdateInboundRouteRequest) (*InboundRoute, error)
 	DeleteInboundRoute(context.Context, *DeleteInboundRouteRequest) (*DeleteInboundRouteReply, error)
-	// Webhook delivery events (the outcomes of webhook fan-out).
-	ListWebhookDeliveries(context.Context, *ListWebhookDeliveriesRequest) (*ListWebhookDeliveriesReply, error)
 	ListRspamdResults(context.Context, *ListRspamdResultsRequest) (*ListRspamdResultsReply, error)
 	// Feedback loops -----------------------------------------------------------
 	// Per-domain FBL enrollments: while awaiting approval, inbound feedback mail
@@ -1239,15 +1185,6 @@ func (UnimplementedIrisAdminServiceServer) CreateTLSPolicy(context.Context, *Cre
 func (UnimplementedIrisAdminServiceServer) DeleteTLSPolicy(context.Context, *DeleteTLSPolicyRequest) (*DeleteTLSPolicyReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteTLSPolicy not implemented")
 }
-func (UnimplementedIrisAdminServiceServer) ListWebhookRules(context.Context, *ListWebhookRulesRequest) (*ListWebhookRulesReply, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListWebhookRules not implemented")
-}
-func (UnimplementedIrisAdminServiceServer) CreateWebhookRule(context.Context, *CreateWebhookRuleRequest) (*WebhookRule, error) {
-	return nil, status.Error(codes.Unimplemented, "method CreateWebhookRule not implemented")
-}
-func (UnimplementedIrisAdminServiceServer) UpdateWebhookRule(context.Context, *UpdateWebhookRuleRequest) (*WebhookRule, error) {
-	return nil, status.Error(codes.Unimplemented, "method UpdateWebhookRule not implemented")
-}
 func (UnimplementedIrisAdminServiceServer) ListInboundRoutes(context.Context, *ListInboundRoutesRequest) (*ListInboundRoutesReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListInboundRoutes not implemented")
 }
@@ -1259,9 +1196,6 @@ func (UnimplementedIrisAdminServiceServer) UpdateInboundRoute(context.Context, *
 }
 func (UnimplementedIrisAdminServiceServer) DeleteInboundRoute(context.Context, *DeleteInboundRouteRequest) (*DeleteInboundRouteReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteInboundRoute not implemented")
-}
-func (UnimplementedIrisAdminServiceServer) ListWebhookDeliveries(context.Context, *ListWebhookDeliveriesRequest) (*ListWebhookDeliveriesReply, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListWebhookDeliveries not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) ListRspamdResults(context.Context, *ListRspamdResultsRequest) (*ListRspamdResultsReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRspamdResults not implemented")
@@ -1896,60 +1830,6 @@ func _IrisAdminService_DeleteTLSPolicy_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IrisAdminService_ListWebhookRules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListWebhookRulesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IrisAdminServiceServer).ListWebhookRules(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IrisAdminService_ListWebhookRules_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IrisAdminServiceServer).ListWebhookRules(ctx, req.(*ListWebhookRulesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _IrisAdminService_CreateWebhookRule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateWebhookRuleRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IrisAdminServiceServer).CreateWebhookRule(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IrisAdminService_CreateWebhookRule_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IrisAdminServiceServer).CreateWebhookRule(ctx, req.(*CreateWebhookRuleRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _IrisAdminService_UpdateWebhookRule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateWebhookRuleRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IrisAdminServiceServer).UpdateWebhookRule(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IrisAdminService_UpdateWebhookRule_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IrisAdminServiceServer).UpdateWebhookRule(ctx, req.(*UpdateWebhookRuleRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _IrisAdminService_ListInboundRoutes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListInboundRoutesRequest)
 	if err := dec(in); err != nil {
@@ -2018,24 +1898,6 @@ func _IrisAdminService_DeleteInboundRoute_Handler(srv interface{}, ctx context.C
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IrisAdminServiceServer).DeleteInboundRoute(ctx, req.(*DeleteInboundRouteRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _IrisAdminService_ListWebhookDeliveries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListWebhookDeliveriesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IrisAdminServiceServer).ListWebhookDeliveries(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IrisAdminService_ListWebhookDeliveries_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IrisAdminServiceServer).ListWebhookDeliveries(ctx, req.(*ListWebhookDeliveriesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2912,18 +2774,6 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _IrisAdminService_DeleteTLSPolicy_Handler,
 		},
 		{
-			MethodName: "ListWebhookRules",
-			Handler:    _IrisAdminService_ListWebhookRules_Handler,
-		},
-		{
-			MethodName: "CreateWebhookRule",
-			Handler:    _IrisAdminService_CreateWebhookRule_Handler,
-		},
-		{
-			MethodName: "UpdateWebhookRule",
-			Handler:    _IrisAdminService_UpdateWebhookRule_Handler,
-		},
-		{
 			MethodName: "ListInboundRoutes",
 			Handler:    _IrisAdminService_ListInboundRoutes_Handler,
 		},
@@ -2938,10 +2788,6 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteInboundRoute",
 			Handler:    _IrisAdminService_DeleteInboundRoute_Handler,
-		},
-		{
-			MethodName: "ListWebhookDeliveries",
-			Handler:    _IrisAdminService_ListWebhookDeliveries_Handler,
 		},
 		{
 			MethodName: "ListRspamdResults",

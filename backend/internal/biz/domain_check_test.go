@@ -51,7 +51,7 @@ func TestDomainCheckAllPass(t *testing.T) {
 		mx:   map[string][]*net.MX{"kmx.example.com": {{Host: "mx.kmx.example.com.", Pref: 10}}},
 		host: map[string][]string{"mx.kmx.example.com": {"203.0.113.5"}},
 		txt: map[string][]string{
-			"kmx.example.com":                   {"v=spf1 ip4:198.51.100.7 -all"},
+			"kmx.example.com":                    {"v=spf1 ip4:198.51.100.7 -all"},
 			"default._domainkey.kmx.example.com": {"v=DKIM1; k=rsa; p=MIIBI..."},
 		},
 	}

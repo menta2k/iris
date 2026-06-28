@@ -1635,6 +1635,7 @@ func writeRspamd(b *strings.Builder, snap ConfigSnapshot) {
     local redis = require 'redis'
     local conn = redis.open { node = LOGSTREAM_REDIS_URL, pool_size = 5 }
     conn:query('XADD', RSPAMD_RESULTS_STREAM, 'MAXLEN', '~', '50000', '*',
+               'message_id', tostring(msg:id()),
                'action', tostring(action),
                'score', string.format('%.4f', score),
                'symbols', kumo.serde.json_encode(symbols),

@@ -438,36 +438,6 @@ export interface UpdateSuppressionRequest {
 
 // ---- Inbound automation ----
 
-export interface WebhookRule {
-  id: string
-  name: string
-  matchType: string
-  matchValue: string
-  destinationUrl: string
-  status: string
-  timeoutSeconds: number
-}
-
-export interface CreateWebhookRuleRequest {
-  name: string
-  match_type: 'recipient_email' | 'recipient_domain'
-  match_value: string
-  destination_url: string
-  secret_ref: string
-  timeout_seconds: number
-}
-
-// secret_ref is optional on edit: blank preserves the existing secret.
-export interface UpdateWebhookRuleRequest {
-  name: string
-  match_type: 'recipient_email' | 'recipient_domain'
-  match_value: string
-  destination_url: string
-  secret_ref: string
-  status: string
-  timeout_seconds: number
-}
-
 // ---- Inbound routes (maildir / forward / webhook) ----
 
 export type InboundRouteAction = 'maildir' | 'forward' | 'webhook'
@@ -536,23 +506,12 @@ export interface UpdateFeedbackLoopRequest {
   status: FeedbackLoopStatus
 }
 
-export interface WebhookDeliveryEvent {
-  id: string
-  eventTime: string
-  webhookRuleId: string
-  webhookName: string
-  mailRecordId: string
-  recipient: string
-  attempt: number
-  status: string
-  responseCode: number
-  errorSummary: string
-}
-
 export interface RspamdResult {
   id: string
   eventTime: string
   mailRecordId: string
+  messageId: string
+  recipient: string
   action: string
   score: number
   /** Rspamd symbol names that fired for this message (proto: repeated string). */

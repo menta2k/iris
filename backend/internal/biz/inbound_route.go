@@ -48,9 +48,15 @@ const (
 	ScanEnforce = "enforce"
 )
 
-// DefaultWebhookTimeoutSeconds / default retry mirror the legacy WebhookRule
+// DefaultWebhookTimeoutSeconds / default retry mirror the legacy webhook
 // defaults so backfilled webhook routes behave identically.
 const DefaultWebhookTimeoutSeconds = 10
+
+// RetryPolicy controls webhook redelivery behavior for a webhook route.
+type RetryPolicy struct {
+	MaxAttempts    int `json:"max_attempts"`
+	BackoffSeconds int `json:"backoff_seconds"`
+}
 
 // InboundRoute routes inbound mail for a recipient/domain we are responsible for
 // to a maildir, a forwarding smarthost, or an HTTP webhook.

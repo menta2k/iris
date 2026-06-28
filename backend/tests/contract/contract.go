@@ -39,7 +39,7 @@ func newService(t *testing.T) *service.Service {
 	}
 	if _, err := db.Pool.Exec(ctx, `
 		TRUNCATE routing_rules, vmta_group_members, vmta_groups, vmtas, listeners,
-		         suppression_entries, dkim_domains, webhook_rules, inbound_routes,
+		         suppression_entries, dkim_domains, inbound_routes,
 		         rspamd_filter_results, mail_records, config_state,
 		         user_roles, iris_users, roles,
 		         audit_entries, service_control_requests RESTART IDENTITY CASCADE`); err != nil {

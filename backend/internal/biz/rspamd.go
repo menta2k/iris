@@ -22,11 +22,16 @@ type RspamdFilterResult struct {
 	ID           string
 	EventTime    time.Time
 	MailRecordID string
-	Action       string
-	Score        float64
-	Symbols      []string
-	Reason       string
-	RawRef       string
+	// MessageID is the KumoMTA message id captured at scan time; it correlates
+	// the verdict to the mail log even before the Reception record is ingested.
+	MessageID string
+	// Recipient is read-only, resolved from the mail log by MessageID on list.
+	Recipient string
+	Action    string
+	Score     float64
+	Symbols   []string
+	Reason    string
+	RawRef    string
 }
 
 // IsSpam reports whether the result indicates the message was treated as spam.

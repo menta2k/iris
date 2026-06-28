@@ -102,17 +102,8 @@ service IrisAdminService {
   }
 
   // Inbound automation -------------------------------------------------------
-  rpc ListWebhookRules(ListWebhookRulesRequest) returns (ListWebhookRulesReply) {
-    option (google.api.http) = { get: "/v1/webhook-rules" };
-  }
-  rpc CreateWebhookRule(CreateWebhookRuleRequest) returns (WebhookRule) {
-    option (google.api.http) = { post: "/v1/webhook-rules" body: "*" };
-  }
-  rpc UpdateWebhookRule(UpdateWebhookRuleRequest) returns (WebhookRule) {
-    option (google.api.http) = { put: "/v1/webhook-rules/{id}" body: "*" };
-  }
   // Inbound routes (maildir / forward / webhook) — the unified inbound mail
-  // routing model that subsumes webhook rules.
+  // routing model. A webhook route POSTs the raw RFC822 message to an endpoint.
   rpc ListInboundRoutes(ListInboundRoutesRequest) returns (ListInboundRoutesReply) {
     option (google.api.http) = { get: "/v1/inbound-routes" };
   }
@@ -124,10 +115,6 @@ service IrisAdminService {
   }
   rpc DeleteInboundRoute(DeleteInboundRouteRequest) returns (DeleteInboundRouteReply) {
     option (google.api.http) = { delete: "/v1/inbound-routes/{id}" };
-  }
-  // Webhook delivery events (the outcomes of webhook fan-out).
-  rpc ListWebhookDeliveries(ListWebhookDeliveriesRequest) returns (ListWebhookDeliveriesReply) {
-    option (google.api.http) = { get: "/v1/webhook-deliveries" };
   }
   rpc ListRspamdResults(ListRspamdResultsRequest) returns (ListRspamdResultsReply) {
     option (google.api.http) = { get: "/v1/rspamd-results" };
@@ -673,15 +660,6 @@ message DeleteTLSPolicyRequest { string id = 1; }
 message DeleteTLSPolicyReply {}
 
 // Inbound automation --------------------------------------------------------
-message WebhookRule {
-  string id = 1;
-  string name = 2;
-  string match_type = 3;
-  string match_value = 4;
-  string destination_url = 5;
-  string status = 6;
-  int32 timeout_seconds = 7;
-}
 // InboundRoute routes inbound mail for a recipient/domain to a maildir, a
 // forwarding smarthost, or an HTTP webhook. Action-specific fields are only
 // meaningful for the matching action. secret_ref is write-only (never returned).
@@ -755,47 +733,8 @@ message RspamdResult {
   double score = 5;
   repeated string symbols = 6;
   string reason = 7;
-}
-
-message WebhookDeliveryEvent {
-  string id = 1;
-  string event_time = 2;
-  string webhook_rule_id = 3;
-  string webhook_name = 4;
-  string mail_record_id = 5;
-  string recipient = 6;
-  int32 attempt = 7;
-  string status = 8;
-  int32 response_code = 9;
-  string error_summary = 10;
-}
-message ListWebhookDeliveriesRequest { PageRequest page = 1; }
-message ListWebhookDeliveriesReply {
-  repeated WebhookDeliveryEvent items = 1;
-  PageReply page = 2;
-}
-message ListWebhookRulesRequest { PageRequest page = 1; }
-message ListWebhookRulesReply {
-  repeated WebhookRule items = 1;
-  PageReply page = 2;
-}
-message CreateWebhookRuleRequest {
-  string name = 1;
-  string match_type = 2;
-  string match_value = 3;
-  string destination_url = 4;
-  string secret_ref = 5;
-  int32 timeout_seconds = 6;
-}
-message UpdateWebhookRuleRequest {
-  string id = 1;
-  string name = 2;
-  string match_type = 3;
-  string match_value = 4;
-  string destination_url = 5;
-  string secret_ref = 6;
-  int32 timeout_seconds = 7;
-  string status = 8;
+  string message_id = 8;
+  string recipient = 9;
 }
 message ListRspamdResultsRequest { PageRequest page = 1; }
 message ListRspamdResultsReply {

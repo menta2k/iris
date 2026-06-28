@@ -2,7 +2,6 @@ package worker
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -40,12 +39,6 @@ type BouncePolicyProvider interface {
 	BouncePolicyNow(ctx context.Context) biz.BouncePolicy
 }
 
-// WebhookEnqueuer publishes an inbound mail event onto the webhook-delivery
-// stream for the webhook worker to fan out. Optional (nil disables webhooks).
-type WebhookEnqueuer interface {
-	EnqueueWebhook(ctx context.Context, recipient, mailRecordID, payload string) error
-}
-
 // DKIMKeyResolver returns the published DKIM TXT value for one of our own
 // domain+selector keys (derived from the stored private key), for verifying that
 // an FBL report's embedded original was signed by us. Optional (nil disables the
@@ -69,18 +62,10 @@ type LogStreamWorker struct {
 	store       MailEventStore
 	suppressor  Suppressor
 	policy      BouncePolicyProvider
-	webhooks    WebhookEnqueuer
 	dkimKeys    DKIMKeyResolver
 	feedbackPol FeedbackPolicyProvider
 	stream      string
 	log         *slog.Logger
-}
-
-// WithWebhooks enables inbound-webhook fan-out: each received message is
-// published to the webhook-delivery stream. Returns the worker for chaining.
-func (w *LogStreamWorker) WithWebhooks(e WebhookEnqueuer) *LogStreamWorker {
-	w.webhooks = e
-	return w
 }
 
 // WithFeedbackVerification enables FBL provenance verification: complaints are
@@ -90,30 +75,6 @@ func (w *LogStreamWorker) WithFeedbackVerification(keys DKIMKeyResolver, policy 
 	w.dkimKeys = keys
 	w.feedbackPol = policy
 	return w
-}
-
-// enqueueWebhook publishes a received message onto the webhook-delivery stream.
-// Best-effort: a failure is logged but never blocks log ingestion.
-func (w *LogStreamWorker) enqueueWebhook(ctx context.Context, mr *biz.MailRecord) {
-	if w.webhooks == nil {
-		return
-	}
-	payload, err := json.Marshal(map[string]any{
-		"event":            "reception",
-		"message_id":       mr.MessageID,
-		"sender":           mr.Sender,
-		"recipient":        mr.Recipient,
-		"recipient_domain": mr.RecipientDomain,
-		"mailclass":        mr.Mailclass,
-		"event_time":       mr.EventTime.UTC().Format(time.RFC3339),
-	})
-	if err != nil {
-		w.log.Error("marshal webhook payload", "error", err.Error())
-		return
-	}
-	if err := w.webhooks.EnqueueWebhook(ctx, mr.Recipient, mr.ID, string(payload)); err != nil {
-		w.log.Error("enqueue webhook", "recipient", mr.Recipient, "error", err.Error())
-	}
 }
 
 // NewLogStreamWorker constructs the worker. streamName must match the policy's
@@ -270,12 +231,6 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 	// (egress source is present on Delivery/Bounce, absent on Reception).
 	metrics.RecordMailEvent(mr.Status, mr.Mailclass, mr.RecipientDomain)
 	metrics.RecordVMTAEvent(rec.EgressSource, mr.Status)
-
-	// A received message is the trigger for inbound webhooks: enqueue a delivery
-	// event so the webhook worker can fan it out to matching destinations.
-	if rec.Type == biz.KumoReception {
-		w.enqueueWebhook(ctx, mr)
-	}
 
 	if rec.Type == biz.KumoBounce {
 		smtp := ""
