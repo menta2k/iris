@@ -5,5 +5,8 @@
 -- reception-event JSON notification worker (path B), which is removed. Existing
 -- webhook_rules were already backfilled into inbound_routes by migration 0030.
 
+-- The webhook delivery hypertable backs a stats view (migration 0003); drop it
+-- first so the table drop is not blocked by the dependency.
+DROP VIEW IF EXISTS webhook_stats_1h;
 DROP TABLE IF EXISTS webhook_delivery_events;
 DROP TABLE IF EXISTS webhook_rules;
