@@ -733,6 +733,32 @@ func TestInboundMaildirAndForwardGeneration(t *testing.T) {
 	}
 }
 
+func TestInboundRoutesRspamdScanned(t *testing.T) {
+	snap := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+		InboundRoutes: []*InboundRoute{
+			{ID: "m1", Name: "store", MatchType: MatchRecipientDomain, MatchValue: "archive.example.com",
+				Action: InboundActionMaildir, Status: InboundRouteActive},
+		},
+		RspamdMode:        "enforce",
+		RspamdURL:         "http://rspamd:11333",
+		LogStreamRedisURL: "redis://redis:6379",
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil || !r.Valid {
+		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	// The route domain is hosted so the scan's HOSTED_DOMAINS guard passes.
+	if !strings.Contains(r.Content, `HOSTED_DOMAINS["archive.example.com"] = true`) {
+		t.Fatalf("route domain not added to HOSTED_DOMAINS:\n%s", r.Content)
+	}
+	// Route-captured mail is scanned before it is queued to its action.
+	idxScan := strings.Index(r.Content, "iris_rspamd_scan(msg)\n      -- Tag the class")
+	if idxScan < 0 {
+		t.Fatalf("route dispatch does not scan with rspamd before queueing:\n%s", r.Content)
+	}
+}
+
 func TestDMARCCatcherGeneration(t *testing.T) {
 	base := ConfigSnapshot{
 		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "l1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},

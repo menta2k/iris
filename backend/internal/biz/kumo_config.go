@@ -660,7 +660,16 @@ kumo.on('smtp_server_message_received', function(msg)
     local rdom = (rcpt and rcpt.domain or ''):lower()
     local route = ROUTE_BY_EMAIL[email] or ROUTE_BY_DOMAIN[rdom]
     if route then
-      -- Tag the class so route-captured mail is identifiable in the mail log
+`)
+		if rspamd {
+			// Scan route-captured mail (maildir/forward/webhook) through rspamd before
+			// it leaves the chain: in tag mode the X-Spam headers ride along into the
+			// maildir / forwarded message / webhook body; in enforce mode a spam
+			// verdict rejects here (kumo.reject aborts the hook) before the message is
+			// stored or relayed. Route domains are in HOSTED_DOMAINS so the scan runs.
+			b.WriteString("      iris_rspamd_scan(msg)\n")
+		}
+		b.WriteString(`      -- Tag the class so route-captured mail is identifiable in the mail log
       -- (this hook returns before classify_mail runs).
       msg:set_meta('mailclass', route.class)
       msg:set_meta('queue', route.queue)
@@ -1532,11 +1541,26 @@ end)
 
 // writeHostedDomains emits the HOSTED_DOMAINS set used to scope inbound rspamd
 // scanning. Always declared so the rspamd function can index it unconditionally.
+// Inbound-route domains are hosted by definition (we accept and locally process
+// their mail), so they are unioned in — otherwise route-captured mail would be
+// skipped by the HOSTED_DOMAINS guard in iris_rspamd_scan.
 func writeHostedDomains(b *strings.Builder, snap ConfigSnapshot) {
 	b.WriteString("-- ===== hosted (inbound) domains =====\n")
 	b.WriteString("local HOSTED_DOMAINS = {}\n")
-	for _, d := range snap.hostedDomains() {
+	seen := map[string]bool{}
+	emit := func(d string) {
+		d = strings.ToLower(strings.TrimSpace(d))
+		if d == "" || seen[d] {
+			return
+		}
+		seen[d] = true
 		fmt.Fprintf(b, "HOSTED_DOMAINS[%s] = true\n", MustLuaString(d))
+	}
+	for _, d := range snap.hostedDomains() {
+		emit(d)
+	}
+	for _, r := range sortedActiveRoutes(snap) {
+		emit(r.RouteDomain())
 	}
 	b.WriteString("\n")
 }
