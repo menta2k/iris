@@ -27,6 +27,7 @@ import type {
   InboundRouteAction,
   InboundRouteMatchType,
   InboundRouteRequest,
+  SpamScanMode,
 } from '@/types'
 
 const { items, loading, error, notImplemented, load } = useAsyncList<InboundRoute>({
@@ -37,6 +38,7 @@ const { toast } = useToast()
 const ACTIONS: InboundRouteAction[] = ['maildir', 'forward', 'webhook']
 const STATUSES = ['active', 'disabled']
 const FORWARD_TLS: ForwardTLS[] = ['opportunistic', 'required', 'none']
+const SPAM_SCANS: SpamScanMode[] = ['default', 'off', 'tag', 'enforce']
 
 interface RouteForm {
   name: string
@@ -45,6 +47,7 @@ interface RouteForm {
   action: InboundRouteAction
   priority: number
   status: string
+  spam_scan: SpamScanMode
   forward_host: string
   forward_port: number
   forward_tls: ForwardTLS
@@ -62,6 +65,7 @@ function emptyForm(): RouteForm {
     action: 'maildir',
     priority: 0,
     status: 'active',
+    spam_scan: 'default',
     forward_host: '',
     forward_port: 25,
     forward_tls: 'opportunistic',
@@ -110,6 +114,7 @@ function openEdit(r: InboundRoute) {
     action: (r.action as InboundRouteAction) || 'maildir',
     priority: r.priority,
     status: (r.status || 'active').toLowerCase(),
+    spam_scan: (r.spamScan as SpamScanMode) || 'default',
     forward_host: r.forwardHost,
     forward_port: r.forwardPort || 25,
     forward_tls: (r.forwardTls as ForwardTLS) || 'opportunistic',
@@ -137,6 +142,7 @@ function payload(): InboundRouteRequest {
     action: form.value.action,
     priority: Number(form.value.priority) || 0,
     status: form.value.status,
+    spam_scan: form.value.spam_scan,
     forward_host: form.value.forward_host,
     forward_port: Number(form.value.forward_port) || 25,
     forward_tls: form.value.forward_tls,
@@ -207,6 +213,7 @@ async function remove(r: InboundRoute) {
                 <TableHead>Action</TableHead>
                 <TableHead>Match</TableHead>
                 <TableHead>Target</TableHead>
+                <TableHead>Scan</TableHead>
                 <TableHead>Priority</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead class="text-right">Actions</TableHead>
@@ -218,6 +225,7 @@ async function remove(r: InboundRoute) {
                 <TableCell><Badge variant="outline">{{ r.action }}</Badge></TableCell>
                 <TableCell class="font-mono text-xs">{{ r.matchType }}: {{ r.matchValue }}</TableCell>
                 <TableCell class="font-mono text-xs">{{ summarizeTarget(r) }}</TableCell>
+                <TableCell><Badge variant="outline">{{ r.spamScan || 'default' }}</Badge></TableCell>
                 <TableCell class="tabular-nums">{{ r.priority }}</TableCell>
                 <TableCell><StatusBadge :status="r.status" /></TableCell>
                 <TableCell class="space-x-2 text-right">
@@ -278,6 +286,17 @@ async function remove(r: InboundRoute) {
             <Label for="ir-priority">Priority</Label>
             <Input id="ir-priority" v-model="form.priority" type="number" placeholder="0" />
           </div>
+        </div>
+        <div class="space-y-1.5">
+          <Label for="ir-scan">Spam scan (rspamd)</Label>
+          <Select id="ir-scan" v-model="form.spam_scan">
+            <option v-for="m in SPAM_SCANS" :key="m" :value="m">{{ m }}</option>
+          </Select>
+          <p class="text-xs text-muted-foreground">
+            <strong>default</strong> follows the global rspamd mode; <strong>off</strong> skips
+            scanning; <strong>tag</strong> adds X-Spam headers; <strong>enforce</strong> rejects
+            spam. Overrides apply only when an rspamd URL is configured in Settings.
+          </p>
         </div>
 
         <!-- maildir -->

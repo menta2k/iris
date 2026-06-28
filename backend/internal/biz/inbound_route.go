@@ -37,6 +37,17 @@ const (
 // DefaultForwardPort is the smarthost port used when a forward route omits one.
 const DefaultForwardPort = 25
 
+// Per-route spam-scan mode. "default" follows the deployment-wide rspamd mode;
+// the others override it for this route (honored only when an rspamd URL is
+// configured). "off" never scans, "tag" scans and adds X-Spam headers without
+// rejecting, "enforce" scans and rejects a spam verdict at SMTP time.
+const (
+	ScanDefault = "default"
+	ScanOff     = "off"
+	ScanTag     = "tag"
+	ScanEnforce = "enforce"
+)
+
 // DefaultWebhookTimeoutSeconds / default retry mirror the legacy WebhookRule
 // defaults so backfilled webhook routes behave identically.
 const DefaultWebhookTimeoutSeconds = 10
@@ -54,6 +65,10 @@ type InboundRoute struct {
 	// priority (resolved at render time).
 	Priority int
 	Status   string
+
+	// SpamScan controls rspamd scanning for this route's captured mail:
+	// "default" (follow the global mode), "off", "tag", or "enforce".
+	SpamScan string
 
 	// Forward action.
 	ForwardHost string
@@ -79,6 +94,14 @@ func (r *InboundRoute) Validate(allowInsecure bool) error {
 	r.Action = strings.ToLower(strings.TrimSpace(r.Action))
 	if r.Status == "" {
 		r.Status = InboundRouteActive
+	}
+	if r.SpamScan == "" {
+		r.SpamScan = ScanDefault
+	}
+	switch r.SpamScan {
+	case ScanDefault, ScanOff, ScanTag, ScanEnforce:
+	default:
+		return Invalid("INBOUND_ROUTE_SPAM_SCAN_INVALID", "spam_scan %q is not valid", r.SpamScan)
 	}
 
 	if r.Name == "" {

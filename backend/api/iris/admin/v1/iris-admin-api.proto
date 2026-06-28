@@ -703,6 +703,8 @@ message InboundRoute {
   string destination_url = 12;
   int32 timeout_seconds = 13;
   string secret_ref = 14;  // write-only on create/update
+  // rspamd scanning for this route: default | off | tag | enforce
+  string spam_scan = 15;
 }
 message ListInboundRoutesRequest { PageRequest page = 1; }
 message ListInboundRoutesReply {
@@ -723,6 +725,7 @@ message CreateInboundRouteRequest {
   string destination_url = 11;
   int32 timeout_seconds = 12;
   string secret_ref = 13;
+  string spam_scan = 14;
 }
 message UpdateInboundRouteRequest {
   string id = 1;
@@ -739,6 +742,7 @@ message UpdateInboundRouteRequest {
   string destination_url = 12;
   int32 timeout_seconds = 13;
   string secret_ref = 14;
+  string spam_scan = 15;
 }
 message DeleteInboundRouteRequest { string id = 1; }
 message DeleteInboundRouteReply { bool ok = 1; }

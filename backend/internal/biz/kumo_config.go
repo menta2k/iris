@@ -660,16 +660,17 @@ kumo.on('smtp_server_message_received', function(msg)
     local rdom = (rcpt and rcpt.domain or ''):lower()
     local route = ROUTE_BY_EMAIL[email] or ROUTE_BY_DOMAIN[rdom]
     if route then
-`)
-		if rspamd {
-			// Scan route-captured mail (maildir/forward/webhook) through rspamd before
-			// it leaves the chain: in tag mode the X-Spam headers ride along into the
-			// maildir / forwarded message / webhook body; in enforce mode a spam
-			// verdict rejects here (kumo.reject aborts the hook) before the message is
-			// stored or relayed. Route domains are in HOSTED_DOMAINS so the scan runs.
-			b.WriteString("      iris_rspamd_scan(msg)\n")
-		}
-		b.WriteString(`      -- Tag the class so route-captured mail is identifiable in the mail log
+      -- Per-route spam scanning (resolved at render time to off/tag/enforce). In
+      -- tag mode the X-Spam headers ride into the maildir / forwarded message /
+      -- webhook body; in enforce mode a spam verdict rejects here (kumo.reject
+      -- aborts the hook) before the message is stored or relayed. Route domains
+      -- are in HOSTED_DOMAINS so the scan runs.
+      if route.scan == 'enforce' then
+        iris_rspamd_scan(msg, true)
+      elseif route.scan == 'tag' then
+        iris_rspamd_scan(msg, false)
+      end
+      -- Tag the class so route-captured mail is identifiable in the mail log
       -- (this hook returns before classify_mail runs).
       msg:set_meta('mailclass', route.class)
       msg:set_meta('queue', route.queue)
@@ -701,7 +702,7 @@ kumo.on('smtp_server_message_received', function(msg)
 `)
 	}
 	if rspamd {
-		b.WriteString("  iris_rspamd_scan(msg)\n")
+		b.WriteString("  iris_rspamd_scan(msg, RSPAMD_ENFORCE)\n")
 	}
 	b.WriteString(`  local recipient = msg:recipient().email
   if is_suppressed(recipient) then
@@ -1569,13 +1570,17 @@ func writeHostedDomains(b *strings.Builder, snap ConfigSnapshot) {
 // inbound-to-hosted mail through rspamd's /checkv2, adds X-Spam headers, and —
 // in enforce mode — honors reject/greylist verdicts. Fail-open throughout.
 func writeRspamd(b *strings.Builder, snap ConfigSnapshot) {
-	if !snap.rspamdEnabled() {
+	// Emit the scanner whenever the machinery is available — the global mode is
+	// tag/enforce, or any inbound route opts into scanning — so per-route scanning
+	// works even when the deployment-wide mode is off.
+	if !rspamdMachineryEnabled(snap) {
 		b.WriteString("-- ===== inbound spam filtering (rspamd): disabled =====\n")
-		b.WriteString("local function iris_rspamd_scan(_msg) end\n\n")
+		b.WriteString("local function iris_rspamd_scan(_msg, _enforce) end\n\n")
 		return
 	}
 	b.WriteString("-- ===== inbound spam filtering (rspamd) =====\n")
 	fmt.Fprintf(b, "local RSPAMD_URL = %s\n", MustLuaString(strings.TrimSpace(snap.RspamdURL)))
+	// Effective enforce flag for the global (non-route) inbound path.
 	fmt.Fprintf(b, "local RSPAMD_ENFORCE = %t\n", snap.rspamdEnforce())
 	// publishResults emits the verdict-recording block when a Redis stream is
 	// configured; without it scanning still tags mail but the Rspamd Results page
@@ -1585,7 +1590,7 @@ func writeRspamd(b *strings.Builder, snap ConfigSnapshot) {
 	if snap.LogStreamRedisURL != "" {
 		fmt.Fprintf(b, "local RSPAMD_RESULTS_STREAM = %s\n", MustLuaString(RspamdResultsStream))
 	}
-	b.WriteString(`local function iris_rspamd_scan(msg)
+	b.WriteString(`local function iris_rspamd_scan(msg, enforce)
   local rcpt = msg:recipient()
   local rdom = (rcpt and rcpt.domain or ''):lower()
   -- Inbound-to-hosted only: never scan outbound relay or system mail.
@@ -1641,13 +1646,13 @@ func writeRspamd(b *strings.Builder, snap ConfigSnapshot) {
 `)
 	}
 	b.WriteString(`  if action == 'reject' then
-    if RSPAMD_ENFORCE then
+    if enforce then
       kumo.reject(550, '5.7.1 message rejected as spam')
       return
     end
     msg:prepend_header('X-Spam', 'yes')
   elseif action == 'soft reject' or action == 'greylist' then
-    if RSPAMD_ENFORCE then
+    if enforce then
       kumo.reject(451, '4.7.1 greylisted, please try again later')
       return
     end

@@ -18,7 +18,7 @@ func NewInboundRouteRepo(db *DB) *InboundRouteRepo { return &InboundRouteRepo{db
 
 var _ biz.InboundRouteRepo = (*InboundRouteRepo)(nil)
 
-const inboundRouteCols = `id, name, match_type, match_value, action, priority, status,
+const inboundRouteCols = `id, name, match_type, match_value, action, priority, status, spam_scan,
 	forward_host, forward_port, forward_tls, maildir_path,
 	destination_url, timeout_seconds, retry_policy`
 
@@ -27,7 +27,7 @@ const inboundRouteCols = `id, name, match_type, match_value, action, priority, s
 func scanInboundRoute(row interface{ Scan(...any) error }) (*biz.InboundRoute, error) {
 	r := &biz.InboundRoute{}
 	var policyRaw []byte
-	if err := row.Scan(&r.ID, &r.Name, &r.MatchType, &r.MatchValue, &r.Action, &r.Priority, &r.Status,
+	if err := row.Scan(&r.ID, &r.Name, &r.MatchType, &r.MatchValue, &r.Action, &r.Priority, &r.Status, &r.SpamScan,
 		&r.ForwardHost, &r.ForwardPort, &r.ForwardTLS, &r.MaildirPath,
 		&r.DestinationURL, &r.TimeoutSeconds, &policyRaw); err != nil {
 		return nil, err
@@ -41,12 +41,12 @@ func (r *InboundRouteRepo) CreateInboundRoute(ctx context.Context, in *biz.Inbou
 	policy, _ := json.Marshal(in.RetryPolicy)
 	out, err := scanInboundRoute(r.db.Pool.QueryRow(ctx, `
 		INSERT INTO inbound_routes
-			(name, match_type, match_value, action, priority, status,
+			(name, match_type, match_value, action, priority, status, spam_scan,
 			 forward_host, forward_port, forward_tls, maildir_path,
 			 destination_url, secret_ref, timeout_seconds, retry_policy)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
 		RETURNING `+inboundRouteCols,
-		in.Name, in.MatchType, in.MatchValue, in.Action, in.Priority, in.Status,
+		in.Name, in.MatchType, in.MatchValue, in.Action, in.Priority, in.Status, in.SpamScan,
 		in.ForwardHost, in.ForwardPort, in.ForwardTLS, in.MaildirPath,
 		in.DestinationURL, in.SecretRef, in.TimeoutSeconds, string(policy)))
 	if err != nil {
@@ -62,13 +62,13 @@ func (r *InboundRouteRepo) UpdateInboundRoute(ctx context.Context, id string, in
 	out, err := scanInboundRoute(r.db.Pool.QueryRow(ctx, `
 		UPDATE inbound_routes SET
 			name = $2, match_type = $3, match_value = $4, action = $5, priority = $6, status = $7,
-			forward_host = $8, forward_port = $9, forward_tls = $10, maildir_path = $11,
-			destination_url = $12, secret_ref = COALESCE(NULLIF($13, ''), secret_ref),
-			timeout_seconds = $14, retry_policy = $15, updated_at = now()
+			spam_scan = $8, forward_host = $9, forward_port = $10, forward_tls = $11, maildir_path = $12,
+			destination_url = $13, secret_ref = COALESCE(NULLIF($14, ''), secret_ref),
+			timeout_seconds = $15, retry_policy = $16, updated_at = now()
 		WHERE id = $1
 		RETURNING `+inboundRouteCols,
 		id, in.Name, in.MatchType, in.MatchValue, in.Action, in.Priority, in.Status,
-		in.ForwardHost, in.ForwardPort, in.ForwardTLS, in.MaildirPath,
+		in.SpamScan, in.ForwardHost, in.ForwardPort, in.ForwardTLS, in.MaildirPath,
 		in.DestinationURL, in.SecretRef, in.TimeoutSeconds, string(policy)))
 	if err != nil {
 		return nil, mapConstraint(err, "inbound_route")
@@ -126,7 +126,7 @@ func (r *InboundRouteRepo) ListInboundRoutesForPolicy(ctx context.Context) ([]*b
 		route := &biz.InboundRoute{}
 		var policyRaw []byte
 		if err := rows.Scan(&route.ID, &route.Name, &route.MatchType, &route.MatchValue, &route.Action,
-			&route.Priority, &route.Status, &route.ForwardHost, &route.ForwardPort, &route.ForwardTLS,
+			&route.Priority, &route.Status, &route.SpamScan, &route.ForwardHost, &route.ForwardPort, &route.ForwardTLS,
 			&route.MaildirPath, &route.DestinationURL, &route.TimeoutSeconds, &policyRaw, &route.SecretRef); err != nil {
 			return nil, fmt.Errorf("scan inbound route for policy: %w", err)
 		}

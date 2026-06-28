@@ -36,6 +36,7 @@ func (s *Service) CreateInboundRoute(ctx context.Context, req *adminv1.CreateInb
 		Action:         req.GetAction(),
 		Priority:       int(req.GetPriority()),
 		Status:         req.GetStatus(),
+		SpamScan:       req.GetSpamScan(),
 		ForwardHost:    req.GetForwardHost(),
 		ForwardPort:    int(req.GetForwardPort()),
 		ForwardTLS:     req.GetForwardTls(),
@@ -62,6 +63,7 @@ func (s *Service) UpdateInboundRoute(ctx context.Context, req *adminv1.UpdateInb
 		Action:         req.GetAction(),
 		Priority:       int(req.GetPriority()),
 		Status:         req.GetStatus(),
+		SpamScan:       req.GetSpamScan(),
 		ForwardHost:    req.GetForwardHost(),
 		ForwardPort:    int(req.GetForwardPort()),
 		ForwardTLS:     req.GetForwardTls(),
@@ -92,7 +94,7 @@ func (s *Service) DeleteInboundRoute(ctx context.Context, req *adminv1.DeleteInb
 func inboundRouteToProto(r *biz.InboundRoute) *adminv1.InboundRoute {
 	return &adminv1.InboundRoute{
 		Id: r.ID, Name: r.Name, MatchType: r.MatchType, MatchValue: r.MatchValue,
-		Action: r.Action, Priority: int32(r.Priority), Status: r.Status,
+		Action: r.Action, Priority: int32(r.Priority), Status: r.Status, SpamScan: r.SpamScan,
 		ForwardHost: r.ForwardHost, ForwardPort: int32(r.ForwardPort), ForwardTls: r.ForwardTLS,
 		MaildirPath: r.MaildirPath, DestinationUrl: r.DestinationURL, TimeoutSeconds: int32(r.TimeoutSeconds),
 	}

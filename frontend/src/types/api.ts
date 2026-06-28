@@ -473,6 +473,7 @@ export interface UpdateWebhookRuleRequest {
 export type InboundRouteAction = 'maildir' | 'forward' | 'webhook'
 export type InboundRouteMatchType = 'recipient_email' | 'recipient_domain'
 export type ForwardTLS = 'none' | 'opportunistic' | 'required'
+export type SpamScanMode = 'default' | 'off' | 'tag' | 'enforce'
 
 export interface InboundRoute {
   id: string
@@ -482,6 +483,7 @@ export interface InboundRoute {
   action: string
   priority: number
   status: string
+  spamScan: string
   forwardHost: string
   forwardPort: number
   forwardTls: string
@@ -498,6 +500,7 @@ export interface InboundRouteRequest {
   action: InboundRouteAction
   priority: number
   status: string
+  spam_scan: SpamScanMode
   forward_host: string
   forward_port: number
   forward_tls: ForwardTLS

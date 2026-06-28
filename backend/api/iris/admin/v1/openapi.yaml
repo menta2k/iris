@@ -1819,6 +1819,8 @@ components:
                     format: int32
                 secret_ref:
                     type: string
+                spam_scan:
+                    type: string
         CreateListenerRequest:
             type: object
             properties:
@@ -2305,6 +2307,9 @@ components:
                     format: int32
                 secret_ref:
                     type: string
+                spam_scan:
+                    type: string
+                    description: 'rspamd scanning for this route: default | off | tag | enforce'
             description: |-
                 InboundRoute routes inbound mail for a recipient/domain to a maildir, a
                  forwarding smarthost, or an HTTP webhook. Action-specific fields are only
@@ -3052,6 +3057,8 @@ components:
                     type: integer
                     format: int32
                 secret_ref:
+                    type: string
+                spam_scan:
                     type: string
         UpdateListenerRequest:
             type: object

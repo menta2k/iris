@@ -33,6 +33,49 @@ func activeRoute(r *InboundRoute) bool {
 	}
 }
 
+// rspamdMachineryEnabled reports whether the rspamd scan function should be
+// rendered: the global mode is tag/enforce, or some active route opts into
+// scanning. Requires a configured rspamd URL either way.
+func rspamdMachineryEnabled(snap ConfigSnapshot) bool {
+	if strings.TrimSpace(snap.RspamdURL) == "" {
+		return false
+	}
+	if snap.rspamdEnabled() {
+		return true
+	}
+	for _, r := range snap.InboundRoutes {
+		if activeRoute(r) && (r.SpamScan == ScanTag || r.SpamScan == ScanEnforce) {
+			return true
+		}
+	}
+	return false
+}
+
+// effectiveScan resolves a route's scan mode to off/tag/enforce for rendering.
+// "default" follows the deployment-wide rspamd mode; an explicit tag/enforce is
+// honored only when the rspamd machinery is available (a URL is set).
+func effectiveScan(r *InboundRoute, snap ConfigSnapshot) string {
+	if !rspamdMachineryEnabled(snap) {
+		return ScanOff
+	}
+	switch r.SpamScan {
+	case ScanOff:
+		return ScanOff
+	case ScanTag:
+		return ScanTag
+	case ScanEnforce:
+		return ScanEnforce
+	default: // default / empty -> follow the global mode
+		if !snap.rspamdEnabled() {
+			return ScanOff
+		}
+		if snap.rspamdEnforce() {
+			return ScanEnforce
+		}
+		return ScanTag
+	}
+}
+
 // inboundRoutesEnabled reports whether any inbound route is rendered.
 func inboundRoutesEnabled(snap ConfigSnapshot) bool {
 	for _, r := range snap.InboundRoutes {
@@ -227,7 +270,8 @@ local FORWARD_SMARTHOSTS = {}
 		default:
 			continue
 		}
-		routeEntry := fmt.Sprintf("{ queue = %s, class = %s }", MustLuaString(queue), MustLuaString(class))
+		routeEntry := fmt.Sprintf("{ queue = %s, class = %s, scan = %s }",
+			MustLuaString(queue), MustLuaString(class), MustLuaString(effectiveScan(r, snap)))
 		if r.MatchType == MatchRecipientEmail {
 			fmt.Fprintf(b, "ROUTE_BY_EMAIL[%s] = %s\n", MustLuaString(value), routeEntry)
 		} else {

@@ -3953,8 +3953,10 @@ type InboundRoute struct {
 	DestinationUrl string `protobuf:"bytes,12,opt,name=destination_url,json=destinationUrl,proto3" json:"destination_url,omitempty"`
 	TimeoutSeconds int32  `protobuf:"varint,13,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
 	SecretRef      string `protobuf:"bytes,14,opt,name=secret_ref,json=secretRef,proto3" json:"secret_ref,omitempty"` // write-only on create/update
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// rspamd scanning for this route: default | off | tag | enforce
+	SpamScan      string `protobuf:"bytes,15,opt,name=spam_scan,json=spamScan,proto3" json:"spam_scan,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *InboundRoute) Reset() {
@@ -4085,6 +4087,13 @@ func (x *InboundRoute) GetSecretRef() string {
 	return ""
 }
 
+func (x *InboundRoute) GetSpamScan() string {
+	if x != nil {
+		return x.SpamScan
+	}
+	return ""
+}
+
 type ListInboundRoutesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Page          *PageRequest           `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
@@ -4196,6 +4205,7 @@ type CreateInboundRouteRequest struct {
 	DestinationUrl string                 `protobuf:"bytes,11,opt,name=destination_url,json=destinationUrl,proto3" json:"destination_url,omitempty"`
 	TimeoutSeconds int32                  `protobuf:"varint,12,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
 	SecretRef      string                 `protobuf:"bytes,13,opt,name=secret_ref,json=secretRef,proto3" json:"secret_ref,omitempty"`
+	SpamScan       string                 `protobuf:"bytes,14,opt,name=spam_scan,json=spamScan,proto3" json:"spam_scan,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -4321,6 +4331,13 @@ func (x *CreateInboundRouteRequest) GetSecretRef() string {
 	return ""
 }
 
+func (x *CreateInboundRouteRequest) GetSpamScan() string {
+	if x != nil {
+		return x.SpamScan
+	}
+	return ""
+}
+
 type UpdateInboundRouteRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -4337,6 +4354,7 @@ type UpdateInboundRouteRequest struct {
 	DestinationUrl string                 `protobuf:"bytes,12,opt,name=destination_url,json=destinationUrl,proto3" json:"destination_url,omitempty"`
 	TimeoutSeconds int32                  `protobuf:"varint,13,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
 	SecretRef      string                 `protobuf:"bytes,14,opt,name=secret_ref,json=secretRef,proto3" json:"secret_ref,omitempty"`
+	SpamScan       string                 `protobuf:"bytes,15,opt,name=spam_scan,json=spamScan,proto3" json:"spam_scan,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -4465,6 +4483,13 @@ func (x *UpdateInboundRouteRequest) GetTimeoutSeconds() int32 {
 func (x *UpdateInboundRouteRequest) GetSecretRef() string {
 	if x != nil {
 		return x.SecretRef
+	}
+	return ""
+}
+
+func (x *UpdateInboundRouteRequest) GetSpamScan() string {
+	if x != nil {
+		return x.SpamScan
 	}
 	return ""
 }
@@ -10955,7 +10980,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"matchValue\x12'\n" +
 	"\x0fdestination_url\x18\x05 \x01(\tR\x0edestinationUrl\x12\x16\n" +
 	"\x06status\x18\x06 \x01(\tR\x06status\x12'\n" +
-	"\x0ftimeout_seconds\x18\a \x01(\x05R\x0etimeoutSeconds\"\xb9\x03\n" +
+	"\x0ftimeout_seconds\x18\a \x01(\x05R\x0etimeoutSeconds\"\xd6\x03\n" +
 	"\fInboundRoute\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
@@ -10975,12 +11000,13 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x0fdestination_url\x18\f \x01(\tR\x0edestinationUrl\x12'\n" +
 	"\x0ftimeout_seconds\x18\r \x01(\x05R\x0etimeoutSeconds\x12\x1d\n" +
 	"\n" +
-	"secret_ref\x18\x0e \x01(\tR\tsecretRef\"J\n" +
+	"secret_ref\x18\x0e \x01(\tR\tsecretRef\x12\x1b\n" +
+	"\tspam_scan\x18\x0f \x01(\tR\bspamScan\"J\n" +
 	"\x18ListInboundRoutesRequest\x12.\n" +
 	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\"y\n" +
 	"\x16ListInboundRoutesReply\x121\n" +
 	"\x05items\x18\x01 \x03(\v2\x1b.iris.admin.v1.InboundRouteR\x05items\x12,\n" +
-	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\xb6\x03\n" +
+	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\xd3\x03\n" +
 	"\x19CreateInboundRouteRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
@@ -10999,7 +11025,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x0fdestination_url\x18\v \x01(\tR\x0edestinationUrl\x12'\n" +
 	"\x0ftimeout_seconds\x18\f \x01(\x05R\x0etimeoutSeconds\x12\x1d\n" +
 	"\n" +
-	"secret_ref\x18\r \x01(\tR\tsecretRef\"\xc6\x03\n" +
+	"secret_ref\x18\r \x01(\tR\tsecretRef\x12\x1b\n" +
+	"\tspam_scan\x18\x0e \x01(\tR\bspamScan\"\xe3\x03\n" +
 	"\x19UpdateInboundRouteRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
@@ -11019,7 +11046,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x0fdestination_url\x18\f \x01(\tR\x0edestinationUrl\x12'\n" +
 	"\x0ftimeout_seconds\x18\r \x01(\x05R\x0etimeoutSeconds\x12\x1d\n" +
 	"\n" +
-	"secret_ref\x18\x0e \x01(\tR\tsecretRef\"+\n" +
+	"secret_ref\x18\x0e \x01(\tR\tsecretRef\x12\x1b\n" +
+	"\tspam_scan\x18\x0f \x01(\tR\bspamScan\"+\n" +
 	"\x19DeleteInboundRouteRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\")\n" +
 	"\x17DeleteInboundRouteReply\x12\x0e\n" +

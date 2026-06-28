@@ -12,6 +12,7 @@ const maildirRoute: InboundRoute = {
   action: 'maildir',
   priority: 0,
   status: 'active',
+  spamScan: 'default',
   forwardHost: '',
   forwardPort: 25,
   forwardTls: 'opportunistic',

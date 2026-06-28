@@ -230,7 +230,7 @@ func TestRenderRspamdAndLogHook(t *testing.T) {
 	if err != nil || !off.Valid {
 		t.Fatalf("render off: err=%v valid=%v issues=%v", err, off.Valid, off.LintIssues)
 	}
-	if !strings.Contains(off.Content, "local function iris_rspamd_scan(_msg) end") {
+	if !strings.Contains(off.Content, "local function iris_rspamd_scan(_msg, _enforce) end") {
 		t.Fatal("expected rspamd no-op stub when disabled")
 	}
 	if strings.Contains(off.Content, "configure_log_hook") {
@@ -253,7 +253,7 @@ func TestRenderRspamdAndLogHook(t *testing.T) {
 	}
 	if !strings.Contains(r.Content, "RSPAMD_ENFORCE = true") ||
 		!strings.Contains(r.Content, "/checkv2") ||
-		!strings.Contains(r.Content, "iris_rspamd_scan(msg)") {
+		!strings.Contains(r.Content, "iris_rspamd_scan(msg, RSPAMD_ENFORCE)") {
 		t.Fatalf("rspamd scan not wired into reception:\n%s", r.Content)
 	}
 	// The scan verdict is published to the results stream the ingestion worker
@@ -279,7 +279,7 @@ func TestRenderRspamdAndLogHook(t *testing.T) {
 	if err != nil || !nr.Valid {
 		t.Fatalf("render no-redis: err=%v valid=%v issues=%v", err, nr.Valid, nr.LintIssues)
 	}
-	if !strings.Contains(nr.Content, "iris_rspamd_scan(msg)") {
+	if !strings.Contains(nr.Content, "iris_rspamd_scan(msg, RSPAMD_ENFORCE)") {
 		t.Fatalf("rspamd scan must still run without redis:\n%s", nr.Content)
 	}
 	if strings.Contains(nr.Content, "RSPAMD_RESULTS_STREAM") {
@@ -674,7 +674,7 @@ func TestInboundWebhookGeneration(t *testing.T) {
 		t.Fatalf("webhook reception/queue routing not wired:\n%s", r.Content)
 	}
 	// Route-captured mail is tagged with the action's class (here 'webhook').
-	if !strings.Contains(r.Content, `ROUTE_BY_EMAIL["support@server-lab.info"] = { queue = "iris_webhook", class = "webhook" }`) {
+	if !strings.Contains(r.Content, `ROUTE_BY_EMAIL["support@server-lab.info"] = { queue = "iris_webhook", class = "webhook", scan = "off" }`) {
 		t.Fatalf("ROUTE_BY_EMAIL entry not emitted:\n%s", r.Content)
 	}
 	// A recipient at a relayed domain that matches no route is rejected so the
@@ -725,20 +725,22 @@ func TestInboundMaildirAndForwardGeneration(t *testing.T) {
 		t.Fatalf("forward require-TLS not emitted:\n%s", r.Content)
 	}
 	// Each recipient maps to its action queue.
-	if !strings.Contains(r.Content, `ROUTE_BY_EMAIL["ceo@example.com"] = { queue = "iris_maildir_1", class = "maildir" }`) {
+	if !strings.Contains(r.Content, `ROUTE_BY_EMAIL["ceo@example.com"] = { queue = "iris_maildir_1", class = "maildir", scan = "off" }`) {
 		t.Fatalf("maildir route entry not emitted:\n%s", r.Content)
 	}
-	if !strings.Contains(r.Content, `ROUTE_BY_DOMAIN["legacy.example.com"] = { queue = "iris_forward_0", class = "forward" }`) {
+	if !strings.Contains(r.Content, `ROUTE_BY_DOMAIN["legacy.example.com"] = { queue = "iris_forward_0", class = "forward", scan = "off" }`) {
 		t.Fatalf("forward route entry not emitted:\n%s", r.Content)
 	}
 }
 
 func TestInboundRoutesRspamdScanned(t *testing.T) {
+	// Global mode enforce: a route with default scan resolves to enforce; the
+	// route domain is hosted so the HOSTED_DOMAINS guard passes.
 	snap := ConfigSnapshot{
 		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
 		InboundRoutes: []*InboundRoute{
 			{ID: "m1", Name: "store", MatchType: MatchRecipientDomain, MatchValue: "archive.example.com",
-				Action: InboundActionMaildir, Status: InboundRouteActive},
+				Action: InboundActionMaildir, Status: InboundRouteActive, SpamScan: ScanDefault},
 		},
 		RspamdMode:        "enforce",
 		RspamdURL:         "http://rspamd:11333",
@@ -748,14 +750,49 @@ func TestInboundRoutesRspamdScanned(t *testing.T) {
 	if err != nil || !r.Valid {
 		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
 	}
-	// The route domain is hosted so the scan's HOSTED_DOMAINS guard passes.
 	if !strings.Contains(r.Content, `HOSTED_DOMAINS["archive.example.com"] = true`) {
 		t.Fatalf("route domain not added to HOSTED_DOMAINS:\n%s", r.Content)
 	}
-	// Route-captured mail is scanned before it is queued to its action.
-	idxScan := strings.Index(r.Content, "iris_rspamd_scan(msg)\n      -- Tag the class")
-	if idxScan < 0 {
-		t.Fatalf("route dispatch does not scan with rspamd before queueing:\n%s", r.Content)
+	if !strings.Contains(r.Content, `ROUTE_BY_DOMAIN["archive.example.com"] = { queue = "iris_maildir_0", class = "maildir", scan = "enforce" }`) {
+		t.Fatalf("default scan did not resolve to enforce from global mode:\n%s", r.Content)
+	}
+	// The route block dispatches the scan per route.scan before queueing.
+	if !strings.Contains(r.Content, "if route.scan == 'enforce' then") ||
+		!strings.Contains(r.Content, "iris_rspamd_scan(msg, true)") {
+		t.Fatalf("route dispatch does not scan per route.scan:\n%s", r.Content)
+	}
+}
+
+func TestInboundRoutePerRouteScanOverride(t *testing.T) {
+	// Global mode off, but a route opts into tag scanning: the machinery is
+	// emitted (URL is set) and that route resolves to tag while a default route
+	// resolves to off.
+	snap := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+		InboundRoutes: []*InboundRoute{
+			{ID: "a", Name: "scan-me", MatchType: MatchRecipientDomain, MatchValue: "scan.example.com",
+				Action: InboundActionMaildir, Status: InboundRouteActive, SpamScan: ScanTag},
+			{ID: "b", Name: "no-scan", MatchType: MatchRecipientDomain, MatchValue: "plain.example.com",
+				Action: InboundActionMaildir, Status: InboundRouteActive, SpamScan: ScanDefault},
+		},
+		RspamdMode:        "off",
+		RspamdURL:         "http://rspamd:11333",
+		LogStreamRedisURL: "redis://redis:6379",
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil || !r.Valid {
+		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	// The opt-in route scans (tag); the default route follows the global off mode.
+	if !strings.Contains(r.Content, `ROUTE_BY_DOMAIN["scan.example.com"] = { queue = "iris_maildir_0", class = "maildir", scan = "tag" }`) {
+		t.Fatalf("per-route tag override not applied:\n%s", r.Content)
+	}
+	if !strings.Contains(r.Content, `ROUTE_BY_DOMAIN["plain.example.com"] = { queue = "iris_maildir_0", class = "maildir", scan = "off" }`) {
+		t.Fatalf("default route should resolve to off under global off mode:\n%s", r.Content)
+	}
+	// The scan machinery is emitted even though the global mode is off.
+	if strings.Contains(r.Content, "local function iris_rspamd_scan(_msg, _enforce) end") {
+		t.Fatalf("rspamd machinery should be enabled by the opt-in route:\n%s", r.Content)
 	}
 }
 
