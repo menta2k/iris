@@ -222,6 +222,11 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	inboundRouteUC := biz.NewInboundRouteUsecase(inboundRouteRepo, auditor, cfg.KumoMTA.Stub)
 	fblUC := biz.NewFBLUsecase(fblRepo, auditor)
 
+	// Mail-log retention: per-table TimescaleDB chunk compression/dropping.
+	retentionRepo := data.NewRetentionRepo(db)
+	retentionProducer := worker.NewRetentionProducer(streams)
+	retentionUC := biz.NewRetentionUsecase(retentionRepo, retentionProducer, auditor)
+
 	// ACME (Let's Encrypt) certificate management. The HTTP-01 token store is
 	// shared between the issuer and the challenge listener. Issued PEMs are
 	// mirrored to acmeCertDir, which listener TLS paths reference.
@@ -280,6 +285,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		RBL:           rblUC,
 		DMARC:         dmarcUC,
 		WorkerErrors:  workerErrorUC,
+		Retention:     retentionUC,
 	}
 
 	svc := service.NewService(deps)
@@ -313,6 +319,9 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// ACME: HTTP-01 challenge listener (default off) + periodic renewer.
 	startWorker(ctx, log, "acme-challenge", worker.NewAcmeChallengeWorker(acmeTokens, envOr("IRIS_ACME_HTTP_BIND", "off"), wlog("acme-challenge")).Run)
 	startWorker(ctx, log, "acme-renewer", worker.NewAcmeRenewerWorker(acmeUC, renewInterval, renewBefore, wlog("acme-renewer")).Run)
+	// Mail-log retention: drop/compress old TimescaleDB chunks on a daily cadence
+	// and on demand. Safe no-op on plain PostgreSQL (no hypertables).
+	startWorker(ctx, log, "retention", worker.NewRetentionWorker(streams, retentionRepo, envDuration("IRIS_RETENTION_INTERVAL", 24*time.Hour), wlog("retention")).Run)
 
 	authMW := service.AuthMiddleware(cfg.Auth, authUC)
 	checks := []server.ReadinessChecker{db, streams}

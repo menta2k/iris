@@ -519,6 +519,50 @@ export interface RspamdResult {
   reason: string
 }
 
+// ---- Retention ----
+
+export interface RetentionPolicy {
+  tableName: string
+  retentionDays: number
+  compressAfterDays: number
+  enabled: boolean
+  updatedAt?: string
+  updatedBy?: string
+}
+
+export interface RetentionRun {
+  id: string
+  tableName: string
+  startedAt: string
+  finishedAt?: string
+  chunksCompressed: number
+  chunksDropped: number
+  bytesBefore: number
+  bytesAfter: number
+  error?: string
+}
+
+export interface RetentionView {
+  policy: RetentionPolicy
+  label: string
+  hypertable: boolean
+  chunkCount: number
+  compressedChunks: number
+  totalBytes: number
+  compressedBytes: number
+  uncompressedBytes: number
+  oldestData?: string
+  newestData?: string
+  lastRun?: RetentionRun
+}
+
+export interface UpdateRetentionPolicyRequest {
+  table_name: string
+  retention_days: number
+  compress_after_days: number
+  enabled: boolean
+}
+
 // ---- KumoMTA config ----
 
 export interface KumoConfigPreview {

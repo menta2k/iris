@@ -121,9 +121,9 @@ func selfSigned(t *testing.T, cn string) (certPEM, keyPEM []byte, notAfter time.
 
 func TestSanitizeDomainDir(t *testing.T) {
 	cases := map[string]string{
-		"*.kmx.example.com":     "star.kmx.example.com",
-		"mail.kmx.example.com":  "mail.kmx.example.com",
-		"*.a.b.example.com": "star.a.b.example.com",
+		"*.kmx.example.com":    "star.kmx.example.com",
+		"mail.kmx.example.com": "mail.kmx.example.com",
+		"*.a.b.example.com":    "star.a.b.example.com",
 	}
 	for in, want := range cases {
 		if got := sanitizeDomainDir(in); got != want {

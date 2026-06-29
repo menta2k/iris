@@ -53,6 +53,7 @@ overview and quick start, see the [root README](../README.md).
 | Doc | What it covers |
 | --- | --- |
 | [Mail logs](mail-logs.md) | Log streaming from KumoMTA and the mail record model |
+| [Retention & cleanup](retention.md) | Per-table TimescaleDB chunk compression/dropping and disk reclaim |
 | [Queues](queues.md) | Inspecting and controlling KumoMTA scheduled queues |
 | [Worker errors](worker-errors.md) | The generic background-worker error log |
 | [Dashboard & metrics](dashboard.md) | The summary dashboard and Prometheus time-series |

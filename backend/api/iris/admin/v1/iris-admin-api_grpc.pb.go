@@ -90,6 +90,9 @@ const (
 	IrisAdminService_ListDmarcReports_FullMethodName       = "/iris.admin.v1.IrisAdminService/ListDmarcReports"
 	IrisAdminService_ListDmarcDomains_FullMethodName       = "/iris.admin.v1.IrisAdminService/ListDmarcDomains"
 	IrisAdminService_ListWorkerErrorLogs_FullMethodName    = "/iris.admin.v1.IrisAdminService/ListWorkerErrorLogs"
+	IrisAdminService_ListRetentionPolicies_FullMethodName  = "/iris.admin.v1.IrisAdminService/ListRetentionPolicies"
+	IrisAdminService_UpdateRetentionPolicy_FullMethodName  = "/iris.admin.v1.IrisAdminService/UpdateRetentionPolicy"
+	IrisAdminService_RunRetention_FullMethodName           = "/iris.admin.v1.IrisAdminService/RunRetention"
 	IrisAdminService_GetGlobalSettings_FullMethodName      = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
 	IrisAdminService_UpdateGlobalSettings_FullMethodName   = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
 )
@@ -221,6 +224,11 @@ type IrisAdminServiceClient interface {
 	// Generic worker error log: Warn/Error events emitted by background workers
 	// (e.g. an unparseable DMARC report dropped by the dmarc worker).
 	ListWorkerErrorLogs(ctx context.Context, in *ListWorkerErrorLogsRequest, opts ...grpc.CallOption) (*ListWorkerErrorLogsReply, error)
+	// Retention: per-table TimescaleDB chunk compression/dropping for the event
+	// hypertables, with live disk stats.
+	ListRetentionPolicies(ctx context.Context, in *ListRetentionPoliciesRequest, opts ...grpc.CallOption) (*ListRetentionPoliciesReply, error)
+	UpdateRetentionPolicy(ctx context.Context, in *UpdateRetentionPolicyRequest, opts ...grpc.CallOption) (*RetentionPolicy, error)
+	RunRetention(ctx context.Context, in *RunRetentionRequest, opts ...grpc.CallOption) (*RunRetentionReply, error)
 	// Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(ctx context.Context, in *GetGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error)
 	UpdateGlobalSettings(ctx context.Context, in *UpdateGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error)
@@ -944,6 +952,36 @@ func (c *irisAdminServiceClient) ListWorkerErrorLogs(ctx context.Context, in *Li
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) ListRetentionPolicies(ctx context.Context, in *ListRetentionPoliciesRequest, opts ...grpc.CallOption) (*ListRetentionPoliciesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListRetentionPoliciesReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListRetentionPolicies_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) UpdateRetentionPolicy(ctx context.Context, in *UpdateRetentionPolicyRequest, opts ...grpc.CallOption) (*RetentionPolicy, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RetentionPolicy)
+	err := c.cc.Invoke(ctx, IrisAdminService_UpdateRetentionPolicy_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) RunRetention(ctx context.Context, in *RunRetentionRequest, opts ...grpc.CallOption) (*RunRetentionReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RunRetentionReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_RunRetention_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) GetGlobalSettings(ctx context.Context, in *GetGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GlobalSettings)
@@ -1091,6 +1129,11 @@ type IrisAdminServiceServer interface {
 	// Generic worker error log: Warn/Error events emitted by background workers
 	// (e.g. an unparseable DMARC report dropped by the dmarc worker).
 	ListWorkerErrorLogs(context.Context, *ListWorkerErrorLogsRequest) (*ListWorkerErrorLogsReply, error)
+	// Retention: per-table TimescaleDB chunk compression/dropping for the event
+	// hypertables, with live disk stats.
+	ListRetentionPolicies(context.Context, *ListRetentionPoliciesRequest) (*ListRetentionPoliciesReply, error)
+	UpdateRetentionPolicy(context.Context, *UpdateRetentionPolicyRequest) (*RetentionPolicy, error)
+	RunRetention(context.Context, *RunRetentionRequest) (*RunRetentionReply, error)
 	// Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error)
 	UpdateGlobalSettings(context.Context, *UpdateGlobalSettingsRequest) (*GlobalSettings, error)
@@ -1316,6 +1359,15 @@ func (UnimplementedIrisAdminServiceServer) ListDmarcDomains(context.Context, *Li
 }
 func (UnimplementedIrisAdminServiceServer) ListWorkerErrorLogs(context.Context, *ListWorkerErrorLogsRequest) (*ListWorkerErrorLogsReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListWorkerErrorLogs not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListRetentionPolicies(context.Context, *ListRetentionPoliciesRequest) (*ListRetentionPoliciesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListRetentionPolicies not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) UpdateRetentionPolicy(context.Context, *UpdateRetentionPolicyRequest) (*RetentionPolicy, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateRetentionPolicy not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) RunRetention(context.Context, *RunRetentionRequest) (*RunRetentionReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method RunRetention not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetGlobalSettings not implemented")
@@ -2622,6 +2674,60 @@ func _IrisAdminService_ListWorkerErrorLogs_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_ListRetentionPolicies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRetentionPoliciesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListRetentionPolicies(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListRetentionPolicies_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListRetentionPolicies(ctx, req.(*ListRetentionPoliciesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_UpdateRetentionPolicy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateRetentionPolicyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).UpdateRetentionPolicy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_UpdateRetentionPolicy_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).UpdateRetentionPolicy(ctx, req.(*UpdateRetentionPolicyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_RunRetention_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RunRetentionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).RunRetention(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_RunRetention_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).RunRetention(ctx, req.(*RunRetentionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_GetGlobalSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetGlobalSettingsRequest)
 	if err := dec(in); err != nil {
@@ -2948,6 +3054,18 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListWorkerErrorLogs",
 			Handler:    _IrisAdminService_ListWorkerErrorLogs_Handler,
+		},
+		{
+			MethodName: "ListRetentionPolicies",
+			Handler:    _IrisAdminService_ListRetentionPolicies_Handler,
+		},
+		{
+			MethodName: "UpdateRetentionPolicy",
+			Handler:    _IrisAdminService_UpdateRetentionPolicy_Handler,
+		},
+		{
+			MethodName: "RunRetention",
+			Handler:    _IrisAdminService_RunRetention_Handler,
 		},
 		{
 			MethodName: "GetGlobalSettings",

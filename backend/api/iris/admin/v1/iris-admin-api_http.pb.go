@@ -64,6 +64,7 @@ const OperationIrisAdminServiceListInboundRoutes = "/iris.admin.v1.IrisAdminServ
 const OperationIrisAdminServiceListListeners = "/iris.admin.v1.IrisAdminService/ListListeners"
 const OperationIrisAdminServiceListMailRecords = "/iris.admin.v1.IrisAdminService/ListMailRecords"
 const OperationIrisAdminServiceListQueues = "/iris.admin.v1.IrisAdminService/ListQueues"
+const OperationIrisAdminServiceListRetentionPolicies = "/iris.admin.v1.IrisAdminService/ListRetentionPolicies"
 const OperationIrisAdminServiceListRoutingRules = "/iris.admin.v1.IrisAdminService/ListRoutingRules"
 const OperationIrisAdminServiceListRspamdResults = "/iris.admin.v1.IrisAdminService/ListRspamdResults"
 const OperationIrisAdminServiceListSuppressions = "/iris.admin.v1.IrisAdminService/ListSuppressions"
@@ -79,6 +80,7 @@ const OperationIrisAdminServiceRequestAcmeCertificate = "/iris.admin.v1.IrisAdmi
 const OperationIrisAdminServiceRequestQueueAction = "/iris.admin.v1.IrisAdminService/RequestQueueAction"
 const OperationIrisAdminServiceRequestServiceControl = "/iris.admin.v1.IrisAdminService/RequestServiceControl"
 const OperationIrisAdminServiceResetUserPassword = "/iris.admin.v1.IrisAdminService/ResetUserPassword"
+const OperationIrisAdminServiceRunRetention = "/iris.admin.v1.IrisAdminService/RunRetention"
 const OperationIrisAdminServiceSaveAcmeAccount = "/iris.admin.v1.IrisAdminService/SaveAcmeAccount"
 const OperationIrisAdminServiceSetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
 const OperationIrisAdminServiceUpdateDKIMDomain = "/iris.admin.v1.IrisAdminService/UpdateDKIMDomain"
@@ -86,6 +88,7 @@ const OperationIrisAdminServiceUpdateFeedbackLoop = "/iris.admin.v1.IrisAdminSer
 const OperationIrisAdminServiceUpdateGlobalSettings = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
 const OperationIrisAdminServiceUpdateInboundRoute = "/iris.admin.v1.IrisAdminService/UpdateInboundRoute"
 const OperationIrisAdminServiceUpdateListener = "/iris.admin.v1.IrisAdminService/UpdateListener"
+const OperationIrisAdminServiceUpdateRetentionPolicy = "/iris.admin.v1.IrisAdminService/UpdateRetentionPolicy"
 const OperationIrisAdminServiceUpdateRoutingRule = "/iris.admin.v1.IrisAdminService/UpdateRoutingRule"
 const OperationIrisAdminServiceUpdateSuppression = "/iris.admin.v1.IrisAdminService/UpdateSuppression"
 const OperationIrisAdminServiceUpdateUser = "/iris.admin.v1.IrisAdminService/UpdateUser"
@@ -171,6 +174,9 @@ type IrisAdminServiceHTTPServer interface {
 	// ListMailRecords Mail operations ----------------------------------------------------------
 	ListMailRecords(context.Context, *ListMailRecordsRequest) (*ListMailRecordsReply, error)
 	ListQueues(context.Context, *ListQueuesRequest) (*ListQueuesReply, error)
+	// ListRetentionPolicies Retention: per-table TimescaleDB chunk compression/dropping for the event
+	// hypertables, with live disk stats.
+	ListRetentionPolicies(context.Context, *ListRetentionPoliciesRequest) (*ListRetentionPoliciesReply, error)
 	ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesReply, error)
 	ListRspamdResults(context.Context, *ListRspamdResultsRequest) (*ListRspamdResultsReply, error)
 	ListSuppressions(context.Context, *ListSuppressionsRequest) (*ListSuppressionsReply, error)
@@ -205,6 +211,7 @@ type IrisAdminServiceHTTPServer interface {
 	// ResetUserPassword ResetUserPassword sets a new password for a user (admin reset). Requires
 	// user:write; the new password is strength-validated and bcrypt-hashed.
 	ResetUserPassword(context.Context, *ResetUserPasswordRequest) (*ResetUserPasswordReply, error)
+	RunRetention(context.Context, *RunRetentionRequest) (*RunRetentionReply, error)
 	SaveAcmeAccount(context.Context, *SaveAcmeAccountRequest) (*AcmeAccount, error)
 	SetAcmeDnsProvider(context.Context, *SetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	UpdateDKIMDomain(context.Context, *UpdateDKIMDomainRequest) (*DKIMDomain, error)
@@ -212,6 +219,7 @@ type IrisAdminServiceHTTPServer interface {
 	UpdateGlobalSettings(context.Context, *UpdateGlobalSettingsRequest) (*GlobalSettings, error)
 	UpdateInboundRoute(context.Context, *UpdateInboundRouteRequest) (*InboundRoute, error)
 	UpdateListener(context.Context, *UpdateListenerRequest) (*Listener, error)
+	UpdateRetentionPolicy(context.Context, *UpdateRetentionPolicyRequest) (*RetentionPolicy, error)
 	UpdateRoutingRule(context.Context, *UpdateRoutingRuleRequest) (*RoutingRule, error)
 	UpdateSuppression(context.Context, *UpdateSuppressionRequest) (*Suppression, error)
 	UpdateUser(context.Context, *UpdateUserRequest) (*User, error)
@@ -295,6 +303,9 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.GET("/v1/dmarc/reports", _IrisAdminService_ListDmarcReports0_HTTP_Handler(srv))
 	r.GET("/v1/dmarc/domains", _IrisAdminService_ListDmarcDomains0_HTTP_Handler(srv))
 	r.GET("/v1/worker-error-logs", _IrisAdminService_ListWorkerErrorLogs0_HTTP_Handler(srv))
+	r.GET("/v1/retention", _IrisAdminService_ListRetentionPolicies0_HTTP_Handler(srv))
+	r.PUT("/v1/retention/{table_name}", _IrisAdminService_UpdateRetentionPolicy0_HTTP_Handler(srv))
+	r.POST("/v1/retention:run", _IrisAdminService_RunRetention0_HTTP_Handler(srv))
 	r.GET("/v1/settings", _IrisAdminService_GetGlobalSettings0_HTTP_Handler(srv))
 	r.PUT("/v1/settings", _IrisAdminService_UpdateGlobalSettings0_HTTP_Handler(srv))
 }
@@ -1801,6 +1812,72 @@ func _IrisAdminService_ListWorkerErrorLogs0_HTTP_Handler(srv IrisAdminServiceHTT
 	}
 }
 
+func _IrisAdminService_ListRetentionPolicies0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListRetentionPoliciesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListRetentionPolicies)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListRetentionPolicies(ctx, req.(*ListRetentionPoliciesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListRetentionPoliciesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateRetentionPolicy0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateRetentionPolicyRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateRetentionPolicy)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateRetentionPolicy(ctx, req.(*UpdateRetentionPolicyRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*RetentionPolicy)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_RunRetention0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in RunRetentionRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceRunRetention)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.RunRetention(ctx, req.(*RunRetentionRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*RunRetentionReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_GetGlobalSettings0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetGlobalSettingsRequest
@@ -1920,6 +1997,9 @@ type IrisAdminServiceHTTPClient interface {
 	// ListMailRecords Mail operations ----------------------------------------------------------
 	ListMailRecords(ctx context.Context, req *ListMailRecordsRequest, opts ...http.CallOption) (rsp *ListMailRecordsReply, err error)
 	ListQueues(ctx context.Context, req *ListQueuesRequest, opts ...http.CallOption) (rsp *ListQueuesReply, err error)
+	// ListRetentionPolicies Retention: per-table TimescaleDB chunk compression/dropping for the event
+	// hypertables, with live disk stats.
+	ListRetentionPolicies(ctx context.Context, req *ListRetentionPoliciesRequest, opts ...http.CallOption) (rsp *ListRetentionPoliciesReply, err error)
 	ListRoutingRules(ctx context.Context, req *ListRoutingRulesRequest, opts ...http.CallOption) (rsp *ListRoutingRulesReply, err error)
 	ListRspamdResults(ctx context.Context, req *ListRspamdResultsRequest, opts ...http.CallOption) (rsp *ListRspamdResultsReply, err error)
 	ListSuppressions(ctx context.Context, req *ListSuppressionsRequest, opts ...http.CallOption) (rsp *ListSuppressionsReply, err error)
@@ -1954,6 +2034,7 @@ type IrisAdminServiceHTTPClient interface {
 	// ResetUserPassword ResetUserPassword sets a new password for a user (admin reset). Requires
 	// user:write; the new password is strength-validated and bcrypt-hashed.
 	ResetUserPassword(ctx context.Context, req *ResetUserPasswordRequest, opts ...http.CallOption) (rsp *ResetUserPasswordReply, err error)
+	RunRetention(ctx context.Context, req *RunRetentionRequest, opts ...http.CallOption) (rsp *RunRetentionReply, err error)
 	SaveAcmeAccount(ctx context.Context, req *SaveAcmeAccountRequest, opts ...http.CallOption) (rsp *AcmeAccount, err error)
 	SetAcmeDnsProvider(ctx context.Context, req *SetAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	UpdateDKIMDomain(ctx context.Context, req *UpdateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
@@ -1961,6 +2042,7 @@ type IrisAdminServiceHTTPClient interface {
 	UpdateGlobalSettings(ctx context.Context, req *UpdateGlobalSettingsRequest, opts ...http.CallOption) (rsp *GlobalSettings, err error)
 	UpdateInboundRoute(ctx context.Context, req *UpdateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
 	UpdateListener(ctx context.Context, req *UpdateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
+	UpdateRetentionPolicy(ctx context.Context, req *UpdateRetentionPolicyRequest, opts ...http.CallOption) (rsp *RetentionPolicy, err error)
 	UpdateRoutingRule(ctx context.Context, req *UpdateRoutingRuleRequest, opts ...http.CallOption) (rsp *RoutingRule, err error)
 	UpdateSuppression(ctx context.Context, req *UpdateSuppressionRequest, opts ...http.CallOption) (rsp *Suppression, err error)
 	UpdateUser(ctx context.Context, req *UpdateUserRequest, opts ...http.CallOption) (rsp *User, err error)
@@ -2596,6 +2678,21 @@ func (c *IrisAdminServiceHTTPClientImpl) ListQueues(ctx context.Context, in *Lis
 	return &out, nil
 }
 
+// ListRetentionPolicies Retention: per-table TimescaleDB chunk compression/dropping for the event
+// hypertables, with live disk stats.
+func (c *IrisAdminServiceHTTPClientImpl) ListRetentionPolicies(ctx context.Context, in *ListRetentionPoliciesRequest, opts ...http.CallOption) (*ListRetentionPoliciesReply, error) {
+	var out ListRetentionPoliciesReply
+	pattern := "/v1/retention"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListRetentionPolicies))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) ListRoutingRules(ctx context.Context, in *ListRoutingRulesRequest, opts ...http.CallOption) (*ListRoutingRulesReply, error) {
 	var out ListRoutingRulesReply
 	pattern := "/v1/routing-rules"
@@ -2810,6 +2907,19 @@ func (c *IrisAdminServiceHTTPClientImpl) ResetUserPassword(ctx context.Context, 
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) RunRetention(ctx context.Context, in *RunRetentionRequest, opts ...http.CallOption) (*RunRetentionReply, error) {
+	var out RunRetentionReply
+	pattern := "/v1/retention:run"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceRunRetention))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) SaveAcmeAccount(ctx context.Context, in *SaveAcmeAccountRequest, opts ...http.CallOption) (*AcmeAccount, error) {
 	var out AcmeAccount
 	pattern := "/v1/acme/account"
@@ -2893,6 +3003,19 @@ func (c *IrisAdminServiceHTTPClientImpl) UpdateListener(ctx context.Context, in 
 	pattern := "/v1/listeners/{id}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateListener))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) UpdateRetentionPolicy(ctx context.Context, in *UpdateRetentionPolicyRequest, opts ...http.CallOption) (*RetentionPolicy, error) {
+	var out RetentionPolicy
+	pattern := "/v1/retention/{table_name}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateRetentionPolicy))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {

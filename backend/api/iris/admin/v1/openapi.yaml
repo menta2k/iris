@@ -969,6 +969,63 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/QueueActionReply'
+    /v1/retention:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                Retention: per-table TimescaleDB chunk compression/dropping for the event
+                 hypertables, with live disk stats.
+            operationId: IrisAdminService_ListRetentionPolicies
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListRetentionPoliciesReply'
+    /v1/retention/{table_name}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateRetentionPolicy
+            parameters:
+                - name: table_name
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateRetentionPolicyRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RetentionPolicy'
+    /v1/retention:run:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_RunRetention
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RunRetentionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RunRetentionReply'
     /v1/routing-rules:
         get:
             tags:
@@ -2379,6 +2436,13 @@ components:
                         $ref: '#/components/schemas/Queue'
                 page:
                     $ref: '#/components/schemas/PageReply'
+        ListRetentionPoliciesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/RetentionView'
         ListRoutingRulesReply:
             type: object
             properties:
@@ -2703,6 +2767,73 @@ components:
                 password:
                     type: string
                     description: New password; strength-validated server-side (>= 12 chars) and bcrypt-hashed.
+        RetentionPolicy:
+            type: object
+            properties:
+                table_name:
+                    type: string
+                retention_days:
+                    type: integer
+                    format: int32
+                compress_after_days:
+                    type: integer
+                    format: int32
+                enabled:
+                    type: boolean
+                updated_at:
+                    type: string
+                updated_by:
+                    type: string
+            description: Retention -----------------------------------------------------------------
+        RetentionRun:
+            type: object
+            properties:
+                id:
+                    type: string
+                table_name:
+                    type: string
+                started_at:
+                    type: string
+                finished_at:
+                    type: string
+                chunks_compressed:
+                    type: integer
+                    format: int32
+                chunks_dropped:
+                    type: integer
+                    format: int32
+                bytes_before:
+                    type: string
+                bytes_after:
+                    type: string
+                error:
+                    type: string
+        RetentionView:
+            type: object
+            properties:
+                policy:
+                    $ref: '#/components/schemas/RetentionPolicy'
+                label:
+                    type: string
+                hypertable:
+                    type: boolean
+                chunk_count:
+                    type: string
+                compressed_chunks:
+                    type: string
+                total_bytes:
+                    type: string
+                compressed_bytes:
+                    type: string
+                uncompressed_bytes:
+                    type: string
+                oldest_data:
+                    type: string
+                newest_data:
+                    type: string
+                last_run:
+                    $ref: '#/components/schemas/RetentionRun'
+            description: RetentionView is a policy plus live disk status for one managed table.
         RoutingOutcome:
             type: object
             properties:
@@ -2778,6 +2909,16 @@ components:
                 message_id:
                     type: string
                 recipient:
+                    type: string
+        RunRetentionReply:
+            type: object
+            properties:
+                ok:
+                    type: boolean
+        RunRetentionRequest:
+            type: object
+            properties:
+                table_name:
                     type: string
         SaveAcmeAccountRequest:
             type: object
@@ -2977,6 +3118,19 @@ components:
                     type: string
                 role:
                     type: string
+        UpdateRetentionPolicyRequest:
+            type: object
+            properties:
+                table_name:
+                    type: string
+                retention_days:
+                    type: integer
+                    format: int32
+                compress_after_days:
+                    type: integer
+                    format: int32
+                enabled:
+                    type: boolean
         UpdateRoutingRuleRequest:
             type: object
             properties:

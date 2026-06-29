@@ -288,6 +288,18 @@ service IrisAdminService {
     option (google.api.http) = { get: "/v1/worker-error-logs" };
   }
 
+  // Retention: per-table TimescaleDB chunk compression/dropping for the event
+  // hypertables, with live disk stats.
+  rpc ListRetentionPolicies(ListRetentionPoliciesRequest) returns (ListRetentionPoliciesReply) {
+    option (google.api.http) = { get: "/v1/retention" };
+  }
+  rpc UpdateRetentionPolicy(UpdateRetentionPolicyRequest) returns (RetentionPolicy) {
+    option (google.api.http) = { put: "/v1/retention/{table_name}" body: "*" };
+  }
+  rpc RunRetention(RunRetentionRequest) returns (RunRetentionReply) {
+    option (google.api.http) = { post: "/v1/retention:run" body: "*" };
+  }
+
   // Global settings (deployment-level policy knobs editable in the UI).
   rpc GetGlobalSettings(GetGlobalSettingsRequest) returns (GlobalSettings) {
     option (google.api.http) = { get: "/v1/settings" };
@@ -1086,6 +1098,51 @@ message ListWorkerErrorLogsReply {
   repeated WorkerErrorLog items = 1;
   PageReply page = 2;
 }
+
+// Retention -----------------------------------------------------------------
+message RetentionPolicy {
+  string table_name = 1;
+  int32 retention_days = 2;       // 0 = keep forever
+  int32 compress_after_days = 3;  // 0 = no compression
+  bool enabled = 4;
+  string updated_at = 5;
+  string updated_by = 6;
+}
+// RetentionView is a policy plus live disk status for one managed table.
+message RetentionView {
+  RetentionPolicy policy = 1;
+  string label = 2;
+  bool hypertable = 3;            // false on plain PostgreSQL — retention unavailable
+  int64 chunk_count = 4;
+  int64 compressed_chunks = 5;
+  int64 total_bytes = 6;
+  int64 compressed_bytes = 7;
+  int64 uncompressed_bytes = 8;
+  string oldest_data = 9;         // RFC3339, empty if none
+  string newest_data = 10;
+  RetentionRun last_run = 11;
+}
+message RetentionRun {
+  string id = 1;
+  string table_name = 2;
+  string started_at = 3;
+  string finished_at = 4;
+  int32 chunks_compressed = 5;
+  int32 chunks_dropped = 6;
+  int64 bytes_before = 7;
+  int64 bytes_after = 8;
+  string error = 9;
+}
+message ListRetentionPoliciesRequest {}
+message ListRetentionPoliciesReply { repeated RetentionView items = 1; }
+message UpdateRetentionPolicyRequest {
+  string table_name = 1;
+  int32 retention_days = 2;
+  int32 compress_after_days = 3;
+  bool enabled = 4;
+}
+message RunRetentionRequest { string table_name = 1; } // empty = all tables
+message RunRetentionReply { bool ok = 1; }
 
 message GetDashboardSummaryRequest {}
 message DashboardSummary {

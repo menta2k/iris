@@ -38,6 +38,7 @@ type Service struct {
 	rbl           *biz.RBLUsecase
 	dmarc         *biz.DMARCUsecase
 	workerErrors  *biz.WorkerErrorUsecase
+	retention     *biz.RetentionUsecase
 }
 
 // Deps bundles the use cases the service delegates to. Fields may be nil for
@@ -63,6 +64,7 @@ type Deps struct {
 	RBL           *biz.RBLUsecase
 	DMARC         *biz.DMARCUsecase
 	WorkerErrors  *biz.WorkerErrorUsecase
+	Retention     *biz.RetentionUsecase
 }
 
 // NewService constructs the admin API service.
@@ -92,6 +94,7 @@ func NewService(d Deps) *Service {
 		rbl:           d.RBL,
 		dmarc:         d.DMARC,
 		workerErrors:  d.WorkerErrors,
+		retention:     d.Retention,
 	}
 }
 
