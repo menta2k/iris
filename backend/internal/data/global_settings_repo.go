@@ -25,7 +25,7 @@ const globalSettingsCols = `rspamd_mode, rspamd_url, egress_ehlo_domain,
 	bounce_domain, auto_suppress_hard_bounces, soft_bounce_threshold,
 	suppression_ttl, dmarc_report_email, admin_http_addr, admin_tls_enabled, admin_tls_cert_domain,
 	acme_renew_interval, acme_renew_before, prometheus_url, fbl_require_verification,
-	inbound_maildir_base_path, updated_at, updated_by`
+	inbound_maildir_base_path, bounce_domain_template, updated_at, updated_by`
 
 // scanGlobalSettings scans a row in globalSettingsCols order.
 func scanGlobalSettings(row interface{ Scan(...any) error }) (*biz.GlobalSettings, error) {
@@ -36,7 +36,7 @@ func scanGlobalSettings(row interface{ Scan(...any) error }) (*biz.GlobalSetting
 		&out.BounceDomain, &out.AutoSuppressHardBounces, &out.SoftBounceThreshold,
 		&out.SuppressionTTL, &out.DMARCReportEmail, &out.AdminHTTPAddr, &out.AdminTLSEnabled, &out.AdminTLSCertDomain,
 		&out.AcmeRenewInterval, &out.AcmeRenewBefore, &out.PrometheusURL, &out.FBLRequireVerification,
-		&out.InboundMaildirBasePath, &out.UpdatedAt, &out.UpdatedBy)
+		&out.InboundMaildirBasePath, &out.BounceDomainTemplate, &out.UpdatedAt, &out.UpdatedBy)
 	return out, err
 }
 
@@ -67,7 +67,8 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in *biz.GlobalSettings,
 			suppression_ttl = $13, dmarc_report_email = $14, admin_http_addr = $15, admin_tls_enabled = $16,
 			admin_tls_cert_domain = $17, acme_renew_interval = $18, acme_renew_before = $19,
 			prometheus_url = $20, fbl_require_verification = $21,
-			inbound_maildir_base_path = $22, updated_at = now(), updated_by = $23
+			inbound_maildir_base_path = $22, bounce_domain_template = $23,
+			updated_at = now(), updated_by = $24
 		WHERE id = 1
 		RETURNING `+globalSettingsCols,
 		in.RspamdMode, in.RspamdURL, in.EgressEHLODomain,
@@ -76,7 +77,7 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in *biz.GlobalSettings,
 		in.BounceDomain, in.AutoSuppressHardBounces, in.SoftBounceThreshold,
 		in.SuppressionTTL, in.DMARCReportEmail, in.AdminHTTPAddr, in.AdminTLSEnabled, in.AdminTLSCertDomain,
 		in.AcmeRenewInterval, in.AcmeRenewBefore, in.PrometheusURL, in.FBLRequireVerification,
-		in.InboundMaildirBasePath, actor))
+		in.InboundMaildirBasePath, in.BounceDomainTemplate, actor))
 	if err != nil {
 		return nil, mapConstraint(err, "global_settings")
 	}

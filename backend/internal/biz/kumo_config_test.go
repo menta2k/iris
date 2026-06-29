@@ -589,7 +589,7 @@ func TestBounceVerpGeneration(t *testing.T) {
 	for _, want := range []string{
 		`local BOUNCE_VERP_SECRET = "verp-key"`,
 		"kumo.digest.hmac_sha256({ key_data = BOUNCE_VERP_SECRET }, mid)",
-		"msg:set_sender(string.format('b+%s.%s@%s', string.sub(tostring(mac), 1, 16), mid, BOUNCE_DOMAIN))",
+		"msg:set_sender(string.format('b+%s.%s@%s', string.sub(tostring(mac), 1, 16), mid, iris_bounce_domain(msg)))",
 	} {
 		if !strings.Contains(r.Content, want) {
 			t.Fatalf("VERP missing %q:\n%s", want, r.Content)
@@ -598,6 +598,62 @@ func TestBounceVerpGeneration(t *testing.T) {
 	// The rewrite lives inside the reception hook, not a (non-firing) sending hook.
 	if strings.Contains(r.Content, "smtp_client_message_sending") {
 		t.Fatalf("VERP must not use smtp_client_message_sending:\n%s", r.Content)
+	}
+}
+
+func TestBounceDomainTemplate(t *testing.T) {
+	base := ConfigSnapshot{
+		VMTAs:             []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+		BounceDomain:      "bounce.kumo.example.com",
+		BounceVerpSecret:  "verp-key",
+		LogStreamRedisURL: "redis://redis:6379", // bounce pipeline needs a stream
+		DKIM: []*DKIMDomain{
+			{ID: "d1", Domain: "example.com", Selector: "s1", PrivateKeyRef: testDKIMKeyPEM, Status: DKIMReady},
+			{ID: "d2", Domain: "economy.bg", Selector: "s1", PrivateKeyRef: testDKIMKeyPEM, Status: DKIMReady},
+		},
+	}
+
+	// No template: the per-domain maps render empty and VERP falls back to the
+	// single global BOUNCE_DOMAIN — no behavior change from before the feature.
+	off, err := RenderKumoConfig(base)
+	if err != nil || !off.Valid {
+		t.Fatalf("render off: err=%v valid=%v issues=%v", err, off.Valid, off.LintIssues)
+	}
+	if !strings.Contains(off.Content, "local BOUNCE_DOMAIN_BY_FROM = {}\n") ||
+		!strings.Contains(off.Content, "local BOUNCE_DOMAINS = {}\n") {
+		t.Fatalf("empty template must render empty per-domain maps:\n%s", off.Content)
+	}
+	// A populated entry is a quoted-key assignment (BOUNCE_DOMAIN_BY_FROM["x"]);
+	// the helper body's BOUNCE_DOMAIN_BY_FROM[fdom] lookup must not count.
+	if strings.Contains(off.Content, `BOUNCE_DOMAIN_BY_FROM["`) {
+		t.Fatalf("empty template must not populate the per-domain map:\n%s", off.Content)
+	}
+
+	// Template set: derive bounce.kumo.<from> for each DKIM domain, build the
+	// reverse inbound set, and select per-From-domain at VERP time.
+	on := base
+	on.BounceDomainTemplate = "bounce.kumo.{domain}"
+	r, err := RenderKumoConfig(on)
+	if err != nil || !r.Valid {
+		t.Fatalf("render on: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	for _, want := range []string{
+		// Outbound: From-domain → aligned bounce domain.
+		`BOUNCE_DOMAIN_BY_FROM["example.com"] = "bounce.kumo.example.com"`,
+		`BOUNCE_DOMAIN_BY_FROM["economy.bg"] = "bounce.kumo.economy.bg"`,
+		// Inbound: the reverse set used by the DSN router and listener.
+		`BOUNCE_DOMAINS["bounce.kumo.example.com"] = true`,
+		`BOUNCE_DOMAINS["bounce.kumo.economy.bg"] = true`,
+		// Selection helper + its use in the VERP rewrite.
+		"local function iris_bounce_domain(msg)",
+		"mid, iris_bounce_domain(msg)))",
+		// Inbound matchers accept the derived domains alongside BOUNCE_DOMAIN.
+		"if rdom == BOUNCE_DOMAIN or BOUNCE_DOMAINS[rdom] then",
+		"if (BOUNCE_DOMAIN ~= '' and domain == BOUNCE_DOMAIN) or BOUNCE_DOMAINS[domain] then",
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Fatalf("bounce template missing %q:\n%s", want, r.Content)
+		}
 	}
 }
 

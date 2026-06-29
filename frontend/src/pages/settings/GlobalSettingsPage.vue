@@ -37,6 +37,7 @@ const form = ref({
   egress_max_retry_interval: '',
   egress_max_age: '',
   bounce_domain: '',
+  bounce_domain_template: '',
   auto_suppress_hard_bounces: true,
   soft_bounce_threshold: 0,
   fbl_require_verification: false,
@@ -63,6 +64,7 @@ function apply(s: GlobalSettings) {
     egress_max_retry_interval: s.egressMaxRetryInterval || '',
     egress_max_age: s.egressMaxAge || '',
     bounce_domain: s.bounceDomain || '',
+    bounce_domain_template: s.bounceDomainTemplate || '',
     auto_suppress_hard_bounces: s.autoSuppressHardBounces ?? true,
     soft_bounce_threshold: s.softBounceThreshold ?? 0,
     fbl_require_verification: s.fblRequireVerification ?? false,
@@ -118,6 +120,7 @@ async function save() {
         egress_max_retry_interval: form.value.egress_max_retry_interval,
         egress_max_age: form.value.egress_max_age,
         bounce_domain: form.value.bounce_domain,
+        bounce_domain_template: form.value.bounce_domain_template,
         auto_suppress_hard_bounces: form.value.auto_suppress_hard_bounces,
         soft_bounce_threshold: form.value.soft_bounce_threshold,
         fbl_require_verification: form.value.fbl_require_verification,
@@ -250,6 +253,21 @@ onMounted(load)
               <p class="text-xs text-muted-foreground">
                 Mail to this domain is routed to the DSN catcher instead of being relayed. Leave
                 blank to disable the bounce pipeline.
+              </p>
+            </div>
+            <div class="space-y-1.5">
+              <Label for="bounce-domain-template">Per-domain bounce template</Label>
+              <Input
+                id="bounce-domain-template"
+                v-model="form.bounce_domain_template"
+                placeholder="bounce.kumo.{domain}"
+              />
+              <p class="text-xs text-muted-foreground">
+                Optional. When set, the return-path is derived per sending (DKIM) domain by
+                substituting <code>{domain}</code> — e.g. mail from <code>@example.com</code> uses
+                <code>bounce.kumo.example.com</code>, aligning SPF with the From-domain so it backs up
+                DKIM for DMARC. Each derived domain needs its own MX (to the bounce listener) and SPF
+                records. Leave blank to use the single bounce domain above for all mail.
               </p>
             </div>
             <div class="flex items-start gap-2">

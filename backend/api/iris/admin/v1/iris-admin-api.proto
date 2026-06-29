@@ -1218,6 +1218,12 @@ message GlobalSettings {
   // Deployment-wide Maildir root for inbound maildir routes without their own
   // path (one Maildir per recipient under <base>/<domain>/<local-part>).
   string inbound_maildir_base_path = 25;
+  // Per-sending-domain bounce (VERP return-path) template. When set, the
+  // outbound envelope return-path is derived per From-domain by substituting
+  // "{domain}" (e.g. "bounce.kumo.{domain}" → mail from @example.com uses
+  // @bounce.kumo.example.com), so SPF aligns with the From-domain. Empty uses the
+  // single global bounce_domain for all mail.
+  string bounce_domain_template = 26;
 }
 message GetGlobalSettingsRequest {}
 message UpdateGlobalSettingsRequest {
@@ -1244,4 +1250,6 @@ message UpdateGlobalSettingsRequest {
   string dmarc_report_email = 21;
   bool fbl_require_verification = 22;
   string inbound_maildir_base_path = 23;
+  // Per-sending-domain bounce return-path template (see GlobalSettings).
+  string bounce_domain_template = 24;
 }

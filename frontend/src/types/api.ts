@@ -595,6 +595,7 @@ export interface GlobalSettings {
   egressMaxRetryInterval: string
   egressMaxAge: string
   bounceDomain: string
+  bounceDomainTemplate: string
   autoSuppressHardBounces: boolean
   softBounceThreshold: number
   suppressionTtl: string
@@ -634,6 +635,7 @@ export interface UpdateGlobalSettingsRequest {
   prometheus_url: string
   fbl_require_verification: boolean
   inbound_maildir_base_path: string
+  bounce_domain_template: string
 }
 
 // ---- Dashboard metrics (Prometheus-backed time-series) ----

@@ -48,6 +48,7 @@ func (s *Service) UpdateGlobalSettings(ctx context.Context, req *adminv1.UpdateG
 		PrometheusURL:           req.GetPrometheusUrl(),
 		FBLRequireVerification:  req.GetFblRequireVerification(),
 		InboundMaildirBasePath:  req.GetInboundMaildirBasePath(),
+		BounceDomainTemplate:    req.GetBounceDomainTemplate(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "UpdateGlobalSettings", err)
@@ -83,6 +84,7 @@ func settingsToProto(g *biz.GlobalSettings) *adminv1.GlobalSettings {
 		PrometheusUrl:           g.PrometheusURL,
 		FblRequireVerification:  g.FBLRequireVerification,
 		InboundMaildirBasePath:  g.InboundMaildirBasePath,
+		BounceDomainTemplate:    g.BounceDomainTemplate,
 		UpdatedAt:               updatedAt,
 		UpdatedBy:               g.UpdatedBy,
 	}

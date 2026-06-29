@@ -32,6 +32,11 @@ type KumoConfigSettings struct {
 	// Bounce domain that inbound DSNs are accepted at (DSN pipeline).
 	BounceDomain string
 
+	// BounceDomainTemplate derives a per-sending-domain bounce return-path by
+	// substituting "{domain}" (e.g. "bounce.kumo.{domain}"). Empty uses the
+	// single BounceDomain for all mail.
+	BounceDomainTemplate string
+
 	// DMARCReportAddr is the address inbound DMARC aggregate reports arrive at
 	// (the configured rua). Empty disables the DMARC capture pipeline.
 	DMARCReportAddr string
@@ -132,6 +137,7 @@ func (uc *KumoConfigUsecase) render(ctx context.Context) (RenderedConfig, error)
 	snap.EgressMaxRetryInterval = settings.EgressMaxRetryInterval
 	snap.EgressMaxAge = settings.EgressMaxAge
 	snap.BounceDomain = settings.BounceDomain
+	snap.BounceDomainTemplate = settings.BounceDomainTemplate
 	snap.DMARCReportAddr = settings.DMARCReportAddr
 	snap.BounceClassifierFile = settings.BounceClassifierFile
 	snap.BounceVerpSecret = settings.BounceVerpSecret

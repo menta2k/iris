@@ -70,6 +70,14 @@ type ConfigSnapshot struct {
 	// every listener) for the bounce consumer to process.
 	BounceDomain string
 
+	// BounceDomainTemplate, when set, derives a per-sending-domain bounce (VERP
+	// return-path) domain by substituting BounceDomainPlaceholder with each DKIM
+	// (sending) domain — e.g. "bounce.kumo.{domain}" makes mail from @example.com
+	// use @bounce.kumo.example.com, aligning SPF with the From-domain. Empty uses
+	// BounceDomain for all mail. The derived domains are also accepted inbound
+	// (relayed to the DSN catcher) alongside BounceDomain.
+	BounceDomainTemplate string
+
 	// DMARCReportAddr, when set, enables the DMARC catcher: inbound mail to this
 	// exact address is routed to the DMARC Redis stream (and its domain relayed)
 	// for the report parser to consume.
@@ -592,7 +600,7 @@ kumo.on('smtp_server_message_received', function(msg)
 		b.WriteString(`  do
     local rcpt = msg:recipient()
     local rdom = (rcpt and rcpt.domain or ''):lower()
-    if rdom == BOUNCE_DOMAIN then
+    if rdom == BOUNCE_DOMAIN or BOUNCE_DOMAINS[rdom] then
       msg:set_meta('queue', DSN_TRACKER)
       return
     end
@@ -696,7 +704,7 @@ kumo.on('smtp_server_message_received', function(msg)
     if mid and tostring(mid) ~= '' then
       mid = tostring(mid)
       local mac = kumo.digest.hmac_sha256({ key_data = BOUNCE_VERP_SECRET }, mid)
-      msg:set_sender(string.format('b+%s.%s@%s', string.sub(tostring(mac), 1, 16), mid, BOUNCE_DOMAIN))
+      msg:set_sender(string.format('b+%s.%s@%s', string.sub(tostring(mac), 1, 16), mid, iris_bounce_domain(msg)))
     end
   end
 `)
@@ -1285,6 +1293,30 @@ func fblForwardEnabled(snap ConfigSnapshot) bool {
 	return len(fblForwards(snap)) > 0
 }
 
+// BounceDomainPlaceholder is the token in BounceDomainTemplate that is replaced
+// with each sending domain to derive that domain's aligned bounce domain.
+const BounceDomainPlaceholder = "{domain}"
+
+// bounceDomainsByFrom builds the per-From-domain bounce-domain map by applying
+// BounceDomainTemplate to every configured DKIM (sending) domain. Returns an
+// empty map when the template is unset or lacks the {domain} placeholder, so the
+// global BounceDomain remains in effect. Keyed and valued in lower case.
+func bounceDomainsByFrom(snap ConfigSnapshot) map[string]string {
+	tmpl := strings.ToLower(strings.TrimSpace(snap.BounceDomainTemplate))
+	if tmpl == "" || !strings.Contains(tmpl, BounceDomainPlaceholder) {
+		return nil
+	}
+	out := make(map[string]string, len(snap.DKIM))
+	for _, d := range snap.DKIM {
+		from := strings.ToLower(strings.TrimSpace(d.Domain))
+		if from == "" {
+			continue
+		}
+		out[from] = strings.ReplaceAll(tmpl, BounceDomainPlaceholder, from)
+	}
+	return out
+}
+
 // writeBounceConsts emits the bounce/DSN + FBL constants (empty when disabled).
 // Three FBL tables are rendered: FBL_DOMAINS (approved domains → ARF parsing),
 // FBL_FORWARD (feedback address → forward address, for awaiting approval), and
@@ -1300,6 +1332,37 @@ func writeBounceConsts(b *strings.Builder, snap ConfigSnapshot) {
 	fmt.Fprintf(b, "local BOUNCE_DOMAIN = %s\n", MustLuaString(bounceDomain))
 	fmt.Fprintf(b, "local DSN_TRACKER   = %s\n", MustLuaString(dsnTracker))
 	fmt.Fprintf(b, "local DSN_STREAM    = %s\n", MustLuaString(dsnStream))
+	// Per-sending-domain bounce domains derived from BounceDomainTemplate.
+	// BOUNCE_DOMAIN_BY_FROM maps a From-domain to its bounce domain (outbound
+	// VERP selection); BOUNCE_DOMAINS is the reverse set of those bounce domains
+	// (inbound DSN acceptance). Both are empty unless the template is configured.
+	b.WriteString("local BOUNCE_DOMAIN_BY_FROM = {}\n")
+	b.WriteString("local BOUNCE_DOMAINS = {}\n")
+	byFrom := bounceDomainsByFrom(snap)
+	fromDomains := make([]string, 0, len(byFrom))
+	for from := range byFrom {
+		fromDomains = append(fromDomains, from)
+	}
+	sort.Strings(fromDomains)
+	for _, from := range fromDomains {
+		bd := byFrom[from]
+		fmt.Fprintf(b, "BOUNCE_DOMAIN_BY_FROM[%s] = %s\n", MustLuaString(from), MustLuaString(bd))
+		fmt.Fprintf(b, "BOUNCE_DOMAINS[%s] = true\n", MustLuaString(bd))
+	}
+	if verpEnabled(snap) {
+		// iris_bounce_domain returns the From-domain's bounce domain (for VERP),
+		// falling back to the global BOUNCE_DOMAIN. Emitted only when VERP rewrites
+		// the envelope (its sole caller), so an unused local is never rendered.
+		b.WriteString(`local function iris_bounce_domain(msg)
+  local fh = msg:from_header()
+  local fdom = fh and fh.domain and string.lower(fh.domain) or nil
+  if fdom and BOUNCE_DOMAIN_BY_FROM[fdom] then
+    return BOUNCE_DOMAIN_BY_FROM[fdom]
+  end
+  return BOUNCE_DOMAIN
+end
+`)
+	}
 	b.WriteString("local FBL_DOMAINS  = {}\n")
 	b.WriteString("local FBL_FORWARD  = {}\n")
 	b.WriteString("local FBL_RELAY_DOMAINS = {}\n")
@@ -1367,7 +1430,7 @@ func writeListenerDomain(b *strings.Builder, snap ConfigSnapshot) {
 -- (the reception hook forwards their feedback mail), and relay webhook domains
 -- (routed to the webhook poster).
 kumo.on('get_listener_domain', function(domain, listener)
-  if BOUNCE_DOMAIN ~= '' and domain == BOUNCE_DOMAIN then
+  if (BOUNCE_DOMAIN ~= '' and domain == BOUNCE_DOMAIN) or BOUNCE_DOMAINS[domain] then
     return kumo.make_listener_domain { relay_to = true }
   end
   if FBL_DOMAINS[domain] then
