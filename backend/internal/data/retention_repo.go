@@ -204,11 +204,11 @@ func (r *RetentionRepo) compressOldChunks(ctx context.Context, table biz.Managed
 		SELECT format('%I.%I', chunk_schema, chunk_name)
 		FROM timescaledb_information.chunks
 		WHERE hypertable_name = $1 AND NOT is_compressed
-		  AND range_end < now() - ($2 || ' days')::interval`
-	args := []any{table.Name, compressDays}
+		  AND range_end < now() - $2::interval`
+	args := []any{table.Name, daysInterval(compressDays)}
 	if retentionDays > 0 {
-		query += ` AND range_end >= now() - ($3 || ' days')::interval`
-		args = append(args, retentionDays)
+		query += ` AND range_end >= now() - $3::interval`
+		args = append(args, daysInterval(retentionDays))
 	}
 	rows, err := r.db.Pool.Query(ctx, query, args...)
 	if err != nil {
@@ -241,7 +241,7 @@ func (r *RetentionRepo) compressOldChunks(ctx context.Context, table biz.Managed
 // dropOldChunks drops chunks older than retentionDays and returns the count.
 func (r *RetentionRepo) dropOldChunks(ctx context.Context, table string, retentionDays int) (int, error) {
 	rows, err := r.db.Pool.Query(ctx,
-		`SELECT drop_chunks($1::regclass, older_than => ($2 || ' days')::interval)`, table, retentionDays)
+		`SELECT drop_chunks($1::regclass, older_than => $2::interval)`, table, daysInterval(retentionDays))
 	if err != nil {
 		return 0, fmt.Errorf("drop_chunks: %w", err)
 	}
@@ -282,4 +282,10 @@ func (r *RetentionRepo) lastRun(ctx context.Context, table string) *biz.Retentio
 // allowlist, but quote defensively for the dynamic ALTER.
 func pgQuoteIdent(ident string) string {
 	return `"` + strings.ReplaceAll(ident, `"`, `""`) + `"`
+}
+
+// daysInterval renders an interval as text so it binds as a $n::interval param
+// (pgx cannot encode a Go int into the text-typed "$n || ' days'" form).
+func daysInterval(days int) string {
+	return fmt.Sprintf("%d days", days)
 }

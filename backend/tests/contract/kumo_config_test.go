@@ -15,7 +15,7 @@ func TestKumoConfigContract(t *testing.T) {
 	ctx := ownerCtx()
 
 	lid := seedListener(t, svc, "k-listener", "203.0.113.80")
-	a, err := svc.CreateVMTA(ctx, &adminv1.CreateVMTARequest{Name: "k-a", ListenerId: lid})
+	a, err := svc.CreateVMTA(ctx, &adminv1.CreateVMTARequest{Name: "k-a", IpAddress: "203.0.113.81", EhloName: "k-a.example.com", ListenerId: lid})
 	if err != nil {
 		t.Fatalf("CreateVMTA: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestKumoConfigDriftStatus(t *testing.T) {
 
 	// A listener is part of the init block, so this change requires a restart.
 	lid := seedListener(t, svc, "d-listener", "203.0.113.81")
-	if _, err := svc.CreateVMTA(ctx, &adminv1.CreateVMTARequest{Name: "d-a", ListenerId: lid}); err != nil {
+	if _, err := svc.CreateVMTA(ctx, &adminv1.CreateVMTARequest{Name: "d-a", IpAddress: "203.0.113.82", EhloName: "d-a.example.com", ListenerId: lid}); err != nil {
 		t.Fatalf("CreateVMTA: %v", err)
 	}
 	st, err = svc.KumoConfigStatus(ctx, &adminv1.KumoConfigStatusRequest{})
@@ -113,7 +113,7 @@ func TestKumoConfigDriftStatus(t *testing.T) {
 	}
 
 	// A VMTA-only change drifts but is reload-safe (init block unchanged).
-	if _, err := svc.CreateVMTA(ctx, &adminv1.CreateVMTARequest{Name: "d-b", ListenerId: lid}); err != nil {
+	if _, err := svc.CreateVMTA(ctx, &adminv1.CreateVMTARequest{Name: "d-b", IpAddress: "203.0.113.83", EhloName: "d-b.example.com", ListenerId: lid}); err != nil {
 		t.Fatalf("CreateVMTA 2: %v", err)
 	}
 	st, err = svc.KumoConfigStatus(ctx, &adminv1.KumoConfigStatusRequest{})

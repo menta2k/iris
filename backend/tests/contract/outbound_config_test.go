@@ -14,14 +14,14 @@ func TestOutboundContract(t *testing.T) {
 
 	la := seedListener(t, svc, "lst-a", "203.0.113.60")
 	lb := seedListener(t, svc, "lst-b", "203.0.113.61")
-	a, err := svc.CreateVMTA(ctx, &adminv1.CreateVMTARequest{Name: "a", ListenerId: la})
+	a, err := svc.CreateVMTA(ctx, &adminv1.CreateVMTARequest{Name: "a", IpAddress: "203.0.113.71", EhloName: "a.example.com", ListenerId: la})
 	if err != nil {
 		t.Fatalf("CreateVMTA: %v", err)
 	}
 	if a.GetId() == "" || a.GetStatus() != "active" {
 		t.Fatalf("unexpected VMTA reply: %+v", a)
 	}
-	b, err := svc.CreateVMTA(ctx, &adminv1.CreateVMTARequest{Name: "b", ListenerId: lb})
+	b, err := svc.CreateVMTA(ctx, &adminv1.CreateVMTARequest{Name: "b", IpAddress: "203.0.113.72", EhloName: "b.example.com", ListenerId: lb})
 	if err != nil {
 		t.Fatalf("CreateVMTA b: %v", err)
 	}

@@ -16,7 +16,7 @@ func TestEditOutboundEntities(t *testing.T) {
 
 	la := seedListener(t, svc, "lst-edit-a", "203.0.113.90")
 	lb := seedListener(t, svc, "lst-edit-b", "203.0.113.91")
-	a, err := svc.CreateVMTA(ctx, &adminv1.CreateVMTARequest{Name: "edit-a", ListenerId: la})
+	a, err := svc.CreateVMTA(ctx, &adminv1.CreateVMTARequest{Name: "edit-a", IpAddress: "203.0.113.61", EhloName: "edit-a.example.com", ListenerId: la})
 	if err != nil {
 		t.Fatalf("create vmta: %v", err)
 	}
@@ -34,7 +34,7 @@ func TestEditOutboundEntities(t *testing.T) {
 	}
 
 	// A second VMTA + a group, then edit the group's membership/weights.
-	b, err := svc.CreateVMTA(ctx, &adminv1.CreateVMTARequest{Name: "edit-b", ListenerId: lb})
+	b, err := svc.CreateVMTA(ctx, &adminv1.CreateVMTARequest{Name: "edit-b", IpAddress: "203.0.113.62", EhloName: "edit-b.example.com", ListenerId: lb})
 	if err != nil {
 		t.Fatalf("create vmta b: %v", err)
 	}
