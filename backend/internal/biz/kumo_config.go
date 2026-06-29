@@ -21,6 +21,17 @@ type ConfigSnapshot struct {
 	// domains (enable_tls=Required on the egress path). Inactive entries are
 	// skipped at render time.
 	TLSPolicies []*TLSPolicy
+
+	// WarmupSchedules are the active/paused IP-warmup schedules loaded for the
+	// policy; the render step resolves them to WarmupRates for the current date.
+	WarmupSchedules []*WarmupSchedule
+
+	// WarmupRates carries the per-egress-source, per-MBP-bucket message-rate caps
+	// for IP warmup, as KumoMTA throttle specs ("N/day"): WarmupRates[vmtaName]
+	// [bucket] = rate. Resolved from WarmupSchedules for the current date in the
+	// render step (ResolveWarmupRates), so RenderKumoConfig stays a pure
+	// snapshot→policy function. Empty when no warmup is in effect.
+	WarmupRates map[string]map[string]string
 	// InboundRoutes are active inbound routes (maildir / forward / webhook). Their
 	// recipient domains are relay-accepted by get_listener_domain, and matching
 	// inbound mail is dispatched to the action's queue: a Maildir on disk, a
@@ -274,7 +285,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	pools := writeEgressPools(&b, snap.VMTAs, snap.Groups, vmtaName)
 	// Per-VMTA connection limits (max_connections) via the egress path config.
 	fwdTLS, _ := forwardTargets(snap)
-	writeEgressPaths(&b, snap.VMTAs, snap.TLSPolicies, fwdTLS)
+	writeEgressPaths(&b, snap.VMTAs, snap.TLSPolicies, fwdTLS, snap.WarmupRates)
 	// DKIM signers.
 	dkim := writeDKIMTable(&b, snap.DKIM)
 	// DKIM signing function + the http-injection signing hook. Defined before the
@@ -1113,7 +1124,7 @@ func writeEsmtpListener(b *strings.Builder, l *Listener) {
 // is keyed by destination domain. get_egress_path_config applies both: the
 // connection limit for the source and enable_tls for a required-TLS domain, so
 // kumod refuses to deliver to that domain in cleartext.
-func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolicy, fwdTargets []forwardTarget) {
+func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolicy, fwdTargets []forwardTarget, warmup map[string]map[string]string) {
 	b.WriteString("-- ===== egress path config (per-VMTA connection limits + require-TLS) =====\n")
 	b.WriteString("local SOURCE_LIMITS = {}\n")
 	for _, v := range sortedVMTAs(vmtas) {
@@ -1124,6 +1135,7 @@ func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolic
 			fmt.Fprintf(b, "SOURCE_LIMITS[%s] = %d\n", MustLuaString(v.Name), v.MaxConnections)
 		}
 	}
+	writeWarmupTables(b, warmup)
 	b.WriteString("local REQUIRE_TLS_DOMAINS = {}\n")
 	for _, p := range sortedTLSPolicies(tlsPolicies) {
 		if p.Status != TLSPolicyActive {
@@ -1165,6 +1177,15 @@ kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
   if limit and limit > 0 then
     params.connection_limit = limit
   end
+  -- IP warmup: cap the message rate for this source per receiving-domain family
+  -- (MBP bucket) while the source is ramping. Absent once warmup completes.
+  local wr = WARMUP_RATE[egress_source]
+  if wr then
+    local rate = wr[warmup_bucket(domain)] or wr['default']
+    if rate then
+      params.max_message_rate = rate
+    end
+  end
   -- Require TLS for matched destination domains: kumod fails the delivery
   -- (logged) rather than sending in cleartext when the peer offers no STARTTLS.
   local tls = REQUIRE_TLS_DOMAINS[string.lower(domain)]
@@ -1174,6 +1195,41 @@ kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
   return kumo.make_egress_path(params)
 end)
 
+`)
+}
+
+// writeWarmupTables emits the IP-warmup lookup tables + bucket classifier the
+// egress-path callback uses: WARMUP_RATE[source][bucket] = "N/day" (only sources
+// currently warming), the MBP_BUCKET domain→family map, and warmup_bucket().
+// Always emitted (empty WARMUP_RATE when no warmup) so the callback's references
+// stay valid.
+func writeWarmupTables(b *strings.Builder, warmup map[string]map[string]string) {
+	b.WriteString("local WARMUP_RATE = {}\n")
+	sources := make([]string, 0, len(warmup))
+	for s := range warmup {
+		sources = append(sources, s)
+	}
+	sort.Strings(sources)
+	for _, src := range sources {
+		buckets := warmup[src]
+		var entries strings.Builder
+		for _, bkt := range warmupBuckets { // canonical order → stable checksum
+			if rate := buckets[bkt]; rate != "" {
+				fmt.Fprintf(&entries, "[%s] = %s, ", MustLuaString(bkt), MustLuaString(rate))
+			}
+		}
+		if entries.Len() == 0 {
+			continue
+		}
+		fmt.Fprintf(b, "WARMUP_RATE[%s] = { %s}\n", MustLuaString(src), entries.String())
+	}
+	b.WriteString("local MBP_BUCKET = {}\n")
+	for _, kv := range sortedMBPDomains() {
+		fmt.Fprintf(b, "MBP_BUCKET[%s] = %s\n", MustLuaString(kv[0]), MustLuaString(kv[1]))
+	}
+	b.WriteString(`local function warmup_bucket(domain)
+  return MBP_BUCKET[string.lower(domain)] or 'default'
+end
 `)
 }
 

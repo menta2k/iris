@@ -23,6 +23,7 @@ export const navSections: NavSection[] = [
       { label: 'VMTAs', to: '/outbound/vmtas', permission: 'outbound:read' },
       { label: 'VMTA Groups', to: '/outbound/vmta-groups', permission: 'outbound:read' },
       { label: 'Routing Rules', to: '/outbound/routing-rules', permission: 'outbound:read' },
+      { label: 'IP Warmup', to: '/outbound/warmup', permission: 'outbound:read' },
     ],
   },
   {

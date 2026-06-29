@@ -38,6 +38,22 @@ service IrisAdminService {
   rpc UpdateVMTAGroup(UpdateVMTAGroupRequest) returns (VMTAGroup) {
     option (google.api.http) = { put: "/v1/vmta-groups/{id}" body: "*" };
   }
+  // IP warmup: ramp a VMTA's volume per receiving-domain family over a curve.
+  rpc ListWarmupSchedules(ListWarmupSchedulesRequest) returns (ListWarmupSchedulesReply) {
+    option (google.api.http) = { get: "/v1/warmup-schedules" };
+  }
+  rpc CreateWarmupSchedule(CreateWarmupScheduleRequest) returns (WarmupSchedule) {
+    option (google.api.http) = { post: "/v1/warmup-schedules" body: "*" };
+  }
+  rpc UpdateWarmupSchedule(UpdateWarmupScheduleRequest) returns (WarmupSchedule) {
+    option (google.api.http) = { put: "/v1/warmup-schedules/{id}" body: "*" };
+  }
+  rpc PauseWarmupSchedule(PauseWarmupScheduleRequest) returns (WarmupSchedule) {
+    option (google.api.http) = { post: "/v1/warmup-schedules/{id}:pause" body: "*" };
+  }
+  rpc ResumeWarmupSchedule(ResumeWarmupScheduleRequest) returns (WarmupSchedule) {
+    option (google.api.http) = { post: "/v1/warmup-schedules/{id}:resume" body: "*" };
+  }
   rpc ListRoutingRules(ListRoutingRulesRequest) returns (ListRoutingRulesReply) {
     option (google.api.http) = { get: "/v1/routing-rules" };
   }
@@ -408,6 +424,56 @@ message RoutingRule {
   // assign_mailclass is the class applied by a sender_ip rule (match_value is
   // then an IP or CIDR). Empty for other match types, which use target instead.
   string assign_mailclass = 10;
+}
+
+// ---- IP warmup ----
+message WarmupStage {
+  int32 day_from = 1;
+  int32 day_to = 2;
+  map<string, int32> caps = 3; // MBP bucket -> messages/day
+}
+message WarmupSchedule {
+  string id = 1;
+  string vmta_id = 2;
+  string vmta_name = 3;
+  string start_date = 4; // YYYY-MM-DD (day 1 of the ramp)
+  string curve = 5;
+  repeated WarmupStage stages = 6;
+  string status = 7; // scheduled | active | paused | completed
+  string paused_reason = 8;
+  int32 held_day = 9;
+  string created_at = 10;
+  string updated_at = 11;
+}
+message WarmupCurve {
+  string name = 1;
+  repeated WarmupStage stages = 2;
+}
+message ListWarmupSchedulesRequest {
+  PageRequest page = 1;
+  string status = 2;
+}
+message ListWarmupSchedulesReply {
+  repeated WarmupSchedule items = 1;
+  PageReply page = 2;
+  repeated WarmupCurve curves = 3; // built-in templates for the editor
+}
+message CreateWarmupScheduleRequest {
+  string vmta_id = 1;
+  string start_date = 2; // YYYY-MM-DD
+  string curve = 3;
+}
+message UpdateWarmupScheduleRequest {
+  string id = 1;
+  string start_date = 2;
+  string curve = 3;
+}
+message PauseWarmupScheduleRequest {
+  string id = 1;
+  string reason = 2;
+}
+message ResumeWarmupScheduleRequest {
+  string id = 1;
 }
 
 message ListVMTAsRequest {

@@ -28,6 +28,11 @@ const (
 	IrisAdminService_ListVMTAGroups_FullMethodName         = "/iris.admin.v1.IrisAdminService/ListVMTAGroups"
 	IrisAdminService_CreateVMTAGroups_FullMethodName       = "/iris.admin.v1.IrisAdminService/CreateVMTAGroups"
 	IrisAdminService_UpdateVMTAGroup_FullMethodName        = "/iris.admin.v1.IrisAdminService/UpdateVMTAGroup"
+	IrisAdminService_ListWarmupSchedules_FullMethodName    = "/iris.admin.v1.IrisAdminService/ListWarmupSchedules"
+	IrisAdminService_CreateWarmupSchedule_FullMethodName   = "/iris.admin.v1.IrisAdminService/CreateWarmupSchedule"
+	IrisAdminService_UpdateWarmupSchedule_FullMethodName   = "/iris.admin.v1.IrisAdminService/UpdateWarmupSchedule"
+	IrisAdminService_PauseWarmupSchedule_FullMethodName    = "/iris.admin.v1.IrisAdminService/PauseWarmupSchedule"
+	IrisAdminService_ResumeWarmupSchedule_FullMethodName   = "/iris.admin.v1.IrisAdminService/ResumeWarmupSchedule"
 	IrisAdminService_ListRoutingRules_FullMethodName       = "/iris.admin.v1.IrisAdminService/ListRoutingRules"
 	IrisAdminService_CreateRoutingRule_FullMethodName      = "/iris.admin.v1.IrisAdminService/CreateRoutingRule"
 	IrisAdminService_UpdateRoutingRule_FullMethodName      = "/iris.admin.v1.IrisAdminService/UpdateRoutingRule"
@@ -112,6 +117,12 @@ type IrisAdminServiceClient interface {
 	ListVMTAGroups(ctx context.Context, in *ListVMTAGroupsRequest, opts ...grpc.CallOption) (*ListVMTAGroupsReply, error)
 	CreateVMTAGroups(ctx context.Context, in *CreateVMTAGroupRequest, opts ...grpc.CallOption) (*VMTAGroup, error)
 	UpdateVMTAGroup(ctx context.Context, in *UpdateVMTAGroupRequest, opts ...grpc.CallOption) (*VMTAGroup, error)
+	// IP warmup: ramp a VMTA's volume per receiving-domain family over a curve.
+	ListWarmupSchedules(ctx context.Context, in *ListWarmupSchedulesRequest, opts ...grpc.CallOption) (*ListWarmupSchedulesReply, error)
+	CreateWarmupSchedule(ctx context.Context, in *CreateWarmupScheduleRequest, opts ...grpc.CallOption) (*WarmupSchedule, error)
+	UpdateWarmupSchedule(ctx context.Context, in *UpdateWarmupScheduleRequest, opts ...grpc.CallOption) (*WarmupSchedule, error)
+	PauseWarmupSchedule(ctx context.Context, in *PauseWarmupScheduleRequest, opts ...grpc.CallOption) (*WarmupSchedule, error)
+	ResumeWarmupSchedule(ctx context.Context, in *ResumeWarmupScheduleRequest, opts ...grpc.CallOption) (*WarmupSchedule, error)
 	ListRoutingRules(ctx context.Context, in *ListRoutingRulesRequest, opts ...grpc.CallOption) (*ListRoutingRulesReply, error)
 	CreateRoutingRule(ctx context.Context, in *CreateRoutingRuleRequest, opts ...grpc.CallOption) (*RoutingRule, error)
 	UpdateRoutingRule(ctx context.Context, in *UpdateRoutingRuleRequest, opts ...grpc.CallOption) (*RoutingRule, error)
@@ -326,6 +337,56 @@ func (c *irisAdminServiceClient) UpdateVMTAGroup(ctx context.Context, in *Update
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(VMTAGroup)
 	err := c.cc.Invoke(ctx, IrisAdminService_UpdateVMTAGroup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ListWarmupSchedules(ctx context.Context, in *ListWarmupSchedulesRequest, opts ...grpc.CallOption) (*ListWarmupSchedulesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListWarmupSchedulesReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListWarmupSchedules_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) CreateWarmupSchedule(ctx context.Context, in *CreateWarmupScheduleRequest, opts ...grpc.CallOption) (*WarmupSchedule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WarmupSchedule)
+	err := c.cc.Invoke(ctx, IrisAdminService_CreateWarmupSchedule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) UpdateWarmupSchedule(ctx context.Context, in *UpdateWarmupScheduleRequest, opts ...grpc.CallOption) (*WarmupSchedule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WarmupSchedule)
+	err := c.cc.Invoke(ctx, IrisAdminService_UpdateWarmupSchedule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) PauseWarmupSchedule(ctx context.Context, in *PauseWarmupScheduleRequest, opts ...grpc.CallOption) (*WarmupSchedule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WarmupSchedule)
+	err := c.cc.Invoke(ctx, IrisAdminService_PauseWarmupSchedule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ResumeWarmupSchedule(ctx context.Context, in *ResumeWarmupScheduleRequest, opts ...grpc.CallOption) (*WarmupSchedule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WarmupSchedule)
+	err := c.cc.Invoke(ctx, IrisAdminService_ResumeWarmupSchedule_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1017,6 +1078,12 @@ type IrisAdminServiceServer interface {
 	ListVMTAGroups(context.Context, *ListVMTAGroupsRequest) (*ListVMTAGroupsReply, error)
 	CreateVMTAGroups(context.Context, *CreateVMTAGroupRequest) (*VMTAGroup, error)
 	UpdateVMTAGroup(context.Context, *UpdateVMTAGroupRequest) (*VMTAGroup, error)
+	// IP warmup: ramp a VMTA's volume per receiving-domain family over a curve.
+	ListWarmupSchedules(context.Context, *ListWarmupSchedulesRequest) (*ListWarmupSchedulesReply, error)
+	CreateWarmupSchedule(context.Context, *CreateWarmupScheduleRequest) (*WarmupSchedule, error)
+	UpdateWarmupSchedule(context.Context, *UpdateWarmupScheduleRequest) (*WarmupSchedule, error)
+	PauseWarmupSchedule(context.Context, *PauseWarmupScheduleRequest) (*WarmupSchedule, error)
+	ResumeWarmupSchedule(context.Context, *ResumeWarmupScheduleRequest) (*WarmupSchedule, error)
 	ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesReply, error)
 	CreateRoutingRule(context.Context, *CreateRoutingRuleRequest) (*RoutingRule, error)
 	UpdateRoutingRule(context.Context, *UpdateRoutingRuleRequest) (*RoutingRule, error)
@@ -1173,6 +1240,21 @@ func (UnimplementedIrisAdminServiceServer) CreateVMTAGroups(context.Context, *Cr
 }
 func (UnimplementedIrisAdminServiceServer) UpdateVMTAGroup(context.Context, *UpdateVMTAGroupRequest) (*VMTAGroup, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateVMTAGroup not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListWarmupSchedules(context.Context, *ListWarmupSchedulesRequest) (*ListWarmupSchedulesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListWarmupSchedules not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) CreateWarmupSchedule(context.Context, *CreateWarmupScheduleRequest) (*WarmupSchedule, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateWarmupSchedule not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) UpdateWarmupSchedule(context.Context, *UpdateWarmupScheduleRequest) (*WarmupSchedule, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateWarmupSchedule not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) PauseWarmupSchedule(context.Context, *PauseWarmupScheduleRequest) (*WarmupSchedule, error) {
+	return nil, status.Error(codes.Unimplemented, "method PauseWarmupSchedule not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ResumeWarmupSchedule(context.Context, *ResumeWarmupScheduleRequest) (*WarmupSchedule, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResumeWarmupSchedule not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRoutingRules not implemented")
@@ -1554,6 +1636,96 @@ func _IrisAdminService_UpdateVMTAGroup_Handler(srv interface{}, ctx context.Cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IrisAdminServiceServer).UpdateVMTAGroup(ctx, req.(*UpdateVMTAGroupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListWarmupSchedules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListWarmupSchedulesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListWarmupSchedules(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListWarmupSchedules_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListWarmupSchedules(ctx, req.(*ListWarmupSchedulesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_CreateWarmupSchedule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateWarmupScheduleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).CreateWarmupSchedule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_CreateWarmupSchedule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).CreateWarmupSchedule(ctx, req.(*CreateWarmupScheduleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_UpdateWarmupSchedule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateWarmupScheduleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).UpdateWarmupSchedule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_UpdateWarmupSchedule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).UpdateWarmupSchedule(ctx, req.(*UpdateWarmupScheduleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_PauseWarmupSchedule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PauseWarmupScheduleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).PauseWarmupSchedule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_PauseWarmupSchedule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).PauseWarmupSchedule(ctx, req.(*PauseWarmupScheduleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ResumeWarmupSchedule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResumeWarmupScheduleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ResumeWarmupSchedule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ResumeWarmupSchedule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ResumeWarmupSchedule(ctx, req.(*ResumeWarmupScheduleRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2806,6 +2978,26 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateVMTAGroup",
 			Handler:    _IrisAdminService_UpdateVMTAGroup_Handler,
+		},
+		{
+			MethodName: "ListWarmupSchedules",
+			Handler:    _IrisAdminService_ListWarmupSchedules_Handler,
+		},
+		{
+			MethodName: "CreateWarmupSchedule",
+			Handler:    _IrisAdminService_CreateWarmupSchedule_Handler,
+		},
+		{
+			MethodName: "UpdateWarmupSchedule",
+			Handler:    _IrisAdminService_UpdateWarmupSchedule_Handler,
+		},
+		{
+			MethodName: "PauseWarmupSchedule",
+			Handler:    _IrisAdminService_PauseWarmupSchedule_Handler,
+		},
+		{
+			MethodName: "ResumeWarmupSchedule",
+			Handler:    _IrisAdminService_ResumeWarmupSchedule_Handler,
 		},
 		{
 			MethodName: "ListRoutingRules",

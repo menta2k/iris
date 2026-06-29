@@ -60,6 +60,12 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/outbound/RoutingRulesPage.vue'),
         meta: { permission: 'outbound:read', title: 'Routing Rules' },
       },
+      {
+        path: 'outbound/warmup',
+        name: 'warmup',
+        component: () => import('@/pages/outbound/WarmupPage.vue'),
+        meta: { permission: 'outbound:read', title: 'IP Warmup' },
+      },
 
       // Operations
       {

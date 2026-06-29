@@ -95,6 +95,55 @@ export interface UpdateVMTARequest {
   notes: string
 }
 
+// ---- IP warmup ----
+export type WarmupStatus = 'scheduled' | 'active' | 'paused' | 'completed'
+
+export interface WarmupStage {
+  dayFrom: number
+  dayTo: number
+  caps: Record<string, number> // MBP bucket -> messages/day
+}
+
+export interface WarmupSchedule {
+  id: string
+  vmtaId: string
+  vmtaName: string
+  startDate: string // YYYY-MM-DD
+  curve: string
+  stages: WarmupStage[]
+  status: WarmupStatus
+  pausedReason?: string
+  heldDay?: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface WarmupCurve {
+  name: string
+  stages: WarmupStage[]
+}
+
+export interface WarmupListResponse {
+  items?: WarmupSchedule[]
+  curves?: WarmupCurve[]
+  page?: { nextPageToken?: string }
+}
+
+export interface CreateWarmupScheduleRequest {
+  vmta_id: string
+  start_date: string
+  curve: string
+}
+
+export interface UpdateWarmupScheduleRequest {
+  start_date: string
+  curve: string
+}
+
+export interface PauseWarmupScheduleRequest {
+  reason: string
+}
+
 // Response member shape (camelCase).
 export interface VMTAGroupMember {
   vmtaId: string

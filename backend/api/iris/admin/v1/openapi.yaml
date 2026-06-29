@@ -1535,6 +1535,122 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/VMTA'
+    /v1/warmup-schedules:
+        get:
+            tags:
+                - IrisAdminService
+            description: 'IP warmup: ramp a VMTA''s volume per receiving-domain family over a curve.'
+            operationId: IrisAdminService_ListWarmupSchedules
+            parameters:
+                - name: page.page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page.page_token
+                  in: query
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListWarmupSchedulesReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateWarmupSchedule
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateWarmupScheduleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/WarmupSchedule'
+    /v1/warmup-schedules/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateWarmupSchedule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateWarmupScheduleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/WarmupSchedule'
+    /v1/warmup-schedules/{id}:pause:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_PauseWarmupSchedule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/PauseWarmupScheduleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/WarmupSchedule'
+    /v1/warmup-schedules/{id}:resume:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ResumeWarmupSchedule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ResumeWarmupScheduleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/WarmupSchedule'
     /v1/worker-error-logs:
         get:
             tags:
@@ -1896,6 +2012,15 @@ components:
                 ip_address:
                     type: string
                 ehlo_name:
+                    type: string
+        CreateWarmupScheduleRequest:
+            type: object
+            properties:
+                vmta_id:
+                    type: string
+                start_date:
+                    type: string
+                curve:
                     type: string
         CurrentUserReply:
             type: object
@@ -2514,6 +2639,19 @@ components:
                         $ref: '#/components/schemas/VMTA'
                 page:
                     $ref: '#/components/schemas/PageReply'
+        ListWarmupSchedulesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/WarmupSchedule'
+                page:
+                    $ref: '#/components/schemas/PageReply'
+                curves:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/WarmupCurve'
         ListWorkerErrorLogsReply:
             type: object
             properties:
@@ -2675,6 +2813,13 @@ components:
             properties:
                 next_page_token:
                     type: string
+        PauseWarmupScheduleRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                reason:
+                    type: string
         Queue:
             type: object
             properties:
@@ -2775,6 +2920,11 @@ components:
                 password:
                     type: string
                     description: New password; strength-validated server-side (>= 12 chars) and bcrypt-hashed.
+        ResumeWarmupScheduleRequest:
+            type: object
+            properties:
+                id:
+                    type: string
         RetentionPolicy:
             type: object
             properties:
@@ -3223,6 +3373,15 @@ components:
                     type: string
                 ehlo_name:
                     type: string
+        UpdateWarmupScheduleRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                start_date:
+                    type: string
+                curve:
+                    type: string
         User:
             type: object
             properties:
@@ -3293,6 +3452,58 @@ components:
             properties:
                 code:
                     type: string
+        WarmupCurve:
+            type: object
+            properties:
+                name:
+                    type: string
+                stages:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/WarmupStage'
+        WarmupSchedule:
+            type: object
+            properties:
+                id:
+                    type: string
+                vmta_id:
+                    type: string
+                vmta_name:
+                    type: string
+                start_date:
+                    type: string
+                curve:
+                    type: string
+                stages:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/WarmupStage'
+                status:
+                    type: string
+                paused_reason:
+                    type: string
+                held_day:
+                    type: integer
+                    format: int32
+                created_at:
+                    type: string
+                updated_at:
+                    type: string
+        WarmupStage:
+            type: object
+            properties:
+                day_from:
+                    type: integer
+                    format: int32
+                day_to:
+                    type: integer
+                    format: int32
+                caps:
+                    type: object
+                    additionalProperties:
+                        type: integer
+                        format: int32
+            description: '---- IP warmup ----'
         WorkerErrorLog:
             type: object
             properties:
