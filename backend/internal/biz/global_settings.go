@@ -39,6 +39,13 @@ type GlobalSettings struct {
 	AutoSuppressHardBounces bool
 	SoftBounceThreshold     int
 
+	// BounceDomainTemplate, when set, derives an aligned bounce (VERP
+	// return-path) domain per sending domain by substituting "{domain}" — e.g.
+	// "bounce.kumo.{domain}" makes mail from @example.com use @bounce.kumo.example.com.
+	// This aligns SPF with the From-domain so it backs up DKIM for DMARC. Empty
+	// uses the single global BounceDomain for all mail.
+	BounceDomainTemplate string
+
 	// FBLRequireVerification gates FBL auto-suppression on provenance: when true,
 	// a complainant is suppressed only if the report was proven to be about mail
 	// we sent (X-KumoRef trace, send-log, or our DKIM signature). Default false
@@ -137,6 +144,21 @@ func (g *GlobalSettings) Validate() error {
 	g.BounceDomain = SanitizeAddress(g.BounceDomain)
 	if g.BounceDomain != "" && (len(g.BounceDomain) > 253 || !dnsNameRe.MatchString(g.BounceDomain)) {
 		return Invalid("SETTINGS_BOUNCE_DOMAIN_INVALID", "bounce_domain %q is not a valid DNS name", g.BounceDomain)
+	}
+	// Per-sending-domain bounce template (optional). When set it must contain the
+	// {domain} placeholder and, with the placeholder substituted, expand to a
+	// valid DNS name — so every derived per-domain bounce domain is well-formed.
+	g.BounceDomainTemplate = strings.ToLower(strings.TrimSpace(g.BounceDomainTemplate))
+	if g.BounceDomainTemplate != "" {
+		if !strings.Contains(g.BounceDomainTemplate, BounceDomainPlaceholder) {
+			return Invalid("SETTINGS_BOUNCE_TEMPLATE_INVALID",
+				"bounce_domain_template %q must contain the %s placeholder", g.BounceDomainTemplate, BounceDomainPlaceholder)
+		}
+		sample := strings.ReplaceAll(g.BounceDomainTemplate, BounceDomainPlaceholder, "example.com")
+		if len(sample) > 253 || !dnsNameRe.MatchString(sample) {
+			return Invalid("SETTINGS_BOUNCE_TEMPLATE_INVALID",
+				"bounce_domain_template %q does not expand to a valid DNS name", g.BounceDomainTemplate)
+		}
 	}
 	if g.SoftBounceThreshold < 0 || g.SoftBounceThreshold > 1000 {
 		return Invalid("SETTINGS_SOFT_THRESHOLD_RANGE", "soft_bounce_threshold must be between 0 and 1000")

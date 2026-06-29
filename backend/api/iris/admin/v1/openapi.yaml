@@ -2224,6 +2224,14 @@ components:
                     description: |-
                         Deployment-wide Maildir root for inbound maildir routes without their own
                          path (one Maildir per recipient under <base>/<domain>/<local-part>).
+                bounce_domain_template:
+                    type: string
+                    description: |-
+                        Per-sending-domain bounce (VERP return-path) template. When set, the
+                         outbound envelope return-path is derived per From-domain by substituting
+                         "{domain}" (e.g. "bounce.kumo.{domain}" → mail from @example.com uses
+                         @bounce.kumo.example.com), so SPF aligns with the From-domain. Empty uses the
+                         single global bounce_domain for all mail.
             description: Global settings — deployment-level policy knobs an operator edits in the UI.
         InboundRoute:
             type: object
@@ -3050,6 +3058,9 @@ components:
                     type: boolean
                 inbound_maildir_base_path:
                     type: string
+                bounce_domain_template:
+                    type: string
+                    description: Per-sending-domain bounce return-path template (see GlobalSettings).
         UpdateInboundRouteRequest:
             type: object
             properties:

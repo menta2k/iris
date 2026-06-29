@@ -10167,8 +10167,14 @@ type GlobalSettings struct {
 	// Deployment-wide Maildir root for inbound maildir routes without their own
 	// path (one Maildir per recipient under <base>/<domain>/<local-part>).
 	InboundMaildirBasePath string `protobuf:"bytes,25,opt,name=inbound_maildir_base_path,json=inboundMaildirBasePath,proto3" json:"inbound_maildir_base_path,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	// Per-sending-domain bounce (VERP return-path) template. When set, the
+	// outbound envelope return-path is derived per From-domain by substituting
+	// "{domain}" (e.g. "bounce.kumo.{domain}" → mail from @example.com uses
+	// @bounce.kumo.example.com), so SPF aligns with the From-domain. Empty uses the
+	// single global bounce_domain for all mail.
+	BounceDomainTemplate string `protobuf:"bytes,26,opt,name=bounce_domain_template,json=bounceDomainTemplate,proto3" json:"bounce_domain_template,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *GlobalSettings) Reset() {
@@ -10369,6 +10375,13 @@ func (x *GlobalSettings) GetInboundMaildirBasePath() string {
 	return ""
 }
 
+func (x *GlobalSettings) GetBounceDomainTemplate() string {
+	if x != nil {
+		return x.BounceDomainTemplate
+	}
+	return ""
+}
+
 type GetGlobalSettingsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -10429,8 +10442,10 @@ type UpdateGlobalSettingsRequest struct {
 	DmarcReportEmail        string                 `protobuf:"bytes,21,opt,name=dmarc_report_email,json=dmarcReportEmail,proto3" json:"dmarc_report_email,omitempty"`
 	FblRequireVerification  bool                   `protobuf:"varint,22,opt,name=fbl_require_verification,json=fblRequireVerification,proto3" json:"fbl_require_verification,omitempty"`
 	InboundMaildirBasePath  string                 `protobuf:"bytes,23,opt,name=inbound_maildir_base_path,json=inboundMaildirBasePath,proto3" json:"inbound_maildir_base_path,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	// Per-sending-domain bounce return-path template (see GlobalSettings).
+	BounceDomainTemplate string `protobuf:"bytes,24,opt,name=bounce_domain_template,json=bounceDomainTemplate,proto3" json:"bounce_domain_template,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *UpdateGlobalSettingsRequest) Reset() {
@@ -10613,6 +10628,13 @@ func (x *UpdateGlobalSettingsRequest) GetFblRequireVerification() bool {
 func (x *UpdateGlobalSettingsRequest) GetInboundMaildirBasePath() string {
 	if x != nil {
 		return x.InboundMaildirBasePath
+	}
+	return ""
+}
+
+func (x *UpdateGlobalSettingsRequest) GetBounceDomainTemplate() string {
+	if x != nil {
+		return x.BounceDomainTemplate
 	}
 	return ""
 }
@@ -11450,7 +11472,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06series\x18\x01 \x03(\v2\x1c.iris.admin.v1.MetricsSeriesR\x06series\x12\x14\n" +
 	"\x05range\x18\x02 \x01(\tR\x05range\x12!\n" +
 	"\fstep_seconds\x18\x03 \x01(\x03R\vstepSeconds\x121\n" +
-	"\x14prometheus_available\x18\x04 \x01(\bR\x13prometheusAvailable\"\xb8\b\n" +
+	"\x14prometheus_available\x18\x04 \x01(\bR\x13prometheusAvailable\"\xee\b\n" +
 	"\x0eGlobalSettings\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -11481,8 +11503,9 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x0fsuppression_ttl\x18\x16 \x01(\tR\x0esuppressionTtl\x12,\n" +
 	"\x12dmarc_report_email\x18\x17 \x01(\tR\x10dmarcReportEmail\x128\n" +
 	"\x18fbl_require_verification\x18\x18 \x01(\bR\x16fblRequireVerification\x129\n" +
-	"\x19inbound_maildir_base_path\x18\x19 \x01(\tR\x16inboundMaildirBasePathJ\x04\b\r\x10\x0e\"\x1a\n" +
-	"\x18GetGlobalSettingsRequest\"\x87\b\n" +
+	"\x19inbound_maildir_base_path\x18\x19 \x01(\tR\x16inboundMaildirBasePath\x124\n" +
+	"\x16bounce_domain_template\x18\x1a \x01(\tR\x14bounceDomainTemplateJ\x04\b\r\x10\x0e\"\x1a\n" +
+	"\x18GetGlobalSettingsRequest\"\xbd\b\n" +
 	"\x1bUpdateGlobalSettingsRequest\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -11509,7 +11532,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x0fsuppression_ttl\x18\x14 \x01(\tR\x0esuppressionTtl\x12,\n" +
 	"\x12dmarc_report_email\x18\x15 \x01(\tR\x10dmarcReportEmail\x128\n" +
 	"\x18fbl_require_verification\x18\x16 \x01(\bR\x16fblRequireVerification\x129\n" +
-	"\x19inbound_maildir_base_path\x18\x17 \x01(\tR\x16inboundMaildirBasePathJ\x04\b\r\x10\x0e2\xfaG\n" +
+	"\x19inbound_maildir_base_path\x18\x17 \x01(\tR\x16inboundMaildirBasePath\x124\n" +
+	"\x16bounce_domain_template\x18\x18 \x01(\tR\x14bounceDomainTemplateJ\x04\b\r\x10\x0e2\xfaG\n" +
 	"\x10IrisAdminService\x12n\n" +
 	"\rListListeners\x12#.iris.admin.v1.ListListenersRequest\x1a!.iris.admin.v1.ListListenersReply\"\x15\x82\xd3\xe4\x93\x02\x0f\x12\r/v1/listeners\x12i\n" +
 	"\x0eCreateListener\x12$.iris.admin.v1.CreateListenerRequest\x1a\x17.iris.admin.v1.Listener\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/v1/listeners\x12n\n" +

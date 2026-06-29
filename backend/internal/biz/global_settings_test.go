@@ -35,6 +35,12 @@ func TestGlobalSettingsValidate(t *testing.T) {
 	// Bounce/DSN pipeline fields.
 	assertReason(t, (&GlobalSettings{BounceDomain: "bounce.example.com"}).Validate(), "")
 	assertReason(t, (&GlobalSettings{BounceDomain: "not a domain"}).Validate(), "SETTINGS_BOUNCE_DOMAIN_INVALID")
+	// Per-domain bounce template: empty ok, valid pattern ok, missing placeholder
+	// or a pattern that expands to a non-DNS name is rejected.
+	assertReason(t, (&GlobalSettings{BounceDomainTemplate: ""}).Validate(), "")
+	assertReason(t, (&GlobalSettings{BounceDomainTemplate: "bounce.kumo.{domain}"}).Validate(), "")
+	assertReason(t, (&GlobalSettings{BounceDomainTemplate: "bounce.kumo.example.com"}).Validate(), "SETTINGS_BOUNCE_TEMPLATE_INVALID")
+	assertReason(t, (&GlobalSettings{BounceDomainTemplate: "bounce kumo {domain}"}).Validate(), "SETTINGS_BOUNCE_TEMPLATE_INVALID")
 	assertReason(t, (&GlobalSettings{SuppressionTTL: "30d"}).Validate(), "")
 	assertReason(t, (&GlobalSettings{SuppressionTTL: "720h"}).Validate(), "")
 	assertReason(t, (&GlobalSettings{SuppressionTTL: ""}).Validate(), "")
