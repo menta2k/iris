@@ -88,16 +88,26 @@ func (uc *DiagnoseUsecase) Diagnose(ctx context.Context, req DiagnoseRequest) (*
 	out.Items = append(out.Items, diagnoseDKIMSigner(domain, snap.DKIM))
 	out.Items = append(out.Items, checkDKIM(ctx, uc.dns, domain, snap.DKIM)...)
 	out.Items = append(out.Items, checkSPF(ctx, uc.dns, domain, egressIPs))
-	// The configured DMARC report address is a deployment setting (merged via the
-	// settings provider), not part of the raw snapshot — resolve it explicitly.
+	// The DMARC report address and the bounce domain/template are deployment
+	// settings (merged via the settings provider), not part of the raw snapshot —
+	// resolve them so the DMARC-reporting and bounce-domain checks see them.
 	reportAddr := strings.TrimSpace(snap.DMARCReportAddr)
 	if uc.settings != nil {
-		if eff, serr := uc.settings.Effective(ctx); serr == nil && eff.DMARCReportAddr != "" {
-			reportAddr = eff.DMARCReportAddr
+		if eff, serr := uc.settings.Effective(ctx); serr == nil {
+			if eff.DMARCReportAddr != "" {
+				reportAddr = eff.DMARCReportAddr
+			}
+			if eff.BounceDomain != "" {
+				snap.BounceDomain = eff.BounceDomain
+			}
+			if eff.BounceDomainTemplate != "" {
+				snap.BounceDomainTemplate = eff.BounceDomainTemplate
+			}
 		}
 	}
 	out.Items = append(out.Items, checkDMARC(ctx, uc.dns, domain))
 	out.Items = append(out.Items, diagnoseDMARCReporting(ctx, uc.dns, domain, reportAddr))
+	out.Items = append(out.Items, diagnoseBounceDomain(ctx, uc.dns, domain, snap, egressIPs, listenerIPs)...)
 	out.Items = append(out.Items, checkMX(ctx, uc.dns, domain, listenerIPs))
 	out.Items = append(out.Items, diagnoseFBL(domain, snap.FBLEndpoints))
 	out.Items = append(out.Items, diagnoseHosted(domain, snap.hostedDomains()))
@@ -133,6 +143,53 @@ func diagnoseDKIMSigner(domain string, dkims []*DKIMDomain) CheckItem {
 		item.Detail = "No DKIM signer is configured in Iris for this domain — mail from it will not be DKIM-signed."
 	}
 	return item
+}
+
+// effectiveBounceDomain mirrors the rendered policy's iris_bounce_domain: a
+// per-From-domain template entry (template set AND the From-domain is a
+// configured sending/DKIM domain) wins; otherwise the global bounce domain is
+// used. Returns the resolved domain and a human label for where it came from.
+func effectiveBounceDomain(snap ConfigSnapshot, fromDomain string) (domain, source string) {
+	if bd, ok := bounceDomainsByFrom(snap)[strings.ToLower(strings.TrimSpace(fromDomain))]; ok && bd != "" {
+		return bd, "per-domain template"
+	}
+	return strings.TrimSpace(snap.BounceDomain), "global bounce domain"
+}
+
+// diagnoseBounceDomain reports whether the bounce (VERP return-path) domain for
+// this From-domain is set up so async DSNs return to this deployment AND SPF
+// aligns with the From-domain (so SPF backs up DKIM for DMARC). It resolves the
+// effective bounce domain the same way the policy does, then checks its MX
+// (bounces land here) and SPF (egress IPs authorized) and reports alignment.
+func diagnoseBounceDomain(ctx context.Context, dns DNSResolver, fromDomain string, snap ConfigSnapshot, egressIPs []string, listenerIPs map[string]struct{}) []CheckItem {
+	bounceDomain, source := effectiveBounceDomain(snap, fromDomain)
+
+	rp := CheckItem{Name: "Bounce return-path"}
+	if bounceDomain == "" {
+		rp.Status = CheckWarn
+		rp.Detail = "No bounce domain is configured (global bounce domain is empty and no per-domain template matched this domain) — VERP is off, so async bounces aren't correlated to recipients."
+		return []CheckItem{rp}
+	}
+	rp.Records = []string{bounceDomain}
+	// Relaxed DMARC SPF alignment: the bounce (envelope MAIL FROM) domain must
+	// share the From-domain's organizational domain. The template yields
+	// <prefix>.<from-domain>, which is a subdomain of it, so a suffix match
+	// approximates relaxed alignment well for the derived domains.
+	aligned := bounceDomain == fromDomain || strings.HasSuffix(bounceDomain, "."+fromDomain)
+	if aligned {
+		rp.Status = CheckPass
+		rp.Detail = "Return-path is " + bounceDomain + " (" + source + "), which aligns with the From-domain — SPF can back up DKIM for DMARC."
+	} else {
+		rp.Status = CheckWarn
+		rp.Detail = "Return-path is " + bounceDomain + " (" + source + "), which does NOT align with " + fromDomain +
+			" — SPF won't count toward DMARC, so DMARC rests entirely on DKIM. Set a bounce domain template like bounce.kumo.{domain} (and DNS) to align it."
+	}
+
+	mx := checkMX(ctx, dns, bounceDomain, listenerIPs)
+	mx.Name = "Bounce MX (" + bounceDomain + ")"
+	spf := checkSPF(ctx, dns, bounceDomain, egressIPs)
+	spf.Name = "Bounce SPF (" + bounceDomain + ")"
+	return []CheckItem{rp, mx, spf}
 }
 
 // diagnoseFBL reports whether a feedback loop is configured for the domain.
