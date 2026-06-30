@@ -27,6 +27,10 @@ func TestGeneratedPolicyLoadsInKumod(t *testing.T) {
 	requireDocker(t)
 
 	snap := representativeSnapshot()
+	// The policy loads its shaping sidecar files from ShapingDir; point it at the
+	// container mount path so kumod can find the iris-base/iris-warmup TOML we
+	// write alongside the policy below.
+	snap.ShapingDir = "/policy"
 	r, err := biz.RenderKumoConfig(snap)
 	if err != nil {
 		t.Fatalf("render: %v", err)
@@ -49,6 +53,17 @@ func TestGeneratedPolicyLoadsInKumod(t *testing.T) {
 	policyPath := filepath.Join(dir, "iris_generated.lua")
 	if err := os.WriteFile(policyPath, []byte(r.Content), 0o644); err != nil {
 		t.Fatalf("write policy: %v", err)
+	}
+	// The policy's shaping helper loads these sidecar files from ShapingDir
+	// (/policy in the container); they must exist or kumod fails to load.
+	for name, body := range map[string]string{
+		"iris-base.toml":       r.ShapingBase,
+		"iris-warmup.toml":     r.ShapingWarmup,
+		"iris-automation.toml": r.ShapingAutomation,
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+			t.Fatalf("write %s: %v", name, err)
+		}
 	}
 
 	// `docker run` auto-pulls the image on first use, so allow generous time.

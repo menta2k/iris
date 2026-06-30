@@ -83,6 +83,11 @@ func startRig(t *testing.T, snap biz.ConfigSnapshot, extraFiles ...map[string]st
 	r.redisIP = containerIP(t, "iris-redis")
 	waitHTTP(t, "http://127.0.0.1:"+sinkCtrlPort+"/healthz")
 
+	// The generated policy loads its shaping sidecar files (iris-base/iris-warmup/
+	// iris-automation TOML) from ShapingDir; pin it to the container mount path so
+	// kumod finds the copies we write into the policy dir below.
+	snap.ShapingDir = "/policy"
+
 	// Render the iris policy and wrap it in the resolver shim.
 	rendered, err := biz.RenderKumoConfig(snap)
 	if err != nil {
@@ -92,8 +97,11 @@ func startRig(t *testing.T, snap biz.ConfigSnapshot, extraFiles ...map[string]st
 		t.Fatalf("snapshot policy failed lint: %v", rendered.LintIssues)
 	}
 	files := map[string]string{
-		"iris_generated.lua": rendered.Content,
-		"init.lua":           r.shim(),
+		"iris_generated.lua":   rendered.Content,
+		"init.lua":             r.shim(),
+		"iris-base.toml":       rendered.ShapingBase,
+		"iris-warmup.toml":     rendered.ShapingWarmup,
+		"iris-automation.toml": rendered.ShapingAutomation,
 	}
 	for _, m := range extraFiles {
 		for k, v := range m {
