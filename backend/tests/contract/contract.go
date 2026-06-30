@@ -75,9 +75,11 @@ func newService(t *testing.T) *service.Service {
 		FBL:           biz.NewFBLUsecase(data.NewFBLRepo(db), auditor),
 		Dashboard:     biz.NewDashboardUsecase(data.NewDashboardRepo(db)),
 		KumoConfig: biz.NewKumoConfigUsecase(
-			data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, data.NewInboundRepo(db), data.NewInboundRouteRepo(db), data.NewFBLRepo(db)), biz.NewStubKumoMTA(), mailOpsRepo, auditor,
+			data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, data.NewInboundRepo(db), data.NewInboundRouteRepo(db), data.NewFBLRepo(db), data.NewWarmupRepo(db), data.NewBlueprintRepo(db)), biz.NewStubKumoMTA(), mailOpsRepo, auditor,
 			settingsUC),
-		Settings: settingsUC,
+		Settings:   settingsUC,
+		Warmup:     biz.NewWarmupUsecase(data.NewWarmupRepo(db), outboundRepo, auditor),
+		Blueprints: biz.NewBlueprintUsecase(data.NewBlueprintRepo(db), auditor),
 	})
 }
 

@@ -1,6 +1,7 @@
 package biz
 
 import (
+	"net"
 	"testing"
 )
 
@@ -65,6 +66,51 @@ func TestDiagnoseItemsAndRouting(t *testing.T) {
 	}
 	if len(r.Listeners) != 1 || r.Listeners[0] != "edge" {
 		t.Fatalf("listeners: %+v", r.Listeners)
+	}
+}
+
+func TestDiagnoseBounceDomain(t *testing.T) {
+	// Template-derived, aligned bounce domain with MX → listener and SPF → egress.
+	snap := diagnoseSnap()
+	snap.BounceDomain = "bounce.kumo.fallback.net" // global fallback (misaligned)
+	snap.BounceDomainTemplate = "bounce.kumo.{domain}"
+	snap.LogStreamRedisURL = "redis://r:6379"
+
+	dns := fakeResolver{
+		mx:   map[string][]*net.MX{"bounce.kumo.example.com": {{Host: "edge.example.net.", Pref: 10}}},
+		host: map[string][]string{"edge.example.net": {"203.0.113.5"}}, // checkMX strips the MX trailing dot; == listener IP
+		txt:  map[string][]string{"bounce.kumo.example.com": {"v=spf1 ip4:198.51.100.7 -all"}},
+	}
+	uc := NewDiagnoseUsecase(fakeLoader{snap: snap}, dns, nil)
+	res, err := uc.Diagnose(ownerCheckCtx(), DiagnoseRequest{FromEmail: "news@example.com"})
+	if err != nil {
+		t.Fatalf("diagnose: %v", err)
+	}
+	// Return-path is the per-domain template value and aligns with example.com.
+	rp := itemByName(res.Items, "Bounce return-path")
+	if rp == nil || rp.Status != CheckPass {
+		t.Fatalf("bounce return-path: want pass, got %+v", rp)
+	}
+	if len(rp.Records) != 1 || rp.Records[0] != "bounce.kumo.example.com" {
+		t.Fatalf("bounce return-path domain: %+v", rp.Records)
+	}
+	if mx := itemByName(res.Items, "Bounce MX (bounce.kumo.example.com)"); mx == nil || mx.Status != CheckPass {
+		t.Fatalf("bounce MX: want pass, got %+v", mx)
+	}
+	if spf := itemByName(res.Items, "Bounce SPF (bounce.kumo.example.com)"); spf == nil || spf.Status != CheckPass {
+		t.Fatalf("bounce SPF: want pass, got %+v", spf)
+	}
+
+	// No template and a misaligned global bounce domain → warn (DMARC on DKIM only).
+	snap2 := diagnoseSnap()
+	snap2.BounceDomain = "bounce.kumo.fallback.net"
+	uc2 := NewDiagnoseUsecase(fakeLoader{snap: snap2}, fakeResolver{}, nil)
+	res2, err := uc2.Diagnose(ownerCheckCtx(), DiagnoseRequest{FromEmail: "news@example.com"})
+	if err != nil {
+		t.Fatalf("diagnose2: %v", err)
+	}
+	if rp := itemByName(res2.Items, "Bounce return-path"); rp == nil || rp.Status != CheckWarn {
+		t.Fatalf("misaligned bounce return-path: want warn, got %+v", rp)
 	}
 }
 

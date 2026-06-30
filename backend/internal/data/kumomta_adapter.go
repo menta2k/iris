@@ -86,8 +86,20 @@ func (k *FileKumoMTA) ApplyConfig(ctx context.Context, rendered biz.RenderedConf
 	if path == "" {
 		return "", "", biz.FailedPrecondition("KUMO_CONFIG_PATH_UNSET", "kumomta config_path is not configured")
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", "", biz.Internal(err, "create config directory")
+	}
+	// Write the shaping sidecar files (loaded by the policy via kumo.shaping.load
+	// when the shaping cutover is enabled) BEFORE the policy, so they exist when
+	// kumod reloads/loads the policy. Harmless when the cutover is disabled.
+	for name, body := range map[string]string{
+		"iris-base.toml":   rendered.ShapingBase,
+		"iris-warmup.toml": rendered.ShapingWarmup,
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o640); err != nil {
+			return "", "", biz.Internal(err, "write shaping %s", name)
+		}
 	}
 	// Write atomically: write to a temp file in the same dir then rename.
 	tmp := path + ".tmp"

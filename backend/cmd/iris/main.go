@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -181,6 +182,13 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		// no secret) disables VERP.
 		BounceVerpSecret: verpKey,
 	}
+	// IP-warmup/blueprints shaping cutover is opt-in: when IRIS_SHAPING_ENABLE=true
+	// the policy loads the iris-base.toml + iris-warmup.toml the apply adapter
+	// writes next to the policy (same directory), and delivery limits come from
+	// KumoMTA's shaping helper. Unset = legacy hand-rolled egress path.
+	if envOr("IRIS_SHAPING_ENABLE", "") == "true" && cfg.KumoMTA.ConfigPath != "" {
+		settingsDefaults.ShapingDir = filepath.Dir(cfg.KumoMTA.ConfigPath)
+	}
 	settingsRepo := data.NewGlobalSettingsRepo(db)
 	settingsUC := biz.NewGlobalSettingsUsecase(settingsRepo, auditor, settingsDefaults)
 	// Suppression list lives in Redis (write-through cache + per-entry TTL); the
@@ -201,8 +209,12 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	inboundRepo := data.NewInboundRepo(db)
 	inboundRouteRepo := data.NewInboundRouteRepo(db)
 	fblRepo := data.NewFBLRepo(db)
+	warmupRepo := data.NewWarmupRepo(db)
+	warmupUC := biz.NewWarmupUsecase(warmupRepo, outboundRepo, auditor)
+	blueprintRepo := data.NewBlueprintRepo(db)
+	blueprintUC := biz.NewBlueprintUsecase(blueprintRepo, auditor)
 
-	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo, inboundRouteRepo, fblRepo)
+	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo, inboundRouteRepo, fblRepo, warmupRepo, blueprintRepo)
 	kumoConfigUC := biz.NewKumoConfigUsecase(kumoSnapshotRepo, kumo, mailOpsRepo, auditor, settingsUC)
 	// Domain bounce-readiness checker (MX/SPF/DKIM via live DNS).
 	domainCheckUC := biz.NewDomainCheckUsecase(kumoSnapshotRepo, nil)
@@ -286,6 +298,8 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		DMARC:         dmarcUC,
 		WorkerErrors:  workerErrorUC,
 		Retention:     retentionUC,
+		Warmup:        warmupUC,
+		Blueprints:    blueprintUC,
 	}
 
 	svc := service.NewService(deps)
@@ -322,6 +336,9 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// Mail-log retention: drop/compress old TimescaleDB chunks on a daily cadence
 	// and on demand. Safe no-op on plain PostgreSQL (no hypertables).
 	startWorker(ctx, log, "retention", worker.NewRetentionWorker(streams, retentionRepo, envDuration("IRIS_RETENTION_INTERVAL", 24*time.Hour), wlog("retention")).Run)
+
+	// IP warmup: advance schedules and apply the policy when the per-day caps step.
+	startWorker(ctx, log, "warmup", worker.NewWarmupWorker(warmupUC, kumoConfigUC, envDuration("IRIS_WARMUP_INTERVAL", time.Hour), wlog("warmup")).Run)
 
 	authMW := service.AuthMiddleware(cfg.Auth, authUC)
 	checks := []server.ReadinessChecker{db, streams}

@@ -1,0 +1,270 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import DataState from '@/components/common/DataState.vue'
+import { Card, CardContent } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { StatusBadge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
+import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { useToast } from '@/composables/useToast'
+import { warmupService, outboundConfigService } from '@/services'
+import { ApiError } from '@/services/http'
+import type { VMTA, WarmupCurve, WarmupSchedule, WarmupStage } from '@/types'
+
+const { toast } = useToast()
+
+const BUCKETS = ['gmail', 'microsoft', 'yahoo', 'default'] as const
+
+const items = ref<WarmupSchedule[]>([])
+const curves = ref<WarmupCurve[]>([])
+const vmtas = ref<VMTA[]>([])
+const loading = ref(false)
+const error = ref<string | null>(null)
+const notImplemented = ref(false)
+
+const dialogOpen = ref(false)
+const saving = ref(false)
+const mode = ref<'create' | 'edit'>('create')
+const editId = ref<string | null>(null)
+const form = ref({ vmta_id: '', curve: 'standard', start_date: todayISO() })
+
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+const curveNames = computed(() => curves.value.map((c) => c.name))
+const isEdit = computed(() => mode.value === 'edit')
+
+async function load() {
+  loading.value = true
+  error.value = null
+  notImplemented.value = false
+  try {
+    const res = await warmupService.list()
+    items.value = res.items ?? []
+    curves.value = res.curves ?? []
+  } catch (err) {
+    if (err instanceof ApiError && err.notImplemented) notImplemented.value = true
+    else if (err instanceof ApiError && err.status === 0)
+      error.value = 'Cannot reach the backend. Is the API server running?'
+    else error.value = err instanceof Error ? err.message : 'Failed to load warmup schedules.'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadVmtas() {
+  try {
+    const res = await outboundConfigService.listVmtas('active')
+    vmtas.value = res.items ?? []
+  } catch {
+    vmtas.value = []
+  }
+}
+
+async function openCreate() {
+  mode.value = 'create'
+  editId.value = null
+  form.value = { vmta_id: '', curve: curveNames.value[0] ?? 'standard', start_date: todayISO() }
+  dialogOpen.value = true
+  await loadVmtas()
+}
+
+function openEdit(w: WarmupSchedule) {
+  mode.value = 'edit'
+  editId.value = w.id
+  form.value = { vmta_id: w.vmtaId, curve: w.curve, start_date: w.startDate }
+  dialogOpen.value = true
+}
+
+async function submit() {
+  if (!form.value.curve || (!isEdit.value && !form.value.vmta_id)) return
+  saving.value = true
+  try {
+    if (isEdit.value && editId.value) {
+      await warmupService.update(editId.value, {
+        start_date: form.value.start_date,
+        curve: form.value.curve,
+      })
+      toast({ title: 'Warmup updated', variant: 'success' })
+    } else {
+      await warmupService.create({
+        vmta_id: form.value.vmta_id,
+        start_date: form.value.start_date,
+        curve: form.value.curve,
+      })
+      toast({ title: 'Warmup scheduled', variant: 'success' })
+    }
+    dialogOpen.value = false
+    await load()
+  } catch (err) {
+    const msg = err instanceof ApiError ? err.message : 'Failed to save warmup.'
+    toast({ title: 'Save failed', description: msg, variant: 'destructive' })
+  } finally {
+    saving.value = false
+  }
+}
+
+async function pause(w: WarmupSchedule) {
+  await act(() => warmupService.pause(w.id, { reason: 'paused by operator' }), 'Warmup paused')
+}
+async function resume(w: WarmupSchedule) {
+  await act(() => warmupService.resume(w.id), 'Warmup resumed')
+}
+async function act(fn: () => Promise<unknown>, ok: string) {
+  try {
+    await fn()
+    toast({ title: ok, variant: 'success' })
+    await load()
+  } catch (err) {
+    const msg = err instanceof ApiError ? err.message : 'Action failed.'
+    toast({ title: 'Action failed', description: msg, variant: 'destructive' })
+  }
+}
+
+// ---- client-side ramp math (mirrors the backend for display only) ----
+function durationOf(w: WarmupSchedule): number {
+  return w.stages.reduce((m, s) => Math.max(m, s.dayTo), 0)
+}
+function currentDay(w: WarmupSchedule): number {
+  if (w.status === 'paused' && w.heldDay) return w.heldDay
+  const start = new Date(w.startDate + 'T00:00:00Z').getTime()
+  const today = new Date(todayISO() + 'T00:00:00Z').getTime()
+  return Math.floor((today - start) / 86_400_000) + 1
+}
+function stageForDay(w: WarmupSchedule, day: number): WarmupStage | undefined {
+  return w.stages.find((s) => day >= s.dayFrom && day <= s.dayTo)
+}
+function capsToday(w: WarmupSchedule): string {
+  const day = currentDay(w)
+  const s = stageForDay(w, day)
+  if (!s || w.status === 'completed') return 'no cap'
+  return BUCKETS.map((b) => `${b[0].toUpperCase()}:${(s.caps[b] || s.caps.default || 0).toLocaleString()}`).join('  ')
+}
+function progress(w: WarmupSchedule): string {
+  const dur = durationOf(w)
+  if (w.status === 'completed') return `done (${dur}d)`
+  if (w.status === 'scheduled') return `starts ${w.startDate}`
+  const day = Math.min(Math.max(currentDay(w), 1), dur)
+  return `day ${day} / ${dur}`
+}
+
+load()
+</script>
+
+<template>
+  <div>
+    <PageHeader
+      title="IP Warmup"
+      description="Ramp a VMTA's outbound volume per mailbox provider over a curve to build sender reputation."
+    >
+      <template #actions>
+        <Button data-testid="create-warmup" @click="openCreate">New warmup</Button>
+      </template>
+    </PageHeader>
+
+    <DataState
+      :loading="loading"
+      :error="error"
+      :not-implemented="notImplemented"
+      :empty="items.length === 0"
+      empty-message="No warmup schedules yet."
+    >
+      <Card>
+        <CardContent class="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>VMTA</TableHead>
+                <TableHead>Curve</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Progress</TableHead>
+                <TableHead>Today's caps (per day)</TableHead>
+                <TableHead class="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow v-for="w in items" :key="w.id">
+                <TableCell class="font-medium">{{ w.vmtaName }}</TableCell>
+                <TableCell>{{ w.curve }}</TableCell>
+                <TableCell><StatusBadge :status="w.status" /></TableCell>
+                <TableCell class="tabular-nums">{{ progress(w) }}</TableCell>
+                <TableCell class="font-mono text-xs">{{ capsToday(w) }}</TableCell>
+                <TableCell class="space-x-1 text-right">
+                  <Button
+                    v-if="w.status === 'scheduled' || w.status === 'active'"
+                    variant="outline"
+                    size="sm"
+                    @click="openEdit(w)"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    v-if="w.status === 'active'"
+                    variant="outline"
+                    size="sm"
+                    @click="pause(w)"
+                  >
+                    Pause
+                  </Button>
+                  <Button v-if="w.status === 'paused'" variant="outline" size="sm" @click="resume(w)">
+                    Resume
+                  </Button>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </DataState>
+
+    <Dialog v-model:open="dialogOpen">
+      <DialogHeader>
+        <DialogTitle>{{ isEdit ? 'Edit warmup' : 'New warmup' }}</DialogTitle>
+      </DialogHeader>
+      <form class="space-y-4" @submit.prevent="submit">
+        <div v-if="!isEdit" class="space-y-1.5">
+          <Label for="warmup-vmta">VMTA</Label>
+          <Select id="warmup-vmta" v-model="form.vmta_id" data-testid="warmup-vmta">
+            <option value="">— Select a VMTA —</option>
+            <option v-for="v in vmtas" :key="v.id" :value="v.id">
+              {{ v.name }} ({{ v.ipAddress }})
+            </option>
+          </Select>
+        </div>
+        <div class="space-y-1.5">
+          <Label for="warmup-curve">Curve</Label>
+          <Select id="warmup-curve" v-model="form.curve">
+            <option v-for="c in curveNames" :key="c" :value="c">{{ c }}</option>
+          </Select>
+          <p class="text-xs text-muted-foreground">
+            Built-in ramp templates: standard (~21d), conservative (~30d), aggressive (~12d). Caps
+            are per receiving-domain family (Gmail, Microsoft, Yahoo, default).
+          </p>
+        </div>
+        <div class="space-y-1.5">
+          <Label for="warmup-start">Start date</Label>
+          <Input id="warmup-start" v-model="form.start_date" type="date" />
+          <p class="text-xs text-muted-foreground">Day 1 of the ramp (UTC).</p>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" @click="dialogOpen = false">Cancel</Button>
+          <Button type="submit" :disabled="saving || !form.curve || (!isEdit && !form.vmta_id)">
+            {{ saving ? 'Saving…' : isEdit ? 'Save' : 'Create' }}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Dialog>
+  </div>
+</template>

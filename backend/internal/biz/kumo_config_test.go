@@ -316,7 +316,7 @@ func TestRenderRequireTLSPolicy(t *testing.T) {
 	}
 	// Generous SMTP client timeouts so slow/tarpitting receivers (e.g. a stall on
 	// RSET during connection reuse) don't trip KumoMTA's aggressive defaults.
-	for _, want := range []string{"rset_timeout = '30s'", "idle_timeout = '60s'", "data_timeout = '60s'"} {
+	for _, want := range []string{"rset_timeout or '30s'", "idle_timeout or '60s'", "data_timeout or '60s'"} {
 		if !strings.Contains(r.Content, want) {
 			t.Fatalf("egress path must set %q:\n%s", want, r.Content)
 		}
@@ -598,6 +598,47 @@ func TestBounceVerpGeneration(t *testing.T) {
 	// The rewrite lives inside the reception hook, not a (non-firing) sending hook.
 	if strings.Contains(r.Content, "smtp_client_message_sending") {
 		t.Fatalf("VERP must not use smtp_client_message_sending:\n%s", r.Content)
+	}
+}
+
+func TestRenderWarmup(t *testing.T) {
+	base := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "warm-1", IPAddress: "203.0.113.1", EHLOName: "warm-1.example.com", Status: VMTAStatusActive}},
+	}
+
+	// No warmup: the tables/classifier still render (empty WARMUP_RATE) so the
+	// egress-path callback's references are valid, and no rate is set.
+	off, err := RenderKumoConfig(base)
+	if err != nil || !off.Valid {
+		t.Fatalf("render off: err=%v valid=%v issues=%v", err, off.Valid, off.LintIssues)
+	}
+	for _, want := range []string{
+		"local WARMUP_RATE = {}",
+		"local function warmup_bucket(domain)",
+		`MBP_BUCKET["gmail.com"] = "gmail"`,
+		"params.max_message_rate = rate",
+	} {
+		if !strings.Contains(off.Content, want) {
+			t.Fatalf("warmup scaffolding missing %q:\n%s", want, off.Content)
+		}
+	}
+	// A populated entry is a quoted-key assignment (WARMUP_RATE["src"]); the
+	// callback's WARMUP_RATE[egress_source] lookup must not count.
+	if strings.Contains(off.Content, `WARMUP_RATE["`) {
+		t.Fatalf("no warmup configured, but a per-source rate was emitted:\n%s", off.Content)
+	}
+
+	// Warming source: per-bucket N/day caps emitted for that egress source.
+	on := base
+	on.WarmupRates = map[string]map[string]string{
+		"warm-1": {MBPGmail: "50/day", MBPMicrosoft: "50/day", MBPYahoo: "50/day", MBPDefault: "200/day"},
+	}
+	r, err := RenderKumoConfig(on)
+	if err != nil || !r.Valid {
+		t.Fatalf("render on: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	if !strings.Contains(r.Content, `WARMUP_RATE["warm-1"] = { ["gmail"] = "50/day", ["microsoft"] = "50/day", ["yahoo"] = "50/day", ["default"] = "200/day", }`) {
+		t.Fatalf("per-source warmup rate not emitted:\n%s", r.Content)
 	}
 }
 

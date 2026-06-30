@@ -95,6 +95,94 @@ export interface UpdateVMTARequest {
   notes: string
 }
 
+// ---- IP warmup ----
+export type WarmupStatus = 'scheduled' | 'active' | 'paused' | 'completed'
+
+export interface WarmupStage {
+  dayFrom: number
+  dayTo: number
+  caps: Record<string, number> // MBP bucket -> messages/day
+}
+
+export interface WarmupSchedule {
+  id: string
+  vmtaId: string
+  vmtaName: string
+  startDate: string // YYYY-MM-DD
+  curve: string
+  stages: WarmupStage[]
+  status: WarmupStatus
+  pausedReason?: string
+  heldDay?: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface WarmupCurve {
+  name: string
+  stages: WarmupStage[]
+}
+
+export interface WarmupListResponse {
+  items?: WarmupSchedule[]
+  curves?: WarmupCurve[]
+  page?: { nextPageToken?: string }
+}
+
+export interface CreateWarmupScheduleRequest {
+  vmta_id: string
+  start_date: string
+  curve: string
+}
+
+export interface UpdateWarmupScheduleRequest {
+  start_date: string
+  curve: string
+}
+
+export interface PauseWarmupScheduleRequest {
+  reason: string
+}
+
+// ---- Delivery blueprints (base shaping) ----
+export type BlueprintStatus = 'active' | 'disabled'
+
+export interface DeliveryBlueprint {
+  id: string
+  provider: string
+  mxPattern: string
+  connRate: string
+  deliveriesPerConn: number
+  connLimit: number
+  dailyCap: number
+  status: BlueprintStatus
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CreateDeliveryBlueprintRequest {
+  provider: string
+  mx_pattern: string
+  conn_rate: string
+  deliveries_per_conn: number
+  conn_limit: number
+  daily_cap: number
+}
+
+export interface UpdateDeliveryBlueprintRequest {
+  provider: string
+  mx_pattern: string
+  conn_rate: string
+  deliveries_per_conn: number
+  conn_limit: number
+  daily_cap: number
+  status: string
+}
+
+export interface SeedDeliveryBlueprintsResponse {
+  inserted?: number
+}
+
 // Response member shape (camelCase).
 export interface VMTAGroupMember {
   vmtaId: string

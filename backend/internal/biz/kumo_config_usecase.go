@@ -52,6 +52,11 @@ type KumoConfigSettings struct {
 	// InboundMaildirBase is the deployment-wide Maildir root for inbound maildir
 	// routes that don't set their own path.
 	InboundMaildirBase string
+
+	// ShapingDir, when set, activates the shaping-helper egress path: the policy
+	// loads iris-base.toml + iris-warmup.toml from here. The apply adapter writes
+	// those files into this directory (the policy's own directory).
+	ShapingDir string
 }
 
 // KumoConfigUsecase renders Iris configuration into KumoMTA policy and applies
@@ -142,6 +147,11 @@ func (uc *KumoConfigUsecase) render(ctx context.Context) (RenderedConfig, error)
 	snap.BounceClassifierFile = settings.BounceClassifierFile
 	snap.BounceVerpSecret = settings.BounceVerpSecret
 	snap.InboundMaildirBase = settings.InboundMaildirBase
+	snap.ShapingDir = settings.ShapingDir
+	// IP warmup: resolve the active/paused schedules to per-source, per-MBP
+	// message-rate caps for today. Done here (not in RenderKumoConfig) so the
+	// renderer stays a pure, time-independent snapshot→policy function.
+	snap.WarmupRates = ResolveWarmupRates(snap.WarmupSchedules, time.Now().UTC())
 	return RenderKumoConfig(snap)
 }
 
@@ -169,7 +179,21 @@ func (uc *KumoConfigUsecase) Apply(ctx context.Context, confirmationID string) (
 	if strings.TrimSpace(confirmationID) == "" {
 		return nil, Invalid("CONFIRMATION_REQUIRED", "confirmation_id is required to apply configuration")
 	}
+	return uc.doApply(ctx, id.UserID, confirmationID)
+}
 
+// ApplyForAutomation renders and applies the current configuration under a system
+// actor, bypassing the interactive permission/confirmation gate. It is for
+// in-process schedulers (e.g. the IP-warmup worker rolling the daily policy);
+// it remains serialized through the service-control store and is audited.
+func (uc *KumoConfigUsecase) ApplyForAutomation(ctx context.Context, actor string) (*ApplyResult, error) {
+	if strings.TrimSpace(actor) == "" {
+		actor = "system"
+	}
+	return uc.doApply(ctx, actor, "auto:"+actor)
+}
+
+func (uc *KumoConfigUsecase) doApply(ctx context.Context, requestedBy, confirmationID string) (*ApplyResult, error) {
 	active, err := uc.scStore.ActiveServiceControlExists(ctx)
 	if err != nil {
 		return nil, err
@@ -190,7 +214,7 @@ func (uc *KumoConfigUsecase) Apply(ctx context.Context, confirmationID string) (
 	}
 
 	rec, err := uc.scStore.CreateServiceControlRequest(ctx, &ServiceControlRecord{
-		Operation: "config.apply", ConfirmationID: confirmationID, RequestedBy: id.UserID,
+		Operation: "config.apply", ConfirmationID: confirmationID, RequestedBy: requestedBy,
 	})
 	if err != nil {
 		uc.audit(ctx, AuditFailure, "", map[string]any{"checksum": rendered.Checksum})
@@ -235,7 +259,7 @@ func (uc *KumoConfigUsecase) Apply(ctx context.Context, confirmationID string) (
 	}
 	// Record the applied checksums so the UI can detect later config drift and
 	// whether the next change needs a restart.
-	if err := uc.scStore.SetAppliedChecksum(ctx, rendered.Checksum, rendered.InitChecksum, id.UserID); err != nil {
+	if err := uc.scStore.SetAppliedChecksum(ctx, rendered.Checksum, rendered.InitChecksum, requestedBy); err != nil {
 		LoggerFrom(ctx).Error("record applied checksum", "error", err.Error())
 	}
 	return &ApplyResult{

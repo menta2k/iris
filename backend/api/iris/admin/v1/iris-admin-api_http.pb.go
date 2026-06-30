@@ -25,6 +25,7 @@ const OperationIrisAdminServiceCheckDomainBounceSetup = "/iris.admin.v1.IrisAdmi
 const OperationIrisAdminServiceClearAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/ClearAcmeDnsProvider"
 const OperationIrisAdminServiceConfirmMFA = "/iris.admin.v1.IrisAdminService/ConfirmMFA"
 const OperationIrisAdminServiceCreateDKIMDomain = "/iris.admin.v1.IrisAdminService/CreateDKIMDomain"
+const OperationIrisAdminServiceCreateDeliveryBlueprint = "/iris.admin.v1.IrisAdminService/CreateDeliveryBlueprint"
 const OperationIrisAdminServiceCreateFeedbackLoop = "/iris.admin.v1.IrisAdminService/CreateFeedbackLoop"
 const OperationIrisAdminServiceCreateInboundRoute = "/iris.admin.v1.IrisAdminService/CreateInboundRoute"
 const OperationIrisAdminServiceCreateListener = "/iris.admin.v1.IrisAdminService/CreateListener"
@@ -34,6 +35,7 @@ const OperationIrisAdminServiceCreateTLSPolicy = "/iris.admin.v1.IrisAdminServic
 const OperationIrisAdminServiceCreateUser = "/iris.admin.v1.IrisAdminService/CreateUser"
 const OperationIrisAdminServiceCreateVMTA = "/iris.admin.v1.IrisAdminService/CreateVMTA"
 const OperationIrisAdminServiceCreateVMTAGroups = "/iris.admin.v1.IrisAdminService/CreateVMTAGroups"
+const OperationIrisAdminServiceCreateWarmupSchedule = "/iris.admin.v1.IrisAdminService/CreateWarmupSchedule"
 const OperationIrisAdminServiceCurrentUser = "/iris.admin.v1.IrisAdminService/CurrentUser"
 const OperationIrisAdminServiceDeleteAcmeCertificate = "/iris.admin.v1.IrisAdminService/DeleteAcmeCertificate"
 const OperationIrisAdminServiceDeleteFeedbackLoop = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
@@ -56,6 +58,7 @@ const OperationIrisAdminServiceListAcmeDnsProviders = "/iris.admin.v1.IrisAdminS
 const OperationIrisAdminServiceListAuditEntries = "/iris.admin.v1.IrisAdminService/ListAuditEntries"
 const OperationIrisAdminServiceListBounces = "/iris.admin.v1.IrisAdminService/ListBounces"
 const OperationIrisAdminServiceListDKIMDomains = "/iris.admin.v1.IrisAdminService/ListDKIMDomains"
+const OperationIrisAdminServiceListDeliveryBlueprints = "/iris.admin.v1.IrisAdminService/ListDeliveryBlueprints"
 const OperationIrisAdminServiceListDmarcDomains = "/iris.admin.v1.IrisAdminService/ListDmarcDomains"
 const OperationIrisAdminServiceListDmarcReports = "/iris.admin.v1.IrisAdminService/ListDmarcReports"
 const OperationIrisAdminServiceListFeedbackLoops = "/iris.admin.v1.IrisAdminService/ListFeedbackLoops"
@@ -72,18 +75,24 @@ const OperationIrisAdminServiceListTLSPolicies = "/iris.admin.v1.IrisAdminServic
 const OperationIrisAdminServiceListUsers = "/iris.admin.v1.IrisAdminService/ListUsers"
 const OperationIrisAdminServiceListVMTAGroups = "/iris.admin.v1.IrisAdminService/ListVMTAGroups"
 const OperationIrisAdminServiceListVMTAs = "/iris.admin.v1.IrisAdminService/ListVMTAs"
+const OperationIrisAdminServiceListWarmupSchedules = "/iris.admin.v1.IrisAdminService/ListWarmupSchedules"
 const OperationIrisAdminServiceListWorkerErrorLogs = "/iris.admin.v1.IrisAdminService/ListWorkerErrorLogs"
 const OperationIrisAdminServiceLogin = "/iris.admin.v1.IrisAdminService/Login"
 const OperationIrisAdminServiceLogout = "/iris.admin.v1.IrisAdminService/Logout"
+const OperationIrisAdminServicePauseWarmupSchedule = "/iris.admin.v1.IrisAdminService/PauseWarmupSchedule"
 const OperationIrisAdminServiceRblCheck = "/iris.admin.v1.IrisAdminService/RblCheck"
 const OperationIrisAdminServiceRequestAcmeCertificate = "/iris.admin.v1.IrisAdminService/RequestAcmeCertificate"
 const OperationIrisAdminServiceRequestQueueAction = "/iris.admin.v1.IrisAdminService/RequestQueueAction"
 const OperationIrisAdminServiceRequestServiceControl = "/iris.admin.v1.IrisAdminService/RequestServiceControl"
 const OperationIrisAdminServiceResetUserPassword = "/iris.admin.v1.IrisAdminService/ResetUserPassword"
+const OperationIrisAdminServiceResumeWarmupSchedule = "/iris.admin.v1.IrisAdminService/ResumeWarmupSchedule"
 const OperationIrisAdminServiceRunRetention = "/iris.admin.v1.IrisAdminService/RunRetention"
 const OperationIrisAdminServiceSaveAcmeAccount = "/iris.admin.v1.IrisAdminService/SaveAcmeAccount"
+const OperationIrisAdminServiceSeedDeliveryBlueprints = "/iris.admin.v1.IrisAdminService/SeedDeliveryBlueprints"
 const OperationIrisAdminServiceSetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
+const OperationIrisAdminServiceSetDeliveryBlueprintStatus = "/iris.admin.v1.IrisAdminService/SetDeliveryBlueprintStatus"
 const OperationIrisAdminServiceUpdateDKIMDomain = "/iris.admin.v1.IrisAdminService/UpdateDKIMDomain"
+const OperationIrisAdminServiceUpdateDeliveryBlueprint = "/iris.admin.v1.IrisAdminService/UpdateDeliveryBlueprint"
 const OperationIrisAdminServiceUpdateFeedbackLoop = "/iris.admin.v1.IrisAdminService/UpdateFeedbackLoop"
 const OperationIrisAdminServiceUpdateGlobalSettings = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
 const OperationIrisAdminServiceUpdateInboundRoute = "/iris.admin.v1.IrisAdminService/UpdateInboundRoute"
@@ -94,6 +103,7 @@ const OperationIrisAdminServiceUpdateSuppression = "/iris.admin.v1.IrisAdminServ
 const OperationIrisAdminServiceUpdateUser = "/iris.admin.v1.IrisAdminService/UpdateUser"
 const OperationIrisAdminServiceUpdateVMTA = "/iris.admin.v1.IrisAdminService/UpdateVMTA"
 const OperationIrisAdminServiceUpdateVMTAGroup = "/iris.admin.v1.IrisAdminService/UpdateVMTAGroup"
+const OperationIrisAdminServiceUpdateWarmupSchedule = "/iris.admin.v1.IrisAdminService/UpdateWarmupSchedule"
 const OperationIrisAdminServiceVerifyMFA = "/iris.admin.v1.IrisAdminService/VerifyMFA"
 
 type IrisAdminServiceHTTPServer interface {
@@ -108,6 +118,7 @@ type IrisAdminServiceHTTPServer interface {
 	ClearAcmeDnsProvider(context.Context, *ClearAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	ConfirmMFA(context.Context, *ConfirmMFARequest) (*ConfirmMFAReply, error)
 	CreateDKIMDomain(context.Context, *CreateDKIMDomainRequest) (*DKIMDomain, error)
+	CreateDeliveryBlueprint(context.Context, *CreateDeliveryBlueprintRequest) (*DeliveryBlueprint, error)
 	CreateFeedbackLoop(context.Context, *CreateFeedbackLoopRequest) (*FeedbackLoop, error)
 	CreateInboundRoute(context.Context, *CreateInboundRouteRequest) (*InboundRoute, error)
 	CreateListener(context.Context, *CreateListenerRequest) (*Listener, error)
@@ -117,6 +128,7 @@ type IrisAdminServiceHTTPServer interface {
 	CreateUser(context.Context, *CreateUserRequest) (*User, error)
 	CreateVMTA(context.Context, *CreateVMTARequest) (*VMTA, error)
 	CreateVMTAGroups(context.Context, *CreateVMTAGroupRequest) (*VMTAGroup, error)
+	CreateWarmupSchedule(context.Context, *CreateWarmupScheduleRequest) (*WarmupSchedule, error)
 	// CurrentUser CurrentUser returns the calling user's profile and effective permissions;
 	// the SPA calls it on load to restore a session from a stored token.
 	CurrentUser(context.Context, *CurrentUserRequest) (*CurrentUserReply, error)
@@ -158,6 +170,8 @@ type IrisAdminServiceHTTPServer interface {
 	ListBounces(context.Context, *ListBouncesRequest) (*ListBouncesReply, error)
 	// ListDKIMDomains Domain & recipient safety ------------------------------------------------
 	ListDKIMDomains(context.Context, *ListDKIMDomainsRequest) (*ListDKIMDomainsReply, error)
+	// ListDeliveryBlueprints Delivery blueprints: base per-provider shaping rules (fallback for new IPs).
+	ListDeliveryBlueprints(context.Context, *ListDeliveryBlueprintsRequest) (*ListDeliveryBlueprintsReply, error)
 	ListDmarcDomains(context.Context, *ListDmarcDomainsRequest) (*ListDmarcDomainsReply, error)
 	ListDmarcReports(context.Context, *ListDmarcReportsRequest) (*ListDmarcReportsReply, error)
 	// ListFeedbackLoops Feedback loops -----------------------------------------------------------
@@ -187,6 +201,8 @@ type IrisAdminServiceHTTPServer interface {
 	ListVMTAGroups(context.Context, *ListVMTAGroupsRequest) (*ListVMTAGroupsReply, error)
 	// ListVMTAs Outbound configuration ---------------------------------------------------
 	ListVMTAs(context.Context, *ListVMTAsRequest) (*ListVMTAsReply, error)
+	// ListWarmupSchedules IP warmup: ramp a VMTA's volume per receiving-domain family over a curve.
+	ListWarmupSchedules(context.Context, *ListWarmupSchedulesRequest) (*ListWarmupSchedulesReply, error)
 	// ListWorkerErrorLogs Generic worker error log: Warn/Error events emitted by background workers
 	// (e.g. an unparseable DMARC report dropped by the dmarc worker).
 	ListWorkerErrorLogs(context.Context, *ListWorkerErrorLogsRequest) (*ListWorkerErrorLogsReply, error)
@@ -199,6 +215,7 @@ type IrisAdminServiceHTTPServer interface {
 	// Logout Logout is a no-op server-side for stateless tokens; provided so clients can
 	// signal intent and the action is audited.
 	Logout(context.Context, *LogoutRequest) (*LogoutReply, error)
+	PauseWarmupSchedule(context.Context, *PauseWarmupScheduleRequest) (*WarmupSchedule, error)
 	// RblCheck RblCheck tests the deployment's listener and VMTA egress IPs against DNS
 	// blocklists.
 	RblCheck(context.Context, *RblCheckRequest) (*RblCheckReply, error)
@@ -211,10 +228,14 @@ type IrisAdminServiceHTTPServer interface {
 	// ResetUserPassword ResetUserPassword sets a new password for a user (admin reset). Requires
 	// user:write; the new password is strength-validated and bcrypt-hashed.
 	ResetUserPassword(context.Context, *ResetUserPasswordRequest) (*ResetUserPasswordReply, error)
+	ResumeWarmupSchedule(context.Context, *ResumeWarmupScheduleRequest) (*WarmupSchedule, error)
 	RunRetention(context.Context, *RunRetentionRequest) (*RunRetentionReply, error)
 	SaveAcmeAccount(context.Context, *SaveAcmeAccountRequest) (*AcmeAccount, error)
+	SeedDeliveryBlueprints(context.Context, *SeedDeliveryBlueprintsRequest) (*SeedDeliveryBlueprintsReply, error)
 	SetAcmeDnsProvider(context.Context, *SetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
+	SetDeliveryBlueprintStatus(context.Context, *SetDeliveryBlueprintStatusRequest) (*DeliveryBlueprint, error)
 	UpdateDKIMDomain(context.Context, *UpdateDKIMDomainRequest) (*DKIMDomain, error)
+	UpdateDeliveryBlueprint(context.Context, *UpdateDeliveryBlueprintRequest) (*DeliveryBlueprint, error)
 	UpdateFeedbackLoop(context.Context, *UpdateFeedbackLoopRequest) (*FeedbackLoop, error)
 	UpdateGlobalSettings(context.Context, *UpdateGlobalSettingsRequest) (*GlobalSettings, error)
 	UpdateInboundRoute(context.Context, *UpdateInboundRouteRequest) (*InboundRoute, error)
@@ -225,6 +246,7 @@ type IrisAdminServiceHTTPServer interface {
 	UpdateUser(context.Context, *UpdateUserRequest) (*User, error)
 	UpdateVMTA(context.Context, *UpdateVMTARequest) (*VMTA, error)
 	UpdateVMTAGroup(context.Context, *UpdateVMTAGroupRequest) (*VMTAGroup, error)
+	UpdateWarmupSchedule(context.Context, *UpdateWarmupScheduleRequest) (*WarmupSchedule, error)
 	// VerifyMFA VerifyMFA completes a login by validating a TOTP code, upgrading the
 	// partially-authenticated session token to a fully-authenticated one.
 	VerifyMFA(context.Context, *VerifyMFARequest) (*LoginReply, error)
@@ -241,6 +263,16 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.GET("/v1/vmta-groups", _IrisAdminService_ListVMTAGroups0_HTTP_Handler(srv))
 	r.POST("/v1/vmta-groups", _IrisAdminService_CreateVMTAGroups0_HTTP_Handler(srv))
 	r.PUT("/v1/vmta-groups/{id}", _IrisAdminService_UpdateVMTAGroup0_HTTP_Handler(srv))
+	r.GET("/v1/warmup-schedules", _IrisAdminService_ListWarmupSchedules0_HTTP_Handler(srv))
+	r.POST("/v1/warmup-schedules", _IrisAdminService_CreateWarmupSchedule0_HTTP_Handler(srv))
+	r.PUT("/v1/warmup-schedules/{id}", _IrisAdminService_UpdateWarmupSchedule0_HTTP_Handler(srv))
+	r.POST("/v1/warmup-schedules/{id}:pause", _IrisAdminService_PauseWarmupSchedule0_HTTP_Handler(srv))
+	r.POST("/v1/warmup-schedules/{id}:resume", _IrisAdminService_ResumeWarmupSchedule0_HTTP_Handler(srv))
+	r.GET("/v1/delivery-blueprints", _IrisAdminService_ListDeliveryBlueprints0_HTTP_Handler(srv))
+	r.POST("/v1/delivery-blueprints", _IrisAdminService_CreateDeliveryBlueprint0_HTTP_Handler(srv))
+	r.PUT("/v1/delivery-blueprints/{id}", _IrisAdminService_UpdateDeliveryBlueprint0_HTTP_Handler(srv))
+	r.POST("/v1/delivery-blueprints/{id}:status", _IrisAdminService_SetDeliveryBlueprintStatus0_HTTP_Handler(srv))
+	r.POST("/v1/delivery-blueprints:seed-defaults", _IrisAdminService_SeedDeliveryBlueprints0_HTTP_Handler(srv))
 	r.GET("/v1/routing-rules", _IrisAdminService_ListRoutingRules0_HTTP_Handler(srv))
 	r.POST("/v1/routing-rules", _IrisAdminService_CreateRoutingRule0_HTTP_Handler(srv))
 	r.PUT("/v1/routing-rules/{id}", _IrisAdminService_UpdateRoutingRule0_HTTP_Handler(srv))
@@ -504,6 +536,235 @@ func _IrisAdminService_UpdateVMTAGroup0_HTTP_Handler(srv IrisAdminServiceHTTPSer
 			return err
 		}
 		reply := out.(*VMTAGroup)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ListWarmupSchedules0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListWarmupSchedulesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListWarmupSchedules)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListWarmupSchedules(ctx, req.(*ListWarmupSchedulesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListWarmupSchedulesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CreateWarmupSchedule0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateWarmupScheduleRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCreateWarmupSchedule)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateWarmupSchedule(ctx, req.(*CreateWarmupScheduleRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*WarmupSchedule)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateWarmupSchedule0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateWarmupScheduleRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateWarmupSchedule)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateWarmupSchedule(ctx, req.(*UpdateWarmupScheduleRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*WarmupSchedule)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_PauseWarmupSchedule0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in PauseWarmupScheduleRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServicePauseWarmupSchedule)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.PauseWarmupSchedule(ctx, req.(*PauseWarmupScheduleRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*WarmupSchedule)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ResumeWarmupSchedule0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ResumeWarmupScheduleRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceResumeWarmupSchedule)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ResumeWarmupSchedule(ctx, req.(*ResumeWarmupScheduleRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*WarmupSchedule)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ListDeliveryBlueprints0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListDeliveryBlueprintsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListDeliveryBlueprints)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListDeliveryBlueprints(ctx, req.(*ListDeliveryBlueprintsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListDeliveryBlueprintsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CreateDeliveryBlueprint0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateDeliveryBlueprintRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCreateDeliveryBlueprint)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateDeliveryBlueprint(ctx, req.(*CreateDeliveryBlueprintRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeliveryBlueprint)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateDeliveryBlueprint0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateDeliveryBlueprintRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateDeliveryBlueprint)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateDeliveryBlueprint(ctx, req.(*UpdateDeliveryBlueprintRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeliveryBlueprint)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_SetDeliveryBlueprintStatus0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SetDeliveryBlueprintStatusRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceSetDeliveryBlueprintStatus)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SetDeliveryBlueprintStatus(ctx, req.(*SetDeliveryBlueprintStatusRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeliveryBlueprint)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_SeedDeliveryBlueprints0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SeedDeliveryBlueprintsRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceSeedDeliveryBlueprints)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SeedDeliveryBlueprints(ctx, req.(*SeedDeliveryBlueprintsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*SeedDeliveryBlueprintsReply)
 		return ctx.Result(200, reply)
 	}
 }
@@ -1931,6 +2192,7 @@ type IrisAdminServiceHTTPClient interface {
 	ClearAcmeDnsProvider(ctx context.Context, req *ClearAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	ConfirmMFA(ctx context.Context, req *ConfirmMFARequest, opts ...http.CallOption) (rsp *ConfirmMFAReply, err error)
 	CreateDKIMDomain(ctx context.Context, req *CreateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
+	CreateDeliveryBlueprint(ctx context.Context, req *CreateDeliveryBlueprintRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
 	CreateFeedbackLoop(ctx context.Context, req *CreateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
 	CreateInboundRoute(ctx context.Context, req *CreateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
 	CreateListener(ctx context.Context, req *CreateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
@@ -1940,6 +2202,7 @@ type IrisAdminServiceHTTPClient interface {
 	CreateUser(ctx context.Context, req *CreateUserRequest, opts ...http.CallOption) (rsp *User, err error)
 	CreateVMTA(ctx context.Context, req *CreateVMTARequest, opts ...http.CallOption) (rsp *VMTA, err error)
 	CreateVMTAGroups(ctx context.Context, req *CreateVMTAGroupRequest, opts ...http.CallOption) (rsp *VMTAGroup, err error)
+	CreateWarmupSchedule(ctx context.Context, req *CreateWarmupScheduleRequest, opts ...http.CallOption) (rsp *WarmupSchedule, err error)
 	// CurrentUser CurrentUser returns the calling user's profile and effective permissions;
 	// the SPA calls it on load to restore a session from a stored token.
 	CurrentUser(ctx context.Context, req *CurrentUserRequest, opts ...http.CallOption) (rsp *CurrentUserReply, err error)
@@ -1981,6 +2244,8 @@ type IrisAdminServiceHTTPClient interface {
 	ListBounces(ctx context.Context, req *ListBouncesRequest, opts ...http.CallOption) (rsp *ListBouncesReply, err error)
 	// ListDKIMDomains Domain & recipient safety ------------------------------------------------
 	ListDKIMDomains(ctx context.Context, req *ListDKIMDomainsRequest, opts ...http.CallOption) (rsp *ListDKIMDomainsReply, err error)
+	// ListDeliveryBlueprints Delivery blueprints: base per-provider shaping rules (fallback for new IPs).
+	ListDeliveryBlueprints(ctx context.Context, req *ListDeliveryBlueprintsRequest, opts ...http.CallOption) (rsp *ListDeliveryBlueprintsReply, err error)
 	ListDmarcDomains(ctx context.Context, req *ListDmarcDomainsRequest, opts ...http.CallOption) (rsp *ListDmarcDomainsReply, err error)
 	ListDmarcReports(ctx context.Context, req *ListDmarcReportsRequest, opts ...http.CallOption) (rsp *ListDmarcReportsReply, err error)
 	// ListFeedbackLoops Feedback loops -----------------------------------------------------------
@@ -2010,6 +2275,8 @@ type IrisAdminServiceHTTPClient interface {
 	ListVMTAGroups(ctx context.Context, req *ListVMTAGroupsRequest, opts ...http.CallOption) (rsp *ListVMTAGroupsReply, err error)
 	// ListVMTAs Outbound configuration ---------------------------------------------------
 	ListVMTAs(ctx context.Context, req *ListVMTAsRequest, opts ...http.CallOption) (rsp *ListVMTAsReply, err error)
+	// ListWarmupSchedules IP warmup: ramp a VMTA's volume per receiving-domain family over a curve.
+	ListWarmupSchedules(ctx context.Context, req *ListWarmupSchedulesRequest, opts ...http.CallOption) (rsp *ListWarmupSchedulesReply, err error)
 	// ListWorkerErrorLogs Generic worker error log: Warn/Error events emitted by background workers
 	// (e.g. an unparseable DMARC report dropped by the dmarc worker).
 	ListWorkerErrorLogs(ctx context.Context, req *ListWorkerErrorLogsRequest, opts ...http.CallOption) (rsp *ListWorkerErrorLogsReply, err error)
@@ -2022,6 +2289,7 @@ type IrisAdminServiceHTTPClient interface {
 	// Logout Logout is a no-op server-side for stateless tokens; provided so clients can
 	// signal intent and the action is audited.
 	Logout(ctx context.Context, req *LogoutRequest, opts ...http.CallOption) (rsp *LogoutReply, err error)
+	PauseWarmupSchedule(ctx context.Context, req *PauseWarmupScheduleRequest, opts ...http.CallOption) (rsp *WarmupSchedule, err error)
 	// RblCheck RblCheck tests the deployment's listener and VMTA egress IPs against DNS
 	// blocklists.
 	RblCheck(ctx context.Context, req *RblCheckRequest, opts ...http.CallOption) (rsp *RblCheckReply, err error)
@@ -2034,10 +2302,14 @@ type IrisAdminServiceHTTPClient interface {
 	// ResetUserPassword ResetUserPassword sets a new password for a user (admin reset). Requires
 	// user:write; the new password is strength-validated and bcrypt-hashed.
 	ResetUserPassword(ctx context.Context, req *ResetUserPasswordRequest, opts ...http.CallOption) (rsp *ResetUserPasswordReply, err error)
+	ResumeWarmupSchedule(ctx context.Context, req *ResumeWarmupScheduleRequest, opts ...http.CallOption) (rsp *WarmupSchedule, err error)
 	RunRetention(ctx context.Context, req *RunRetentionRequest, opts ...http.CallOption) (rsp *RunRetentionReply, err error)
 	SaveAcmeAccount(ctx context.Context, req *SaveAcmeAccountRequest, opts ...http.CallOption) (rsp *AcmeAccount, err error)
+	SeedDeliveryBlueprints(ctx context.Context, req *SeedDeliveryBlueprintsRequest, opts ...http.CallOption) (rsp *SeedDeliveryBlueprintsReply, err error)
 	SetAcmeDnsProvider(ctx context.Context, req *SetAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
+	SetDeliveryBlueprintStatus(ctx context.Context, req *SetDeliveryBlueprintStatusRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
 	UpdateDKIMDomain(ctx context.Context, req *UpdateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
+	UpdateDeliveryBlueprint(ctx context.Context, req *UpdateDeliveryBlueprintRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
 	UpdateFeedbackLoop(ctx context.Context, req *UpdateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
 	UpdateGlobalSettings(ctx context.Context, req *UpdateGlobalSettingsRequest, opts ...http.CallOption) (rsp *GlobalSettings, err error)
 	UpdateInboundRoute(ctx context.Context, req *UpdateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
@@ -2048,6 +2320,7 @@ type IrisAdminServiceHTTPClient interface {
 	UpdateUser(ctx context.Context, req *UpdateUserRequest, opts ...http.CallOption) (rsp *User, err error)
 	UpdateVMTA(ctx context.Context, req *UpdateVMTARequest, opts ...http.CallOption) (rsp *VMTA, err error)
 	UpdateVMTAGroup(ctx context.Context, req *UpdateVMTAGroupRequest, opts ...http.CallOption) (rsp *VMTAGroup, err error)
+	UpdateWarmupSchedule(ctx context.Context, req *UpdateWarmupScheduleRequest, opts ...http.CallOption) (rsp *WarmupSchedule, err error)
 	// VerifyMFA VerifyMFA completes a login by validating a TOTP code, upgrading the
 	// partially-authenticated session token to a fully-authenticated one.
 	VerifyMFA(ctx context.Context, req *VerifyMFARequest, opts ...http.CallOption) (rsp *LoginReply, err error)
@@ -2136,6 +2409,19 @@ func (c *IrisAdminServiceHTTPClientImpl) CreateDKIMDomain(ctx context.Context, i
 	pattern := "/v1/dkim-domains"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateDKIMDomain))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) CreateDeliveryBlueprint(ctx context.Context, in *CreateDeliveryBlueprintRequest, opts ...http.CallOption) (*DeliveryBlueprint, error) {
+	var out DeliveryBlueprint
+	pattern := "/v1/delivery-blueprints"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateDeliveryBlueprint))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -2253,6 +2539,19 @@ func (c *IrisAdminServiceHTTPClientImpl) CreateVMTAGroups(ctx context.Context, i
 	pattern := "/v1/vmta-groups"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateVMTAGroups))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) CreateWarmupSchedule(ctx context.Context, in *CreateWarmupScheduleRequest, opts ...http.CallOption) (*WarmupSchedule, error) {
+	var out WarmupSchedule
+	pattern := "/v1/warmup-schedules"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateWarmupSchedule))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -2566,6 +2865,20 @@ func (c *IrisAdminServiceHTTPClientImpl) ListDKIMDomains(ctx context.Context, in
 	return &out, nil
 }
 
+// ListDeliveryBlueprints Delivery blueprints: base per-provider shaping rules (fallback for new IPs).
+func (c *IrisAdminServiceHTTPClientImpl) ListDeliveryBlueprints(ctx context.Context, in *ListDeliveryBlueprintsRequest, opts ...http.CallOption) (*ListDeliveryBlueprintsReply, error) {
+	var out ListDeliveryBlueprintsReply
+	pattern := "/v1/delivery-blueprints"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListDeliveryBlueprints))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) ListDmarcDomains(ctx context.Context, in *ListDmarcDomainsRequest, opts ...http.CallOption) (*ListDmarcDomainsReply, error) {
 	var out ListDmarcDomainsReply
 	pattern := "/v1/dmarc/domains"
@@ -2787,6 +3100,20 @@ func (c *IrisAdminServiceHTTPClientImpl) ListVMTAs(ctx context.Context, in *List
 	return &out, nil
 }
 
+// ListWarmupSchedules IP warmup: ramp a VMTA's volume per receiving-domain family over a curve.
+func (c *IrisAdminServiceHTTPClientImpl) ListWarmupSchedules(ctx context.Context, in *ListWarmupSchedulesRequest, opts ...http.CallOption) (*ListWarmupSchedulesReply, error) {
+	var out ListWarmupSchedulesReply
+	pattern := "/v1/warmup-schedules"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListWarmupSchedules))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // ListWorkerErrorLogs Generic worker error log: Warn/Error events emitted by background workers
 // (e.g. an unparseable DMARC report dropped by the dmarc worker).
 func (c *IrisAdminServiceHTTPClientImpl) ListWorkerErrorLogs(ctx context.Context, in *ListWorkerErrorLogsRequest, opts ...http.CallOption) (*ListWorkerErrorLogsReply, error) {
@@ -2827,6 +3154,19 @@ func (c *IrisAdminServiceHTTPClientImpl) Logout(ctx context.Context, in *LogoutR
 	pattern := "/v1/auth:logout"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceLogout))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) PauseWarmupSchedule(ctx context.Context, in *PauseWarmupScheduleRequest, opts ...http.CallOption) (*WarmupSchedule, error) {
+	var out WarmupSchedule
+	pattern := "/v1/warmup-schedules/{id}:pause"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServicePauseWarmupSchedule))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -2907,6 +3247,19 @@ func (c *IrisAdminServiceHTTPClientImpl) ResetUserPassword(ctx context.Context, 
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) ResumeWarmupSchedule(ctx context.Context, in *ResumeWarmupScheduleRequest, opts ...http.CallOption) (*WarmupSchedule, error) {
+	var out WarmupSchedule
+	pattern := "/v1/warmup-schedules/{id}:resume"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceResumeWarmupSchedule))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) RunRetention(ctx context.Context, in *RunRetentionRequest, opts ...http.CallOption) (*RunRetentionReply, error) {
 	var out RunRetentionReply
 	pattern := "/v1/retention:run"
@@ -2933,6 +3286,19 @@ func (c *IrisAdminServiceHTTPClientImpl) SaveAcmeAccount(ctx context.Context, in
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) SeedDeliveryBlueprints(ctx context.Context, in *SeedDeliveryBlueprintsRequest, opts ...http.CallOption) (*SeedDeliveryBlueprintsReply, error) {
+	var out SeedDeliveryBlueprintsReply
+	pattern := "/v1/delivery-blueprints:seed-defaults"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceSeedDeliveryBlueprints))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) SetAcmeDnsProvider(ctx context.Context, in *SetAcmeDnsProviderRequest, opts ...http.CallOption) (*AcmeDnsProvider, error) {
 	var out AcmeDnsProvider
 	pattern := "/v1/acme/dns-provider"
@@ -2946,11 +3312,37 @@ func (c *IrisAdminServiceHTTPClientImpl) SetAcmeDnsProvider(ctx context.Context,
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) SetDeliveryBlueprintStatus(ctx context.Context, in *SetDeliveryBlueprintStatusRequest, opts ...http.CallOption) (*DeliveryBlueprint, error) {
+	var out DeliveryBlueprint
+	pattern := "/v1/delivery-blueprints/{id}:status"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceSetDeliveryBlueprintStatus))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) UpdateDKIMDomain(ctx context.Context, in *UpdateDKIMDomainRequest, opts ...http.CallOption) (*DKIMDomain, error) {
 	var out DKIMDomain
 	pattern := "/v1/dkim-domains/{id}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateDKIMDomain))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) UpdateDeliveryBlueprint(ctx context.Context, in *UpdateDeliveryBlueprintRequest, opts ...http.CallOption) (*DeliveryBlueprint, error) {
+	var out DeliveryBlueprint
+	pattern := "/v1/delivery-blueprints/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateDeliveryBlueprint))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {
@@ -3081,6 +3473,19 @@ func (c *IrisAdminServiceHTTPClientImpl) UpdateVMTAGroup(ctx context.Context, in
 	pattern := "/v1/vmta-groups/{id}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateVMTAGroup))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) UpdateWarmupSchedule(ctx context.Context, in *UpdateWarmupScheduleRequest, opts ...http.CallOption) (*WarmupSchedule, error) {
+	var out WarmupSchedule
+	pattern := "/v1/warmup-schedules/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateWarmupSchedule))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {
