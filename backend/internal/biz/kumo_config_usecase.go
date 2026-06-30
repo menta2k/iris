@@ -57,6 +57,10 @@ type KumoConfigSettings struct {
 	// loads iris-base.toml + iris-warmup.toml from here. The apply adapter writes
 	// those files into this directory (the policy's own directory).
 	ShapingDir string
+
+	// TSAUrl, when set, points the policy at a Traffic Shaping Automation daemon
+	// for adaptive back-off. Empty = static shaping only.
+	TSAUrl string
 }
 
 // KumoConfigUsecase renders Iris configuration into KumoMTA policy and applies
@@ -148,6 +152,7 @@ func (uc *KumoConfigUsecase) render(ctx context.Context) (RenderedConfig, error)
 	snap.BounceVerpSecret = settings.BounceVerpSecret
 	snap.InboundMaildirBase = settings.InboundMaildirBase
 	snap.ShapingDir = settings.ShapingDir
+	snap.TSAUrl = settings.TSAUrl
 	// IP warmup: resolve the active/paused schedules to per-source, per-MBP
 	// message-rate caps for today. Done here (not in RenderKumoConfig) so the
 	// renderer stays a pure, time-independent snapshot→policy function.

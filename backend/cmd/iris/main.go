@@ -182,13 +182,16 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		// no secret) disables VERP.
 		BounceVerpSecret: verpKey,
 	}
-	// IP-warmup/blueprints shaping cutover is opt-in: when IRIS_SHAPING_ENABLE=true
-	// the policy loads the iris-base.toml + iris-warmup.toml the apply adapter
-	// writes next to the policy (same directory), and delivery limits come from
-	// KumoMTA's shaping helper. Unset = legacy hand-rolled egress path.
-	if envOr("IRIS_SHAPING_ENABLE", "") == "true" && cfg.KumoMTA.ConfigPath != "" {
+	// Delivery limits are enforced via KumoMTA's shaping helper: the policy loads
+	// the iris-base.toml + iris-warmup.toml the apply adapter writes next to the
+	// policy (same directory). The renderer falls back to the standard policy dir
+	// when ConfigPath is unset.
+	if cfg.KumoMTA.ConfigPath != "" {
 		settingsDefaults.ShapingDir = filepath.Dir(cfg.KumoMTA.ConfigPath)
 	}
+	// Optional: point the shaping helper at a Traffic Shaping Automation daemon
+	// for adaptive (hourly) back-off layered under the warmup ceiling.
+	settingsDefaults.TSAUrl = envOr("IRIS_TSA_URL", "")
 	settingsRepo := data.NewGlobalSettingsRepo(db)
 	settingsUC := biz.NewGlobalSettingsUsecase(settingsRepo, auditor, settingsDefaults)
 	// Suppression list lives in Redis (write-through cache + per-entry TTL); the

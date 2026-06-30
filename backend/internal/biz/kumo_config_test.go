@@ -603,42 +603,56 @@ func TestBounceVerpGeneration(t *testing.T) {
 
 func TestRenderWarmup(t *testing.T) {
 	base := ConfigSnapshot{
-		VMTAs: []*VMTA{{ID: "v1", Name: "warm-1", IPAddress: "203.0.113.1", EHLOName: "warm-1.example.com", Status: VMTAStatusActive}},
+		ShapingDir: "/test",
+		VMTAs:      []*VMTA{{ID: "v1", Name: "warm-1", IPAddress: "203.0.113.1", EHLOName: "warm-1.example.com", Status: VMTAStatusActive}},
 	}
 
-	// No warmup: the tables/classifier still render (empty WARMUP_RATE) so the
-	// egress-path callback's references are valid, and no rate is set.
-	off, err := RenderKumoConfig(base)
-	if err != nil || !off.Valid {
-		t.Fatalf("render off: err=%v valid=%v issues=%v", err, off.Valid, off.LintIssues)
+	// The egress path loads the shaping sidecar files and merges iris's timeouts.
+	r, err := RenderKumoConfig(base)
+	if err != nil || !r.Valid {
+		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
 	}
 	for _, want := range []string{
-		"local WARMUP_RATE = {}",
-		"local function warmup_bucket(domain)",
-		`MBP_BUCKET["gmail.com"] = "gmail"`,
-		"params.max_message_rate = rate",
+		"local shaping = require 'policy-extras.shaping'",
+		"shaping:setup_with_automation {",
+		"no_default_files = true,",
+		`extra_files = { "/test/iris-base.toml", "/test/iris-warmup.toml" },`,
+		"local params = iris_shaper.get_egress_path_config(domain, egress_source, site_name, true)",
+		"params.rset_timeout = params.rset_timeout or '30s'",
 	} {
-		if !strings.Contains(off.Content, want) {
-			t.Fatalf("warmup scaffolding missing %q:\n%s", want, off.Content)
+		if !strings.Contains(r.Content, want) {
+			t.Fatalf("shaping egress path missing %q:\n%s", want, r.Content)
 		}
 	}
-	// A populated entry is a quoted-key assignment (WARMUP_RATE["src"]); the
-	// callback's WARMUP_RATE[egress_source] lookup must not count.
-	if strings.Contains(off.Content, `WARMUP_RATE["`) {
-		t.Fatalf("no warmup configured, but a per-source rate was emitted:\n%s", off.Content)
+	// TSA off by default: no publish/subscribe.
+	if strings.Contains(r.Content, "publish = {") {
+		t.Fatalf("TSA must be off without a TSA URL:\n%s", r.Content)
 	}
 
-	// Warming source: per-bucket N/day caps emitted for that egress source.
+	// With a TSA URL, publish/subscribe are emitted.
+	tsa := base
+	tsa.TSAUrl = "http://tsa:8008"
+	rt, _ := RenderKumoConfig(tsa)
+	if !strings.Contains(rt.Content, `publish = { "http://tsa:8008" }`) ||
+		!strings.Contains(rt.Content, `subscribe = { "http://tsa:8008" }`) {
+		t.Fatalf("TSA publish/subscribe not emitted:\n%s", rt.Content)
+	}
+	// The legacy MBP_BUCKET path must be gone.
+	if strings.Contains(r.Content, "WARMUP_RATE") || strings.Contains(r.Content, "MBP_BUCKET") {
+		t.Fatalf("legacy warmup tables must be retired:\n%s", r.Content)
+	}
+
+	// The warmup overrides are rendered into the sidecar TOML (not the policy Lua).
 	on := base
-	on.WarmupRates = map[string]map[string]string{
-		"warm-1": {MBPGmail: "50/day", MBPMicrosoft: "50/day", MBPYahoo: "50/day", MBPDefault: "200/day"},
+	on.WarmupRates = map[string]map[string]string{"warm-1": {MBPGmail: "50/day"}}
+	on.Blueprints = []*DeliveryBlueprint{{Provider: "Gmail", MXPattern: "google.com", ConnRate: "5/min", ConnLimit: 3, DailyCap: 150, Status: BlueprintActive}}
+	r2, _ := RenderKumoConfig(on)
+	if !strings.Contains(r2.ShapingWarmup, `["google.com".sources."warm-1"]`) ||
+		!strings.Contains(r2.ShapingWarmup, `max_message_rate = "50/day"`) {
+		t.Fatalf("warmup override not in sidecar TOML:\n%s", r2.ShapingWarmup)
 	}
-	r, err := RenderKumoConfig(on)
-	if err != nil || !r.Valid {
-		t.Fatalf("render on: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
-	}
-	if !strings.Contains(r.Content, `WARMUP_RATE["warm-1"] = { ["gmail"] = "50/day", ["microsoft"] = "50/day", ["yahoo"] = "50/day", ["default"] = "200/day", }`) {
-		t.Fatalf("per-source warmup rate not emitted:\n%s", r.Content)
+	if !strings.Contains(r2.ShapingBase, `["google.com"]`) {
+		t.Fatalf("blueprint not in base TOML:\n%s", r2.ShapingBase)
 	}
 }
 

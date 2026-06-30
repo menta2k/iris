@@ -92,11 +92,19 @@ no override / low cap, not a hard suspend, to avoid mail aging.)
   override, others to the blueprint base, with blueprint connection settings.
   Two bugs the unit tests missed were caught and fixed by the live check (TOML
   key `[domain."x"]`→`["x"]`; warmup override needs `mx_rollup=false` to merge).
-- **P2 — Make shaping the default + retire `MBP_BUCKET`:** after a soak with the
-  flag on, default it on and remove the legacy custom egress-path Lua. Then the
-  **expanding-targets** curve (per-stage provider targeting).
-- **P3 — Adaptive (TSA):** enable automation rules for hourly back-off, layered
-  under the warmup ceiling.
+- **P2 — Default-on + retire `MBP_BUCKET` — DONE, kumod-verified.** Shaping is
+  the default egress path (no env flag); the legacy `MBP_BUCKET`/`WARMUP_RATE`
+  Lua is removed. The full policy boots on a live kumod and resolution is
+  unchanged for the operator. *(Expanding-targets curve still pending a
+  hold-semantics decision.)*
+- **P3 — Adaptive (TSA) — DONE (opt-in), kumod-verified.** The egress path uses
+  `shaping:setup_with_automation { no_default_files = true, extra_files = … }`,
+  and when `IRIS_TSA_URL` is set it adds `publish`/`subscribe` to a TSA daemon
+  for reactive back-off under the warmup ceiling. `skip_make=true` returns a
+  mergeable params table so iris still overlays timeouts/connection-cap/TLS.
+  Verified on kumod that both TSA-off and TSA-on policies boot and that the
+  helper coexists with iris's log + queue hooks. Operating TSA additionally needs
+  a running `tsa-daemon` (deployment).
 
 ## Risks
 - Init-block change → one-time KumoMTA restart on first deploy.

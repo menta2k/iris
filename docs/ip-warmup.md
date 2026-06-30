@@ -264,24 +264,32 @@ at once.
 
 ---
 
-## Shaping-helper enforcement (available, opt-in)
+## Shaping-helper enforcement (default)
 
-The per-day cap can now be enforced through KumoMTA's **shaping helper** instead
-of the custom `get_egress_path_config`: iris renders the warmup cap as a per-IP
-override in `iris-warmup.toml`, layered over the **Delivery Blueprints** base
-(`iris-base.toml`), and the policy resolves limits via `kumo.shaping.load`. The
-operator sees the **same enforcement** (the warming IP is still capped per
-provider per day); the mechanism is just native — it uses KumoMTA's provider
-grouping and is ready to gain TSA protection.
+The per-day cap is enforced through KumoMTA's **shaping helper**: iris renders
+the warmup cap as a per-IP override in `iris-warmup.toml`, layered over the
+**Delivery Blueprints** base (`iris-base.toml`), and the policy resolves limits
+via `shaping:setup_with_automation { no_default_files = true, … }`. The apply
+adapter writes both files next to the policy. `no_default_files` keeps the
+blueprints **authoritative** (no community-shaping defaults leak in). The legacy
+`MBP_BUCKET` egress path has been removed.
 
-- **Enable:** set `IRIS_SHAPING_ENABLE=true`. The apply adapter writes
-  `iris-base.toml` + `iris-warmup.toml` next to the policy and the policy loads
-  them. Unset (default) keeps the legacy `MBP_BUCKET` path — same behavior.
-- **Verified** against a live `kumod` (`--validate`): the full policy boots and
-  resolution is correct — a warming source resolves to its warmup override
-  (e.g. `50/day`) while other sources get the blueprint base (e.g. `150/day`),
-  both with the blueprint's connection settings.
+- **Verified** against a live `kumod` (`--validate`): the full policy boots and a
+  warming source resolves to its warmup override (e.g. `50/day`) while other
+  sources get the blueprint base (e.g. `150/day`), both with the blueprint's
+  connection settings — and it coexists with iris's log + queue hooks.
 - Layer details: `docs/delivery-blueprints-and-warmup.md`.
+
+## Adaptive throttling (TSA) — wired, opt-in
+
+When `IRIS_TSA_URL` is set, the policy **publishes** delivery log events to a
+KumoMTA Traffic Shaping Automation daemon and **subscribes** for adaptive,
+reactive back-off (e.g. tightening on 4xx/deferrals) layered *under* the warmup
+ceiling. Unset = static shaping only. Both modes are kumod-verified.
+
+Operating it additionally requires **running a `tsa-daemon`** (separate process)
+and pointing `IRIS_TSA_URL` at it; the daemon's automation rules decide the
+back-off. The iris policy side is complete and TSA-ready.
 
 ## Roadmap
 
@@ -289,10 +297,6 @@ Still **planned**:
 
 - **Expanding ISP targeting** — start by warming only a subset of providers
   (e.g. Gmail + Yahoo) and add more (Microsoft, regional) at later stages, rather
-  than ramping all buckets from day 1.
-- **Hourly peak / adaptive throttling (TSA)** — a per-hour smoothing limit and
-  reactive back-off on deferrals via KumoMTA Traffic Shaping Automation, layered
-  under the warmup ceiling. Builds directly on the shaping-helper enforcement
-  above.
-- **Retire `MBP_BUCKET`** — once the shaping path has soaked on, make it the
-  default and remove the legacy custom egress-path code (P2).
+  than ramping all buckets from day 1. (Needs a decision on whether non-targeted
+  providers are held vs. ride the blueprint base.)
+- **Custom curve editor** — per-stage, per-provider cap editing in the UI (M2).
