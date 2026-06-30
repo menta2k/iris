@@ -70,6 +70,19 @@ service IrisAdminService {
   rpc SeedDeliveryBlueprints(SeedDeliveryBlueprintsRequest) returns (SeedDeliveryBlueprintsReply) {
     option (google.api.http) = { post: "/v1/delivery-blueprints:seed-defaults" body: "*" };
   }
+  // TSA automation rules (operator-authored reactive back-off).
+  rpc ListAutomationRules(ListAutomationRulesRequest) returns (ListAutomationRulesReply) {
+    option (google.api.http) = { get: "/v1/automation-rules" };
+  }
+  rpc CreateAutomationRule(CreateAutomationRuleRequest) returns (AutomationRule) {
+    option (google.api.http) = { post: "/v1/automation-rules" body: "*" };
+  }
+  rpc UpdateAutomationRule(UpdateAutomationRuleRequest) returns (AutomationRule) {
+    option (google.api.http) = { put: "/v1/automation-rules/{id}" body: "*" };
+  }
+  rpc SetAutomationRuleStatus(SetAutomationRuleStatusRequest) returns (AutomationRule) {
+    option (google.api.http) = { post: "/v1/automation-rules/{id}:status" body: "*" };
+  }
   rpc ListRoutingRules(ListRoutingRulesRequest) returns (ListRoutingRulesReply) {
     option (google.api.http) = { get: "/v1/routing-rules" };
   }
@@ -536,6 +549,49 @@ message SetDeliveryBlueprintStatusRequest {
 message SeedDeliveryBlueprintsRequest {}
 message SeedDeliveryBlueprintsReply {
   int32 inserted = 1;
+}
+
+// ---- TSA automation rules ----
+message AutomationRule {
+  string id = 1;
+  string domain = 2;
+  string regex = 3;
+  string action = 4; // suspend | suspend_tenant | set_config
+  string config_name = 5;
+  string config_value = 6;
+  string trigger = 7; // "immediate" or a rate like "2/hr"
+  string duration = 8;
+  string status = 9;
+  string created_at = 10;
+  string updated_at = 11;
+}
+message ListAutomationRulesRequest {}
+message ListAutomationRulesReply {
+  repeated AutomationRule items = 1;
+}
+message CreateAutomationRuleRequest {
+  string domain = 1;
+  string regex = 2;
+  string action = 3;
+  string config_name = 4;
+  string config_value = 5;
+  string trigger = 6;
+  string duration = 7;
+}
+message UpdateAutomationRuleRequest {
+  string id = 1;
+  string domain = 2;
+  string regex = 3;
+  string action = 4;
+  string config_name = 5;
+  string config_value = 6;
+  string trigger = 7;
+  string duration = 8;
+  string status = 9;
+}
+message SetAutomationRuleStatusRequest {
+  string id = 1;
+  string status = 2;
 }
 
 message ListVMTAsRequest {

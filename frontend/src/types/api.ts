@@ -192,6 +192,37 @@ export interface SeedDeliveryBlueprintsResponse {
   inserted?: number
 }
 
+// ---- TSA automation rules ----
+export type AutomationAction = 'suspend' | 'suspend_tenant' | 'set_config'
+
+export interface AutomationRule {
+  id: string
+  domain: string
+  regex: string
+  action: AutomationAction
+  configName?: string
+  configValue?: string
+  trigger: string
+  duration: string
+  status: BlueprintStatus
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CreateAutomationRuleRequest {
+  domain: string
+  regex: string
+  action: string
+  config_name: string
+  config_value: string
+  trigger: string
+  duration: string
+}
+
+export interface UpdateAutomationRuleRequest extends CreateAutomationRuleRequest {
+  status: string
+}
+
 // Response member shape (camelCase).
 export interface VMTAGroupMember {
   vmtaId: string

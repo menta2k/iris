@@ -72,6 +72,12 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/outbound/DeliveryBlueprintsPage.vue'),
         meta: { permission: 'outbound:read', title: 'Delivery Blueprints' },
       },
+      {
+        path: 'outbound/automation',
+        name: 'shaping-automation',
+        component: () => import('@/pages/outbound/AutomationRulesPage.vue'),
+        meta: { permission: 'outbound:read', title: 'Shaping Automation' },
+      },
 
       // Operations
       {

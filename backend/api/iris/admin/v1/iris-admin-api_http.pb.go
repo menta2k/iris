@@ -24,6 +24,7 @@ const OperationIrisAdminServiceChangePassword = "/iris.admin.v1.IrisAdminService
 const OperationIrisAdminServiceCheckDomainBounceSetup = "/iris.admin.v1.IrisAdminService/CheckDomainBounceSetup"
 const OperationIrisAdminServiceClearAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/ClearAcmeDnsProvider"
 const OperationIrisAdminServiceConfirmMFA = "/iris.admin.v1.IrisAdminService/ConfirmMFA"
+const OperationIrisAdminServiceCreateAutomationRule = "/iris.admin.v1.IrisAdminService/CreateAutomationRule"
 const OperationIrisAdminServiceCreateDKIMDomain = "/iris.admin.v1.IrisAdminService/CreateDKIMDomain"
 const OperationIrisAdminServiceCreateDeliveryBlueprint = "/iris.admin.v1.IrisAdminService/CreateDeliveryBlueprint"
 const OperationIrisAdminServiceCreateFeedbackLoop = "/iris.admin.v1.IrisAdminService/CreateFeedbackLoop"
@@ -56,6 +57,7 @@ const OperationIrisAdminServiceKumoConfigStatus = "/iris.admin.v1.IrisAdminServi
 const OperationIrisAdminServiceListAcmeCertificates = "/iris.admin.v1.IrisAdminService/ListAcmeCertificates"
 const OperationIrisAdminServiceListAcmeDnsProviders = "/iris.admin.v1.IrisAdminService/ListAcmeDnsProviders"
 const OperationIrisAdminServiceListAuditEntries = "/iris.admin.v1.IrisAdminService/ListAuditEntries"
+const OperationIrisAdminServiceListAutomationRules = "/iris.admin.v1.IrisAdminService/ListAutomationRules"
 const OperationIrisAdminServiceListBounces = "/iris.admin.v1.IrisAdminService/ListBounces"
 const OperationIrisAdminServiceListDKIMDomains = "/iris.admin.v1.IrisAdminService/ListDKIMDomains"
 const OperationIrisAdminServiceListDeliveryBlueprints = "/iris.admin.v1.IrisAdminService/ListDeliveryBlueprints"
@@ -90,7 +92,9 @@ const OperationIrisAdminServiceRunRetention = "/iris.admin.v1.IrisAdminService/R
 const OperationIrisAdminServiceSaveAcmeAccount = "/iris.admin.v1.IrisAdminService/SaveAcmeAccount"
 const OperationIrisAdminServiceSeedDeliveryBlueprints = "/iris.admin.v1.IrisAdminService/SeedDeliveryBlueprints"
 const OperationIrisAdminServiceSetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
+const OperationIrisAdminServiceSetAutomationRuleStatus = "/iris.admin.v1.IrisAdminService/SetAutomationRuleStatus"
 const OperationIrisAdminServiceSetDeliveryBlueprintStatus = "/iris.admin.v1.IrisAdminService/SetDeliveryBlueprintStatus"
+const OperationIrisAdminServiceUpdateAutomationRule = "/iris.admin.v1.IrisAdminService/UpdateAutomationRule"
 const OperationIrisAdminServiceUpdateDKIMDomain = "/iris.admin.v1.IrisAdminService/UpdateDKIMDomain"
 const OperationIrisAdminServiceUpdateDeliveryBlueprint = "/iris.admin.v1.IrisAdminService/UpdateDeliveryBlueprint"
 const OperationIrisAdminServiceUpdateFeedbackLoop = "/iris.admin.v1.IrisAdminService/UpdateFeedbackLoop"
@@ -117,6 +121,7 @@ type IrisAdminServiceHTTPServer interface {
 	CheckDomainBounceSetup(context.Context, *CheckDomainBounceSetupRequest) (*DomainBounceCheck, error)
 	ClearAcmeDnsProvider(context.Context, *ClearAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	ConfirmMFA(context.Context, *ConfirmMFARequest) (*ConfirmMFAReply, error)
+	CreateAutomationRule(context.Context, *CreateAutomationRuleRequest) (*AutomationRule, error)
 	CreateDKIMDomain(context.Context, *CreateDKIMDomainRequest) (*DKIMDomain, error)
 	CreateDeliveryBlueprint(context.Context, *CreateDeliveryBlueprintRequest) (*DeliveryBlueprint, error)
 	CreateFeedbackLoop(context.Context, *CreateFeedbackLoopRequest) (*FeedbackLoop, error)
@@ -167,6 +172,8 @@ type IrisAdminServiceHTTPServer interface {
 	// ListAcmeDnsProviders ACME DNS-01 challenge provider configuration.
 	ListAcmeDnsProviders(context.Context, *ListAcmeDnsProvidersRequest) (*ListAcmeDnsProvidersReply, error)
 	ListAuditEntries(context.Context, *ListAuditEntriesRequest) (*ListAuditEntriesReply, error)
+	// ListAutomationRules TSA automation rules (operator-authored reactive back-off).
+	ListAutomationRules(context.Context, *ListAutomationRulesRequest) (*ListAutomationRulesReply, error)
 	ListBounces(context.Context, *ListBouncesRequest) (*ListBouncesReply, error)
 	// ListDKIMDomains Domain & recipient safety ------------------------------------------------
 	ListDKIMDomains(context.Context, *ListDKIMDomainsRequest) (*ListDKIMDomainsReply, error)
@@ -233,7 +240,9 @@ type IrisAdminServiceHTTPServer interface {
 	SaveAcmeAccount(context.Context, *SaveAcmeAccountRequest) (*AcmeAccount, error)
 	SeedDeliveryBlueprints(context.Context, *SeedDeliveryBlueprintsRequest) (*SeedDeliveryBlueprintsReply, error)
 	SetAcmeDnsProvider(context.Context, *SetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
+	SetAutomationRuleStatus(context.Context, *SetAutomationRuleStatusRequest) (*AutomationRule, error)
 	SetDeliveryBlueprintStatus(context.Context, *SetDeliveryBlueprintStatusRequest) (*DeliveryBlueprint, error)
+	UpdateAutomationRule(context.Context, *UpdateAutomationRuleRequest) (*AutomationRule, error)
 	UpdateDKIMDomain(context.Context, *UpdateDKIMDomainRequest) (*DKIMDomain, error)
 	UpdateDeliveryBlueprint(context.Context, *UpdateDeliveryBlueprintRequest) (*DeliveryBlueprint, error)
 	UpdateFeedbackLoop(context.Context, *UpdateFeedbackLoopRequest) (*FeedbackLoop, error)
@@ -273,6 +282,10 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.PUT("/v1/delivery-blueprints/{id}", _IrisAdminService_UpdateDeliveryBlueprint0_HTTP_Handler(srv))
 	r.POST("/v1/delivery-blueprints/{id}:status", _IrisAdminService_SetDeliveryBlueprintStatus0_HTTP_Handler(srv))
 	r.POST("/v1/delivery-blueprints:seed-defaults", _IrisAdminService_SeedDeliveryBlueprints0_HTTP_Handler(srv))
+	r.GET("/v1/automation-rules", _IrisAdminService_ListAutomationRules0_HTTP_Handler(srv))
+	r.POST("/v1/automation-rules", _IrisAdminService_CreateAutomationRule0_HTTP_Handler(srv))
+	r.PUT("/v1/automation-rules/{id}", _IrisAdminService_UpdateAutomationRule0_HTTP_Handler(srv))
+	r.POST("/v1/automation-rules/{id}:status", _IrisAdminService_SetAutomationRuleStatus0_HTTP_Handler(srv))
 	r.GET("/v1/routing-rules", _IrisAdminService_ListRoutingRules0_HTTP_Handler(srv))
 	r.POST("/v1/routing-rules", _IrisAdminService_CreateRoutingRule0_HTTP_Handler(srv))
 	r.PUT("/v1/routing-rules/{id}", _IrisAdminService_UpdateRoutingRule0_HTTP_Handler(srv))
@@ -765,6 +778,97 @@ func _IrisAdminService_SeedDeliveryBlueprints0_HTTP_Handler(srv IrisAdminService
 			return err
 		}
 		reply := out.(*SeedDeliveryBlueprintsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ListAutomationRules0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListAutomationRulesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListAutomationRules)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListAutomationRules(ctx, req.(*ListAutomationRulesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListAutomationRulesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CreateAutomationRule0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateAutomationRuleRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCreateAutomationRule)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateAutomationRule(ctx, req.(*CreateAutomationRuleRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AutomationRule)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateAutomationRule0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateAutomationRuleRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateAutomationRule)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateAutomationRule(ctx, req.(*UpdateAutomationRuleRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AutomationRule)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_SetAutomationRuleStatus0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SetAutomationRuleStatusRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceSetAutomationRuleStatus)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SetAutomationRuleStatus(ctx, req.(*SetAutomationRuleStatusRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AutomationRule)
 		return ctx.Result(200, reply)
 	}
 }
@@ -2191,6 +2295,7 @@ type IrisAdminServiceHTTPClient interface {
 	CheckDomainBounceSetup(ctx context.Context, req *CheckDomainBounceSetupRequest, opts ...http.CallOption) (rsp *DomainBounceCheck, err error)
 	ClearAcmeDnsProvider(ctx context.Context, req *ClearAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	ConfirmMFA(ctx context.Context, req *ConfirmMFARequest, opts ...http.CallOption) (rsp *ConfirmMFAReply, err error)
+	CreateAutomationRule(ctx context.Context, req *CreateAutomationRuleRequest, opts ...http.CallOption) (rsp *AutomationRule, err error)
 	CreateDKIMDomain(ctx context.Context, req *CreateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
 	CreateDeliveryBlueprint(ctx context.Context, req *CreateDeliveryBlueprintRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
 	CreateFeedbackLoop(ctx context.Context, req *CreateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
@@ -2241,6 +2346,8 @@ type IrisAdminServiceHTTPClient interface {
 	// ListAcmeDnsProviders ACME DNS-01 challenge provider configuration.
 	ListAcmeDnsProviders(ctx context.Context, req *ListAcmeDnsProvidersRequest, opts ...http.CallOption) (rsp *ListAcmeDnsProvidersReply, err error)
 	ListAuditEntries(ctx context.Context, req *ListAuditEntriesRequest, opts ...http.CallOption) (rsp *ListAuditEntriesReply, err error)
+	// ListAutomationRules TSA automation rules (operator-authored reactive back-off).
+	ListAutomationRules(ctx context.Context, req *ListAutomationRulesRequest, opts ...http.CallOption) (rsp *ListAutomationRulesReply, err error)
 	ListBounces(ctx context.Context, req *ListBouncesRequest, opts ...http.CallOption) (rsp *ListBouncesReply, err error)
 	// ListDKIMDomains Domain & recipient safety ------------------------------------------------
 	ListDKIMDomains(ctx context.Context, req *ListDKIMDomainsRequest, opts ...http.CallOption) (rsp *ListDKIMDomainsReply, err error)
@@ -2307,7 +2414,9 @@ type IrisAdminServiceHTTPClient interface {
 	SaveAcmeAccount(ctx context.Context, req *SaveAcmeAccountRequest, opts ...http.CallOption) (rsp *AcmeAccount, err error)
 	SeedDeliveryBlueprints(ctx context.Context, req *SeedDeliveryBlueprintsRequest, opts ...http.CallOption) (rsp *SeedDeliveryBlueprintsReply, err error)
 	SetAcmeDnsProvider(ctx context.Context, req *SetAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
+	SetAutomationRuleStatus(ctx context.Context, req *SetAutomationRuleStatusRequest, opts ...http.CallOption) (rsp *AutomationRule, err error)
 	SetDeliveryBlueprintStatus(ctx context.Context, req *SetDeliveryBlueprintStatusRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
+	UpdateAutomationRule(ctx context.Context, req *UpdateAutomationRuleRequest, opts ...http.CallOption) (rsp *AutomationRule, err error)
 	UpdateDKIMDomain(ctx context.Context, req *UpdateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
 	UpdateDeliveryBlueprint(ctx context.Context, req *UpdateDeliveryBlueprintRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
 	UpdateFeedbackLoop(ctx context.Context, req *UpdateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
@@ -2396,6 +2505,19 @@ func (c *IrisAdminServiceHTTPClientImpl) ConfirmMFA(ctx context.Context, in *Con
 	pattern := "/v1/mfa:confirm"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceConfirmMFA))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) CreateAutomationRule(ctx context.Context, in *CreateAutomationRuleRequest, opts ...http.CallOption) (*AutomationRule, error) {
+	var out AutomationRule
+	pattern := "/v1/automation-rules"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateAutomationRule))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -2830,6 +2952,20 @@ func (c *IrisAdminServiceHTTPClientImpl) ListAuditEntries(ctx context.Context, i
 	pattern := "/v1/audit-entries"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListAuditEntries))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListAutomationRules TSA automation rules (operator-authored reactive back-off).
+func (c *IrisAdminServiceHTTPClientImpl) ListAutomationRules(ctx context.Context, in *ListAutomationRulesRequest, opts ...http.CallOption) (*ListAutomationRulesReply, error) {
+	var out ListAutomationRulesReply
+	pattern := "/v1/automation-rules"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListAutomationRules))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -3312,6 +3448,19 @@ func (c *IrisAdminServiceHTTPClientImpl) SetAcmeDnsProvider(ctx context.Context,
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) SetAutomationRuleStatus(ctx context.Context, in *SetAutomationRuleStatusRequest, opts ...http.CallOption) (*AutomationRule, error) {
+	var out AutomationRule
+	pattern := "/v1/automation-rules/{id}:status"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceSetAutomationRuleStatus))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) SetDeliveryBlueprintStatus(ctx context.Context, in *SetDeliveryBlueprintStatusRequest, opts ...http.CallOption) (*DeliveryBlueprint, error) {
 	var out DeliveryBlueprint
 	pattern := "/v1/delivery-blueprints/{id}:status"
@@ -3319,6 +3468,19 @@ func (c *IrisAdminServiceHTTPClientImpl) SetDeliveryBlueprintStatus(ctx context.
 	opts = append(opts, http.Operation(OperationIrisAdminServiceSetDeliveryBlueprintStatus))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) UpdateAutomationRule(ctx context.Context, in *UpdateAutomationRuleRequest, opts ...http.CallOption) (*AutomationRule, error) {
+	var out AutomationRule
+	pattern := "/v1/automation-rules/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateAutomationRule))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

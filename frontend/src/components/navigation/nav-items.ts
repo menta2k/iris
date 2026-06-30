@@ -25,6 +25,7 @@ export const navSections: NavSection[] = [
       { label: 'Routing Rules', to: '/outbound/routing-rules', permission: 'outbound:read' },
       { label: 'IP Warmup', to: '/outbound/warmup', permission: 'outbound:read' },
       { label: 'Delivery Blueprints', to: '/outbound/blueprints', permission: 'outbound:read' },
+      { label: 'Shaping Automation', to: '/outbound/automation', permission: 'outbound:read' },
     ],
   },
   {

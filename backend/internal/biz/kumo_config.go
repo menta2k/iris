@@ -26,6 +26,10 @@ type ConfigSnapshot struct {
 	// rendered into the base shaping config.
 	Blueprints []*DeliveryBlueprint
 
+	// AutomationRules are the active operator-authored TSA automation rules
+	// rendered into iris-automation.toml (loaded by the TSA daemon).
+	AutomationRules []*AutomationRule
+
 	// ShapingDir is the directory the policy loads iris-base.toml + iris-warmup.toml
 	// from (written next to the policy by the apply adapter). Empty falls back to
 	// the standard policy dir.
@@ -184,9 +188,11 @@ type RenderedConfig struct {
 	LintIssues []string
 	// ShapingBase / ShapingWarmup are the TOML sidecar files the policy loads via
 	// kumo.shaping.load when ShapingDir is configured (base blueprints + per-IP
-	// warmup overrides). The apply adapter writes them next to the policy.
-	ShapingBase   string
-	ShapingWarmup string
+	// warmup overrides). ShapingAutomation holds the TSA automation rules loaded
+	// by the TSA daemon. The apply adapter writes all three next to the policy.
+	ShapingBase       string
+	ShapingWarmup     string
+	ShapingAutomation string
 }
 
 // validateSnapshot re-runs model validation on every entity so the renderer
@@ -338,8 +344,9 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 		LintIssues:       issues,
 		// Shaping sidecar files (written next to the policy by the apply adapter
 		// when ShapingDir is set; the policy loads them via kumo.shaping.load).
-		ShapingBase:   RenderBaseShaping(snap.Blueprints),
-		ShapingWarmup: RenderWarmupShaping(snap.WarmupRates),
+		ShapingBase:       RenderBaseShaping(snap.Blueprints),
+		ShapingWarmup:     RenderWarmupShaping(snap.WarmupRates),
+		ShapingAutomation: RenderAutomation(snap.AutomationRules),
 	}, nil
 }
 

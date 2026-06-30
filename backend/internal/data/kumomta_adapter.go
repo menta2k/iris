@@ -97,8 +97,9 @@ func (k *FileKumoMTA) ApplyConfig(ctx context.Context, rendered biz.RenderedConf
 	// iris runs as a different user. The policy itself stays 0640 below because it
 	// embeds DKIM private keys.
 	for name, body := range map[string]string{
-		"iris-base.toml":   rendered.ShapingBase,
-		"iris-warmup.toml": rendered.ShapingWarmup,
+		"iris-base.toml":       rendered.ShapingBase,
+		"iris-warmup.toml":     rendered.ShapingWarmup,
+		"iris-automation.toml": rendered.ShapingAutomation,
 	} {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
 			return "", "", biz.Internal(err, "write shaping %s", name)

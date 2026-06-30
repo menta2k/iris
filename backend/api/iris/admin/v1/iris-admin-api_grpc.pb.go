@@ -38,6 +38,10 @@ const (
 	IrisAdminService_UpdateDeliveryBlueprint_FullMethodName    = "/iris.admin.v1.IrisAdminService/UpdateDeliveryBlueprint"
 	IrisAdminService_SetDeliveryBlueprintStatus_FullMethodName = "/iris.admin.v1.IrisAdminService/SetDeliveryBlueprintStatus"
 	IrisAdminService_SeedDeliveryBlueprints_FullMethodName     = "/iris.admin.v1.IrisAdminService/SeedDeliveryBlueprints"
+	IrisAdminService_ListAutomationRules_FullMethodName        = "/iris.admin.v1.IrisAdminService/ListAutomationRules"
+	IrisAdminService_CreateAutomationRule_FullMethodName       = "/iris.admin.v1.IrisAdminService/CreateAutomationRule"
+	IrisAdminService_UpdateAutomationRule_FullMethodName       = "/iris.admin.v1.IrisAdminService/UpdateAutomationRule"
+	IrisAdminService_SetAutomationRuleStatus_FullMethodName    = "/iris.admin.v1.IrisAdminService/SetAutomationRuleStatus"
 	IrisAdminService_ListRoutingRules_FullMethodName           = "/iris.admin.v1.IrisAdminService/ListRoutingRules"
 	IrisAdminService_CreateRoutingRule_FullMethodName          = "/iris.admin.v1.IrisAdminService/CreateRoutingRule"
 	IrisAdminService_UpdateRoutingRule_FullMethodName          = "/iris.admin.v1.IrisAdminService/UpdateRoutingRule"
@@ -134,6 +138,11 @@ type IrisAdminServiceClient interface {
 	UpdateDeliveryBlueprint(ctx context.Context, in *UpdateDeliveryBlueprintRequest, opts ...grpc.CallOption) (*DeliveryBlueprint, error)
 	SetDeliveryBlueprintStatus(ctx context.Context, in *SetDeliveryBlueprintStatusRequest, opts ...grpc.CallOption) (*DeliveryBlueprint, error)
 	SeedDeliveryBlueprints(ctx context.Context, in *SeedDeliveryBlueprintsRequest, opts ...grpc.CallOption) (*SeedDeliveryBlueprintsReply, error)
+	// TSA automation rules (operator-authored reactive back-off).
+	ListAutomationRules(ctx context.Context, in *ListAutomationRulesRequest, opts ...grpc.CallOption) (*ListAutomationRulesReply, error)
+	CreateAutomationRule(ctx context.Context, in *CreateAutomationRuleRequest, opts ...grpc.CallOption) (*AutomationRule, error)
+	UpdateAutomationRule(ctx context.Context, in *UpdateAutomationRuleRequest, opts ...grpc.CallOption) (*AutomationRule, error)
+	SetAutomationRuleStatus(ctx context.Context, in *SetAutomationRuleStatusRequest, opts ...grpc.CallOption) (*AutomationRule, error)
 	ListRoutingRules(ctx context.Context, in *ListRoutingRulesRequest, opts ...grpc.CallOption) (*ListRoutingRulesReply, error)
 	CreateRoutingRule(ctx context.Context, in *CreateRoutingRuleRequest, opts ...grpc.CallOption) (*RoutingRule, error)
 	UpdateRoutingRule(ctx context.Context, in *UpdateRoutingRuleRequest, opts ...grpc.CallOption) (*RoutingRule, error)
@@ -448,6 +457,46 @@ func (c *irisAdminServiceClient) SeedDeliveryBlueprints(ctx context.Context, in 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SeedDeliveryBlueprintsReply)
 	err := c.cc.Invoke(ctx, IrisAdminService_SeedDeliveryBlueprints_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ListAutomationRules(ctx context.Context, in *ListAutomationRulesRequest, opts ...grpc.CallOption) (*ListAutomationRulesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAutomationRulesReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListAutomationRules_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) CreateAutomationRule(ctx context.Context, in *CreateAutomationRuleRequest, opts ...grpc.CallOption) (*AutomationRule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AutomationRule)
+	err := c.cc.Invoke(ctx, IrisAdminService_CreateAutomationRule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) UpdateAutomationRule(ctx context.Context, in *UpdateAutomationRuleRequest, opts ...grpc.CallOption) (*AutomationRule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AutomationRule)
+	err := c.cc.Invoke(ctx, IrisAdminService_UpdateAutomationRule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) SetAutomationRuleStatus(ctx context.Context, in *SetAutomationRuleStatusRequest, opts ...grpc.CallOption) (*AutomationRule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AutomationRule)
+	err := c.cc.Invoke(ctx, IrisAdminService_SetAutomationRuleStatus_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1151,6 +1200,11 @@ type IrisAdminServiceServer interface {
 	UpdateDeliveryBlueprint(context.Context, *UpdateDeliveryBlueprintRequest) (*DeliveryBlueprint, error)
 	SetDeliveryBlueprintStatus(context.Context, *SetDeliveryBlueprintStatusRequest) (*DeliveryBlueprint, error)
 	SeedDeliveryBlueprints(context.Context, *SeedDeliveryBlueprintsRequest) (*SeedDeliveryBlueprintsReply, error)
+	// TSA automation rules (operator-authored reactive back-off).
+	ListAutomationRules(context.Context, *ListAutomationRulesRequest) (*ListAutomationRulesReply, error)
+	CreateAutomationRule(context.Context, *CreateAutomationRuleRequest) (*AutomationRule, error)
+	UpdateAutomationRule(context.Context, *UpdateAutomationRuleRequest) (*AutomationRule, error)
+	SetAutomationRuleStatus(context.Context, *SetAutomationRuleStatusRequest) (*AutomationRule, error)
 	ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesReply, error)
 	CreateRoutingRule(context.Context, *CreateRoutingRuleRequest) (*RoutingRule, error)
 	UpdateRoutingRule(context.Context, *UpdateRoutingRuleRequest) (*RoutingRule, error)
@@ -1337,6 +1391,18 @@ func (UnimplementedIrisAdminServiceServer) SetDeliveryBlueprintStatus(context.Co
 }
 func (UnimplementedIrisAdminServiceServer) SeedDeliveryBlueprints(context.Context, *SeedDeliveryBlueprintsRequest) (*SeedDeliveryBlueprintsReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method SeedDeliveryBlueprints not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListAutomationRules(context.Context, *ListAutomationRulesRequest) (*ListAutomationRulesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListAutomationRules not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) CreateAutomationRule(context.Context, *CreateAutomationRuleRequest) (*AutomationRule, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateAutomationRule not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) UpdateAutomationRule(context.Context, *UpdateAutomationRuleRequest) (*AutomationRule, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateAutomationRule not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) SetAutomationRuleStatus(context.Context, *SetAutomationRuleStatusRequest) (*AutomationRule, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetAutomationRuleStatus not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRoutingRules not implemented")
@@ -1898,6 +1964,78 @@ func _IrisAdminService_SeedDeliveryBlueprints_Handler(srv interface{}, ctx conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IrisAdminServiceServer).SeedDeliveryBlueprints(ctx, req.(*SeedDeliveryBlueprintsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListAutomationRules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAutomationRulesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListAutomationRules(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListAutomationRules_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListAutomationRules(ctx, req.(*ListAutomationRulesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_CreateAutomationRule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateAutomationRuleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).CreateAutomationRule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_CreateAutomationRule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).CreateAutomationRule(ctx, req.(*CreateAutomationRuleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_UpdateAutomationRule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateAutomationRuleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).UpdateAutomationRule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_UpdateAutomationRule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).UpdateAutomationRule(ctx, req.(*UpdateAutomationRuleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_SetAutomationRuleStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetAutomationRuleStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).SetAutomationRuleStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_SetAutomationRuleStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).SetAutomationRuleStatus(ctx, req.(*SetAutomationRuleStatusRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -3190,6 +3328,22 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SeedDeliveryBlueprints",
 			Handler:    _IrisAdminService_SeedDeliveryBlueprints_Handler,
+		},
+		{
+			MethodName: "ListAutomationRules",
+			Handler:    _IrisAdminService_ListAutomationRules_Handler,
+		},
+		{
+			MethodName: "CreateAutomationRule",
+			Handler:    _IrisAdminService_CreateAutomationRule_Handler,
+		},
+		{
+			MethodName: "UpdateAutomationRule",
+			Handler:    _IrisAdminService_UpdateAutomationRule_Handler,
+		},
+		{
+			MethodName: "SetAutomationRuleStatus",
+			Handler:    _IrisAdminService_SetAutomationRuleStatus_Handler,
 		},
 		{
 			MethodName: "ListRoutingRules",

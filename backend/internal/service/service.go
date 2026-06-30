@@ -41,6 +41,7 @@ type Service struct {
 	retention     *biz.RetentionUsecase
 	warmup        *biz.WarmupUsecase
 	blueprints    *biz.BlueprintUsecase
+	automation    *biz.AutomationUsecase
 }
 
 // Deps bundles the use cases the service delegates to. Fields may be nil for
@@ -69,6 +70,7 @@ type Deps struct {
 	Retention     *biz.RetentionUsecase
 	Warmup        *biz.WarmupUsecase
 	Blueprints    *biz.BlueprintUsecase
+	Automation    *biz.AutomationUsecase
 }
 
 // NewService constructs the admin API service.
@@ -101,6 +103,7 @@ func NewService(d Deps) *Service {
 		retention:     d.Retention,
 		warmup:        d.Warmup,
 		blueprints:    d.Blueprints,
+		automation:    d.Automation,
 	}
 }
 

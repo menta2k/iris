@@ -261,6 +261,84 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/LoginReply'
+    /v1/automation-rules:
+        get:
+            tags:
+                - IrisAdminService
+            description: TSA automation rules (operator-authored reactive back-off).
+            operationId: IrisAdminService_ListAutomationRules
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListAutomationRulesReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateAutomationRule
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateAutomationRuleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AutomationRule'
+    /v1/automation-rules/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateAutomationRule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateAutomationRuleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AutomationRule'
+    /v1/automation-rules/{id}:status:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_SetAutomationRuleStatus
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/SetAutomationRuleStatusRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AutomationRule'
     /v1/bounces:
         get:
             tags:
@@ -1898,6 +1976,32 @@ components:
                     type: string
                 ip_address:
                     type: string
+        AutomationRule:
+            type: object
+            properties:
+                id:
+                    type: string
+                domain:
+                    type: string
+                regex:
+                    type: string
+                action:
+                    type: string
+                config_name:
+                    type: string
+                config_value:
+                    type: string
+                trigger:
+                    type: string
+                duration:
+                    type: string
+                status:
+                    type: string
+                created_at:
+                    type: string
+                updated_at:
+                    type: string
+            description: '---- TSA automation rules ----'
         Bounce:
             type: object
             properties:
@@ -1947,6 +2051,23 @@ components:
             type: object
             properties:
                 code:
+                    type: string
+        CreateAutomationRuleRequest:
+            type: object
+            properties:
+                domain:
+                    type: string
+                regex:
+                    type: string
+                action:
+                    type: string
+                config_name:
+                    type: string
+                config_value:
+                    type: string
+                trigger:
+                    type: string
+                duration:
                     type: string
         CreateDKIMDomainRequest:
             type: object
@@ -2626,6 +2747,13 @@ components:
                         $ref: '#/components/schemas/AuditEntry'
                 page:
                     $ref: '#/components/schemas/PageReply'
+        ListAutomationRulesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/AutomationRule'
         ListBouncesReply:
             type: object
             properties:
@@ -3264,6 +3392,13 @@ components:
                     type: object
                     additionalProperties:
                         type: string
+        SetAutomationRuleStatusRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                status:
+                    type: string
         SetDeliveryBlueprintStatusRequest:
             type: object
             properties:
@@ -3301,6 +3436,27 @@ components:
                 TLSPolicy requires TLS on outbound delivery to a destination domain. mode is
                  "required" (STARTTLS + valid cert) or "required_insecure" (STARTTLS, skip
                  cert validation).
+        UpdateAutomationRuleRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                domain:
+                    type: string
+                regex:
+                    type: string
+                action:
+                    type: string
+                config_name:
+                    type: string
+                config_value:
+                    type: string
+                trigger:
+                    type: string
+                duration:
+                    type: string
+                status:
+                    type: string
         UpdateDKIMDomainRequest:
             type: object
             properties:
