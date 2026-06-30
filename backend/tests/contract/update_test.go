@@ -21,10 +21,11 @@ func TestEditOutboundEntities(t *testing.T) {
 		t.Fatalf("create vmta: %v", err)
 	}
 
-	// Edit the VMTA: change listener, max connections, status, notes.
+	// Edit the VMTA: change listener, max connections, status, notes. The VMTA
+	// owns its egress IP/EHLO, so they must be re-supplied on update.
 	upd, err := svc.UpdateVMTA(ctx, &adminv1.UpdateVMTARequest{
-		Id: a.GetId(), Name: "edit-a", ListenerId: lb, MaxConnections: 25,
-		Status: "disabled", Notes: "drained for maint",
+		Id: a.GetId(), Name: "edit-a", IpAddress: "203.0.113.61", EhloName: "edit-a.example.com",
+		ListenerId: lb, MaxConnections: 25, Status: "disabled", Notes: "drained for maint",
 	})
 	if err != nil {
 		t.Fatalf("update vmta: %v", err)
@@ -76,7 +77,8 @@ func TestEditOutboundEntities(t *testing.T) {
 
 	// Editing a non-existent VMTA is a not-found error.
 	if _, err := svc.UpdateVMTA(ctx, &adminv1.UpdateVMTARequest{
-		Id: "00000000-0000-0000-0000-0000000000ff", Name: "x", ListenerId: la,
+		Id: "00000000-0000-0000-0000-0000000000ff", Name: "x",
+		IpAddress: "203.0.113.99", EhloName: "x.example.com", ListenerId: la,
 	}); err == nil {
 		t.Fatal("expected not-found editing a missing VMTA")
 	}
