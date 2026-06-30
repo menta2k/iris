@@ -71,7 +71,32 @@ services:
     command: ["kumod", "--policy", "/opt/kumomta/etc/policy/init.lua", "--user", "kumod"]
     restart: unless-stopped
 
+  # Traffic Shaping Automation daemon (P3 — adaptive/hourly back-off). Opt-in:
+  #
+  #   docker compose -f deploy/compose/docker-compose.yml --profile tsa up -d tsa-daemon
+  #
+  # Then run the backend with IRIS_TSA_URL pointing at it, so the generated kumod
+  # policy publishes delivery events to it and subscribes for back-off overrides:
+  #   IRIS_TSA_URL=http://localhost:8008    (backend on the host)
+  #   IRIS_TSA_URL=http://tsa-daemon:8008    (backend in the compose network)
+  # TSA tightens rates UNDER the IP-warmup ceiling; it never raises them.
+  tsa-daemon:
+    image: ${IRIS_E2E_KUMO_IMAGE:-ghcr.io/kumocorp/kumomta:latest}
+    container_name: iris-tsa-daemon
+    profiles: ["tsa", "e2e"]
+    entrypoint: ["/opt/kumomta/sbin/tsa-daemon", "--policy", "/opt/kumomta/etc/tsa/tsa_init.lua"]
+    ports:
+      - "8008:8008" # TSA HTTP API (publish + subscribe)
+    volumes:
+      - ./tsa_init.lua:/opt/kumomta/etc/tsa/tsa_init.lua:ro
+      # Optional: let the daemon read iris's generated shaping files (see the
+      # commented load line in tsa_init.lua).
+      - kumod-policy:/opt/kumomta/etc/policy:ro
+      - tsa-state:/var/spool/kumomta # persist computed overrides across restarts
+    restart: unless-stopped
+
 volumes:
   timescaledb-data:
   redis-data:
   kumod-policy:
+  tsa-state:
