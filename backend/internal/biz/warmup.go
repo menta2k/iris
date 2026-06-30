@@ -98,8 +98,11 @@ func (w *WarmupSchedule) Validate() error {
 	if !ValidWarmupStatus(w.Status) {
 		return Invalid("WARMUP_STATUS_INVALID", "status %q is not valid", w.Status)
 	}
-	// M1 ships built-in templates only (custom stage editor is M2): the curve must
-	// name a known template, and the stages are resolved from it.
+	// A custom curve uses the operator-supplied stages as-is; a named curve
+	// resolves its stages from the built-in template.
+	if w.Curve == CurveCustom {
+		return ValidWarmupStages(w.Stages)
+	}
 	stages, ok := ResolveWarmupCurve(w.Curve)
 	if !ok {
 		return Invalid("WARMUP_CURVE_UNKNOWN", "curve %q is not a known template", w.Curve)

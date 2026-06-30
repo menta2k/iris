@@ -2136,6 +2136,10 @@ components:
                     type: string
                 curve:
                     type: string
+                stages:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/WarmupStage'
         CurrentUserReply:
             type: object
             properties:
@@ -3568,6 +3572,10 @@ components:
                     type: string
                 curve:
                     type: string
+                stages:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/WarmupStage'
         User:
             type: object
             properties:

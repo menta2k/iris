@@ -129,15 +129,24 @@ export interface WarmupListResponse {
   page?: { nextPageToken?: string }
 }
 
+// Request-shaped stage (snake_case) for a custom curve.
+export interface WarmupStageInput {
+  day_from: number
+  day_to: number
+  caps: Record<string, number>
+}
+
 export interface CreateWarmupScheduleRequest {
   vmta_id: string
   start_date: string
   curve: string
+  stages?: WarmupStageInput[] // required when curve = 'custom'
 }
 
 export interface UpdateWarmupScheduleRequest {
   start_date: string
   curve: string
+  stages?: WarmupStageInput[]
 }
 
 export interface PauseWarmupScheduleRequest {

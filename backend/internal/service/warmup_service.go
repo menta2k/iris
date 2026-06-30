@@ -39,7 +39,9 @@ func (s *Service) CreateWarmupSchedule(ctx context.Context, req *adminv1.CreateW
 	if err != nil {
 		return nil, s.fail(ctx, "CreateWarmupSchedule", err)
 	}
-	out, err := s.warmup.Create(ctx, &biz.WarmupSchedule{VMTAID: req.GetVmtaId(), StartDate: start, Curve: req.GetCurve()})
+	out, err := s.warmup.Create(ctx, &biz.WarmupSchedule{
+		VMTAID: req.GetVmtaId(), StartDate: start, Curve: req.GetCurve(), Stages: stagesFromProto(req.GetStages()),
+	})
 	if err != nil {
 		return nil, s.fail(ctx, "CreateWarmupSchedule", err)
 	}
@@ -55,7 +57,9 @@ func (s *Service) UpdateWarmupSchedule(ctx context.Context, req *adminv1.UpdateW
 	if err != nil {
 		return nil, s.fail(ctx, "UpdateWarmupSchedule", err)
 	}
-	out, err := s.warmup.Update(ctx, req.GetId(), &biz.WarmupSchedule{StartDate: start, Curve: req.GetCurve()})
+	out, err := s.warmup.Update(ctx, req.GetId(), &biz.WarmupSchedule{
+		StartDate: start, Curve: req.GetCurve(), Stages: stagesFromProto(req.GetStages()),
+	})
 	if err != nil {
 		return nil, s.fail(ctx, "UpdateWarmupSchedule", err)
 	}
@@ -113,6 +117,18 @@ func warmupToProto(w *biz.WarmupSchedule) *adminv1.WarmupSchedule {
 		p.UpdatedAt = w.UpdatedAt.UTC().Format(time.RFC3339)
 	}
 	return p
+}
+
+func stagesFromProto(in []*adminv1.WarmupStage) []biz.WarmupStage {
+	out := make([]biz.WarmupStage, 0, len(in))
+	for _, s := range in {
+		caps := make(map[string]int, len(s.GetCaps()))
+		for k, v := range s.GetCaps() {
+			caps[k] = int(v)
+		}
+		out = append(out, biz.WarmupStage{DayFrom: int(s.GetDayFrom()), DayTo: int(s.GetDayTo()), Caps: caps})
+	}
+	return out
 }
 
 func stagesToProto(stages []biz.WarmupStage) []*adminv1.WarmupStage {

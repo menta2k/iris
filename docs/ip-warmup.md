@@ -291,6 +291,16 @@ Operating it additionally requires **running a `tsa-daemon`** (separate process)
 and pointing `IRIS_TSA_URL` at it; the daemon's automation rules decide the
 back-off. The iris policy side is complete and TSA-ready.
 
+## Custom curves (M2)
+
+Besides the built-in templates, a schedule can use **`custom`** curve: the
+operator defines the stages directly in the UI (Outbound → IP Warmup → New
+warmup → curve `custom`). Each stage is a contiguous, 1-based day range with a
+per-MBP daily cap (Gmail / Microsoft / Yahoo / default); add/remove stages as
+needed. Editing an existing schedule seeds the editor from its current stages, so
+a template can be tweaked into a custom curve. Custom stages are validated the
+same way as templates (1-based, contiguous, at least one positive cap per stage).
+
 ## Roadmap
 
 Still **planned**:
@@ -298,5 +308,5 @@ Still **planned**:
 - **Expanding ISP targeting** — start by warming only a subset of providers
   (e.g. Gmail + Yahoo) and add more (Microsoft, regional) at later stages, rather
   than ramping all buckets from day 1. (Needs a decision on whether non-targeted
-  providers are held vs. ride the blueprint base.)
-- **Custom curve editor** — per-stage, per-provider cap editing in the UI (M2).
+  providers are held vs. ride the blueprint base. The custom editor already lets
+  you approximate this by setting per-provider caps per stage.)

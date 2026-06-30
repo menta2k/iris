@@ -478,11 +478,13 @@ message CreateWarmupScheduleRequest {
   string vmta_id = 1;
   string start_date = 2; // YYYY-MM-DD
   string curve = 3;
+  repeated WarmupStage stages = 4; // required when curve = "custom"
 }
 message UpdateWarmupScheduleRequest {
   string id = 1;
   string start_date = 2;
   string curve = 3;
+  repeated WarmupStage stages = 4; // required when curve = "custom"
 }
 message PauseWarmupScheduleRequest {
   string id = 1;

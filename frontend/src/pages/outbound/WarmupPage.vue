@@ -20,7 +20,7 @@ import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui
 import { useToast } from '@/composables/useToast'
 import { warmupService, outboundConfigService } from '@/services'
 import { ApiError } from '@/services/http'
-import type { VMTA, WarmupCurve, WarmupSchedule, WarmupStage } from '@/types'
+import type { VMTA, WarmupCurve, WarmupSchedule, WarmupStage, WarmupStageInput } from '@/types'
 
 const { toast } = useToast()
 
@@ -37,14 +37,33 @@ const dialogOpen = ref(false)
 const saving = ref(false)
 const mode = ref<'create' | 'edit'>('create')
 const editId = ref<string | null>(null)
-const form = ref({ vmta_id: '', curve: 'standard', start_date: todayISO() })
+const form = ref({
+  vmta_id: '',
+  curve: 'standard',
+  start_date: todayISO(),
+  stages: [] as WarmupStageInput[],
+})
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
 const curveNames = computed(() => curves.value.map((c) => c.name))
+// The built-in templates plus the 'custom' option that reveals the stage editor.
+const curveOptions = computed(() => [...curveNames.value, 'custom'])
 const isEdit = computed(() => mode.value === 'edit')
+const isCustom = computed(() => form.value.curve === 'custom')
+
+function newStage(dayFrom: number): WarmupStageInput {
+  return { day_from: dayFrom, day_to: dayFrom + 6, caps: { gmail: 50, microsoft: 50, yahoo: 50, default: 200 } }
+}
+function addStage() {
+  const last = form.value.stages[form.value.stages.length - 1]
+  form.value.stages.push(newStage(last ? last.day_to + 1 : 1))
+}
+function removeStage(i: number) {
+  form.value.stages.splice(i, 1)
+}
 
 async function load() {
   loading.value = true
@@ -76,7 +95,12 @@ async function loadVmtas() {
 async function openCreate() {
   mode.value = 'create'
   editId.value = null
-  form.value = { vmta_id: '', curve: curveNames.value[0] ?? 'standard', start_date: todayISO() }
+  form.value = {
+    vmta_id: '',
+    curve: curveNames.value[0] ?? 'standard',
+    start_date: todayISO(),
+    stages: [newStage(1)],
+  }
   dialogOpen.value = true
   await loadVmtas()
 }
@@ -84,7 +108,19 @@ async function openCreate() {
 function openEdit(w: WarmupSchedule) {
   mode.value = 'edit'
   editId.value = w.id
-  form.value = { vmta_id: w.vmtaId, curve: w.curve, start_date: w.startDate }
+  form.value = {
+    vmta_id: w.vmtaId,
+    curve: w.curve,
+    start_date: w.startDate,
+    // Seed the editor from the schedule's resolved stages (so a template can be
+    // tweaked into a custom curve, or a custom curve edited).
+    stages: (w.stages ?? []).map((s) => ({
+      day_from: s.dayFrom,
+      day_to: s.dayTo,
+      caps: { ...s.caps },
+    })),
+  }
+  if (form.value.stages.length === 0) form.value.stages = [newStage(1)]
   dialogOpen.value = true
 }
 
@@ -92,10 +128,12 @@ async function submit() {
   if (!form.value.curve || (!isEdit.value && !form.value.vmta_id)) return
   saving.value = true
   try {
+    const stages = isCustom.value ? form.value.stages : undefined
     if (isEdit.value && editId.value) {
       await warmupService.update(editId.value, {
         start_date: form.value.start_date,
         curve: form.value.curve,
+        stages,
       })
       toast({ title: 'Warmup updated', variant: 'success' })
     } else {
@@ -103,6 +141,7 @@ async function submit() {
         vmta_id: form.value.vmta_id,
         start_date: form.value.start_date,
         curve: form.value.curve,
+        stages,
       })
       toast({ title: 'Warmup scheduled', variant: 'success' })
     }
@@ -246,13 +285,53 @@ load()
         <div class="space-y-1.5">
           <Label for="warmup-curve">Curve</Label>
           <Select id="warmup-curve" v-model="form.curve">
-            <option v-for="c in curveNames" :key="c" :value="c">{{ c }}</option>
+            <option v-for="c in curveOptions" :key="c" :value="c">{{ c }}</option>
           </Select>
           <p class="text-xs text-muted-foreground">
-            Built-in ramp templates: standard (~21d), conservative (~30d), aggressive (~12d). Caps
-            are per receiving-domain family (Gmail, Microsoft, Yahoo, default).
+            Built-in templates: standard (~21d), conservative (~30d), aggressive (~12d). Pick
+            <code>custom</code> to define your own stages. Caps are per receiving-domain family
+            (Gmail, Microsoft, Yahoo, default).
           </p>
         </div>
+
+        <!-- Custom stage editor: contiguous day ranges with a per-MBP daily cap. -->
+        <div v-if="isCustom" class="space-y-2 rounded-md border p-3">
+          <div class="flex items-center justify-between">
+            <Label>Stages (messages/day)</Label>
+            <Button type="button" variant="outline" size="sm" @click="addStage">Add stage</Button>
+          </div>
+          <table class="w-full text-xs">
+            <thead class="text-muted-foreground">
+              <tr>
+                <th class="text-left font-normal">Day from</th>
+                <th class="text-left font-normal">Day to</th>
+                <th class="text-left font-normal">Gmail</th>
+                <th class="text-left font-normal">Microsoft</th>
+                <th class="text-left font-normal">Yahoo</th>
+                <th class="text-left font-normal">Default</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(s, i) in form.stages" :key="i">
+                <td class="pr-1 py-0.5"><Input v-model.number="s.day_from" type="number" class="h-7" /></td>
+                <td class="pr-1"><Input v-model.number="s.day_to" type="number" class="h-7" /></td>
+                <td class="pr-1"><Input v-model.number="s.caps.gmail" type="number" class="h-7" /></td>
+                <td class="pr-1"><Input v-model.number="s.caps.microsoft" type="number" class="h-7" /></td>
+                <td class="pr-1"><Input v-model.number="s.caps.yahoo" type="number" class="h-7" /></td>
+                <td class="pr-1"><Input v-model.number="s.caps.default" type="number" class="h-7" /></td>
+                <td>
+                  <Button type="button" variant="ghost" size="sm" @click="removeStage(i)">✕</Button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="text-xs text-muted-foreground">
+            Stages must be 1-based and contiguous (each starts the day after the previous ends).
+            After the last day the warmup completes and the cap is removed.
+          </p>
+        </div>
+
         <div class="space-y-1.5">
           <Label for="warmup-start">Start date</Label>
           <Input id="warmup-start" v-model="form.start_date" type="date" />

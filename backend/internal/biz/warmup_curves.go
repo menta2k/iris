@@ -11,6 +11,9 @@ const (
 	CurveStandard     = "standard"
 	CurveConservative = "conservative"
 	CurveAggressive   = "aggressive"
+	// CurveCustom marks an operator-defined curve: the schedule's Stages are used
+	// as-is rather than resolved from a built-in template (M2 stage editor).
+	CurveCustom = "custom"
 )
 
 // st builds a stage; caps are ordered gmail, microsoft, yahoo, default.
