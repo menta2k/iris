@@ -90,14 +90,17 @@ func (k *FileKumoMTA) ApplyConfig(ctx context.Context, rendered biz.RenderedConf
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", "", biz.Internal(err, "create config directory")
 	}
-	// Write the shaping sidecar files (loaded by the policy via kumo.shaping.load
-	// when the shaping cutover is enabled) BEFORE the policy, so they exist when
-	// kumod reloads/loads the policy. Harmless when the cutover is disabled.
+	// Write the shaping sidecar files (loaded by the policy via kumo.shaping.load)
+	// BEFORE the policy, so they exist when kumod reloads/loads the policy. They
+	// are world-readable (0644): they hold only per-provider/per-IP rate limits
+	// (no secrets) and must be readable by the kumod/tsa-daemon user even when
+	// iris runs as a different user. The policy itself stays 0640 below because it
+	// embeds DKIM private keys.
 	for name, body := range map[string]string{
 		"iris-base.toml":   rendered.ShapingBase,
 		"iris-warmup.toml": rendered.ShapingWarmup,
 	} {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o640); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
 			return "", "", biz.Internal(err, "write shaping %s", name)
 		}
 	}

@@ -99,6 +99,36 @@ func TestWarmupLifecycle(t *testing.T) {
 	}
 }
 
+func TestWarmupCustomCurve(t *testing.T) {
+	repo := newFakeWarmupRepo()
+	uc := NewWarmupUsecase(repo, nil, nil)
+	ctx := ownerCheckCtx()
+	start := dayStart(time.Now()).AddDate(0, 0, -1)
+
+	// A custom curve uses the operator's stages verbatim (not a template).
+	custom := []WarmupStage{
+		{DayFrom: 1, DayTo: 2, Caps: map[string]int{MBPGmail: 30, MBPMicrosoft: 30, MBPYahoo: 30, MBPDefault: 100}},
+		{DayFrom: 3, DayTo: 5, Caps: map[string]int{MBPGmail: 300, MBPMicrosoft: 200, MBPYahoo: 200, MBPDefault: 1000}},
+	}
+	out, err := uc.Create(ctx, &WarmupSchedule{VMTAID: "v1", StartDate: start, Curve: CurveCustom, Stages: custom})
+	if err != nil {
+		t.Fatalf("create custom: %v", err)
+	}
+	if len(out.Stages) != 2 || out.Stages[1].Caps[MBPGmail] != 300 {
+		t.Fatalf("custom stages not preserved: %+v", out.Stages)
+	}
+
+	// Invalid custom stages (a gap) are rejected.
+	bad := []WarmupStage{{DayFrom: 1, DayTo: 1, Caps: map[string]int{MBPDefault: 10}}, {DayFrom: 3, DayTo: 4, Caps: map[string]int{MBPDefault: 20}}}
+	if _, err := uc.Create(ctx, &WarmupSchedule{VMTAID: "v2", StartDate: start, Curve: CurveCustom, Stages: bad}); err == nil {
+		t.Fatal("non-contiguous custom stages must be rejected")
+	}
+	// Empty custom stages are rejected.
+	if _, err := uc.Create(ctx, &WarmupSchedule{VMTAID: "v3", StartDate: start, Curve: CurveCustom}); err == nil {
+		t.Fatal("empty custom stages must be rejected")
+	}
+}
+
 func TestWarmupTickTransitions(t *testing.T) {
 	repo := newFakeWarmupRepo()
 	uc := NewWarmupUsecase(repo, nil, nil)

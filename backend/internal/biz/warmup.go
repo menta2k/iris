@@ -1,7 +1,6 @@
 package biz
 
 import (
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -99,8 +98,11 @@ func (w *WarmupSchedule) Validate() error {
 	if !ValidWarmupStatus(w.Status) {
 		return Invalid("WARMUP_STATUS_INVALID", "status %q is not valid", w.Status)
 	}
-	// M1 ships built-in templates only (custom stage editor is M2): the curve must
-	// name a known template, and the stages are resolved from it.
+	// A custom curve uses the operator-supplied stages as-is; a named curve
+	// resolves its stages from the built-in template.
+	if w.Curve == CurveCustom {
+		return ValidWarmupStages(w.Stages)
+	}
 	stages, ok := ResolveWarmupCurve(w.Curve)
 	if !ok {
 		return Invalid("WARMUP_CURVE_UNKNOWN", "curve %q is not a known template", w.Curve)
@@ -208,38 +210,4 @@ func ResolveWarmupRates(schedules []*WarmupSchedule, today time.Time) map[string
 // strconvDay formats a messages/day cap as a KumoMTA throttle spec.
 func strconvDay(n int) string {
 	return strconv.Itoa(n) + "/day"
-}
-
-// mbpDomains maps common receiving domains to their MBP bucket. Curated for the
-// big three (the families warmup most needs to pace); everything else falls to
-// "default". Rendered into the policy as MBP_BUCKET. Extend as needed.
-var mbpDomains = map[string]string{
-	"gmail.com":      MBPGmail,
-	"googlemail.com": MBPGmail,
-	"outlook.com":    MBPMicrosoft,
-	"hotmail.com":    MBPMicrosoft,
-	"live.com":       MBPMicrosoft,
-	"msn.com":        MBPMicrosoft,
-	"hotmail.co.uk":  MBPMicrosoft,
-	"outlook.co.uk":  MBPMicrosoft,
-	"yahoo.com":      MBPYahoo,
-	"yahoo.co.uk":    MBPYahoo,
-	"ymail.com":      MBPYahoo,
-	"rocketmail.com": MBPYahoo,
-	"aol.com":        MBPYahoo, // Yahoo/AOL share infrastructure
-}
-
-// sortedMBPDomains returns the domain->bucket pairs in domain order (stable
-// rendering / checksum).
-func sortedMBPDomains() [][2]string {
-	keys := make([]string, 0, len(mbpDomains))
-	for d := range mbpDomains {
-		keys = append(keys, d)
-	}
-	sort.Strings(keys)
-	out := make([][2]string, 0, len(keys))
-	for _, d := range keys {
-		out = append(out, [2]string{d, mbpDomains[d]})
-	}
-	return out
 }

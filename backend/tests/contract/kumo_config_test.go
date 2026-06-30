@@ -31,6 +31,8 @@ func TestKumoConfigContract(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("CreateRoutingRule: %v", err)
 	}
+	// Suppressions are enforced via Redis (not rendered into the policy), so the
+	// create exercises the API but is not expected to appear in the generated Lua.
 	if _, err := svc.CreateSuppression(ctx, &adminv1.CreateSuppressionRequest{Type: "domain", Value: "blocked.example"}); err != nil {
 		t.Fatalf("CreateSuppression: %v", err)
 	}
@@ -39,15 +41,14 @@ func TestKumoConfigContract(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GenerateKumoConfig: %v", err)
 	}
-	if cfg.GetVmtaCount() != 1 || cfg.GetPoolCount() != 1 || cfg.GetRouteCount() != 1 || cfg.GetSuppressionCount() != 1 {
+	if cfg.GetVmtaCount() != 1 || cfg.GetPoolCount() != 1 || cfg.GetRouteCount() != 1 {
 		t.Fatalf("unexpected counts: %+v", cfg)
 	}
 	if !cfg.GetValid() {
 		t.Fatalf("rendered policy should be valid Lua, issues: %v", cfg.GetLintIssues())
 	}
 	if !strings.Contains(cfg.GetContent(), `SOURCES["k-a"]`) ||
-		!strings.Contains(cfg.GetContent(), `POOLS["k-pool"]`) ||
-		!strings.Contains(cfg.GetContent(), `SUPPRESSED_DOMAINS["blocked.example"] = true`) {
+		!strings.Contains(cfg.GetContent(), `POOLS["k-pool"]`) {
 		t.Fatalf("rendered policy missing expected entries:\n%s", cfg.GetContent())
 	}
 	if cfg.GetChecksum() == "" {

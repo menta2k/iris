@@ -59,3 +59,28 @@ default):
 ```sh
 cd backend && go run ./cmd/iris
 ```
+
+## Traffic Shaping Automation (TSA) daemon — optional
+
+The `tsa-daemon` service (profile `tsa`) provides the adaptive/hourly back-off
+that layers **under** the IP-warmup ceiling. It is opt-in and not part of the
+default dev stack.
+
+```sh
+# Start the TSA daemon
+docker compose -f deploy/compose/docker-compose.yml --profile tsa up -d tsa-daemon
+
+# Point the backend at it so the generated kumod policy publishes delivery
+# events to it and subscribes for back-off overrides:
+export IRIS_TSA_URL="http://localhost:8008"
+cd backend && go run ./cmd/iris
+```
+
+| Service    | Connection / API                          |
+| ---------- | ----------------------------------------- |
+| tsa-daemon | `http://localhost:8008` (publish + subscribe) |
+
+The daemon's automation rules come from `deploy/compose/tsa_init.lua` (which
+loads KumoMTA's community shaping config for tuned per-provider rules). TSA only
+**tightens** rates on bad signals (4xx / deferrals); it never raises them above
+the warmup cap. See `docs/ip-warmup.md` and `docs/delivery-blueprints-and-warmup.md`.

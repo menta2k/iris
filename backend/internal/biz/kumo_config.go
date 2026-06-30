@@ -26,11 +26,15 @@ type ConfigSnapshot struct {
 	// rendered into the base shaping config.
 	Blueprints []*DeliveryBlueprint
 
-	// ShapingDir, when set, activates the shaping-helper egress path: the policy
-	// loads iris-base.toml + iris-warmup.toml from this directory (written next to
-	// the policy by the apply adapter) for delivery limits, and iris overlays
-	// timeouts/connection-cap/TLS. Empty keeps the legacy hand-rolled egress path.
+	// ShapingDir is the directory the policy loads iris-base.toml + iris-warmup.toml
+	// from (written next to the policy by the apply adapter). Empty falls back to
+	// the standard policy dir.
 	ShapingDir string
+
+	// TSAUrl, when set, is the KumoMTA Traffic Shaping Automation daemon URL the
+	// policy publishes log events to and subscribes to for adaptive (hourly)
+	// back-off. Empty disables TSA (static shaping only).
+	TSAUrl string
 
 	// WarmupSchedules are the active/paused IP-warmup schedules loaded for the
 	// policy; the render step resolves them to WarmupRates for the current date.
@@ -300,7 +304,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	pools := writeEgressPools(&b, snap.VMTAs, snap.Groups, vmtaName)
 	// Per-VMTA connection limits (max_connections) via the egress path config.
 	fwdTLS, _ := forwardTargets(snap)
-	writeEgressPaths(&b, snap.VMTAs, snap.TLSPolicies, fwdTLS, snap.WarmupRates, snap.ShapingDir)
+	writeEgressPaths(&b, snap.VMTAs, snap.TLSPolicies, fwdTLS, snap.ShapingDir, snap.TSAUrl)
 	// DKIM signers.
 	dkim := writeDKIMTable(&b, snap.DKIM)
 	// DKIM signing function + the http-injection signing hook. Defined before the
@@ -1143,8 +1147,14 @@ func writeEsmtpListener(b *strings.Builder, l *Listener) {
 // is keyed by destination domain. get_egress_path_config applies both: the
 // connection limit for the source and enable_tls for a required-TLS domain, so
 // kumod refuses to deliver to that domain in cleartext.
-func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolicy, fwdTargets []forwardTarget, warmup map[string]map[string]string, shapingDir string) {
-	b.WriteString("-- ===== egress path config (per-VMTA connection limits + require-TLS) =====\n")
+// defaultPolicyDir is the directory the shaping sidecar files are loaded from
+// when no explicit ShapingDir is configured (the standard KumoMTA policy dir,
+// matching the example config_path). The apply adapter writes the files next to
+// the policy, so the two always agree in a real deployment.
+const defaultPolicyDir = "/opt/kumomta/etc/policy"
+
+func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolicy, fwdTargets []forwardTarget, shapingDir, tsaURL string) {
+	b.WriteString("-- ===== egress path config (shaping helper: blueprints + warmup overrides) =====\n")
 	b.WriteString("local SOURCE_LIMITS = {}\n")
 	for _, v := range sortedVMTAs(vmtas) {
 		if v.Status != VMTAStatusActive && v.Status != VMTAStatusDraining {
@@ -1153,9 +1163,6 @@ func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolic
 		if v.MaxConnections > 0 {
 			fmt.Fprintf(b, "SOURCE_LIMITS[%s] = %d\n", MustLuaString(v.Name), v.MaxConnections)
 		}
-	}
-	if strings.TrimSpace(shapingDir) == "" {
-		writeWarmupTables(b, warmup) // legacy MBP_BUCKET path
 	}
 	b.WriteString("local REQUIRE_TLS_DOMAINS = {}\n")
 	for _, p := range sortedTLSPolicies(tlsPolicies) {
@@ -1177,9 +1184,33 @@ func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolic
 		}
 	}
 
-	// Shared timeout overlay: KumoMTA's per-command defaults (~5s) are too
-	// aggressive for slow/tarpitting receivers; be generous (only relaxes).
-	timeouts := `  params.connect_timeout = params.connect_timeout or '30s'
+	// Delivery limits (blueprints base + per-IP warmup overrides) come from
+	// KumoMTA's shaping helper, which natively handles provider grouping. iris
+	// overlays its generous timeouts (KumoMTA's ~5s per-command defaults are too
+	// aggressive for slow/tarpitting receivers), the per-source connection cap
+	// (VMTA MaxConnections), and require-TLS. Verified against a live kumod.
+	dir := strings.TrimRight(strings.TrimSpace(shapingDir), "/")
+	if dir == "" {
+		dir = defaultPolicyDir
+	}
+	// The shaping helper (setup_with_automation) loads ONLY iris's files
+	// (no_default_files: blueprints are authoritative, no community-shaping leak)
+	// and, when a TSA daemon URL is configured, publishes log events to it and
+	// subscribes for adaptive (hourly) back-off layered under the warmup ceiling.
+	// skip_make=true returns a mergeable params table so iris overlays timeouts /
+	// connection cap / require-TLS. Coexistence with iris's log + queue hooks and
+	// the no-leak resolution were verified against a live kumod.
+	b.WriteString("\nlocal shaping = require 'policy-extras.shaping'\n")
+	fmt.Fprintf(b, "local iris_shaper = shaping:setup_with_automation {\n  no_default_files = true,\n  extra_files = { %s, %s },\n",
+		MustLuaString(dir+"/iris-base.toml"), MustLuaString(dir+"/iris-warmup.toml"))
+	if tsa := strings.TrimSpace(tsaURL); tsa != "" {
+		fmt.Fprintf(b, "  publish = { %s },\n  subscribe = { %s },\n", MustLuaString(tsa), MustLuaString(tsa))
+	}
+	b.WriteString("}\n")
+	b.WriteString(`
+kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
+  local params = iris_shaper.get_egress_path_config(domain, egress_source, site_name, true)
+  params.connect_timeout = params.connect_timeout or '30s'
   params.ehlo_timeout = params.ehlo_timeout or '30s'
   params.mail_from_timeout = params.mail_from_timeout or '30s'
   params.rcpt_to_timeout = params.rcpt_to_timeout or '30s'
@@ -1188,21 +1219,7 @@ func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolic
   params.data_timeout = params.data_timeout or '60s'
   params.data_dot_timeout = params.data_dot_timeout or '120s'
   params.idle_timeout = params.idle_timeout or '60s'
-`
-
-	if dir := strings.TrimRight(strings.TrimSpace(shapingDir), "/"); dir != "" {
-		// Shaping path: delivery limits (blueprints + per-IP warmup overrides) come
-		// from KumoMTA's shaping helper, which natively handles provider grouping.
-		// iris overlays its generous timeouts, the per-source connection cap (VMTA
-		// MaxConnections), and require-TLS. Verified against a live kumod.
-		fmt.Fprintf(b, "\nlocal iris_shaping = kumo.shaping.load({ %s, %s })\n",
-			MustLuaString(dir+"/iris-base.toml"), MustLuaString(dir+"/iris-warmup.toml"))
-		b.WriteString(`
-kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
-  local params = iris_shaping:get_egress_path_config(domain, egress_source, site_name)
-`)
-		b.WriteString(timeouts)
-		b.WriteString(`  local limit = SOURCE_LIMITS[egress_source]
+  local limit = SOURCE_LIMITS[egress_source]
   if limit and limit > 0 and (not params.connection_limit or params.connection_limit > limit) then
     params.connection_limit = limit
   end
@@ -1213,73 +1230,6 @@ kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
   return kumo.make_egress_path(params)
 end)
 
-`)
-		return
-	}
-
-	// Legacy path (no shaping dir configured): hand-rolled limits + MBP_BUCKET warmup.
-	b.WriteString(`
-kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
-  local params = {}
-`)
-	b.WriteString(timeouts)
-	b.WriteString(`  local limit = SOURCE_LIMITS[egress_source]
-  if limit and limit > 0 then
-    params.connection_limit = limit
-  end
-  -- IP warmup: cap the message rate for this source per receiving-domain family
-  -- (MBP bucket) while the source is ramping. Absent once warmup completes.
-  local wr = WARMUP_RATE[egress_source]
-  if wr then
-    local rate = wr[warmup_bucket(domain)] or wr['default']
-    if rate then
-      params.max_message_rate = rate
-    end
-  end
-  -- Require TLS for matched destination domains: kumod fails the delivery
-  -- (logged) rather than sending in cleartext when the peer offers no STARTTLS.
-  local tls = REQUIRE_TLS_DOMAINS[string.lower(domain)]
-  if tls then
-    params.enable_tls = tls
-  end
-  return kumo.make_egress_path(params)
-end)
-
-`)
-}
-
-// writeWarmupTables emits the IP-warmup lookup tables + bucket classifier the
-// egress-path callback uses: WARMUP_RATE[source][bucket] = "N/day" (only sources
-// currently warming), the MBP_BUCKET domain→family map, and warmup_bucket().
-// Always emitted (empty WARMUP_RATE when no warmup) so the callback's references
-// stay valid.
-func writeWarmupTables(b *strings.Builder, warmup map[string]map[string]string) {
-	b.WriteString("local WARMUP_RATE = {}\n")
-	sources := make([]string, 0, len(warmup))
-	for s := range warmup {
-		sources = append(sources, s)
-	}
-	sort.Strings(sources)
-	for _, src := range sources {
-		buckets := warmup[src]
-		var entries strings.Builder
-		for _, bkt := range warmupBuckets { // canonical order → stable checksum
-			if rate := buckets[bkt]; rate != "" {
-				fmt.Fprintf(&entries, "[%s] = %s, ", MustLuaString(bkt), MustLuaString(rate))
-			}
-		}
-		if entries.Len() == 0 {
-			continue
-		}
-		fmt.Fprintf(b, "WARMUP_RATE[%s] = { %s}\n", MustLuaString(src), entries.String())
-	}
-	b.WriteString("local MBP_BUCKET = {}\n")
-	for _, kv := range sortedMBPDomains() {
-		fmt.Fprintf(b, "MBP_BUCKET[%s] = %s\n", MustLuaString(kv[0]), MustLuaString(kv[1]))
-	}
-	b.WriteString(`local function warmup_bucket(domain)
-  return MBP_BUCKET[string.lower(domain)] or 'default'
-end
 `)
 }
 
