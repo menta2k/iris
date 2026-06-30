@@ -866,6 +866,26 @@ export interface DashboardSummary {
   recentAuditEvents: string
 }
 
+// Per-VMTA, per-recipient-domain delivery/bounce breakdown for IP-warmup health.
+// int64 count fields serialize as JSON strings; rates are doubles (0..1).
+export interface WarmupDeliveryStat {
+  vmtaId: string
+  vmtaName: string
+  recipientDomain: string
+  sent: string
+  bounced: string
+  deferred: string
+  attempted: string
+  deliveryRate: number
+  bounceRate: number
+}
+
+export interface WarmupDeliveryStats {
+  rows?: WarmupDeliveryStat[]
+  range: string
+  since: string
+}
+
 // ---- Domain bounce-readiness check ----
 export interface DomainCheckItem {
   name: string

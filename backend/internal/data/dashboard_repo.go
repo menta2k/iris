@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/menta2k/iris/backend/internal/biz"
 )
@@ -50,4 +51,52 @@ func (r *DashboardRepo) Summary(ctx context.Context) (*biz.DashboardSummary, err
 		s.ServiceState = "running"
 	}
 	return s, nil
+}
+
+// DeliveryStats aggregates per-VMTA, per-recipient-domain delivery outcomes from
+// mail_records since the given time. egress_source carries the VMTA name on
+// delivery/bounce/deferral events (it is empty on Reception, which we exclude),
+// and vmta_id is not populated on log rows — so we group by the source name and
+// LEFT JOIN vmtas to recover the id for linking. Only delivery-attempt statuses
+// are counted; rate fields are left for the usecase to derive.
+func (r *DashboardRepo) DeliveryStats(ctx context.Context, since time.Time) ([]biz.WarmupDeliveryStat, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT
+			coalesce(v.id::text, '')              AS vmta_id,
+			m.egress_source                       AS vmta_name,
+			m.recipient_domain                    AS recipient_domain,
+			count(*) FILTER (WHERE m.status = $2) AS sent,
+			count(*) FILTER (WHERE m.status = $3) AS bounced,
+			count(*) FILTER (WHERE m.status = $4) AS deferred
+		FROM mail_records m
+		LEFT JOIN vmtas v ON v.name = m.egress_source
+		WHERE m.event_time >= $1
+			AND m.egress_source <> ''
+			AND m.recipient_domain <> ''
+			AND m.status IN ($2, $3, $4)
+		GROUP BY v.id, m.egress_source, m.recipient_domain
+		ORDER BY (count(*) FILTER (WHERE m.status = $2)
+			+ count(*) FILTER (WHERE m.status = $3)
+			+ count(*) FILTER (WHERE m.status = $4)) DESC,
+			m.egress_source, m.recipient_domain
+		LIMIT 500`,
+		since, biz.MailSent, biz.MailBounced, biz.MailDeferred)
+	if err != nil {
+		return nil, fmt.Errorf("delivery stats: %w", err)
+	}
+	defer rows.Close()
+
+	var out []biz.WarmupDeliveryStat
+	for rows.Next() {
+		var s biz.WarmupDeliveryStat
+		if err := rows.Scan(&s.VMTAID, &s.VMTAName, &s.RecipientDomain,
+			&s.Sent, &s.Bounced, &s.Deferred); err != nil {
+			return nil, fmt.Errorf("scan delivery stat: %w", err)
+		}
+		out = append(out, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("delivery stats rows: %w", err)
+	}
+	return out, nil
 }

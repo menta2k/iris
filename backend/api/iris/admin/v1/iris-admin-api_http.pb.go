@@ -53,6 +53,7 @@ const OperationIrisAdminServiceGetDashboardSummary = "/iris.admin.v1.IrisAdminSe
 const OperationIrisAdminServiceGetDmarcStats = "/iris.admin.v1.IrisAdminService/GetDmarcStats"
 const OperationIrisAdminServiceGetGlobalSettings = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
 const OperationIrisAdminServiceGetMetricsTimeseries = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
+const OperationIrisAdminServiceGetWarmupDeliveryStats = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
 const OperationIrisAdminServiceKumoConfigStatus = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
 const OperationIrisAdminServiceListAcmeCertificates = "/iris.admin.v1.IrisAdminService/ListAcmeCertificates"
 const OperationIrisAdminServiceListAcmeDnsProviders = "/iris.admin.v1.IrisAdminService/ListAcmeDnsProviders"
@@ -165,6 +166,9 @@ type IrisAdminServiceHTTPServer interface {
 	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(context.Context, *GetMetricsTimeseriesRequest) (*MetricsTimeseries, error)
+	// GetWarmupDeliveryStats GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
+	// bounce rates over a lookback window — used to watch IP-warmup health.
+	GetWarmupDeliveryStats(context.Context, *GetWarmupDeliveryStatsRequest) (*WarmupDeliveryStats, error)
 	// KumoConfigStatus KumoConfigStatus reports whether the current configuration has drifted from
 	// the last applied policy (a regenerate/apply is pending).
 	KumoConfigStatus(context.Context, *KumoConfigStatusRequest) (*KumoConfigStatusReply, error)
@@ -341,6 +345,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.DELETE("/v1/acme/dns-provider", _IrisAdminService_ClearAcmeDnsProvider0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/summary", _IrisAdminService_GetDashboardSummary0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/metrics", _IrisAdminService_GetMetricsTimeseries0_HTTP_Handler(srv))
+	r.GET("/v1/dashboard/warmup-stats", _IrisAdminService_GetWarmupDeliveryStats0_HTTP_Handler(srv))
 	r.GET("/v1/domain-check/{domain}", _IrisAdminService_CheckDomainBounceSetup0_HTTP_Handler(srv))
 	r.POST("/v1/tools/diagnose", _IrisAdminService_Diagnose0_HTTP_Handler(srv))
 	r.POST("/v1/tools/rbl-check", _IrisAdminService_RblCheck0_HTTP_Handler(srv))
@@ -2035,6 +2040,25 @@ func _IrisAdminService_GetMetricsTimeseries0_HTTP_Handler(srv IrisAdminServiceHT
 	}
 }
 
+func _IrisAdminService_GetWarmupDeliveryStats0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetWarmupDeliveryStatsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetWarmupDeliveryStats)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetWarmupDeliveryStats(ctx, req.(*GetWarmupDeliveryStatsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*WarmupDeliveryStats)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_CheckDomainBounceSetup0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in CheckDomainBounceSetupRequest
@@ -2339,6 +2363,9 @@ type IrisAdminServiceHTTPClient interface {
 	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(ctx context.Context, req *GetMetricsTimeseriesRequest, opts ...http.CallOption) (rsp *MetricsTimeseries, err error)
+	// GetWarmupDeliveryStats GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
+	// bounce rates over a lookback window — used to watch IP-warmup health.
+	GetWarmupDeliveryStats(ctx context.Context, req *GetWarmupDeliveryStatsRequest, opts ...http.CallOption) (rsp *WarmupDeliveryStats, err error)
 	// KumoConfigStatus KumoConfigStatus reports whether the current configuration has drifted from
 	// the last applied policy (a regenerate/apply is pending).
 	KumoConfigStatus(ctx context.Context, req *KumoConfigStatusRequest, opts ...http.CallOption) (rsp *KumoConfigStatusReply, err error)
@@ -2897,6 +2924,21 @@ func (c *IrisAdminServiceHTTPClientImpl) GetMetricsTimeseries(ctx context.Contex
 	pattern := "/v1/dashboard/metrics"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceGetMetricsTimeseries))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetWarmupDeliveryStats GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
+// bounce rates over a lookback window — used to watch IP-warmup health.
+func (c *IrisAdminServiceHTTPClientImpl) GetWarmupDeliveryStats(ctx context.Context, in *GetWarmupDeliveryStatsRequest, opts ...http.CallOption) (*WarmupDeliveryStats, error) {
+	var out WarmupDeliveryStats
+	pattern := "/v1/dashboard/warmup-stats"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetWarmupDeliveryStats))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

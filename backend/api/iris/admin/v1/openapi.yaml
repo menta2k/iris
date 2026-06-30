@@ -393,6 +393,26 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/DashboardSummary'
+    /v1/dashboard/warmup-stats:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
+                 bounce rates over a lookback window — used to watch IP-warmup health.
+            operationId: IrisAdminService_GetWarmupDeliveryStats
+            parameters:
+                - name: range
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/WarmupDeliveryStats'
     /v1/delivery-blueprints:
         get:
             tags:
@@ -3811,6 +3831,44 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/WarmupStage'
+        WarmupDeliveryStat:
+            type: object
+            properties:
+                vmta_id:
+                    type: string
+                vmta_name:
+                    type: string
+                recipient_domain:
+                    type: string
+                sent:
+                    type: string
+                bounced:
+                    type: string
+                deferred:
+                    type: string
+                attempted:
+                    type: string
+                delivery_rate:
+                    type: number
+                    format: double
+                bounce_rate:
+                    type: number
+                    format: double
+            description: |-
+                WarmupDeliveryStat is one (VMTA, recipient-domain) row. delivery_rate and
+                 bounce_rate are fractions in [0,1] over terminal outcomes (sent + bounced);
+                 deferred is shown separately and is NOT in that denominator.
+        WarmupDeliveryStats:
+            type: object
+            properties:
+                rows:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/WarmupDeliveryStat'
+                range:
+                    type: string
+                since:
+                    type: string
         WarmupSchedule:
             type: object
             properties:

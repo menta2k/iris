@@ -97,6 +97,7 @@ const (
 	IrisAdminService_ClearAcmeDnsProvider_FullMethodName       = "/iris.admin.v1.IrisAdminService/ClearAcmeDnsProvider"
 	IrisAdminService_GetDashboardSummary_FullMethodName        = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
 	IrisAdminService_GetMetricsTimeseries_FullMethodName       = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
+	IrisAdminService_GetWarmupDeliveryStats_FullMethodName     = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
 	IrisAdminService_CheckDomainBounceSetup_FullMethodName     = "/iris.admin.v1.IrisAdminService/CheckDomainBounceSetup"
 	IrisAdminService_Diagnose_FullMethodName                   = "/iris.admin.v1.IrisAdminService/Diagnose"
 	IrisAdminService_RblCheck_FullMethodName                   = "/iris.admin.v1.IrisAdminService/RblCheck"
@@ -238,6 +239,9 @@ type IrisAdminServiceClient interface {
 	// GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(ctx context.Context, in *GetMetricsTimeseriesRequest, opts ...grpc.CallOption) (*MetricsTimeseries, error)
+	// GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
+	// bounce rates over a lookback window — used to watch IP-warmup health.
+	GetWarmupDeliveryStats(ctx context.Context, in *GetWarmupDeliveryStatsRequest, opts ...grpc.CallOption) (*WarmupDeliveryStats, error)
 	// CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
 	// (authorizes our egress IPs), and DKIM (selector records) via live DNS.
 	CheckDomainBounceSetup(ctx context.Context, in *CheckDomainBounceSetupRequest, opts ...grpc.CallOption) (*DomainBounceCheck, error)
@@ -1053,6 +1057,16 @@ func (c *irisAdminServiceClient) GetMetricsTimeseries(ctx context.Context, in *G
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) GetWarmupDeliveryStats(ctx context.Context, in *GetWarmupDeliveryStatsRequest, opts ...grpc.CallOption) (*WarmupDeliveryStats, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WarmupDeliveryStats)
+	err := c.cc.Invoke(ctx, IrisAdminService_GetWarmupDeliveryStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) CheckDomainBounceSetup(ctx context.Context, in *CheckDomainBounceSetupRequest, opts ...grpc.CallOption) (*DomainBounceCheck, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DomainBounceCheck)
@@ -1300,6 +1314,9 @@ type IrisAdminServiceServer interface {
 	// GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(context.Context, *GetMetricsTimeseriesRequest) (*MetricsTimeseries, error)
+	// GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
+	// bounce rates over a lookback window — used to watch IP-warmup health.
+	GetWarmupDeliveryStats(context.Context, *GetWarmupDeliveryStatsRequest) (*WarmupDeliveryStats, error)
 	// CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
 	// (authorizes our egress IPs), and DKIM (selector records) via live DNS.
 	CheckDomainBounceSetup(context.Context, *CheckDomainBounceSetupRequest) (*DomainBounceCheck, error)
@@ -1568,6 +1585,9 @@ func (UnimplementedIrisAdminServiceServer) GetDashboardSummary(context.Context, 
 }
 func (UnimplementedIrisAdminServiceServer) GetMetricsTimeseries(context.Context, *GetMetricsTimeseriesRequest) (*MetricsTimeseries, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetMetricsTimeseries not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) GetWarmupDeliveryStats(context.Context, *GetWarmupDeliveryStatsRequest) (*WarmupDeliveryStats, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetWarmupDeliveryStats not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) CheckDomainBounceSetup(context.Context, *CheckDomainBounceSetupRequest) (*DomainBounceCheck, error) {
 	return nil, status.Error(codes.Unimplemented, "method CheckDomainBounceSetup not implemented")
@@ -3030,6 +3050,24 @@ func _IrisAdminService_GetMetricsTimeseries_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_GetWarmupDeliveryStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetWarmupDeliveryStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).GetWarmupDeliveryStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_GetWarmupDeliveryStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).GetWarmupDeliveryStats(ctx, req.(*GetWarmupDeliveryStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_CheckDomainBounceSetup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CheckDomainBounceSetupRequest)
 	if err := dec(in); err != nil {
@@ -3564,6 +3602,10 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetMetricsTimeseries",
 			Handler:    _IrisAdminService_GetMetricsTimeseries_Handler,
+		},
+		{
+			MethodName: "GetWarmupDeliveryStats",
+			Handler:    _IrisAdminService_GetWarmupDeliveryStats_Handler,
 		},
 		{
 			MethodName: "CheckDomainBounceSetup",

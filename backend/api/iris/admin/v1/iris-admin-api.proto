@@ -298,6 +298,11 @@ service IrisAdminService {
   rpc GetMetricsTimeseries(GetMetricsTimeseriesRequest) returns (MetricsTimeseries) {
     option (google.api.http) = { get: "/v1/dashboard/metrics" };
   }
+  // GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
+  // bounce rates over a lookback window — used to watch IP-warmup health.
+  rpc GetWarmupDeliveryStats(GetWarmupDeliveryStatsRequest) returns (WarmupDeliveryStats) {
+    option (google.api.http) = { get: "/v1/dashboard/warmup-stats" };
+  }
   // CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
   // (authorizes our egress IPs), and DKIM (selector records) via live DNS.
   rpc CheckDomainBounceSetup(CheckDomainBounceSetupRequest) returns (DomainBounceCheck) {
@@ -1355,6 +1360,31 @@ message MetricsTimeseries {
   string range = 2;            // echoed effective range
   int64 step_seconds = 3;      // resolution between points
   bool prometheus_available = 4; // false when no Prometheus URL is configured
+}
+
+// GetWarmupDeliveryStats selects the lookback window: "1h" | "6h" | "24h" | "7d"
+// (empty defaults to "24h").
+message GetWarmupDeliveryStatsRequest {
+  string range = 1;
+}
+// WarmupDeliveryStat is one (VMTA, recipient-domain) row. delivery_rate and
+// bounce_rate are fractions in [0,1] over terminal outcomes (sent + bounced);
+// deferred is shown separately and is NOT in that denominator.
+message WarmupDeliveryStat {
+  string vmta_id = 1;          // empty when the egress source has no matching VMTA
+  string vmta_name = 2;        // egress source name from the delivery log
+  string recipient_domain = 3;
+  int64 sent = 4;              // delivered
+  int64 bounced = 5;           // permanent failure
+  int64 deferred = 6;          // transient (4xx) — informational, not in rates
+  int64 attempted = 7;         // sent + bounced (terminal outcomes)
+  double delivery_rate = 8;    // sent / attempted
+  double bounce_rate = 9;      // bounced / attempted
+}
+message WarmupDeliveryStats {
+  repeated WarmupDeliveryStat rows = 1;
+  string range = 2;            // echoed effective range
+  int64 since = 3;             // unix seconds: window start
 }
 
 // Global settings — deployment-level policy knobs an operator edits in the UI.

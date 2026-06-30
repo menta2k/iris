@@ -7,6 +7,7 @@ import QueueHealthWidget from '@/components/dashboard/QueueHealthWidget.vue'
 import RecentMailActivity from '@/components/dashboard/RecentMailActivity.vue'
 import RecentAuditActivity from '@/components/dashboard/RecentAuditActivity.vue'
 import MailFlowPanel from '@/components/dashboard/MailFlowPanel.vue'
+import WarmupStatsPanel from '@/components/dashboard/WarmupStatsPanel.vue'
 import { dashboardService, mailOperationsService, identityAuditService } from '@/services'
 import { ApiError } from '@/services/http'
 import type { AuditEntry, DashboardSummary, MailRecord } from '@/types'
@@ -60,6 +61,7 @@ onMounted(load)
           <QueueHealthWidget :queued="summary?.queuedMessages" />
         </div>
         <MailFlowPanel />
+        <WarmupStatsPanel />
         <div class="grid gap-4 lg:grid-cols-2">
           <RecentMailActivity :events="recentMail" :count="summary?.recentMailEvents" />
           <RecentAuditActivity :events="recentAudit" :count="summary?.recentAuditEvents" />
