@@ -6,7 +6,8 @@ reputation instead of seeing a cold IP suddenly blast high volume (which gets
 throttled, deferred, or blocked).
 
 This document describes the **currently implemented** behavior and walks through
-practical examples. Planned enhancements are called out in
+practical examples. For a task-oriented walkthrough of turning it on, see the
+**[setup guide](./ip-warmup-setup.md)**. Planned enhancements are called out in
 [Roadmap](#roadmap).
 
 ---
