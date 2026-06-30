@@ -1153,7 +1153,10 @@ func writeEsmtpListener(b *strings.Builder, l *Listener) {
 // table. SOURCE_LIMITS is keyed by egress source (VMTA) name; REQUIRE_TLS_DOMAINS
 // is keyed by destination domain. get_egress_path_config applies both: the
 // connection limit for the source and enable_tls for a required-TLS domain, so
-// kumod refuses to deliver to that domain in cleartext.
+// kumod refuses to deliver to that domain in cleartext. Domains WITHOUT a
+// require-TLS policy fall back to OpportunisticInsecure (encrypt if offered, do
+// not hard-fail on cert verification) so legacy/retired receiver chains deliver
+// instead of deferring.
 // defaultPolicyDir is the directory the shaping sidecar files are loaded from
 // when no explicit ShapingDir is configured (the standard KumoMTA policy dir,
 // matching the example config_path). The apply adapter writes the files next to
@@ -1233,6 +1236,14 @@ kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
   local tls = REQUIRE_TLS_DOMAINS[string.lower(domain)]
   if tls then
     params.enable_tls = tls
+  else
+    -- Baseline for port-25 delivery: encrypt opportunistically but do NOT hard-
+    -- fail on certificate verification. Many large receivers (e.g. Outlook) still
+    -- chain through roots the current trust store has retired, or serve legacy/
+    -- incomplete chains; kumod's verifying default turns those into deferrals that
+    -- silently drag deliverability. Require-TLS domains above keep real
+    -- verification (Required). Matches Postfix's default posture for :25.
+    params.enable_tls = params.enable_tls or 'OpportunisticInsecure'
   end
   return kumo.make_egress_path(params)
 end)
