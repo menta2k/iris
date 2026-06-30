@@ -13,13 +13,13 @@ func TestRenderBaseShaping(t *testing.T) {
 	}
 	out := RenderBaseShaping(bps)
 	for _, want := range []string{
-		`[domain."google.com"]`,
-		"mx_rollup = true",
+		`["google.com"]`,
+		"mx_rollup = false",
 		`max_connection_rate = "5/min"`,
 		"max_deliveries_per_connection = 10",
 		"connection_limit = 3",
 		`max_message_rate = "150/day"`,
-		`[domain."outlook.com"]`,
+		`["outlook.com"]`,
 	} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("base shaping missing %q:\n%s", want, out)
@@ -42,7 +42,9 @@ func TestRenderWarmupShaping(t *testing.T) {
 		"203.0.113.10": {MBPGmail: "5000/day", MBPDefault: "20000/day"},
 	}
 	out := RenderWarmupShaping(rates)
-	if !strings.Contains(out, `[domain."google.com".sources."203.0.113.10"]`) ||
+	// Domain block (mx_rollup=false so it merges with the base) + per-source override.
+	if !strings.Contains(out, "[\"google.com\"]\nmx_rollup = false") ||
+		!strings.Contains(out, `["google.com".sources."203.0.113.10"]`) ||
 		!strings.Contains(out, `max_message_rate = "5000/day"`) {
 		t.Fatalf("warmup override not emitted:\n%s", out)
 	}

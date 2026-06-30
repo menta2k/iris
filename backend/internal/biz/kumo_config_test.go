@@ -316,7 +316,7 @@ func TestRenderRequireTLSPolicy(t *testing.T) {
 	}
 	// Generous SMTP client timeouts so slow/tarpitting receivers (e.g. a stall on
 	// RSET during connection reuse) don't trip KumoMTA's aggressive defaults.
-	for _, want := range []string{"rset_timeout = '30s'", "idle_timeout = '60s'", "data_timeout = '60s'"} {
+	for _, want := range []string{"rset_timeout or '30s'", "idle_timeout or '60s'", "data_timeout or '60s'"} {
 		if !strings.Contains(r.Content, want) {
 			t.Fatalf("egress path must set %q:\n%s", want, r.Content)
 		}

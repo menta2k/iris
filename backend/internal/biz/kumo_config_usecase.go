@@ -52,6 +52,11 @@ type KumoConfigSettings struct {
 	// InboundMaildirBase is the deployment-wide Maildir root for inbound maildir
 	// routes that don't set their own path.
 	InboundMaildirBase string
+
+	// ShapingDir, when set, activates the shaping-helper egress path: the policy
+	// loads iris-base.toml + iris-warmup.toml from here. The apply adapter writes
+	// those files into this directory (the policy's own directory).
+	ShapingDir string
 }
 
 // KumoConfigUsecase renders Iris configuration into KumoMTA policy and applies
@@ -142,6 +147,7 @@ func (uc *KumoConfigUsecase) render(ctx context.Context) (RenderedConfig, error)
 	snap.BounceClassifierFile = settings.BounceClassifierFile
 	snap.BounceVerpSecret = settings.BounceVerpSecret
 	snap.InboundMaildirBase = settings.InboundMaildirBase
+	snap.ShapingDir = settings.ShapingDir
 	// IP warmup: resolve the active/paused schedules to per-source, per-MBP
 	// message-rate caps for today. Done here (not in RenderKumoConfig) so the
 	// renderer stays a pure, time-independent snapshot→policy function.

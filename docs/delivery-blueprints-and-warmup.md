@@ -79,14 +79,24 @@ no override / low cap, not a hard suspend, to avoid mail aging.)
   Removes iris's custom egress-path callback + `MBP_BUCKET`/`WARMUP_RATE` tables.
 
 ## Phasing
-- **P1 — Blueprints + base shaping (this is also the shaping migration / M1.5):**
-  `delivery_blueprints` entity + migration + seed registry + repo + usecase +
-  proto/service; the Blueprints page (grouped cards, edit/toggle, Seed Defaults,
-  Add Rule); render `iris-base.toml`; switch init to the shaping helper; retire
-  the hand-rolled egress-path Lua. Parity-tested (conn limits + TLS preserved).
-- **P2 — Warmup as per-IP daily overrides:** expanding-targets curve; render
-  `iris-warmup.toml`; worker rewrites it on cap change; retire `MBP_BUCKET`.
-- **P3 — Adaptive (TSA):** enable automation rules for hourly back-off.
+- **P1 — Blueprints + base shaping — DONE.** `delivery_blueprints` entity +
+  migration + seed registry + repo + usecase + proto/service; the Blueprints page
+  (grouped cards, edit/toggle, Seed Defaults, Add Rule); `RenderBaseShaping`
+  (`iris-base.toml`).
+- **Shaping cutover — DONE (opt-in), kumod-verified.** `get_egress_path_config`
+  uses `kumo.shaping.load({iris-base.toml, iris-warmup.toml})` and iris overlays
+  timeouts + per-source connection cap + require-TLS; the apply adapter writes the
+  sidecar TOMLs. Gated by `IRIS_SHAPING_ENABLE=true` (shaping dir = the policy
+  dir); default-off keeps the legacy egress path. Verified on a live `kumod`
+  (`--validate`): full policy boots; warming source resolves to its warmup
+  override, others to the blueprint base, with blueprint connection settings.
+  Two bugs the unit tests missed were caught and fixed by the live check (TOML
+  key `[domain."x"]`→`["x"]`; warmup override needs `mx_rollup=false` to merge).
+- **P2 — Make shaping the default + retire `MBP_BUCKET`:** after a soak with the
+  flag on, default it on and remove the legacy custom egress-path Lua. Then the
+  **expanding-targets** curve (per-stage provider targeting).
+- **P3 — Adaptive (TSA):** enable automation rules for hourly back-off, layered
+  under the warmup ceiling.
 
 ## Risks
 - Init-block change → one-time KumoMTA restart on first deploy.

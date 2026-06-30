@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -180,6 +181,13 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		// DSN worker agree without separate storage. Empty (e.g. dev_bypass with
 		// no secret) disables VERP.
 		BounceVerpSecret: verpKey,
+	}
+	// IP-warmup/blueprints shaping cutover is opt-in: when IRIS_SHAPING_ENABLE=true
+	// the policy loads the iris-base.toml + iris-warmup.toml the apply adapter
+	// writes next to the policy (same directory), and delivery limits come from
+	// KumoMTA's shaping helper. Unset = legacy hand-rolled egress path.
+	if envOr("IRIS_SHAPING_ENABLE", "") == "true" && cfg.KumoMTA.ConfigPath != "" {
+		settingsDefaults.ShapingDir = filepath.Dir(cfg.KumoMTA.ConfigPath)
 	}
 	settingsRepo := data.NewGlobalSettingsRepo(db)
 	settingsUC := biz.NewGlobalSettingsUsecase(settingsRepo, auditor, settingsDefaults)
