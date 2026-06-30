@@ -203,8 +203,10 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	fblRepo := data.NewFBLRepo(db)
 	warmupRepo := data.NewWarmupRepo(db)
 	warmupUC := biz.NewWarmupUsecase(warmupRepo, outboundRepo, auditor)
+	blueprintRepo := data.NewBlueprintRepo(db)
+	blueprintUC := biz.NewBlueprintUsecase(blueprintRepo, auditor)
 
-	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo, inboundRouteRepo, fblRepo, warmupRepo)
+	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo, inboundRouteRepo, fblRepo, warmupRepo, blueprintRepo)
 	kumoConfigUC := biz.NewKumoConfigUsecase(kumoSnapshotRepo, kumo, mailOpsRepo, auditor, settingsUC)
 	// Domain bounce-readiness checker (MX/SPF/DKIM via live DNS).
 	domainCheckUC := biz.NewDomainCheckUsecase(kumoSnapshotRepo, nil)
@@ -289,6 +291,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		WorkerErrors:  workerErrorUC,
 		Retention:     retentionUC,
 		Warmup:        warmupUC,
+		Blueprints:    blueprintUC,
 	}
 
 	svc := service.NewService(deps)

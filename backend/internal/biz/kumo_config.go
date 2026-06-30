@@ -22,6 +22,10 @@ type ConfigSnapshot struct {
 	// skipped at render time.
 	TLSPolicies []*TLSPolicy
 
+	// Blueprints are the active base shaping rules (per provider/MX pattern)
+	// rendered into the base shaping config.
+	Blueprints []*DeliveryBlueprint
+
 	// WarmupSchedules are the active/paused IP-warmup schedules loaded for the
 	// policy; the render step resolves them to WarmupRates for the current date.
 	WarmupSchedules []*WarmupSchedule

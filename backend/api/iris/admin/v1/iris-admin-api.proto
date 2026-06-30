@@ -54,6 +54,22 @@ service IrisAdminService {
   rpc ResumeWarmupSchedule(ResumeWarmupScheduleRequest) returns (WarmupSchedule) {
     option (google.api.http) = { post: "/v1/warmup-schedules/{id}:resume" body: "*" };
   }
+  // Delivery blueprints: base per-provider shaping rules (fallback for new IPs).
+  rpc ListDeliveryBlueprints(ListDeliveryBlueprintsRequest) returns (ListDeliveryBlueprintsReply) {
+    option (google.api.http) = { get: "/v1/delivery-blueprints" };
+  }
+  rpc CreateDeliveryBlueprint(CreateDeliveryBlueprintRequest) returns (DeliveryBlueprint) {
+    option (google.api.http) = { post: "/v1/delivery-blueprints" body: "*" };
+  }
+  rpc UpdateDeliveryBlueprint(UpdateDeliveryBlueprintRequest) returns (DeliveryBlueprint) {
+    option (google.api.http) = { put: "/v1/delivery-blueprints/{id}" body: "*" };
+  }
+  rpc SetDeliveryBlueprintStatus(SetDeliveryBlueprintStatusRequest) returns (DeliveryBlueprint) {
+    option (google.api.http) = { post: "/v1/delivery-blueprints/{id}:status" body: "*" };
+  }
+  rpc SeedDeliveryBlueprints(SeedDeliveryBlueprintsRequest) returns (SeedDeliveryBlueprintsReply) {
+    option (google.api.http) = { post: "/v1/delivery-blueprints:seed-defaults" body: "*" };
+  }
   rpc ListRoutingRules(ListRoutingRulesRequest) returns (ListRoutingRulesReply) {
     option (google.api.http) = { get: "/v1/routing-rules" };
   }
@@ -474,6 +490,50 @@ message PauseWarmupScheduleRequest {
 }
 message ResumeWarmupScheduleRequest {
   string id = 1;
+}
+
+// ---- Delivery blueprints ----
+message DeliveryBlueprint {
+  string id = 1;
+  string provider = 2;
+  string mx_pattern = 3;
+  string conn_rate = 4; // max_connection_rate, e.g. "5/min"
+  int32 deliveries_per_conn = 5;
+  int32 conn_limit = 6;
+  int32 daily_cap = 7; // base max_message_rate, messages/day
+  string status = 8;
+  string created_at = 9;
+  string updated_at = 10;
+}
+message ListDeliveryBlueprintsRequest {}
+message ListDeliveryBlueprintsReply {
+  repeated DeliveryBlueprint items = 1;
+}
+message CreateDeliveryBlueprintRequest {
+  string provider = 1;
+  string mx_pattern = 2;
+  string conn_rate = 3;
+  int32 deliveries_per_conn = 4;
+  int32 conn_limit = 5;
+  int32 daily_cap = 6;
+}
+message UpdateDeliveryBlueprintRequest {
+  string id = 1;
+  string provider = 2;
+  string mx_pattern = 3;
+  string conn_rate = 4;
+  int32 deliveries_per_conn = 5;
+  int32 conn_limit = 6;
+  int32 daily_cap = 7;
+  string status = 8;
+}
+message SetDeliveryBlueprintStatusRequest {
+  string id = 1;
+  string status = 2;
+}
+message SeedDeliveryBlueprintsRequest {}
+message SeedDeliveryBlueprintsReply {
+  int32 inserted = 1;
 }
 
 message ListVMTAsRequest {

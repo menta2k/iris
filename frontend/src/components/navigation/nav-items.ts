@@ -24,6 +24,7 @@ export const navSections: NavSection[] = [
       { label: 'VMTA Groups', to: '/outbound/vmta-groups', permission: 'outbound:read' },
       { label: 'Routing Rules', to: '/outbound/routing-rules', permission: 'outbound:read' },
       { label: 'IP Warmup', to: '/outbound/warmup', permission: 'outbound:read' },
+      { label: 'Delivery Blueprints', to: '/outbound/blueprints', permission: 'outbound:read' },
     ],
   },
   {

@@ -9,17 +9,18 @@ import (
 // KumoConfigRepo assembles the full active configuration snapshot used to render
 // a KumoMTA policy. It composes the outbound, domain-safety, and inbound repos.
 type KumoConfigRepo struct {
-	outbound *OutboundConfigRepo
-	safety   *DomainSafetyRepo
-	inbound  *InboundRepo
-	routes   *InboundRouteRepo
-	fbl      *FBLRepo
-	warmup   *WarmupRepo
+	outbound  *OutboundConfigRepo
+	safety    *DomainSafetyRepo
+	inbound   *InboundRepo
+	routes    *InboundRouteRepo
+	fbl       *FBLRepo
+	warmup    *WarmupRepo
+	blueprint *BlueprintRepo
 }
 
 // NewKumoConfigRepo constructs the snapshot loader.
-func NewKumoConfigRepo(outbound *OutboundConfigRepo, safety *DomainSafetyRepo, inbound *InboundRepo, routes *InboundRouteRepo, fbl *FBLRepo, warmup *WarmupRepo) *KumoConfigRepo {
-	return &KumoConfigRepo{outbound: outbound, safety: safety, inbound: inbound, routes: routes, fbl: fbl, warmup: warmup}
+func NewKumoConfigRepo(outbound *OutboundConfigRepo, safety *DomainSafetyRepo, inbound *InboundRepo, routes *InboundRouteRepo, fbl *FBLRepo, warmup *WarmupRepo, blueprint *BlueprintRepo) *KumoConfigRepo {
+	return &KumoConfigRepo{outbound: outbound, safety: safety, inbound: inbound, routes: routes, fbl: fbl, warmup: warmup, blueprint: blueprint}
 }
 
 var _ biz.ConfigSnapshotLoader = (*KumoConfigRepo)(nil)
@@ -63,6 +64,11 @@ func (r *KumoConfigRepo) Snapshot(ctx context.Context) (biz.ConfigSnapshot, erro
 	}
 	if r.warmup != nil {
 		if snap.WarmupSchedules, err = r.warmup.ListActiveWarmupsForPolicy(ctx); err != nil {
+			return snap, err
+		}
+	}
+	if r.blueprint != nil {
+		if snap.Blueprints, err = r.blueprint.ListActiveBlueprintsForPolicy(ctx); err != nil {
 			return snap, err
 		}
 	}

@@ -25,6 +25,7 @@ const OperationIrisAdminServiceCheckDomainBounceSetup = "/iris.admin.v1.IrisAdmi
 const OperationIrisAdminServiceClearAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/ClearAcmeDnsProvider"
 const OperationIrisAdminServiceConfirmMFA = "/iris.admin.v1.IrisAdminService/ConfirmMFA"
 const OperationIrisAdminServiceCreateDKIMDomain = "/iris.admin.v1.IrisAdminService/CreateDKIMDomain"
+const OperationIrisAdminServiceCreateDeliveryBlueprint = "/iris.admin.v1.IrisAdminService/CreateDeliveryBlueprint"
 const OperationIrisAdminServiceCreateFeedbackLoop = "/iris.admin.v1.IrisAdminService/CreateFeedbackLoop"
 const OperationIrisAdminServiceCreateInboundRoute = "/iris.admin.v1.IrisAdminService/CreateInboundRoute"
 const OperationIrisAdminServiceCreateListener = "/iris.admin.v1.IrisAdminService/CreateListener"
@@ -57,6 +58,7 @@ const OperationIrisAdminServiceListAcmeDnsProviders = "/iris.admin.v1.IrisAdminS
 const OperationIrisAdminServiceListAuditEntries = "/iris.admin.v1.IrisAdminService/ListAuditEntries"
 const OperationIrisAdminServiceListBounces = "/iris.admin.v1.IrisAdminService/ListBounces"
 const OperationIrisAdminServiceListDKIMDomains = "/iris.admin.v1.IrisAdminService/ListDKIMDomains"
+const OperationIrisAdminServiceListDeliveryBlueprints = "/iris.admin.v1.IrisAdminService/ListDeliveryBlueprints"
 const OperationIrisAdminServiceListDmarcDomains = "/iris.admin.v1.IrisAdminService/ListDmarcDomains"
 const OperationIrisAdminServiceListDmarcReports = "/iris.admin.v1.IrisAdminService/ListDmarcReports"
 const OperationIrisAdminServiceListFeedbackLoops = "/iris.admin.v1.IrisAdminService/ListFeedbackLoops"
@@ -86,8 +88,11 @@ const OperationIrisAdminServiceResetUserPassword = "/iris.admin.v1.IrisAdminServ
 const OperationIrisAdminServiceResumeWarmupSchedule = "/iris.admin.v1.IrisAdminService/ResumeWarmupSchedule"
 const OperationIrisAdminServiceRunRetention = "/iris.admin.v1.IrisAdminService/RunRetention"
 const OperationIrisAdminServiceSaveAcmeAccount = "/iris.admin.v1.IrisAdminService/SaveAcmeAccount"
+const OperationIrisAdminServiceSeedDeliveryBlueprints = "/iris.admin.v1.IrisAdminService/SeedDeliveryBlueprints"
 const OperationIrisAdminServiceSetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
+const OperationIrisAdminServiceSetDeliveryBlueprintStatus = "/iris.admin.v1.IrisAdminService/SetDeliveryBlueprintStatus"
 const OperationIrisAdminServiceUpdateDKIMDomain = "/iris.admin.v1.IrisAdminService/UpdateDKIMDomain"
+const OperationIrisAdminServiceUpdateDeliveryBlueprint = "/iris.admin.v1.IrisAdminService/UpdateDeliveryBlueprint"
 const OperationIrisAdminServiceUpdateFeedbackLoop = "/iris.admin.v1.IrisAdminService/UpdateFeedbackLoop"
 const OperationIrisAdminServiceUpdateGlobalSettings = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
 const OperationIrisAdminServiceUpdateInboundRoute = "/iris.admin.v1.IrisAdminService/UpdateInboundRoute"
@@ -113,6 +118,7 @@ type IrisAdminServiceHTTPServer interface {
 	ClearAcmeDnsProvider(context.Context, *ClearAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	ConfirmMFA(context.Context, *ConfirmMFARequest) (*ConfirmMFAReply, error)
 	CreateDKIMDomain(context.Context, *CreateDKIMDomainRequest) (*DKIMDomain, error)
+	CreateDeliveryBlueprint(context.Context, *CreateDeliveryBlueprintRequest) (*DeliveryBlueprint, error)
 	CreateFeedbackLoop(context.Context, *CreateFeedbackLoopRequest) (*FeedbackLoop, error)
 	CreateInboundRoute(context.Context, *CreateInboundRouteRequest) (*InboundRoute, error)
 	CreateListener(context.Context, *CreateListenerRequest) (*Listener, error)
@@ -164,6 +170,8 @@ type IrisAdminServiceHTTPServer interface {
 	ListBounces(context.Context, *ListBouncesRequest) (*ListBouncesReply, error)
 	// ListDKIMDomains Domain & recipient safety ------------------------------------------------
 	ListDKIMDomains(context.Context, *ListDKIMDomainsRequest) (*ListDKIMDomainsReply, error)
+	// ListDeliveryBlueprints Delivery blueprints: base per-provider shaping rules (fallback for new IPs).
+	ListDeliveryBlueprints(context.Context, *ListDeliveryBlueprintsRequest) (*ListDeliveryBlueprintsReply, error)
 	ListDmarcDomains(context.Context, *ListDmarcDomainsRequest) (*ListDmarcDomainsReply, error)
 	ListDmarcReports(context.Context, *ListDmarcReportsRequest) (*ListDmarcReportsReply, error)
 	// ListFeedbackLoops Feedback loops -----------------------------------------------------------
@@ -223,8 +231,11 @@ type IrisAdminServiceHTTPServer interface {
 	ResumeWarmupSchedule(context.Context, *ResumeWarmupScheduleRequest) (*WarmupSchedule, error)
 	RunRetention(context.Context, *RunRetentionRequest) (*RunRetentionReply, error)
 	SaveAcmeAccount(context.Context, *SaveAcmeAccountRequest) (*AcmeAccount, error)
+	SeedDeliveryBlueprints(context.Context, *SeedDeliveryBlueprintsRequest) (*SeedDeliveryBlueprintsReply, error)
 	SetAcmeDnsProvider(context.Context, *SetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
+	SetDeliveryBlueprintStatus(context.Context, *SetDeliveryBlueprintStatusRequest) (*DeliveryBlueprint, error)
 	UpdateDKIMDomain(context.Context, *UpdateDKIMDomainRequest) (*DKIMDomain, error)
+	UpdateDeliveryBlueprint(context.Context, *UpdateDeliveryBlueprintRequest) (*DeliveryBlueprint, error)
 	UpdateFeedbackLoop(context.Context, *UpdateFeedbackLoopRequest) (*FeedbackLoop, error)
 	UpdateGlobalSettings(context.Context, *UpdateGlobalSettingsRequest) (*GlobalSettings, error)
 	UpdateInboundRoute(context.Context, *UpdateInboundRouteRequest) (*InboundRoute, error)
@@ -257,6 +268,11 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.PUT("/v1/warmup-schedules/{id}", _IrisAdminService_UpdateWarmupSchedule0_HTTP_Handler(srv))
 	r.POST("/v1/warmup-schedules/{id}:pause", _IrisAdminService_PauseWarmupSchedule0_HTTP_Handler(srv))
 	r.POST("/v1/warmup-schedules/{id}:resume", _IrisAdminService_ResumeWarmupSchedule0_HTTP_Handler(srv))
+	r.GET("/v1/delivery-blueprints", _IrisAdminService_ListDeliveryBlueprints0_HTTP_Handler(srv))
+	r.POST("/v1/delivery-blueprints", _IrisAdminService_CreateDeliveryBlueprint0_HTTP_Handler(srv))
+	r.PUT("/v1/delivery-blueprints/{id}", _IrisAdminService_UpdateDeliveryBlueprint0_HTTP_Handler(srv))
+	r.POST("/v1/delivery-blueprints/{id}:status", _IrisAdminService_SetDeliveryBlueprintStatus0_HTTP_Handler(srv))
+	r.POST("/v1/delivery-blueprints:seed-defaults", _IrisAdminService_SeedDeliveryBlueprints0_HTTP_Handler(srv))
 	r.GET("/v1/routing-rules", _IrisAdminService_ListRoutingRules0_HTTP_Handler(srv))
 	r.POST("/v1/routing-rules", _IrisAdminService_CreateRoutingRule0_HTTP_Handler(srv))
 	r.PUT("/v1/routing-rules/{id}", _IrisAdminService_UpdateRoutingRule0_HTTP_Handler(srv))
@@ -636,6 +652,119 @@ func _IrisAdminService_ResumeWarmupSchedule0_HTTP_Handler(srv IrisAdminServiceHT
 			return err
 		}
 		reply := out.(*WarmupSchedule)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ListDeliveryBlueprints0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListDeliveryBlueprintsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListDeliveryBlueprints)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListDeliveryBlueprints(ctx, req.(*ListDeliveryBlueprintsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListDeliveryBlueprintsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CreateDeliveryBlueprint0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateDeliveryBlueprintRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCreateDeliveryBlueprint)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateDeliveryBlueprint(ctx, req.(*CreateDeliveryBlueprintRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeliveryBlueprint)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateDeliveryBlueprint0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateDeliveryBlueprintRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateDeliveryBlueprint)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateDeliveryBlueprint(ctx, req.(*UpdateDeliveryBlueprintRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeliveryBlueprint)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_SetDeliveryBlueprintStatus0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SetDeliveryBlueprintStatusRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceSetDeliveryBlueprintStatus)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SetDeliveryBlueprintStatus(ctx, req.(*SetDeliveryBlueprintStatusRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeliveryBlueprint)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_SeedDeliveryBlueprints0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SeedDeliveryBlueprintsRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceSeedDeliveryBlueprints)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SeedDeliveryBlueprints(ctx, req.(*SeedDeliveryBlueprintsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*SeedDeliveryBlueprintsReply)
 		return ctx.Result(200, reply)
 	}
 }
@@ -2063,6 +2192,7 @@ type IrisAdminServiceHTTPClient interface {
 	ClearAcmeDnsProvider(ctx context.Context, req *ClearAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	ConfirmMFA(ctx context.Context, req *ConfirmMFARequest, opts ...http.CallOption) (rsp *ConfirmMFAReply, err error)
 	CreateDKIMDomain(ctx context.Context, req *CreateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
+	CreateDeliveryBlueprint(ctx context.Context, req *CreateDeliveryBlueprintRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
 	CreateFeedbackLoop(ctx context.Context, req *CreateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
 	CreateInboundRoute(ctx context.Context, req *CreateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
 	CreateListener(ctx context.Context, req *CreateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
@@ -2114,6 +2244,8 @@ type IrisAdminServiceHTTPClient interface {
 	ListBounces(ctx context.Context, req *ListBouncesRequest, opts ...http.CallOption) (rsp *ListBouncesReply, err error)
 	// ListDKIMDomains Domain & recipient safety ------------------------------------------------
 	ListDKIMDomains(ctx context.Context, req *ListDKIMDomainsRequest, opts ...http.CallOption) (rsp *ListDKIMDomainsReply, err error)
+	// ListDeliveryBlueprints Delivery blueprints: base per-provider shaping rules (fallback for new IPs).
+	ListDeliveryBlueprints(ctx context.Context, req *ListDeliveryBlueprintsRequest, opts ...http.CallOption) (rsp *ListDeliveryBlueprintsReply, err error)
 	ListDmarcDomains(ctx context.Context, req *ListDmarcDomainsRequest, opts ...http.CallOption) (rsp *ListDmarcDomainsReply, err error)
 	ListDmarcReports(ctx context.Context, req *ListDmarcReportsRequest, opts ...http.CallOption) (rsp *ListDmarcReportsReply, err error)
 	// ListFeedbackLoops Feedback loops -----------------------------------------------------------
@@ -2173,8 +2305,11 @@ type IrisAdminServiceHTTPClient interface {
 	ResumeWarmupSchedule(ctx context.Context, req *ResumeWarmupScheduleRequest, opts ...http.CallOption) (rsp *WarmupSchedule, err error)
 	RunRetention(ctx context.Context, req *RunRetentionRequest, opts ...http.CallOption) (rsp *RunRetentionReply, err error)
 	SaveAcmeAccount(ctx context.Context, req *SaveAcmeAccountRequest, opts ...http.CallOption) (rsp *AcmeAccount, err error)
+	SeedDeliveryBlueprints(ctx context.Context, req *SeedDeliveryBlueprintsRequest, opts ...http.CallOption) (rsp *SeedDeliveryBlueprintsReply, err error)
 	SetAcmeDnsProvider(ctx context.Context, req *SetAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
+	SetDeliveryBlueprintStatus(ctx context.Context, req *SetDeliveryBlueprintStatusRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
 	UpdateDKIMDomain(ctx context.Context, req *UpdateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
+	UpdateDeliveryBlueprint(ctx context.Context, req *UpdateDeliveryBlueprintRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
 	UpdateFeedbackLoop(ctx context.Context, req *UpdateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
 	UpdateGlobalSettings(ctx context.Context, req *UpdateGlobalSettingsRequest, opts ...http.CallOption) (rsp *GlobalSettings, err error)
 	UpdateInboundRoute(ctx context.Context, req *UpdateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
@@ -2274,6 +2409,19 @@ func (c *IrisAdminServiceHTTPClientImpl) CreateDKIMDomain(ctx context.Context, i
 	pattern := "/v1/dkim-domains"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateDKIMDomain))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) CreateDeliveryBlueprint(ctx context.Context, in *CreateDeliveryBlueprintRequest, opts ...http.CallOption) (*DeliveryBlueprint, error) {
+	var out DeliveryBlueprint
+	pattern := "/v1/delivery-blueprints"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateDeliveryBlueprint))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -2717,6 +2865,20 @@ func (c *IrisAdminServiceHTTPClientImpl) ListDKIMDomains(ctx context.Context, in
 	return &out, nil
 }
 
+// ListDeliveryBlueprints Delivery blueprints: base per-provider shaping rules (fallback for new IPs).
+func (c *IrisAdminServiceHTTPClientImpl) ListDeliveryBlueprints(ctx context.Context, in *ListDeliveryBlueprintsRequest, opts ...http.CallOption) (*ListDeliveryBlueprintsReply, error) {
+	var out ListDeliveryBlueprintsReply
+	pattern := "/v1/delivery-blueprints"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListDeliveryBlueprints))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) ListDmarcDomains(ctx context.Context, in *ListDmarcDomainsRequest, opts ...http.CallOption) (*ListDmarcDomainsReply, error) {
 	var out ListDmarcDomainsReply
 	pattern := "/v1/dmarc/domains"
@@ -3124,6 +3286,19 @@ func (c *IrisAdminServiceHTTPClientImpl) SaveAcmeAccount(ctx context.Context, in
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) SeedDeliveryBlueprints(ctx context.Context, in *SeedDeliveryBlueprintsRequest, opts ...http.CallOption) (*SeedDeliveryBlueprintsReply, error) {
+	var out SeedDeliveryBlueprintsReply
+	pattern := "/v1/delivery-blueprints:seed-defaults"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceSeedDeliveryBlueprints))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) SetAcmeDnsProvider(ctx context.Context, in *SetAcmeDnsProviderRequest, opts ...http.CallOption) (*AcmeDnsProvider, error) {
 	var out AcmeDnsProvider
 	pattern := "/v1/acme/dns-provider"
@@ -3137,11 +3312,37 @@ func (c *IrisAdminServiceHTTPClientImpl) SetAcmeDnsProvider(ctx context.Context,
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) SetDeliveryBlueprintStatus(ctx context.Context, in *SetDeliveryBlueprintStatusRequest, opts ...http.CallOption) (*DeliveryBlueprint, error) {
+	var out DeliveryBlueprint
+	pattern := "/v1/delivery-blueprints/{id}:status"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceSetDeliveryBlueprintStatus))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) UpdateDKIMDomain(ctx context.Context, in *UpdateDKIMDomainRequest, opts ...http.CallOption) (*DKIMDomain, error) {
 	var out DKIMDomain
 	pattern := "/v1/dkim-domains/{id}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateDKIMDomain))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) UpdateDeliveryBlueprint(ctx context.Context, in *UpdateDeliveryBlueprintRequest, opts ...http.CallOption) (*DeliveryBlueprint, error) {
+	var out DeliveryBlueprint
+	pattern := "/v1/delivery-blueprints/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateDeliveryBlueprint))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {

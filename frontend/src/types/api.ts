@@ -144,6 +144,45 @@ export interface PauseWarmupScheduleRequest {
   reason: string
 }
 
+// ---- Delivery blueprints (base shaping) ----
+export type BlueprintStatus = 'active' | 'disabled'
+
+export interface DeliveryBlueprint {
+  id: string
+  provider: string
+  mxPattern: string
+  connRate: string
+  deliveriesPerConn: number
+  connLimit: number
+  dailyCap: number
+  status: BlueprintStatus
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CreateDeliveryBlueprintRequest {
+  provider: string
+  mx_pattern: string
+  conn_rate: string
+  deliveries_per_conn: number
+  conn_limit: number
+  daily_cap: number
+}
+
+export interface UpdateDeliveryBlueprintRequest {
+  provider: string
+  mx_pattern: string
+  conn_rate: string
+  deliveries_per_conn: number
+  conn_limit: number
+  daily_cap: number
+  status: string
+}
+
+export interface SeedDeliveryBlueprintsResponse {
+  inserted?: number
+}
+
 // Response member shape (camelCase).
 export interface VMTAGroupMember {
   vmtaId: string

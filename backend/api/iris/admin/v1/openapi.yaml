@@ -315,6 +315,102 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/DashboardSummary'
+    /v1/delivery-blueprints:
+        get:
+            tags:
+                - IrisAdminService
+            description: 'Delivery blueprints: base per-provider shaping rules (fallback for new IPs).'
+            operationId: IrisAdminService_ListDeliveryBlueprints
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListDeliveryBlueprintsReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateDeliveryBlueprint
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateDeliveryBlueprintRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeliveryBlueprint'
+    /v1/delivery-blueprints/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateDeliveryBlueprint
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateDeliveryBlueprintRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeliveryBlueprint'
+    /v1/delivery-blueprints/{id}:status:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_SetDeliveryBlueprintStatus
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/SetDeliveryBlueprintStatusRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeliveryBlueprint'
+    /v1/delivery-blueprints:seed-defaults:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_SeedDeliveryBlueprints
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/SeedDeliveryBlueprintsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SeedDeliveryBlueprintsReply'
     /v1/dkim-domains:
         get:
             tags:
@@ -1863,6 +1959,24 @@ components:
                     type: string
                 private_key_ref:
                     type: string
+        CreateDeliveryBlueprintRequest:
+            type: object
+            properties:
+                provider:
+                    type: string
+                mx_pattern:
+                    type: string
+                conn_rate:
+                    type: string
+                deliveries_per_conn:
+                    type: integer
+                    format: int32
+                conn_limit:
+                    type: integer
+                    format: int32
+                daily_cap:
+                    type: integer
+                    format: int32
         CreateFeedbackLoopRequest:
             type: object
             properties:
@@ -2070,6 +2184,33 @@ components:
         DeleteTLSPolicyReply:
             type: object
             properties: {}
+        DeliveryBlueprint:
+            type: object
+            properties:
+                id:
+                    type: string
+                provider:
+                    type: string
+                mx_pattern:
+                    type: string
+                conn_rate:
+                    type: string
+                deliveries_per_conn:
+                    type: integer
+                    format: int32
+                conn_limit:
+                    type: integer
+                    format: int32
+                daily_cap:
+                    type: integer
+                    format: int32
+                status:
+                    type: string
+                created_at:
+                    type: string
+                updated_at:
+                    type: string
+            description: '---- Delivery blueprints ----'
         DiagnoseRequest:
             type: object
             properties:
@@ -2499,6 +2640,13 @@ components:
                         $ref: '#/components/schemas/DKIMDomain'
                 page:
                     $ref: '#/components/schemas/PageReply'
+        ListDeliveryBlueprintsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DeliveryBlueprint'
         ListDmarcDomainsReply:
             type: object
             properties:
@@ -3085,6 +3233,15 @@ components:
                     type: string
                 server_url:
                     type: string
+        SeedDeliveryBlueprintsReply:
+            type: object
+            properties:
+                inserted:
+                    type: integer
+                    format: int32
+        SeedDeliveryBlueprintsRequest:
+            type: object
+            properties: {}
         ServiceControlRequest:
             type: object
             properties:
@@ -3103,6 +3260,13 @@ components:
                     type: object
                     additionalProperties:
                         type: string
+        SetDeliveryBlueprintStatusRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                status:
+                    type: string
         Suppression:
             type: object
             properties:
@@ -3145,6 +3309,28 @@ components:
                 private_key_ref:
                     type: string
                     description: PEM-encoded RSA private key; empty preserves the stored key.
+                status:
+                    type: string
+        UpdateDeliveryBlueprintRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                provider:
+                    type: string
+                mx_pattern:
+                    type: string
+                conn_rate:
+                    type: string
+                deliveries_per_conn:
+                    type: integer
+                    format: int32
+                conn_limit:
+                    type: integer
+                    format: int32
+                daily_cap:
+                    type: integer
+                    format: int32
                 status:
                     type: string
         UpdateFeedbackLoopRequest:
