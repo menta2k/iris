@@ -25,7 +25,7 @@ var _ biz.MailOpsRepo = (*MailOpsRepo)(nil)
 func (r *MailOpsRepo) ListMailRecords(ctx context.Context, f biz.MailFilter, page biz.Page) ([]*biz.MailRecord, error) {
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT id, message_id, event_time, mailclass, sender, from_header, recipient,
-		       recipient_domain, coalesce(vmta_id::text,''), egress_source, status, record_type, smtp_status, diagnostic
+		       recipient_domain, coalesce(vmta_id::text,''), egress_source, status, record_type, smtp_status, diagnostic, classification
 		FROM mail_records
 		WHERE ($1 = '' OR mailclass = $1)
 		  AND ($2 = '' OR sender = $2)
@@ -48,7 +48,7 @@ func (r *MailOpsRepo) ListMailRecords(ctx context.Context, f biz.MailFilter, pag
 		m := &biz.MailRecord{}
 		if err := rows.Scan(&m.ID, &m.MessageID, &m.EventTime, &m.Mailclass, &m.Sender,
 			&m.FromHeader, &m.Recipient, &m.RecipientDomain, &m.VMTAID, &m.EgressSource, &m.Status,
-			&m.RecordType, &m.SMTPStatus, &m.Diagnostic); err != nil {
+			&m.RecordType, &m.SMTPStatus, &m.Diagnostic, &m.Classification); err != nil {
 			return nil, fmt.Errorf("scan mail record: %w", err)
 		}
 		out = append(out, m)
@@ -228,6 +228,21 @@ func (r *MailOpsRepo) InsertBounce(ctx context.Context, b *biz.BounceRecord) err
 		strOrDefault(b.ProcessingState, biz.ProcessingNew))
 	if err != nil {
 		return fmt.Errorf("insert bounce: %w", err)
+	}
+	return nil
+}
+
+// UpdateClassification backfills the subject-derived label on every event row
+// for a message (the Reception row plus any deliveries already recorded). Only
+// the label is written; the raw subject is never stored on mail_records.
+func (r *MailOpsRepo) UpdateClassification(ctx context.Context, messageID, label string) error {
+	if messageID == "" || label == "" {
+		return nil
+	}
+	_, err := r.db.Pool.Exec(ctx,
+		`UPDATE mail_records SET classification = $2 WHERE message_id = $1`, messageID, label)
+	if err != nil {
+		return fmt.Errorf("update classification for message %s: %w", messageID, err)
 	}
 	return nil
 }

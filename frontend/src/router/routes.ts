@@ -72,6 +72,12 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/outbound/DeliveryBlueprintsPage.vue'),
         meta: { permission: 'outbound:read', title: 'Delivery Blueprints' },
       },
+      {
+        path: 'outbound/automation',
+        name: 'shaping-automation',
+        component: () => import('@/pages/outbound/AutomationRulesPage.vue'),
+        meta: { permission: 'outbound:read', title: 'Shaping Automation' },
+      },
 
       // Operations
       {
@@ -127,6 +133,12 @@ export const routes: RouteRecordRaw[] = [
         name: 'global-settings',
         component: () => import('@/pages/settings/GlobalSettingsPage.vue'),
         meta: { permission: 'service:control', title: 'Global Settings' },
+      },
+      {
+        path: 'settings/subject-classifications',
+        name: 'subject-classifications',
+        component: () => import('@/pages/settings/SubjectClassificationsPage.vue'),
+        meta: { permission: 'service:control', title: 'Subject Classifications' },
       },
       {
         path: 'settings/feedback-loops',

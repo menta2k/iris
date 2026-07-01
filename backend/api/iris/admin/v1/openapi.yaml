@@ -261,6 +261,84 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/LoginReply'
+    /v1/automation-rules:
+        get:
+            tags:
+                - IrisAdminService
+            description: TSA automation rules (operator-authored reactive back-off).
+            operationId: IrisAdminService_ListAutomationRules
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListAutomationRulesReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateAutomationRule
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateAutomationRuleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AutomationRule'
+    /v1/automation-rules/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateAutomationRule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateAutomationRuleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AutomationRule'
+    /v1/automation-rules/{id}:status:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_SetAutomationRuleStatus
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/SetAutomationRuleStatusRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AutomationRule'
     /v1/bounces:
         get:
             tags:
@@ -315,6 +393,26 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/DashboardSummary'
+    /v1/dashboard/warmup-stats:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
+                 bounce rates over a lookback window — used to watch IP-warmup health.
+            operationId: IrisAdminService_GetWarmupDeliveryStats
+            parameters:
+                - name: range
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/WarmupDeliveryStats'
     /v1/delivery-blueprints:
         get:
             tags:
@@ -1245,6 +1343,79 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/GlobalSettings'
+    /v1/subject-classifications:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                Subject classifications (rules for the optional subject-classification
+                 feature; operator-authored plus AI-generated cache).
+            operationId: IrisAdminService_ListSubjectClassifications
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListSubjectClassificationsReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateSubjectClassification
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateSubjectClassificationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SubjectClassification'
+    /v1/subject-classifications/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateSubjectClassification
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateSubjectClassificationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SubjectClassification'
+        delete:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_DeleteSubjectClassification
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteSubjectClassificationReply'
     /v1/suppressions:
         get:
             tags:
@@ -1898,6 +2069,32 @@ components:
                     type: string
                 ip_address:
                     type: string
+        AutomationRule:
+            type: object
+            properties:
+                id:
+                    type: string
+                domain:
+                    type: string
+                regex:
+                    type: string
+                action:
+                    type: string
+                config_name:
+                    type: string
+                config_value:
+                    type: string
+                trigger:
+                    type: string
+                duration:
+                    type: string
+                status:
+                    type: string
+                created_at:
+                    type: string
+                updated_at:
+                    type: string
+            description: '---- TSA automation rules ----'
         Bounce:
             type: object
             properties:
@@ -1947,6 +2144,23 @@ components:
             type: object
             properties:
                 code:
+                    type: string
+        CreateAutomationRuleRequest:
+            type: object
+            properties:
+                domain:
+                    type: string
+                regex:
+                    type: string
+                action:
+                    type: string
+                config_name:
+                    type: string
+                config_value:
+                    type: string
+                trigger:
+                    type: string
+                duration:
                     type: string
         CreateDKIMDomainRequest:
             type: object
@@ -2070,6 +2284,13 @@ components:
                     type: string
                 assign_mailclass:
                     type: string
+        CreateSubjectClassificationRequest:
+            type: object
+            properties:
+                subject:
+                    type: string
+                label:
+                    type: string
         CreateSuppressionRequest:
             type: object
             properties:
@@ -2181,6 +2402,11 @@ components:
             type: object
             properties: {}
         DeleteInboundRouteReply:
+            type: object
+            properties:
+                ok:
+                    type: boolean
+        DeleteSubjectClassificationReply:
             type: object
             properties:
                 ok:
@@ -2502,6 +2728,20 @@ components:
                          "{domain}" (e.g. "bounce.kumo.{domain}" → mail from @example.com uses
                          @bounce.kumo.example.com), so SPF aligns with the From-domain. Empty uses the
                          single global bounce_domain for all mail.
+                classify_subjects:
+                    type: boolean
+                    description: |-
+                        Subject classification (optional; off by default). classify_subjects is the
+                         toggle; classify_model / classify_threshold (0..1) / classify_api_base tune
+                         the OpenAI-compatible LLM fallback. The API key comes from
+                         IRIS_OPENAI_API_KEY and is never persisted here.
+                classify_model:
+                    type: string
+                classify_threshold:
+                    type: number
+                    format: double
+                classify_api_base:
+                    type: string
             description: Global settings — deployment-level policy knobs an operator edits in the UI.
         InboundRoute:
             type: object
@@ -2626,6 +2866,13 @@ components:
                         $ref: '#/components/schemas/AuditEntry'
                 page:
                     $ref: '#/components/schemas/PageReply'
+        ListAutomationRulesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/AutomationRule'
         ListBouncesReply:
             type: object
             properties:
@@ -2746,6 +2993,13 @@ components:
                         $ref: '#/components/schemas/RspamdResult'
                 page:
                     $ref: '#/components/schemas/PageReply'
+        ListSubjectClassificationsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/SubjectClassification'
         ListSuppressionsReply:
             type: object
             properties:
@@ -2927,6 +3181,12 @@ components:
                         RecordType is the raw KumoMTA log record type (Reception/Delivery/Bounce/
                          TransientFailure/AdminBounce/Expiration). Distinguishes the three types that
                          share status="bounced".
+                classification:
+                    type: string
+                    description: |-
+                        Optional subject-derived classification label (≤2 words). Populated by the
+                         classification worker on the Reception row; empty when the feature is off or
+                         not yet resolved. The raw subject is never returned — only the label.
             description: Mail operations -----------------------------------------------------------
         MetricPoint:
             type: object
@@ -3264,6 +3524,13 @@ components:
                     type: object
                     additionalProperties:
                         type: string
+        SetAutomationRuleStatusRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                status:
+                    type: string
         SetDeliveryBlueprintStatusRequest:
             type: object
             properties:
@@ -3271,6 +3538,29 @@ components:
                     type: string
                 status:
                     type: string
+        SubjectClassification:
+            type: object
+            properties:
+                id:
+                    type: string
+                subject:
+                    type: string
+                subject_normalized:
+                    type: string
+                label:
+                    type: string
+                source:
+                    type: string
+                hit_count:
+                    type: string
+                created_at:
+                    type: string
+                updated_at:
+                    type: string
+            description: |-
+                A subject → label classification rule. source is "manual" (operator-authored)
+                 or "ai" (generated by the LLM fallback and cached). hit_count is how many
+                 messages matched it. subject_normalized is the trigram matching key.
         Suppression:
             type: object
             properties:
@@ -3301,6 +3591,27 @@ components:
                 TLSPolicy requires TLS on outbound delivery to a destination domain. mode is
                  "required" (STARTTLS + valid cert) or "required_insecure" (STARTTLS, skip
                  cert validation).
+        UpdateAutomationRuleRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                domain:
+                    type: string
+                regex:
+                    type: string
+                action:
+                    type: string
+                config_name:
+                    type: string
+                config_value:
+                    type: string
+                trigger:
+                    type: string
+                duration:
+                    type: string
+                status:
+                    type: string
         UpdateDKIMDomainRequest:
             type: object
             properties:
@@ -3401,6 +3712,16 @@ components:
                 bounce_domain_template:
                     type: string
                     description: Per-sending-domain bounce return-path template (see GlobalSettings).
+                classify_subjects:
+                    type: boolean
+                    description: Subject classification knobs (see GlobalSettings).
+                classify_model:
+                    type: string
+                classify_threshold:
+                    type: number
+                    format: double
+                classify_api_base:
+                    type: string
         UpdateInboundRouteRequest:
             type: object
             properties:
@@ -3505,6 +3826,15 @@ components:
                 match_header:
                     type: string
                 assign_mailclass:
+                    type: string
+        UpdateSubjectClassificationRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                subject:
+                    type: string
+                label:
                     type: string
         UpdateSuppressionRequest:
             type: object
@@ -3655,6 +3985,44 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/WarmupStage'
+        WarmupDeliveryStat:
+            type: object
+            properties:
+                vmta_id:
+                    type: string
+                vmta_name:
+                    type: string
+                recipient_domain:
+                    type: string
+                sent:
+                    type: string
+                bounced:
+                    type: string
+                deferred:
+                    type: string
+                attempted:
+                    type: string
+                delivery_rate:
+                    type: number
+                    format: double
+                bounce_rate:
+                    type: number
+                    format: double
+            description: |-
+                WarmupDeliveryStat is one (VMTA, recipient-domain) row. delivery_rate and
+                 bounce_rate are fractions in [0,1] over terminal outcomes (sent + bounced);
+                 deferred is shown separately and is NOT in that denominator.
+        WarmupDeliveryStats:
+            type: object
+            properties:
+                rows:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/WarmupDeliveryStat'
+                range:
+                    type: string
+                since:
+                    type: string
         WarmupSchedule:
             type: object
             properties:

@@ -32,14 +32,14 @@ local cached_load_shaping_data = kumo.memoize(kumo.shaping.load, {
 
 kumo.on('tsa_load_shaping_data', function()
   return cached_load_shaping_data {
-    -- KumoMTA's community shaping config supplies the tuned per-provider
-    -- automation rules (the [[provider.*.automation]] sections) that drive the
-    -- back-off. Iris's blueprints don't define automation, so these are the
-    -- source of the reactive logic.
+    -- KumoMTA's community shaping config supplies tuned per-provider automation
+    -- rules as a sensible default baseline.
     '/opt/kumomta/share/policy-extras/shaping.toml',
-    -- Optional: also load iris's generated base blueprints (the kumod policy
-    -- volume is mounted read-only at this path in compose). Uncomment once you
-    -- have applied a config so the file exists:
+    -- iris's OPERATOR-AUTHORED automation rules (Outbound → Shaping Automation),
+    -- and its blueprint limits. The kumod policy volume is mounted read-only at
+    -- this path in compose. Uncomment AFTER you have applied a config in iris so
+    -- the files exist (shaping.load errors on a missing file):
     -- '/opt/kumomta/etc/policy/iris-base.toml',
+    -- '/opt/kumomta/etc/policy/iris-automation.toml',
   }
 end)

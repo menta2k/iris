@@ -47,3 +47,30 @@ func (s *Service) GetMetricsTimeseries(ctx context.Context, req *adminv1.GetMetr
 	}
 	return out, nil
 }
+
+// GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
+// bounce rates over the selected window (IP-warmup health).
+func (s *Service) GetWarmupDeliveryStats(ctx context.Context, req *adminv1.GetWarmupDeliveryStatsRequest) (*adminv1.WarmupDeliveryStats, error) {
+	if s.dashboard == nil {
+		return nil, notImplemented("GetWarmupDeliveryStats")
+	}
+	res, err := s.dashboard.WarmupDeliveryStats(ctx, req.GetRange())
+	if err != nil {
+		return nil, s.fail(ctx, "GetWarmupDeliveryStats", err)
+	}
+	out := &adminv1.WarmupDeliveryStats{Range: res.Range, Since: res.Since}
+	for _, row := range res.Rows {
+		out.Rows = append(out.Rows, &adminv1.WarmupDeliveryStat{
+			VmtaId:          row.VMTAID,
+			VmtaName:        row.VMTAName,
+			RecipientDomain: row.RecipientDomain,
+			Sent:            row.Sent,
+			Bounced:         row.Bounced,
+			Deferred:        row.Deferred,
+			Attempted:       row.Attempted,
+			DeliveryRate:    row.DeliveryRate,
+			BounceRate:      row.BounceRate,
+		})
+	}
+	return out, nil
+}

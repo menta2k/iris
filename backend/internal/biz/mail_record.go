@@ -44,6 +44,10 @@ type MailRecord struct {
 	// Empty for events with no response (e.g. Reception).
 	SMTPStatus string
 	Diagnostic string
+	// Classification is the optional subject-derived label (≤2 words). Only the
+	// label is stored here — never the raw subject. Backfilled asynchronously by
+	// the classification worker; empty when the feature is off or not yet resolved.
+	Classification string
 }
 
 // MailFilter is a validated, bounded set of mail-log query filters.

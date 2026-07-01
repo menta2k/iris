@@ -70,6 +70,19 @@ service IrisAdminService {
   rpc SeedDeliveryBlueprints(SeedDeliveryBlueprintsRequest) returns (SeedDeliveryBlueprintsReply) {
     option (google.api.http) = { post: "/v1/delivery-blueprints:seed-defaults" body: "*" };
   }
+  // TSA automation rules (operator-authored reactive back-off).
+  rpc ListAutomationRules(ListAutomationRulesRequest) returns (ListAutomationRulesReply) {
+    option (google.api.http) = { get: "/v1/automation-rules" };
+  }
+  rpc CreateAutomationRule(CreateAutomationRuleRequest) returns (AutomationRule) {
+    option (google.api.http) = { post: "/v1/automation-rules" body: "*" };
+  }
+  rpc UpdateAutomationRule(UpdateAutomationRuleRequest) returns (AutomationRule) {
+    option (google.api.http) = { put: "/v1/automation-rules/{id}" body: "*" };
+  }
+  rpc SetAutomationRuleStatus(SetAutomationRuleStatusRequest) returns (AutomationRule) {
+    option (google.api.http) = { post: "/v1/automation-rules/{id}:status" body: "*" };
+  }
   rpc ListRoutingRules(ListRoutingRulesRequest) returns (ListRoutingRulesReply) {
     option (google.api.http) = { get: "/v1/routing-rules" };
   }
@@ -285,6 +298,11 @@ service IrisAdminService {
   rpc GetMetricsTimeseries(GetMetricsTimeseriesRequest) returns (MetricsTimeseries) {
     option (google.api.http) = { get: "/v1/dashboard/metrics" };
   }
+  // GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
+  // bounce rates over a lookback window — used to watch IP-warmup health.
+  rpc GetWarmupDeliveryStats(GetWarmupDeliveryStatsRequest) returns (WarmupDeliveryStats) {
+    option (google.api.http) = { get: "/v1/dashboard/warmup-stats" };
+  }
   // CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
   // (authorizes our egress IPs), and DKIM (selector records) via live DNS.
   rpc CheckDomainBounceSetup(CheckDomainBounceSetupRequest) returns (DomainBounceCheck) {
@@ -338,6 +356,21 @@ service IrisAdminService {
   }
   rpc UpdateGlobalSettings(UpdateGlobalSettingsRequest) returns (GlobalSettings) {
     option (google.api.http) = { put: "/v1/settings" body: "*" };
+  }
+
+  // Subject classifications (rules for the optional subject-classification
+  // feature; operator-authored plus AI-generated cache).
+  rpc ListSubjectClassifications(ListSubjectClassificationsRequest) returns (ListSubjectClassificationsReply) {
+    option (google.api.http) = { get: "/v1/subject-classifications" };
+  }
+  rpc CreateSubjectClassification(CreateSubjectClassificationRequest) returns (SubjectClassification) {
+    option (google.api.http) = { post: "/v1/subject-classifications" body: "*" };
+  }
+  rpc UpdateSubjectClassification(UpdateSubjectClassificationRequest) returns (SubjectClassification) {
+    option (google.api.http) = { put: "/v1/subject-classifications/{id}" body: "*" };
+  }
+  rpc DeleteSubjectClassification(DeleteSubjectClassificationRequest) returns (DeleteSubjectClassificationReply) {
+    option (google.api.http) = { delete: "/v1/subject-classifications/{id}" };
   }
 }
 
@@ -538,6 +571,49 @@ message SeedDeliveryBlueprintsReply {
   int32 inserted = 1;
 }
 
+// ---- TSA automation rules ----
+message AutomationRule {
+  string id = 1;
+  string domain = 2;
+  string regex = 3;
+  string action = 4; // suspend | suspend_tenant | set_config
+  string config_name = 5;
+  string config_value = 6;
+  string trigger = 7; // "immediate" or a rate like "2/hr"
+  string duration = 8;
+  string status = 9;
+  string created_at = 10;
+  string updated_at = 11;
+}
+message ListAutomationRulesRequest {}
+message ListAutomationRulesReply {
+  repeated AutomationRule items = 1;
+}
+message CreateAutomationRuleRequest {
+  string domain = 1;
+  string regex = 2;
+  string action = 3;
+  string config_name = 4;
+  string config_value = 5;
+  string trigger = 6;
+  string duration = 7;
+}
+message UpdateAutomationRuleRequest {
+  string id = 1;
+  string domain = 2;
+  string regex = 3;
+  string action = 4;
+  string config_name = 5;
+  string config_value = 6;
+  string trigger = 7;
+  string duration = 8;
+  string status = 9;
+}
+message SetAutomationRuleStatusRequest {
+  string id = 1;
+  string status = 2;
+}
+
 message ListVMTAsRequest {
   PageRequest page = 1;
   string status = 2;
@@ -638,6 +714,10 @@ message MailRecord {
   // TransientFailure/AdminBounce/Expiration). Distinguishes the three types that
   // share status="bounced".
   string record_type = 14;
+  // Optional subject-derived classification label (≤2 words). Populated by the
+  // classification worker on the Reception row; empty when the feature is off or
+  // not yet resolved. The raw subject is never returned — only the label.
+  string classification = 15;
 }
 message Bounce {
   string id = 1;
@@ -1301,6 +1381,31 @@ message MetricsTimeseries {
   bool prometheus_available = 4; // false when no Prometheus URL is configured
 }
 
+// GetWarmupDeliveryStats selects the lookback window: "1h" | "6h" | "24h" | "7d"
+// (empty defaults to "24h").
+message GetWarmupDeliveryStatsRequest {
+  string range = 1;
+}
+// WarmupDeliveryStat is one (VMTA, recipient-domain) row. delivery_rate and
+// bounce_rate are fractions in [0,1] over terminal outcomes (sent + bounced);
+// deferred is shown separately and is NOT in that denominator.
+message WarmupDeliveryStat {
+  string vmta_id = 1;          // empty when the egress source has no matching VMTA
+  string vmta_name = 2;        // egress source name from the delivery log
+  string recipient_domain = 3;
+  int64 sent = 4;              // delivered
+  int64 bounced = 5;           // permanent failure
+  int64 deferred = 6;          // transient (4xx) — informational, not in rates
+  int64 attempted = 7;         // sent + bounced (terminal outcomes)
+  double delivery_rate = 8;    // sent / attempted
+  double bounce_rate = 9;      // bounced / attempted
+}
+message WarmupDeliveryStats {
+  repeated WarmupDeliveryStat rows = 1;
+  string range = 2;            // echoed effective range
+  int64 since = 3;             // unix seconds: window start
+}
+
 // Global settings — deployment-level policy knobs an operator edits in the UI.
 message GlobalSettings {
   // rspamd inbound spam filtering: "off" | "tag" | "enforce".
@@ -1352,6 +1457,14 @@ message GlobalSettings {
   // @bounce.kumo.example.com), so SPF aligns with the From-domain. Empty uses the
   // single global bounce_domain for all mail.
   string bounce_domain_template = 26;
+  // Subject classification (optional; off by default). classify_subjects is the
+  // toggle; classify_model / classify_threshold (0..1) / classify_api_base tune
+  // the OpenAI-compatible LLM fallback. The API key comes from
+  // IRIS_OPENAI_API_KEY and is never persisted here.
+  bool classify_subjects = 27;
+  string classify_model = 28;
+  double classify_threshold = 29;
+  string classify_api_base = 30;
 }
 message GetGlobalSettingsRequest {}
 message UpdateGlobalSettingsRequest {
@@ -1380,4 +1493,42 @@ message UpdateGlobalSettingsRequest {
   string inbound_maildir_base_path = 23;
   // Per-sending-domain bounce return-path template (see GlobalSettings).
   string bounce_domain_template = 24;
+  // Subject classification knobs (see GlobalSettings).
+  bool classify_subjects = 25;
+  string classify_model = 26;
+  double classify_threshold = 27;
+  string classify_api_base = 28;
+}
+
+// A subject → label classification rule. source is "manual" (operator-authored)
+// or "ai" (generated by the LLM fallback and cached). hit_count is how many
+// messages matched it. subject_normalized is the trigram matching key.
+message SubjectClassification {
+  string id = 1;
+  string subject = 2;
+  string subject_normalized = 3;
+  string label = 4;
+  string source = 5;
+  int64 hit_count = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+message ListSubjectClassificationsRequest {}
+message ListSubjectClassificationsReply {
+  repeated SubjectClassification items = 1;
+}
+message CreateSubjectClassificationRequest {
+  string subject = 1;
+  string label = 2;
+}
+message UpdateSubjectClassificationRequest {
+  string id = 1;
+  string subject = 2;
+  string label = 3;
+}
+message DeleteSubjectClassificationRequest {
+  string id = 1;
+}
+message DeleteSubjectClassificationReply {
+  bool ok = 1;
 }

@@ -192,6 +192,37 @@ export interface SeedDeliveryBlueprintsResponse {
   inserted?: number
 }
 
+// ---- TSA automation rules ----
+export type AutomationAction = 'suspend' | 'suspend_tenant' | 'set_config'
+
+export interface AutomationRule {
+  id: string
+  domain: string
+  regex: string
+  action: AutomationAction
+  configName?: string
+  configValue?: string
+  trigger: string
+  duration: string
+  status: BlueprintStatus
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CreateAutomationRuleRequest {
+  domain: string
+  regex: string
+  action: string
+  config_name: string
+  config_value: string
+  trigger: string
+  duration: string
+}
+
+export interface UpdateAutomationRuleRequest extends CreateAutomationRuleRequest {
+  status: string
+}
+
 // Response member shape (camelCase).
 export interface VMTAGroupMember {
   vmtaId: string
@@ -287,6 +318,8 @@ export interface MailRecord {
   /** SMTP response for this event (code + text); present on delivery/deferral/bounce. */
   smtpStatus?: string
   diagnostic?: string
+  /** Optional subject-derived label (≤2 words); empty when the feature is off. */
+  classification?: string
 }
 
 export interface MailRecordFilters {
@@ -705,6 +738,10 @@ export interface GlobalSettings {
   prometheusUrl: string
   fblRequireVerification: boolean
   inboundMaildirBasePath: string
+  classifySubjects: boolean
+  classifyModel: string
+  classifyThreshold: number
+  classifyApiBase: string
   updatedAt?: string
   updatedBy?: string
 }
@@ -733,6 +770,34 @@ export interface UpdateGlobalSettingsRequest {
   fbl_require_verification: boolean
   inbound_maildir_base_path: string
   bounce_domain_template: string
+  classify_subjects: boolean
+  classify_model: string
+  classify_threshold: number
+  classify_api_base: string
+}
+
+// ---- Subject classifications ----
+
+export interface SubjectClassification {
+  id: string
+  subject: string
+  subjectNormalized: string
+  label: string
+  source: string // "manual" | "ai"
+  hitCount: string // int64 as JSON string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CreateSubjectClassificationRequest {
+  subject: string
+  label: string
+}
+
+export interface UpdateSubjectClassificationRequest {
+  id: string
+  subject: string
+  label: string
 }
 
 // ---- Dashboard metrics (Prometheus-backed time-series) ----
@@ -833,6 +898,26 @@ export interface DashboardSummary {
   queuedMessages: string
   recentMailEvents: string
   recentAuditEvents: string
+}
+
+// Per-VMTA, per-recipient-domain delivery/bounce breakdown for IP-warmup health.
+// int64 count fields serialize as JSON strings; rates are doubles (0..1).
+export interface WarmupDeliveryStat {
+  vmtaId: string
+  vmtaName: string
+  recipientDomain: string
+  sent: string
+  bounced: string
+  deferred: string
+  attempted: string
+  deliveryRate: number
+  bounceRate: number
+}
+
+export interface WarmupDeliveryStats {
+  rows?: WarmupDeliveryStat[]
+  range: string
+  since: string
 }
 
 // ---- Domain bounce-readiness check ----

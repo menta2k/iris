@@ -50,6 +50,10 @@ const form = ref({
   acme_renew_interval: '',
   acme_renew_before: '',
   prometheus_url: '',
+  classify_subjects: false,
+  classify_model: '',
+  classify_threshold: 0.45,
+  classify_api_base: '',
 })
 
 function apply(s: GlobalSettings) {
@@ -77,6 +81,10 @@ function apply(s: GlobalSettings) {
     acme_renew_interval: s.acmeRenewInterval || '',
     acme_renew_before: s.acmeRenewBefore || '',
     prometheus_url: s.prometheusUrl || '',
+    classify_subjects: s.classifySubjects ?? false,
+    classify_model: s.classifyModel || '',
+    classify_threshold: s.classifyThreshold ?? 0.45,
+    classify_api_base: s.classifyApiBase || '',
   }
   updatedBy.value = s.updatedBy || ''
   updatedAt.value = s.updatedAt || ''
@@ -133,6 +141,10 @@ async function save() {
         acme_renew_interval: form.value.acme_renew_interval,
         acme_renew_before: form.value.acme_renew_before,
         prometheus_url: form.value.prometheus_url,
+        classify_subjects: form.value.classify_subjects,
+        classify_model: form.value.classify_model,
+        classify_threshold: Number(form.value.classify_threshold),
+        classify_api_base: form.value.classify_api_base,
       }),
     )
     toast({
@@ -393,6 +405,65 @@ onMounted(load)
               <p class="text-xs text-muted-foreground">
                 Base URL of the Prometheus that scrapes Iris/KumoMTA. When set, the dashboard
                 shows mail-flow charts. Leave blank to disable.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Subject Classification</CardTitle>
+            <CardDescription>
+              Optionally label received mail by its subject (≤2 words) via trigram similarity
+              against your rules, falling back to an OpenAI-compatible model. Off by default. The
+              raw subject is never stored on the mail log — only the label.
+            </CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <div class="flex items-start gap-2">
+              <input
+                id="classify-subjects"
+                v-model="form.classify_subjects"
+                type="checkbox"
+                class="mt-1"
+                data-testid="classify-subjects"
+              />
+              <Label for="classify-subjects" class="font-normal">
+                Classify received mail by subject
+                <span class="block text-xs text-muted-foreground">
+                  Requires the IRIS_OPENAI_API_KEY environment variable for the LLM fallback;
+                  without it, only your existing rules match.
+                </span>
+              </Label>
+            </div>
+            <div class="space-y-1.5">
+              <Label for="classify-model">Model</Label>
+              <Input id="classify-model" v-model="form.classify_model" placeholder="gpt-4o-mini" />
+            </div>
+            <div class="space-y-1.5">
+              <Label for="classify-threshold">Similarity threshold</Label>
+              <Input
+                id="classify-threshold"
+                v-model.number="form.classify_threshold"
+                type="number"
+                min="0"
+                max="1"
+                step="0.05"
+              />
+              <p class="text-xs text-muted-foreground">
+                Trigram similarity (0–1) required to reuse an existing label before calling the
+                model. Higher = stricter matches, more model calls. Default 0.45.
+              </p>
+            </div>
+            <div class="space-y-1.5">
+              <Label for="classify-api-base">API base URL</Label>
+              <Input
+                id="classify-api-base"
+                v-model="form.classify_api_base"
+                placeholder="https://api.openai.com/v1"
+              />
+              <p class="text-xs text-muted-foreground">
+                OpenAI-compatible endpoint (OpenAI, Azure OpenAI, or a local gateway).
               </p>
             </div>
           </CardContent>

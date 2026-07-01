@@ -305,6 +305,9 @@ func TestRenderRequireTLSPolicy(t *testing.T) {
 		`REQUIRE_TLS_DOMAINS["lab.example"] = "RequiredInsecure"`,
 		"local tls = REQUIRE_TLS_DOMAINS[string.lower(domain)]",
 		"params.enable_tls = tls",
+		// Non-Require-TLS domains encrypt opportunistically without hard-failing
+		// on cert verification (legacy/retired chains must not defer delivery).
+		"params.enable_tls = params.enable_tls or 'OpportunisticInsecure'",
 	} {
 		if !strings.Contains(r.Content, want) {
 			t.Fatalf("require-TLS policy must contain %q:\n%s", want, r.Content)

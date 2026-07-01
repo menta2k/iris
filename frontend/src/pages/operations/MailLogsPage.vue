@@ -129,6 +129,7 @@ function resetFilters() {
                 <TableHead>VMTA</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Type</TableHead>
+                <TableHead>Class</TableHead>
                 <TableHead>Reason</TableHead>
               </TableRow>
             </TableHeader>
@@ -143,6 +144,7 @@ function resetFilters() {
                 <TableCell class="font-mono text-xs">{{ m.egressSource || m.vmtaId || '—' }}</TableCell>
                 <TableCell><StatusBadge :status="m.status" /></TableCell>
                 <TableCell class="whitespace-nowrap text-xs text-muted-foreground">{{ m.recordType || '—' }}</TableCell>
+                <TableCell class="whitespace-nowrap text-xs">{{ m.classification || '—' }}</TableCell>
                 <TableCell class="max-w-md">
                   <span
                     v-if="m.smtpStatus || m.diagnostic"
