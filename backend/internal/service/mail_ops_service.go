@@ -44,6 +44,7 @@ func (s *Service) ListMailRecords(ctx context.Context, req *adminv1.ListMailReco
 			RecipientDomain: m.RecipientDomain, VmtaId: m.VMTAID, EgressSource: m.EgressSource, Status: m.Status,
 			RecordType: m.RecordType,
 			FromHeader: m.FromHeader, SmtpStatus: m.SMTPStatus, Diagnostic: m.Diagnostic,
+			Classification: m.Classification,
 		})
 	}
 	return out, nil

@@ -714,6 +714,10 @@ message MailRecord {
   // TransientFailure/AdminBounce/Expiration). Distinguishes the three types that
   // share status="bounced".
   string record_type = 14;
+  // Optional subject-derived classification label (≤2 words). Populated by the
+  // classification worker on the Reception row; empty when the feature is off or
+  // not yet resolved. The raw subject is never returned — only the label.
+  string classification = 15;
 }
 message Bounce {
   string id = 1;

@@ -3374,9 +3374,13 @@ type MailRecord struct {
 	// RecordType is the raw KumoMTA log record type (Reception/Delivery/Bounce/
 	// TransientFailure/AdminBounce/Expiration). Distinguishes the three types that
 	// share status="bounced".
-	RecordType    string `protobuf:"bytes,14,opt,name=record_type,json=recordType,proto3" json:"record_type,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	RecordType string `protobuf:"bytes,14,opt,name=record_type,json=recordType,proto3" json:"record_type,omitempty"`
+	// Optional subject-derived classification label (≤2 words). Populated by the
+	// classification worker on the Reception row; empty when the feature is off or
+	// not yet resolved. The raw subject is never returned — only the label.
+	Classification string `protobuf:"bytes,15,opt,name=classification,proto3" json:"classification,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *MailRecord) Reset() {
@@ -3503,6 +3507,13 @@ func (x *MailRecord) GetEgressSource() string {
 func (x *MailRecord) GetRecordType() string {
 	if x != nil {
 		return x.RecordType
+	}
+	return ""
+}
+
+func (x *MailRecord) GetClassification() string {
+	if x != nil {
+		return x.Classification
 	}
 	return ""
 }
@@ -13175,7 +13186,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06status\x18\b \x01(\tR\x06status\x12!\n" +
 	"\fmatch_header\x18\t \x01(\tR\vmatchHeader\x12)\n" +
 	"\x10assign_mailclass\x18\n" +
-	" \x01(\tR\x0fassignMailclass\"\xce\x03\n" +
+	" \x01(\tR\x0fassignMailclass\"\xf6\x03\n" +
 	"\n" +
 	"MailRecord\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
@@ -13199,7 +13210,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"diagnostic\x12#\n" +
 	"\regress_source\x18\r \x01(\tR\fegressSource\x12\x1f\n" +
 	"\vrecord_type\x18\x0e \x01(\tR\n" +
-	"recordType\"\xc4\x02\n" +
+	"recordType\x12&\n" +
+	"\x0eclassification\x18\x0f \x01(\tR\x0eclassification\"\xc4\x02\n" +
 	"\x06Bounce\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x129\n" +
 	"\n" +

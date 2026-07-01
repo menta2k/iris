@@ -3181,6 +3181,12 @@ components:
                         RecordType is the raw KumoMTA log record type (Reception/Delivery/Bounce/
                          TransientFailure/AdminBounce/Expiration). Distinguishes the three types that
                          share status="bounced".
+                classification:
+                    type: string
+                    description: |-
+                        Optional subject-derived classification label (≤2 words). Populated by the
+                         classification worker on the Reception row; empty when the feature is off or
+                         not yet resolved. The raw subject is never returned — only the label.
             description: Mail operations -----------------------------------------------------------
         MetricPoint:
             type: object
