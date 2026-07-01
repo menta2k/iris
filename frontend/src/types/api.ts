@@ -318,6 +318,8 @@ export interface MailRecord {
   /** SMTP response for this event (code + text); present on delivery/deferral/bounce. */
   smtpStatus?: string
   diagnostic?: string
+  /** Optional subject-derived label (≤2 words); empty when the feature is off. */
+  classification?: string
 }
 
 export interface MailRecordFilters {
@@ -736,6 +738,10 @@ export interface GlobalSettings {
   prometheusUrl: string
   fblRequireVerification: boolean
   inboundMaildirBasePath: string
+  classifySubjects: boolean
+  classifyModel: string
+  classifyThreshold: number
+  classifyApiBase: string
   updatedAt?: string
   updatedBy?: string
 }
@@ -764,6 +770,34 @@ export interface UpdateGlobalSettingsRequest {
   fbl_require_verification: boolean
   inbound_maildir_base_path: string
   bounce_domain_template: string
+  classify_subjects: boolean
+  classify_model: string
+  classify_threshold: number
+  classify_api_base: string
+}
+
+// ---- Subject classifications ----
+
+export interface SubjectClassification {
+  id: string
+  subject: string
+  subjectNormalized: string
+  label: string
+  source: string // "manual" | "ai"
+  hitCount: string // int64 as JSON string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CreateSubjectClassificationRequest {
+  subject: string
+  label: string
+}
+
+export interface UpdateSubjectClassificationRequest {
+  id: string
+  subject: string
+  label: string
 }
 
 // ---- Dashboard metrics (Prometheus-backed time-series) ----

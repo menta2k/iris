@@ -19,97 +19,101 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IrisAdminService_ListListeners_FullMethodName              = "/iris.admin.v1.IrisAdminService/ListListeners"
-	IrisAdminService_CreateListener_FullMethodName             = "/iris.admin.v1.IrisAdminService/CreateListener"
-	IrisAdminService_UpdateListener_FullMethodName             = "/iris.admin.v1.IrisAdminService/UpdateListener"
-	IrisAdminService_ListVMTAs_FullMethodName                  = "/iris.admin.v1.IrisAdminService/ListVMTAs"
-	IrisAdminService_CreateVMTA_FullMethodName                 = "/iris.admin.v1.IrisAdminService/CreateVMTA"
-	IrisAdminService_UpdateVMTA_FullMethodName                 = "/iris.admin.v1.IrisAdminService/UpdateVMTA"
-	IrisAdminService_ListVMTAGroups_FullMethodName             = "/iris.admin.v1.IrisAdminService/ListVMTAGroups"
-	IrisAdminService_CreateVMTAGroups_FullMethodName           = "/iris.admin.v1.IrisAdminService/CreateVMTAGroups"
-	IrisAdminService_UpdateVMTAGroup_FullMethodName            = "/iris.admin.v1.IrisAdminService/UpdateVMTAGroup"
-	IrisAdminService_ListWarmupSchedules_FullMethodName        = "/iris.admin.v1.IrisAdminService/ListWarmupSchedules"
-	IrisAdminService_CreateWarmupSchedule_FullMethodName       = "/iris.admin.v1.IrisAdminService/CreateWarmupSchedule"
-	IrisAdminService_UpdateWarmupSchedule_FullMethodName       = "/iris.admin.v1.IrisAdminService/UpdateWarmupSchedule"
-	IrisAdminService_PauseWarmupSchedule_FullMethodName        = "/iris.admin.v1.IrisAdminService/PauseWarmupSchedule"
-	IrisAdminService_ResumeWarmupSchedule_FullMethodName       = "/iris.admin.v1.IrisAdminService/ResumeWarmupSchedule"
-	IrisAdminService_ListDeliveryBlueprints_FullMethodName     = "/iris.admin.v1.IrisAdminService/ListDeliveryBlueprints"
-	IrisAdminService_CreateDeliveryBlueprint_FullMethodName    = "/iris.admin.v1.IrisAdminService/CreateDeliveryBlueprint"
-	IrisAdminService_UpdateDeliveryBlueprint_FullMethodName    = "/iris.admin.v1.IrisAdminService/UpdateDeliveryBlueprint"
-	IrisAdminService_SetDeliveryBlueprintStatus_FullMethodName = "/iris.admin.v1.IrisAdminService/SetDeliveryBlueprintStatus"
-	IrisAdminService_SeedDeliveryBlueprints_FullMethodName     = "/iris.admin.v1.IrisAdminService/SeedDeliveryBlueprints"
-	IrisAdminService_ListAutomationRules_FullMethodName        = "/iris.admin.v1.IrisAdminService/ListAutomationRules"
-	IrisAdminService_CreateAutomationRule_FullMethodName       = "/iris.admin.v1.IrisAdminService/CreateAutomationRule"
-	IrisAdminService_UpdateAutomationRule_FullMethodName       = "/iris.admin.v1.IrisAdminService/UpdateAutomationRule"
-	IrisAdminService_SetAutomationRuleStatus_FullMethodName    = "/iris.admin.v1.IrisAdminService/SetAutomationRuleStatus"
-	IrisAdminService_ListRoutingRules_FullMethodName           = "/iris.admin.v1.IrisAdminService/ListRoutingRules"
-	IrisAdminService_CreateRoutingRule_FullMethodName          = "/iris.admin.v1.IrisAdminService/CreateRoutingRule"
-	IrisAdminService_UpdateRoutingRule_FullMethodName          = "/iris.admin.v1.IrisAdminService/UpdateRoutingRule"
-	IrisAdminService_ListMailRecords_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListMailRecords"
-	IrisAdminService_ListBounces_FullMethodName                = "/iris.admin.v1.IrisAdminService/ListBounces"
-	IrisAdminService_ListFeedbackReports_FullMethodName        = "/iris.admin.v1.IrisAdminService/ListFeedbackReports"
-	IrisAdminService_ListQueues_FullMethodName                 = "/iris.admin.v1.IrisAdminService/ListQueues"
-	IrisAdminService_RequestQueueAction_FullMethodName         = "/iris.admin.v1.IrisAdminService/RequestQueueAction"
-	IrisAdminService_ListDKIMDomains_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListDKIMDomains"
-	IrisAdminService_CreateDKIMDomain_FullMethodName           = "/iris.admin.v1.IrisAdminService/CreateDKIMDomain"
-	IrisAdminService_UpdateDKIMDomain_FullMethodName           = "/iris.admin.v1.IrisAdminService/UpdateDKIMDomain"
-	IrisAdminService_GenerateDKIMKey_FullMethodName            = "/iris.admin.v1.IrisAdminService/GenerateDKIMKey"
-	IrisAdminService_ListSuppressions_FullMethodName           = "/iris.admin.v1.IrisAdminService/ListSuppressions"
-	IrisAdminService_CreateSuppression_FullMethodName          = "/iris.admin.v1.IrisAdminService/CreateSuppression"
-	IrisAdminService_UpdateSuppression_FullMethodName          = "/iris.admin.v1.IrisAdminService/UpdateSuppression"
-	IrisAdminService_ListTLSPolicies_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListTLSPolicies"
-	IrisAdminService_CreateTLSPolicy_FullMethodName            = "/iris.admin.v1.IrisAdminService/CreateTLSPolicy"
-	IrisAdminService_DeleteTLSPolicy_FullMethodName            = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
-	IrisAdminService_ListInboundRoutes_FullMethodName          = "/iris.admin.v1.IrisAdminService/ListInboundRoutes"
-	IrisAdminService_CreateInboundRoute_FullMethodName         = "/iris.admin.v1.IrisAdminService/CreateInboundRoute"
-	IrisAdminService_UpdateInboundRoute_FullMethodName         = "/iris.admin.v1.IrisAdminService/UpdateInboundRoute"
-	IrisAdminService_DeleteInboundRoute_FullMethodName         = "/iris.admin.v1.IrisAdminService/DeleteInboundRoute"
-	IrisAdminService_ListRspamdResults_FullMethodName          = "/iris.admin.v1.IrisAdminService/ListRspamdResults"
-	IrisAdminService_ListFeedbackLoops_FullMethodName          = "/iris.admin.v1.IrisAdminService/ListFeedbackLoops"
-	IrisAdminService_CreateFeedbackLoop_FullMethodName         = "/iris.admin.v1.IrisAdminService/CreateFeedbackLoop"
-	IrisAdminService_UpdateFeedbackLoop_FullMethodName         = "/iris.admin.v1.IrisAdminService/UpdateFeedbackLoop"
-	IrisAdminService_DeleteFeedbackLoop_FullMethodName         = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
-	IrisAdminService_Login_FullMethodName                      = "/iris.admin.v1.IrisAdminService/Login"
-	IrisAdminService_VerifyMFA_FullMethodName                  = "/iris.admin.v1.IrisAdminService/VerifyMFA"
-	IrisAdminService_CurrentUser_FullMethodName                = "/iris.admin.v1.IrisAdminService/CurrentUser"
-	IrisAdminService_ChangePassword_FullMethodName             = "/iris.admin.v1.IrisAdminService/ChangePassword"
-	IrisAdminService_Logout_FullMethodName                     = "/iris.admin.v1.IrisAdminService/Logout"
-	IrisAdminService_ListUsers_FullMethodName                  = "/iris.admin.v1.IrisAdminService/ListUsers"
-	IrisAdminService_CreateUser_FullMethodName                 = "/iris.admin.v1.IrisAdminService/CreateUser"
-	IrisAdminService_UpdateUser_FullMethodName                 = "/iris.admin.v1.IrisAdminService/UpdateUser"
-	IrisAdminService_ResetUserPassword_FullMethodName          = "/iris.admin.v1.IrisAdminService/ResetUserPassword"
-	IrisAdminService_EnrollMFA_FullMethodName                  = "/iris.admin.v1.IrisAdminService/EnrollMFA"
-	IrisAdminService_ConfirmMFA_FullMethodName                 = "/iris.admin.v1.IrisAdminService/ConfirmMFA"
-	IrisAdminService_DisableMFA_FullMethodName                 = "/iris.admin.v1.IrisAdminService/DisableMFA"
-	IrisAdminService_ListAuditEntries_FullMethodName           = "/iris.admin.v1.IrisAdminService/ListAuditEntries"
-	IrisAdminService_RequestServiceControl_FullMethodName      = "/iris.admin.v1.IrisAdminService/RequestServiceControl"
-	IrisAdminService_GenerateKumoConfig_FullMethodName         = "/iris.admin.v1.IrisAdminService/GenerateKumoConfig"
-	IrisAdminService_ApplyKumoConfig_FullMethodName            = "/iris.admin.v1.IrisAdminService/ApplyKumoConfig"
-	IrisAdminService_KumoConfigStatus_FullMethodName           = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
-	IrisAdminService_GetAcmeAccount_FullMethodName             = "/iris.admin.v1.IrisAdminService/GetAcmeAccount"
-	IrisAdminService_SaveAcmeAccount_FullMethodName            = "/iris.admin.v1.IrisAdminService/SaveAcmeAccount"
-	IrisAdminService_ListAcmeCertificates_FullMethodName       = "/iris.admin.v1.IrisAdminService/ListAcmeCertificates"
-	IrisAdminService_RequestAcmeCertificate_FullMethodName     = "/iris.admin.v1.IrisAdminService/RequestAcmeCertificate"
-	IrisAdminService_DeleteAcmeCertificate_FullMethodName      = "/iris.admin.v1.IrisAdminService/DeleteAcmeCertificate"
-	IrisAdminService_ListAcmeDnsProviders_FullMethodName       = "/iris.admin.v1.IrisAdminService/ListAcmeDnsProviders"
-	IrisAdminService_GetAcmeDnsProvider_FullMethodName         = "/iris.admin.v1.IrisAdminService/GetAcmeDnsProvider"
-	IrisAdminService_SetAcmeDnsProvider_FullMethodName         = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
-	IrisAdminService_ClearAcmeDnsProvider_FullMethodName       = "/iris.admin.v1.IrisAdminService/ClearAcmeDnsProvider"
-	IrisAdminService_GetDashboardSummary_FullMethodName        = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
-	IrisAdminService_GetMetricsTimeseries_FullMethodName       = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
-	IrisAdminService_GetWarmupDeliveryStats_FullMethodName     = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
-	IrisAdminService_CheckDomainBounceSetup_FullMethodName     = "/iris.admin.v1.IrisAdminService/CheckDomainBounceSetup"
-	IrisAdminService_Diagnose_FullMethodName                   = "/iris.admin.v1.IrisAdminService/Diagnose"
-	IrisAdminService_RblCheck_FullMethodName                   = "/iris.admin.v1.IrisAdminService/RblCheck"
-	IrisAdminService_GetDmarcStats_FullMethodName              = "/iris.admin.v1.IrisAdminService/GetDmarcStats"
-	IrisAdminService_ListDmarcReports_FullMethodName           = "/iris.admin.v1.IrisAdminService/ListDmarcReports"
-	IrisAdminService_ListDmarcDomains_FullMethodName           = "/iris.admin.v1.IrisAdminService/ListDmarcDomains"
-	IrisAdminService_ListWorkerErrorLogs_FullMethodName        = "/iris.admin.v1.IrisAdminService/ListWorkerErrorLogs"
-	IrisAdminService_ListRetentionPolicies_FullMethodName      = "/iris.admin.v1.IrisAdminService/ListRetentionPolicies"
-	IrisAdminService_UpdateRetentionPolicy_FullMethodName      = "/iris.admin.v1.IrisAdminService/UpdateRetentionPolicy"
-	IrisAdminService_RunRetention_FullMethodName               = "/iris.admin.v1.IrisAdminService/RunRetention"
-	IrisAdminService_GetGlobalSettings_FullMethodName          = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
-	IrisAdminService_UpdateGlobalSettings_FullMethodName       = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
+	IrisAdminService_ListListeners_FullMethodName               = "/iris.admin.v1.IrisAdminService/ListListeners"
+	IrisAdminService_CreateListener_FullMethodName              = "/iris.admin.v1.IrisAdminService/CreateListener"
+	IrisAdminService_UpdateListener_FullMethodName              = "/iris.admin.v1.IrisAdminService/UpdateListener"
+	IrisAdminService_ListVMTAs_FullMethodName                   = "/iris.admin.v1.IrisAdminService/ListVMTAs"
+	IrisAdminService_CreateVMTA_FullMethodName                  = "/iris.admin.v1.IrisAdminService/CreateVMTA"
+	IrisAdminService_UpdateVMTA_FullMethodName                  = "/iris.admin.v1.IrisAdminService/UpdateVMTA"
+	IrisAdminService_ListVMTAGroups_FullMethodName              = "/iris.admin.v1.IrisAdminService/ListVMTAGroups"
+	IrisAdminService_CreateVMTAGroups_FullMethodName            = "/iris.admin.v1.IrisAdminService/CreateVMTAGroups"
+	IrisAdminService_UpdateVMTAGroup_FullMethodName             = "/iris.admin.v1.IrisAdminService/UpdateVMTAGroup"
+	IrisAdminService_ListWarmupSchedules_FullMethodName         = "/iris.admin.v1.IrisAdminService/ListWarmupSchedules"
+	IrisAdminService_CreateWarmupSchedule_FullMethodName        = "/iris.admin.v1.IrisAdminService/CreateWarmupSchedule"
+	IrisAdminService_UpdateWarmupSchedule_FullMethodName        = "/iris.admin.v1.IrisAdminService/UpdateWarmupSchedule"
+	IrisAdminService_PauseWarmupSchedule_FullMethodName         = "/iris.admin.v1.IrisAdminService/PauseWarmupSchedule"
+	IrisAdminService_ResumeWarmupSchedule_FullMethodName        = "/iris.admin.v1.IrisAdminService/ResumeWarmupSchedule"
+	IrisAdminService_ListDeliveryBlueprints_FullMethodName      = "/iris.admin.v1.IrisAdminService/ListDeliveryBlueprints"
+	IrisAdminService_CreateDeliveryBlueprint_FullMethodName     = "/iris.admin.v1.IrisAdminService/CreateDeliveryBlueprint"
+	IrisAdminService_UpdateDeliveryBlueprint_FullMethodName     = "/iris.admin.v1.IrisAdminService/UpdateDeliveryBlueprint"
+	IrisAdminService_SetDeliveryBlueprintStatus_FullMethodName  = "/iris.admin.v1.IrisAdminService/SetDeliveryBlueprintStatus"
+	IrisAdminService_SeedDeliveryBlueprints_FullMethodName      = "/iris.admin.v1.IrisAdminService/SeedDeliveryBlueprints"
+	IrisAdminService_ListAutomationRules_FullMethodName         = "/iris.admin.v1.IrisAdminService/ListAutomationRules"
+	IrisAdminService_CreateAutomationRule_FullMethodName        = "/iris.admin.v1.IrisAdminService/CreateAutomationRule"
+	IrisAdminService_UpdateAutomationRule_FullMethodName        = "/iris.admin.v1.IrisAdminService/UpdateAutomationRule"
+	IrisAdminService_SetAutomationRuleStatus_FullMethodName     = "/iris.admin.v1.IrisAdminService/SetAutomationRuleStatus"
+	IrisAdminService_ListRoutingRules_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListRoutingRules"
+	IrisAdminService_CreateRoutingRule_FullMethodName           = "/iris.admin.v1.IrisAdminService/CreateRoutingRule"
+	IrisAdminService_UpdateRoutingRule_FullMethodName           = "/iris.admin.v1.IrisAdminService/UpdateRoutingRule"
+	IrisAdminService_ListMailRecords_FullMethodName             = "/iris.admin.v1.IrisAdminService/ListMailRecords"
+	IrisAdminService_ListBounces_FullMethodName                 = "/iris.admin.v1.IrisAdminService/ListBounces"
+	IrisAdminService_ListFeedbackReports_FullMethodName         = "/iris.admin.v1.IrisAdminService/ListFeedbackReports"
+	IrisAdminService_ListQueues_FullMethodName                  = "/iris.admin.v1.IrisAdminService/ListQueues"
+	IrisAdminService_RequestQueueAction_FullMethodName          = "/iris.admin.v1.IrisAdminService/RequestQueueAction"
+	IrisAdminService_ListDKIMDomains_FullMethodName             = "/iris.admin.v1.IrisAdminService/ListDKIMDomains"
+	IrisAdminService_CreateDKIMDomain_FullMethodName            = "/iris.admin.v1.IrisAdminService/CreateDKIMDomain"
+	IrisAdminService_UpdateDKIMDomain_FullMethodName            = "/iris.admin.v1.IrisAdminService/UpdateDKIMDomain"
+	IrisAdminService_GenerateDKIMKey_FullMethodName             = "/iris.admin.v1.IrisAdminService/GenerateDKIMKey"
+	IrisAdminService_ListSuppressions_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListSuppressions"
+	IrisAdminService_CreateSuppression_FullMethodName           = "/iris.admin.v1.IrisAdminService/CreateSuppression"
+	IrisAdminService_UpdateSuppression_FullMethodName           = "/iris.admin.v1.IrisAdminService/UpdateSuppression"
+	IrisAdminService_ListTLSPolicies_FullMethodName             = "/iris.admin.v1.IrisAdminService/ListTLSPolicies"
+	IrisAdminService_CreateTLSPolicy_FullMethodName             = "/iris.admin.v1.IrisAdminService/CreateTLSPolicy"
+	IrisAdminService_DeleteTLSPolicy_FullMethodName             = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
+	IrisAdminService_ListInboundRoutes_FullMethodName           = "/iris.admin.v1.IrisAdminService/ListInboundRoutes"
+	IrisAdminService_CreateInboundRoute_FullMethodName          = "/iris.admin.v1.IrisAdminService/CreateInboundRoute"
+	IrisAdminService_UpdateInboundRoute_FullMethodName          = "/iris.admin.v1.IrisAdminService/UpdateInboundRoute"
+	IrisAdminService_DeleteInboundRoute_FullMethodName          = "/iris.admin.v1.IrisAdminService/DeleteInboundRoute"
+	IrisAdminService_ListRspamdResults_FullMethodName           = "/iris.admin.v1.IrisAdminService/ListRspamdResults"
+	IrisAdminService_ListFeedbackLoops_FullMethodName           = "/iris.admin.v1.IrisAdminService/ListFeedbackLoops"
+	IrisAdminService_CreateFeedbackLoop_FullMethodName          = "/iris.admin.v1.IrisAdminService/CreateFeedbackLoop"
+	IrisAdminService_UpdateFeedbackLoop_FullMethodName          = "/iris.admin.v1.IrisAdminService/UpdateFeedbackLoop"
+	IrisAdminService_DeleteFeedbackLoop_FullMethodName          = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
+	IrisAdminService_Login_FullMethodName                       = "/iris.admin.v1.IrisAdminService/Login"
+	IrisAdminService_VerifyMFA_FullMethodName                   = "/iris.admin.v1.IrisAdminService/VerifyMFA"
+	IrisAdminService_CurrentUser_FullMethodName                 = "/iris.admin.v1.IrisAdminService/CurrentUser"
+	IrisAdminService_ChangePassword_FullMethodName              = "/iris.admin.v1.IrisAdminService/ChangePassword"
+	IrisAdminService_Logout_FullMethodName                      = "/iris.admin.v1.IrisAdminService/Logout"
+	IrisAdminService_ListUsers_FullMethodName                   = "/iris.admin.v1.IrisAdminService/ListUsers"
+	IrisAdminService_CreateUser_FullMethodName                  = "/iris.admin.v1.IrisAdminService/CreateUser"
+	IrisAdminService_UpdateUser_FullMethodName                  = "/iris.admin.v1.IrisAdminService/UpdateUser"
+	IrisAdminService_ResetUserPassword_FullMethodName           = "/iris.admin.v1.IrisAdminService/ResetUserPassword"
+	IrisAdminService_EnrollMFA_FullMethodName                   = "/iris.admin.v1.IrisAdminService/EnrollMFA"
+	IrisAdminService_ConfirmMFA_FullMethodName                  = "/iris.admin.v1.IrisAdminService/ConfirmMFA"
+	IrisAdminService_DisableMFA_FullMethodName                  = "/iris.admin.v1.IrisAdminService/DisableMFA"
+	IrisAdminService_ListAuditEntries_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListAuditEntries"
+	IrisAdminService_RequestServiceControl_FullMethodName       = "/iris.admin.v1.IrisAdminService/RequestServiceControl"
+	IrisAdminService_GenerateKumoConfig_FullMethodName          = "/iris.admin.v1.IrisAdminService/GenerateKumoConfig"
+	IrisAdminService_ApplyKumoConfig_FullMethodName             = "/iris.admin.v1.IrisAdminService/ApplyKumoConfig"
+	IrisAdminService_KumoConfigStatus_FullMethodName            = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
+	IrisAdminService_GetAcmeAccount_FullMethodName              = "/iris.admin.v1.IrisAdminService/GetAcmeAccount"
+	IrisAdminService_SaveAcmeAccount_FullMethodName             = "/iris.admin.v1.IrisAdminService/SaveAcmeAccount"
+	IrisAdminService_ListAcmeCertificates_FullMethodName        = "/iris.admin.v1.IrisAdminService/ListAcmeCertificates"
+	IrisAdminService_RequestAcmeCertificate_FullMethodName      = "/iris.admin.v1.IrisAdminService/RequestAcmeCertificate"
+	IrisAdminService_DeleteAcmeCertificate_FullMethodName       = "/iris.admin.v1.IrisAdminService/DeleteAcmeCertificate"
+	IrisAdminService_ListAcmeDnsProviders_FullMethodName        = "/iris.admin.v1.IrisAdminService/ListAcmeDnsProviders"
+	IrisAdminService_GetAcmeDnsProvider_FullMethodName          = "/iris.admin.v1.IrisAdminService/GetAcmeDnsProvider"
+	IrisAdminService_SetAcmeDnsProvider_FullMethodName          = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
+	IrisAdminService_ClearAcmeDnsProvider_FullMethodName        = "/iris.admin.v1.IrisAdminService/ClearAcmeDnsProvider"
+	IrisAdminService_GetDashboardSummary_FullMethodName         = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
+	IrisAdminService_GetMetricsTimeseries_FullMethodName        = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
+	IrisAdminService_GetWarmupDeliveryStats_FullMethodName      = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
+	IrisAdminService_CheckDomainBounceSetup_FullMethodName      = "/iris.admin.v1.IrisAdminService/CheckDomainBounceSetup"
+	IrisAdminService_Diagnose_FullMethodName                    = "/iris.admin.v1.IrisAdminService/Diagnose"
+	IrisAdminService_RblCheck_FullMethodName                    = "/iris.admin.v1.IrisAdminService/RblCheck"
+	IrisAdminService_GetDmarcStats_FullMethodName               = "/iris.admin.v1.IrisAdminService/GetDmarcStats"
+	IrisAdminService_ListDmarcReports_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListDmarcReports"
+	IrisAdminService_ListDmarcDomains_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListDmarcDomains"
+	IrisAdminService_ListWorkerErrorLogs_FullMethodName         = "/iris.admin.v1.IrisAdminService/ListWorkerErrorLogs"
+	IrisAdminService_ListRetentionPolicies_FullMethodName       = "/iris.admin.v1.IrisAdminService/ListRetentionPolicies"
+	IrisAdminService_UpdateRetentionPolicy_FullMethodName       = "/iris.admin.v1.IrisAdminService/UpdateRetentionPolicy"
+	IrisAdminService_RunRetention_FullMethodName                = "/iris.admin.v1.IrisAdminService/RunRetention"
+	IrisAdminService_GetGlobalSettings_FullMethodName           = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
+	IrisAdminService_UpdateGlobalSettings_FullMethodName        = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
+	IrisAdminService_ListSubjectClassifications_FullMethodName  = "/iris.admin.v1.IrisAdminService/ListSubjectClassifications"
+	IrisAdminService_CreateSubjectClassification_FullMethodName = "/iris.admin.v1.IrisAdminService/CreateSubjectClassification"
+	IrisAdminService_UpdateSubjectClassification_FullMethodName = "/iris.admin.v1.IrisAdminService/UpdateSubjectClassification"
+	IrisAdminService_DeleteSubjectClassification_FullMethodName = "/iris.admin.v1.IrisAdminService/DeleteSubjectClassification"
 )
 
 // IrisAdminServiceClient is the client API for IrisAdminService service.
@@ -267,6 +271,12 @@ type IrisAdminServiceClient interface {
 	// Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(ctx context.Context, in *GetGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error)
 	UpdateGlobalSettings(ctx context.Context, in *UpdateGlobalSettingsRequest, opts ...grpc.CallOption) (*GlobalSettings, error)
+	// Subject classifications (rules for the optional subject-classification
+	// feature; operator-authored plus AI-generated cache).
+	ListSubjectClassifications(ctx context.Context, in *ListSubjectClassificationsRequest, opts ...grpc.CallOption) (*ListSubjectClassificationsReply, error)
+	CreateSubjectClassification(ctx context.Context, in *CreateSubjectClassificationRequest, opts ...grpc.CallOption) (*SubjectClassification, error)
+	UpdateSubjectClassification(ctx context.Context, in *UpdateSubjectClassificationRequest, opts ...grpc.CallOption) (*SubjectClassification, error)
+	DeleteSubjectClassification(ctx context.Context, in *DeleteSubjectClassificationRequest, opts ...grpc.CallOption) (*DeleteSubjectClassificationReply, error)
 }
 
 type irisAdminServiceClient struct {
@@ -1187,6 +1197,46 @@ func (c *irisAdminServiceClient) UpdateGlobalSettings(ctx context.Context, in *U
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) ListSubjectClassifications(ctx context.Context, in *ListSubjectClassificationsRequest, opts ...grpc.CallOption) (*ListSubjectClassificationsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSubjectClassificationsReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListSubjectClassifications_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) CreateSubjectClassification(ctx context.Context, in *CreateSubjectClassificationRequest, opts ...grpc.CallOption) (*SubjectClassification, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SubjectClassification)
+	err := c.cc.Invoke(ctx, IrisAdminService_CreateSubjectClassification_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) UpdateSubjectClassification(ctx context.Context, in *UpdateSubjectClassificationRequest, opts ...grpc.CallOption) (*SubjectClassification, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SubjectClassification)
+	err := c.cc.Invoke(ctx, IrisAdminService_UpdateSubjectClassification_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) DeleteSubjectClassification(ctx context.Context, in *DeleteSubjectClassificationRequest, opts ...grpc.CallOption) (*DeleteSubjectClassificationReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteSubjectClassificationReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_DeleteSubjectClassification_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IrisAdminServiceServer is the server API for IrisAdminService service.
 // All implementations must embed UnimplementedIrisAdminServiceServer
 // for forward compatibility.
@@ -1342,6 +1392,12 @@ type IrisAdminServiceServer interface {
 	// Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error)
 	UpdateGlobalSettings(context.Context, *UpdateGlobalSettingsRequest) (*GlobalSettings, error)
+	// Subject classifications (rules for the optional subject-classification
+	// feature; operator-authored plus AI-generated cache).
+	ListSubjectClassifications(context.Context, *ListSubjectClassificationsRequest) (*ListSubjectClassificationsReply, error)
+	CreateSubjectClassification(context.Context, *CreateSubjectClassificationRequest) (*SubjectClassification, error)
+	UpdateSubjectClassification(context.Context, *UpdateSubjectClassificationRequest) (*SubjectClassification, error)
+	DeleteSubjectClassification(context.Context, *DeleteSubjectClassificationRequest) (*DeleteSubjectClassificationReply, error)
 	mustEmbedUnimplementedIrisAdminServiceServer()
 }
 
@@ -1624,6 +1680,18 @@ func (UnimplementedIrisAdminServiceServer) GetGlobalSettings(context.Context, *G
 }
 func (UnimplementedIrisAdminServiceServer) UpdateGlobalSettings(context.Context, *UpdateGlobalSettingsRequest) (*GlobalSettings, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateGlobalSettings not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListSubjectClassifications(context.Context, *ListSubjectClassificationsRequest) (*ListSubjectClassificationsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListSubjectClassifications not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) CreateSubjectClassification(context.Context, *CreateSubjectClassificationRequest) (*SubjectClassification, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateSubjectClassification not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) UpdateSubjectClassification(context.Context, *UpdateSubjectClassificationRequest) (*SubjectClassification, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateSubjectClassification not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) DeleteSubjectClassification(context.Context, *DeleteSubjectClassificationRequest) (*DeleteSubjectClassificationReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteSubjectClassification not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) mustEmbedUnimplementedIrisAdminServiceServer() {}
 func (UnimplementedIrisAdminServiceServer) testEmbeddedByValue()                          {}
@@ -3284,6 +3352,78 @@ func _IrisAdminService_UpdateGlobalSettings_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_ListSubjectClassifications_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSubjectClassificationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListSubjectClassifications(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListSubjectClassifications_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListSubjectClassifications(ctx, req.(*ListSubjectClassificationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_CreateSubjectClassification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateSubjectClassificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).CreateSubjectClassification(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_CreateSubjectClassification_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).CreateSubjectClassification(ctx, req.(*CreateSubjectClassificationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_UpdateSubjectClassification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateSubjectClassificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).UpdateSubjectClassification(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_UpdateSubjectClassification_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).UpdateSubjectClassification(ctx, req.(*UpdateSubjectClassificationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_DeleteSubjectClassification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteSubjectClassificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).DeleteSubjectClassification(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_DeleteSubjectClassification_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).DeleteSubjectClassification(ctx, req.(*DeleteSubjectClassificationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IrisAdminService_ServiceDesc is the grpc.ServiceDesc for IrisAdminService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -3654,6 +3794,22 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateGlobalSettings",
 			Handler:    _IrisAdminService_UpdateGlobalSettings_Handler,
+		},
+		{
+			MethodName: "ListSubjectClassifications",
+			Handler:    _IrisAdminService_ListSubjectClassifications_Handler,
+		},
+		{
+			MethodName: "CreateSubjectClassification",
+			Handler:    _IrisAdminService_CreateSubjectClassification_Handler,
+		},
+		{
+			MethodName: "UpdateSubjectClassification",
+			Handler:    _IrisAdminService_UpdateSubjectClassification_Handler,
+		},
+		{
+			MethodName: "DeleteSubjectClassification",
+			Handler:    _IrisAdminService_DeleteSubjectClassification_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

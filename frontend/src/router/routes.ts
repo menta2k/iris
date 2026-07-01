@@ -135,6 +135,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { permission: 'service:control', title: 'Global Settings' },
       },
       {
+        path: 'settings/subject-classifications',
+        name: 'subject-classifications',
+        component: () => import('@/pages/settings/SubjectClassificationsPage.vue'),
+        meta: { permission: 'service:control', title: 'Subject Classifications' },
+      },
+      {
         path: 'settings/feedback-loops',
         name: 'feedback-loops',
         component: () => import('@/pages/settings/FeedbackLoopsPage.vue'),

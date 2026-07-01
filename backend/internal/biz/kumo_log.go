@@ -55,6 +55,21 @@ func (r *KumoLogRecord) FromHeader() string {
 	return ""
 }
 
+// SubjectHeader returns the Subject header captured by the log hook, or "".
+// Present on Reception records (the log-hook allow-list always includes
+// Subject); used by the optional subject-classification pipeline.
+func (r *KumoLogRecord) SubjectHeader() string {
+	if r.Headers == nil {
+		return ""
+	}
+	for k, v := range r.Headers {
+		if strings.EqualFold(k, "Subject") {
+			return strings.TrimSpace(v)
+		}
+	}
+	return ""
+}
+
 // KumoFeedbackData mirrors the ARF feedback fields on a KumoMTA Feedback log
 // record (kumo-log-types ARFReport). Field names/types match KumoMTA's actual
 // JSON, verified end-to-end against a live kumod parsing a real ARF report.

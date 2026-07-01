@@ -31,6 +31,7 @@ const OperationIrisAdminServiceCreateFeedbackLoop = "/iris.admin.v1.IrisAdminSer
 const OperationIrisAdminServiceCreateInboundRoute = "/iris.admin.v1.IrisAdminService/CreateInboundRoute"
 const OperationIrisAdminServiceCreateListener = "/iris.admin.v1.IrisAdminService/CreateListener"
 const OperationIrisAdminServiceCreateRoutingRule = "/iris.admin.v1.IrisAdminService/CreateRoutingRule"
+const OperationIrisAdminServiceCreateSubjectClassification = "/iris.admin.v1.IrisAdminService/CreateSubjectClassification"
 const OperationIrisAdminServiceCreateSuppression = "/iris.admin.v1.IrisAdminService/CreateSuppression"
 const OperationIrisAdminServiceCreateTLSPolicy = "/iris.admin.v1.IrisAdminService/CreateTLSPolicy"
 const OperationIrisAdminServiceCreateUser = "/iris.admin.v1.IrisAdminService/CreateUser"
@@ -41,6 +42,7 @@ const OperationIrisAdminServiceCurrentUser = "/iris.admin.v1.IrisAdminService/Cu
 const OperationIrisAdminServiceDeleteAcmeCertificate = "/iris.admin.v1.IrisAdminService/DeleteAcmeCertificate"
 const OperationIrisAdminServiceDeleteFeedbackLoop = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
 const OperationIrisAdminServiceDeleteInboundRoute = "/iris.admin.v1.IrisAdminService/DeleteInboundRoute"
+const OperationIrisAdminServiceDeleteSubjectClassification = "/iris.admin.v1.IrisAdminService/DeleteSubjectClassification"
 const OperationIrisAdminServiceDeleteTLSPolicy = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
 const OperationIrisAdminServiceDiagnose = "/iris.admin.v1.IrisAdminService/Diagnose"
 const OperationIrisAdminServiceDisableMFA = "/iris.admin.v1.IrisAdminService/DisableMFA"
@@ -73,6 +75,7 @@ const OperationIrisAdminServiceListQueues = "/iris.admin.v1.IrisAdminService/Lis
 const OperationIrisAdminServiceListRetentionPolicies = "/iris.admin.v1.IrisAdminService/ListRetentionPolicies"
 const OperationIrisAdminServiceListRoutingRules = "/iris.admin.v1.IrisAdminService/ListRoutingRules"
 const OperationIrisAdminServiceListRspamdResults = "/iris.admin.v1.IrisAdminService/ListRspamdResults"
+const OperationIrisAdminServiceListSubjectClassifications = "/iris.admin.v1.IrisAdminService/ListSubjectClassifications"
 const OperationIrisAdminServiceListSuppressions = "/iris.admin.v1.IrisAdminService/ListSuppressions"
 const OperationIrisAdminServiceListTLSPolicies = "/iris.admin.v1.IrisAdminService/ListTLSPolicies"
 const OperationIrisAdminServiceListUsers = "/iris.admin.v1.IrisAdminService/ListUsers"
@@ -104,6 +107,7 @@ const OperationIrisAdminServiceUpdateInboundRoute = "/iris.admin.v1.IrisAdminSer
 const OperationIrisAdminServiceUpdateListener = "/iris.admin.v1.IrisAdminService/UpdateListener"
 const OperationIrisAdminServiceUpdateRetentionPolicy = "/iris.admin.v1.IrisAdminService/UpdateRetentionPolicy"
 const OperationIrisAdminServiceUpdateRoutingRule = "/iris.admin.v1.IrisAdminService/UpdateRoutingRule"
+const OperationIrisAdminServiceUpdateSubjectClassification = "/iris.admin.v1.IrisAdminService/UpdateSubjectClassification"
 const OperationIrisAdminServiceUpdateSuppression = "/iris.admin.v1.IrisAdminService/UpdateSuppression"
 const OperationIrisAdminServiceUpdateUser = "/iris.admin.v1.IrisAdminService/UpdateUser"
 const OperationIrisAdminServiceUpdateVMTA = "/iris.admin.v1.IrisAdminService/UpdateVMTA"
@@ -129,6 +133,7 @@ type IrisAdminServiceHTTPServer interface {
 	CreateInboundRoute(context.Context, *CreateInboundRouteRequest) (*InboundRoute, error)
 	CreateListener(context.Context, *CreateListenerRequest) (*Listener, error)
 	CreateRoutingRule(context.Context, *CreateRoutingRuleRequest) (*RoutingRule, error)
+	CreateSubjectClassification(context.Context, *CreateSubjectClassificationRequest) (*SubjectClassification, error)
 	CreateSuppression(context.Context, *CreateSuppressionRequest) (*Suppression, error)
 	CreateTLSPolicy(context.Context, *CreateTLSPolicyRequest) (*TLSPolicy, error)
 	CreateUser(context.Context, *CreateUserRequest) (*User, error)
@@ -141,6 +146,7 @@ type IrisAdminServiceHTTPServer interface {
 	DeleteAcmeCertificate(context.Context, *DeleteAcmeCertificateRequest) (*DeleteAcmeCertificateReply, error)
 	DeleteFeedbackLoop(context.Context, *DeleteFeedbackLoopRequest) (*DeleteFeedbackLoopReply, error)
 	DeleteInboundRoute(context.Context, *DeleteInboundRouteRequest) (*DeleteInboundRouteReply, error)
+	DeleteSubjectClassification(context.Context, *DeleteSubjectClassificationRequest) (*DeleteSubjectClassificationReply, error)
 	DeleteTLSPolicy(context.Context, *DeleteTLSPolicyRequest) (*DeleteTLSPolicyReply, error)
 	// Diagnose Tools ---------------------------------------------------------------------
 	// Diagnose reports how mail from a given address is handled and whether the
@@ -204,6 +210,9 @@ type IrisAdminServiceHTTPServer interface {
 	ListRetentionPolicies(context.Context, *ListRetentionPoliciesRequest) (*ListRetentionPoliciesReply, error)
 	ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesReply, error)
 	ListRspamdResults(context.Context, *ListRspamdResultsRequest) (*ListRspamdResultsReply, error)
+	// ListSubjectClassifications Subject classifications (rules for the optional subject-classification
+	// feature; operator-authored plus AI-generated cache).
+	ListSubjectClassifications(context.Context, *ListSubjectClassificationsRequest) (*ListSubjectClassificationsReply, error)
 	ListSuppressions(context.Context, *ListSuppressionsRequest) (*ListSuppressionsReply, error)
 	// ListTLSPolicies Require-TLS policies (outbound delivery must use TLS for these domains) ---
 	ListTLSPolicies(context.Context, *ListTLSPoliciesRequest) (*ListTLSPoliciesReply, error)
@@ -255,6 +264,7 @@ type IrisAdminServiceHTTPServer interface {
 	UpdateListener(context.Context, *UpdateListenerRequest) (*Listener, error)
 	UpdateRetentionPolicy(context.Context, *UpdateRetentionPolicyRequest) (*RetentionPolicy, error)
 	UpdateRoutingRule(context.Context, *UpdateRoutingRuleRequest) (*RoutingRule, error)
+	UpdateSubjectClassification(context.Context, *UpdateSubjectClassificationRequest) (*SubjectClassification, error)
 	UpdateSuppression(context.Context, *UpdateSuppressionRequest) (*Suppression, error)
 	UpdateUser(context.Context, *UpdateUserRequest) (*User, error)
 	UpdateVMTA(context.Context, *UpdateVMTARequest) (*VMTA, error)
@@ -358,6 +368,10 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.POST("/v1/retention:run", _IrisAdminService_RunRetention0_HTTP_Handler(srv))
 	r.GET("/v1/settings", _IrisAdminService_GetGlobalSettings0_HTTP_Handler(srv))
 	r.PUT("/v1/settings", _IrisAdminService_UpdateGlobalSettings0_HTTP_Handler(srv))
+	r.GET("/v1/subject-classifications", _IrisAdminService_ListSubjectClassifications0_HTTP_Handler(srv))
+	r.POST("/v1/subject-classifications", _IrisAdminService_CreateSubjectClassification0_HTTP_Handler(srv))
+	r.PUT("/v1/subject-classifications/{id}", _IrisAdminService_UpdateSubjectClassification0_HTTP_Handler(srv))
+	r.DELETE("/v1/subject-classifications/{id}", _IrisAdminService_DeleteSubjectClassification0_HTTP_Handler(srv))
 }
 
 func _IrisAdminService_ListListeners0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
@@ -2308,6 +2322,94 @@ func _IrisAdminService_UpdateGlobalSettings0_HTTP_Handler(srv IrisAdminServiceHT
 	}
 }
 
+func _IrisAdminService_ListSubjectClassifications0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListSubjectClassificationsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListSubjectClassifications)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListSubjectClassifications(ctx, req.(*ListSubjectClassificationsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListSubjectClassificationsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CreateSubjectClassification0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateSubjectClassificationRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCreateSubjectClassification)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateSubjectClassification(ctx, req.(*CreateSubjectClassificationRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*SubjectClassification)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateSubjectClassification0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateSubjectClassificationRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateSubjectClassification)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateSubjectClassification(ctx, req.(*UpdateSubjectClassificationRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*SubjectClassification)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_DeleteSubjectClassification0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteSubjectClassificationRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceDeleteSubjectClassification)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteSubjectClassification(ctx, req.(*DeleteSubjectClassificationRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteSubjectClassificationReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type IrisAdminServiceHTTPClient interface {
 	// ApplyKumoConfig ApplyKumoConfig renders the configuration, writes it to KumoMTA, and
 	// reloads the service. High-risk: requires confirmation and is audited.
@@ -2326,6 +2428,7 @@ type IrisAdminServiceHTTPClient interface {
 	CreateInboundRoute(ctx context.Context, req *CreateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
 	CreateListener(ctx context.Context, req *CreateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
 	CreateRoutingRule(ctx context.Context, req *CreateRoutingRuleRequest, opts ...http.CallOption) (rsp *RoutingRule, err error)
+	CreateSubjectClassification(ctx context.Context, req *CreateSubjectClassificationRequest, opts ...http.CallOption) (rsp *SubjectClassification, err error)
 	CreateSuppression(ctx context.Context, req *CreateSuppressionRequest, opts ...http.CallOption) (rsp *Suppression, err error)
 	CreateTLSPolicy(ctx context.Context, req *CreateTLSPolicyRequest, opts ...http.CallOption) (rsp *TLSPolicy, err error)
 	CreateUser(ctx context.Context, req *CreateUserRequest, opts ...http.CallOption) (rsp *User, err error)
@@ -2338,6 +2441,7 @@ type IrisAdminServiceHTTPClient interface {
 	DeleteAcmeCertificate(ctx context.Context, req *DeleteAcmeCertificateRequest, opts ...http.CallOption) (rsp *DeleteAcmeCertificateReply, err error)
 	DeleteFeedbackLoop(ctx context.Context, req *DeleteFeedbackLoopRequest, opts ...http.CallOption) (rsp *DeleteFeedbackLoopReply, err error)
 	DeleteInboundRoute(ctx context.Context, req *DeleteInboundRouteRequest, opts ...http.CallOption) (rsp *DeleteInboundRouteReply, err error)
+	DeleteSubjectClassification(ctx context.Context, req *DeleteSubjectClassificationRequest, opts ...http.CallOption) (rsp *DeleteSubjectClassificationReply, err error)
 	DeleteTLSPolicy(ctx context.Context, req *DeleteTLSPolicyRequest, opts ...http.CallOption) (rsp *DeleteTLSPolicyReply, err error)
 	// Diagnose Tools ---------------------------------------------------------------------
 	// Diagnose reports how mail from a given address is handled and whether the
@@ -2401,6 +2505,9 @@ type IrisAdminServiceHTTPClient interface {
 	ListRetentionPolicies(ctx context.Context, req *ListRetentionPoliciesRequest, opts ...http.CallOption) (rsp *ListRetentionPoliciesReply, err error)
 	ListRoutingRules(ctx context.Context, req *ListRoutingRulesRequest, opts ...http.CallOption) (rsp *ListRoutingRulesReply, err error)
 	ListRspamdResults(ctx context.Context, req *ListRspamdResultsRequest, opts ...http.CallOption) (rsp *ListRspamdResultsReply, err error)
+	// ListSubjectClassifications Subject classifications (rules for the optional subject-classification
+	// feature; operator-authored plus AI-generated cache).
+	ListSubjectClassifications(ctx context.Context, req *ListSubjectClassificationsRequest, opts ...http.CallOption) (rsp *ListSubjectClassificationsReply, err error)
 	ListSuppressions(ctx context.Context, req *ListSuppressionsRequest, opts ...http.CallOption) (rsp *ListSuppressionsReply, err error)
 	// ListTLSPolicies Require-TLS policies (outbound delivery must use TLS for these domains) ---
 	ListTLSPolicies(ctx context.Context, req *ListTLSPoliciesRequest, opts ...http.CallOption) (rsp *ListTLSPoliciesReply, err error)
@@ -2452,6 +2559,7 @@ type IrisAdminServiceHTTPClient interface {
 	UpdateListener(ctx context.Context, req *UpdateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
 	UpdateRetentionPolicy(ctx context.Context, req *UpdateRetentionPolicyRequest, opts ...http.CallOption) (rsp *RetentionPolicy, err error)
 	UpdateRoutingRule(ctx context.Context, req *UpdateRoutingRuleRequest, opts ...http.CallOption) (rsp *RoutingRule, err error)
+	UpdateSubjectClassification(ctx context.Context, req *UpdateSubjectClassificationRequest, opts ...http.CallOption) (rsp *SubjectClassification, err error)
 	UpdateSuppression(ctx context.Context, req *UpdateSuppressionRequest, opts ...http.CallOption) (rsp *Suppression, err error)
 	UpdateUser(ctx context.Context, req *UpdateUserRequest, opts ...http.CallOption) (rsp *User, err error)
 	UpdateVMTA(ctx context.Context, req *UpdateVMTARequest, opts ...http.CallOption) (rsp *VMTA, err error)
@@ -2631,6 +2739,19 @@ func (c *IrisAdminServiceHTTPClientImpl) CreateRoutingRule(ctx context.Context, 
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) CreateSubjectClassification(ctx context.Context, in *CreateSubjectClassificationRequest, opts ...http.CallOption) (*SubjectClassification, error) {
+	var out SubjectClassification
+	pattern := "/v1/subject-classifications"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateSubjectClassification))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) CreateSuppression(ctx context.Context, in *CreateSuppressionRequest, opts ...http.CallOption) (*Suppression, error) {
 	var out Suppression
 	pattern := "/v1/suppressions"
@@ -2755,6 +2876,19 @@ func (c *IrisAdminServiceHTTPClientImpl) DeleteInboundRoute(ctx context.Context,
 	pattern := "/v1/inbound-routes/{id}"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteInboundRoute))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) DeleteSubjectClassification(ctx context.Context, in *DeleteSubjectClassificationRequest, opts ...http.CallOption) (*DeleteSubjectClassificationReply, error) {
+	var out DeleteSubjectClassificationReply
+	pattern := "/v1/subject-classifications/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteSubjectClassification))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {
@@ -3210,6 +3344,21 @@ func (c *IrisAdminServiceHTTPClientImpl) ListRspamdResults(ctx context.Context, 
 	return &out, nil
 }
 
+// ListSubjectClassifications Subject classifications (rules for the optional subject-classification
+// feature; operator-authored plus AI-generated cache).
+func (c *IrisAdminServiceHTTPClientImpl) ListSubjectClassifications(ctx context.Context, in *ListSubjectClassificationsRequest, opts ...http.CallOption) (*ListSubjectClassificationsReply, error) {
+	var out ListSubjectClassificationsReply
+	pattern := "/v1/subject-classifications"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListSubjectClassifications))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) ListSuppressions(ctx context.Context, in *ListSuppressionsRequest, opts ...http.CallOption) (*ListSuppressionsReply, error) {
 	var out ListSuppressionsReply
 	pattern := "/v1/suppressions"
@@ -3625,6 +3774,19 @@ func (c *IrisAdminServiceHTTPClientImpl) UpdateRoutingRule(ctx context.Context, 
 	pattern := "/v1/routing-rules/{id}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateRoutingRule))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) UpdateSubjectClassification(ctx context.Context, in *UpdateSubjectClassificationRequest, opts ...http.CallOption) (*SubjectClassification, error) {
+	var out SubjectClassification
+	pattern := "/v1/subject-classifications/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateSubjectClassification))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {

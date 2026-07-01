@@ -20,57 +20,59 @@ type Service struct {
 	log     *slog.Logger
 	auditor *biz.Auditor
 
-	outbound      *biz.OutboundConfigUsecase
-	mailOps       *biz.MailOpsUsecase
-	identity      *biz.IdentityUsecase
-	auth          *biz.AuthUsecase
-	domainSafety  *biz.DomainSafetyUsecase
-	inbound       *biz.InboundUsecase
-	inboundRoutes *biz.InboundRouteUsecase
-	fbl           *biz.FBLUsecase
-	dashboard     *biz.DashboardUsecase
-	metrics       *biz.MetricsUsecase
-	kumoConfig    *biz.KumoConfigUsecase
-	settings      *biz.GlobalSettingsUsecase
-	acme          *biz.AcmeUsecase
-	domainCheck   *biz.DomainCheckUsecase
-	diagnose      *biz.DiagnoseUsecase
-	rbl           *biz.RBLUsecase
-	dmarc         *biz.DMARCUsecase
-	workerErrors  *biz.WorkerErrorUsecase
-	retention     *biz.RetentionUsecase
-	warmup        *biz.WarmupUsecase
-	blueprints    *biz.BlueprintUsecase
-	automation    *biz.AutomationUsecase
+	outbound        *biz.OutboundConfigUsecase
+	mailOps         *biz.MailOpsUsecase
+	identity        *biz.IdentityUsecase
+	auth            *biz.AuthUsecase
+	domainSafety    *biz.DomainSafetyUsecase
+	inbound         *biz.InboundUsecase
+	inboundRoutes   *biz.InboundRouteUsecase
+	fbl             *biz.FBLUsecase
+	dashboard       *biz.DashboardUsecase
+	metrics         *biz.MetricsUsecase
+	kumoConfig      *biz.KumoConfigUsecase
+	settings        *biz.GlobalSettingsUsecase
+	acme            *biz.AcmeUsecase
+	domainCheck     *biz.DomainCheckUsecase
+	diagnose        *biz.DiagnoseUsecase
+	rbl             *biz.RBLUsecase
+	dmarc           *biz.DMARCUsecase
+	workerErrors    *biz.WorkerErrorUsecase
+	retention       *biz.RetentionUsecase
+	warmup          *biz.WarmupUsecase
+	blueprints      *biz.BlueprintUsecase
+	automation      *biz.AutomationUsecase
+	classifications *biz.SubjectClassificationUsecase
 }
 
 // Deps bundles the use cases the service delegates to. Fields may be nil for
 // user stories that are not yet wired; their RPCs return NOT_IMPLEMENTED.
 type Deps struct {
-	Log           *slog.Logger
-	Auditor       *biz.Auditor
-	Outbound      *biz.OutboundConfigUsecase
-	MailOps       *biz.MailOpsUsecase
-	Identity      *biz.IdentityUsecase
-	Auth          *biz.AuthUsecase
-	DomainSafety  *biz.DomainSafetyUsecase
-	Inbound       *biz.InboundUsecase
-	InboundRoutes *biz.InboundRouteUsecase
-	FBL           *biz.FBLUsecase
-	Dashboard     *biz.DashboardUsecase
-	Metrics       *biz.MetricsUsecase
-	KumoConfig    *biz.KumoConfigUsecase
-	Settings      *biz.GlobalSettingsUsecase
-	Acme          *biz.AcmeUsecase
-	DomainCheck   *biz.DomainCheckUsecase
-	Diagnose      *biz.DiagnoseUsecase
-	RBL           *biz.RBLUsecase
-	DMARC         *biz.DMARCUsecase
-	WorkerErrors  *biz.WorkerErrorUsecase
-	Retention     *biz.RetentionUsecase
-	Warmup        *biz.WarmupUsecase
-	Blueprints    *biz.BlueprintUsecase
-	Automation    *biz.AutomationUsecase
+	Log             *slog.Logger
+	Auditor         *biz.Auditor
+	Outbound        *biz.OutboundConfigUsecase
+	MailOps         *biz.MailOpsUsecase
+	Identity        *biz.IdentityUsecase
+	Auth            *biz.AuthUsecase
+	DomainSafety    *biz.DomainSafetyUsecase
+	Inbound         *biz.InboundUsecase
+	InboundRoutes   *biz.InboundRouteUsecase
+	FBL             *biz.FBLUsecase
+	Dashboard       *biz.DashboardUsecase
+	Metrics         *biz.MetricsUsecase
+	KumoConfig      *biz.KumoConfigUsecase
+	Settings        *biz.GlobalSettingsUsecase
+	Acme            *biz.AcmeUsecase
+	DomainCheck     *biz.DomainCheckUsecase
+	Diagnose        *biz.DiagnoseUsecase
+	RBL             *biz.RBLUsecase
+	DMARC           *biz.DMARCUsecase
+	WorkerErrors    *biz.WorkerErrorUsecase
+	Retention       *biz.RetentionUsecase
+	Warmup          *biz.WarmupUsecase
+	Blueprints      *biz.BlueprintUsecase
+	Automation      *biz.AutomationUsecase
+	Classifications *biz.SubjectClassificationUsecase
 }
 
 // NewService constructs the admin API service.
@@ -80,30 +82,31 @@ func NewService(d Deps) *Service {
 		log = slog.Default()
 	}
 	return &Service{
-		log:           log,
-		auditor:       d.Auditor,
-		outbound:      d.Outbound,
-		mailOps:       d.MailOps,
-		identity:      d.Identity,
-		auth:          d.Auth,
-		domainSafety:  d.DomainSafety,
-		inbound:       d.Inbound,
-		inboundRoutes: d.InboundRoutes,
-		fbl:           d.FBL,
-		dashboard:     d.Dashboard,
-		metrics:       d.Metrics,
-		kumoConfig:    d.KumoConfig,
-		settings:      d.Settings,
-		acme:          d.Acme,
-		domainCheck:   d.DomainCheck,
-		diagnose:      d.Diagnose,
-		rbl:           d.RBL,
-		dmarc:         d.DMARC,
-		workerErrors:  d.WorkerErrors,
-		retention:     d.Retention,
-		warmup:        d.Warmup,
-		blueprints:    d.Blueprints,
-		automation:    d.Automation,
+		log:             log,
+		auditor:         d.Auditor,
+		outbound:        d.Outbound,
+		mailOps:         d.MailOps,
+		identity:        d.Identity,
+		auth:            d.Auth,
+		domainSafety:    d.DomainSafety,
+		inbound:         d.Inbound,
+		inboundRoutes:   d.InboundRoutes,
+		fbl:             d.FBL,
+		dashboard:       d.Dashboard,
+		metrics:         d.Metrics,
+		kumoConfig:      d.KumoConfig,
+		settings:        d.Settings,
+		acme:            d.Acme,
+		domainCheck:     d.DomainCheck,
+		diagnose:        d.Diagnose,
+		rbl:             d.RBL,
+		dmarc:           d.DMARC,
+		workerErrors:    d.WorkerErrors,
+		retention:       d.Retention,
+		warmup:          d.Warmup,
+		blueprints:      d.Blueprints,
+		automation:      d.Automation,
+		classifications: d.Classifications,
 	}
 }
 

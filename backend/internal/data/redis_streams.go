@@ -20,6 +20,10 @@ const (
 	StreamFeedbackEvents    = "iris.feedback.events"
 	StreamQueueCommands     = "iris.queue.commands"
 	StreamRetentionCommands = "iris.retention.commands"
+	// StreamClassifyPending carries {message_id, event_time, subject} for the
+	// optional subject-classification worker. The subject rides this transient
+	// stream so it never lands in mail_records.
+	StreamClassifyPending = "iris.classify.pending"
 	// StreamRspamdResults aliases biz.RspamdResultsStream so the kumod policy
 	// producer and this consumer share one canonical name.
 	StreamRspamdResults   = biz.RspamdResultsStream

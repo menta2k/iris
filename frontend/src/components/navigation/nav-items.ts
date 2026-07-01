@@ -59,6 +59,11 @@ export const navSections: NavSection[] = [
         permission: 'service:control',
       },
       {
+        label: 'Subject Classifications',
+        to: '/settings/subject-classifications',
+        permission: 'service:control',
+      },
+      {
         label: 'Feedback Loops',
         to: '/settings/feedback-loops',
         permission: 'service:control',

@@ -86,6 +86,15 @@ type GlobalSettings struct {
 	// queries it for time-series; empty disables those panels.
 	PrometheusURL string
 
+	// Subject classification (optional; off by default). When ClassifySubjects is
+	// true, received mail is labeled (≤2 words) via trigram similarity against the
+	// subject_classifications corpus, falling back to an OpenAI-compatible model.
+	// The API key is supplied via IRIS_OPENAI_API_KEY, never stored here.
+	ClassifySubjects  bool
+	ClassifyModel     string  // e.g. "gpt-4o-mini"
+	ClassifyThreshold float64 // trigram similarity cutoff, 0..1
+	ClassifyAPIBase   string  // OpenAI-compatible base URL
+
 	UpdatedAt time.Time
 	UpdatedBy string
 }
@@ -193,6 +202,26 @@ func (g *GlobalSettings) Validate() error {
 	g.PrometheusURL = strings.TrimSpace(g.PrometheusURL)
 	if g.PrometheusURL != "" && !isHTTPURL(g.PrometheusURL) {
 		return Invalid("SETTINGS_PROMETHEUS_URL_INVALID", "prometheus_url must be an http(s):// URL")
+	}
+
+	// Subject classification knobs (defaults applied when empty; the feature is
+	// gated by ClassifySubjects and the IRIS_OPENAI_API_KEY env var).
+	g.ClassifyModel = strings.TrimSpace(g.ClassifyModel)
+	if g.ClassifyModel == "" {
+		g.ClassifyModel = "gpt-4o-mini"
+	}
+	g.ClassifyAPIBase = strings.TrimSpace(g.ClassifyAPIBase)
+	if g.ClassifyAPIBase == "" {
+		g.ClassifyAPIBase = "https://api.openai.com/v1"
+	}
+	if !isHTTPURL(g.ClassifyAPIBase) {
+		return Invalid("SETTINGS_CLASSIFY_API_BASE_INVALID", "classify_api_base must be an http(s):// URL")
+	}
+	if g.ClassifyThreshold <= 0 {
+		g.ClassifyThreshold = 0.45
+	}
+	if g.ClassifyThreshold > 1 {
+		return Invalid("SETTINGS_CLASSIFY_THRESHOLD_RANGE", "classify_threshold must be between 0 and 1")
 	}
 
 	// ACME renew schedule.

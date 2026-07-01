@@ -172,6 +172,22 @@ func (uc *GlobalSettingsUsecase) PrometheusURLNow(ctx context.Context) string {
 	return strings.TrimSpace(row.PrometheusURL)
 }
 
+// ClassifyPolicyNow returns the current subject-classification policy (feature
+// toggle + model/threshold/base). No permission check — internal provider read
+// on each event by the log and classification workers so it hot-reloads.
+func (uc *GlobalSettingsUsecase) ClassifyPolicyNow(ctx context.Context) ClassifyPolicy {
+	row, err := uc.repo.Get(ctx)
+	if err != nil || row == nil {
+		return ClassifyPolicy{}
+	}
+	return ClassifyPolicy{
+		Enabled:   row.ClassifySubjects,
+		Model:     strings.TrimSpace(row.ClassifyModel),
+		Threshold: row.ClassifyThreshold,
+		APIBase:   strings.TrimSpace(row.ClassifyAPIBase),
+	}
+}
+
 func (uc *GlobalSettingsUsecase) audit(ctx context.Context, outcome AuditOutcome, summary map[string]any) {
 	if uc.auditor == nil {
 		return
