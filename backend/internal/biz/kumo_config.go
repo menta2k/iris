@@ -760,6 +760,7 @@ kumo.on('smtp_server_message_received', function(msg)
     return
   end
   iris_ensure_message_id(msg)
+  iris_ensure_date(msg)
   iris_dkim_sign(msg)
   local class = classify_mail(msg)
   if not class then
@@ -981,6 +982,18 @@ local function iris_ensure_message_id(msg)
   msg:prepend_header('Message-ID', string.format('<%s@%s>', tostring(msg:id()), domain))
 end
 
+-- ===== date =====
+-- RFC 5322 requires a Date. Injecting apps (and bare SMTP clients) sometimes
+-- omit it, which trips rspamd's MISSING_DATE and -- because the DKIM signer
+-- lists Date in its signed header set -- causes the signature to break when a
+-- downstream MTA (e.g. a receiving Postfix) inserts the missing Date. Add one
+-- when absent, before signing, so the Date is stable and covered by the DKIM
+-- signature applied immediately after. UTC, RFC 5322 format.
+local function iris_ensure_date(msg)
+  if msg:get_first_named_header_value('Date') then return end
+  msg:prepend_header('Date', os.date('!%a, %d %b %Y %H:%M:%S +0000'))
+end
+
 -- ===== dkim signing =====
 -- Resolve a From domain to a signer: exact match first, then walk up the parent
 -- labels so a key published at the organizational domain (example.com) also signs
@@ -1023,6 +1036,7 @@ end
 -- Sign mail injected via the HTTP API (the reception hook covers SMTP).
 kumo.on('http_message_generated', function(msg)
   iris_ensure_message_id(msg)
+  iris_ensure_date(msg)
   iris_dkim_sign(msg)
 end)
 

@@ -206,6 +206,12 @@ func TestRenderDKIMSigningWiring(t *testing.T) {
 		"local function iris_ensure_message_id(msg)",
 		"msg:prepend_header('Message-ID', string.format('<%s@%s>', tostring(msg:id()), domain))",
 		"iris_ensure_message_id(msg)",
+		// Date is injected when absent, before signing, in both hooks — Date is in
+		// the DKIM signed-header set, so an absent Date would otherwise break the
+		// signature when a downstream MTA adds one (and trips rspamd MISSING_DATE).
+		"local function iris_ensure_date(msg)",
+		"msg:prepend_header('Date', os.date('!%a, %d %b %Y %H:%M:%S +0000'))",
+		"iris_ensure_date(msg)",
 		// Subdomain signing: a From of infra.example.com is signed by a example.com
 		// key by walking up the parent labels; d= is the matched parent domain.
 		"local function iris_dkim_lookup(from_domain)",
