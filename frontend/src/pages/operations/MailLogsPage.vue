@@ -282,9 +282,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onEsc))
                 }}</TableCell>
                 <TableCell v-if="isVisible('mailclass')">{{ m.mailclass }}</TableCell>
                 <TableCell v-if="isVisible('from')">{{ m.fromHeader || '—' }}</TableCell>
-                <TableCell v-if="isVisible('sender')" class="text-medium-emphasis">{{
-                  m.sender
-                }}</TableCell>
+                <TableCell v-if="isVisible('sender')" style="max-width: 220px">
+                  <span class="d-block text-truncate text-medium-emphasis" :title="m.sender">{{
+                    m.sender
+                  }}</span>
+                </TableCell>
                 <TableCell v-if="isVisible('recipient')">{{ m.recipient }}</TableCell>
                 <TableCell v-if="isVisible('vmta')" class="font-mono text-caption">{{
                   m.egressSource || m.vmtaId || '—'

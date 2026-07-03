@@ -12,11 +12,36 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge, StatusBadge } from '@/components/ui/badge'
+import { Badge } from '@/components/ui/badge'
 import { usePagedList } from '@/composables/usePagedList'
 import { mailOperationsService } from '@/services'
 import { formatDateTime } from '@/composables/useTimezone'
 import type { Bounce } from '@/types'
+
+// Colour-code the processing State so each state reads as a distinct colour:
+// processed → green, new → indigo (unhandled/info), processing/pending → amber,
+// suppressed → red, retried → neutral grey.
+function stateVariant(state: string) {
+  switch ((state || '').toLowerCase()) {
+    case 'processed':
+      return 'success' as const
+    case 'new':
+      return 'default' as const
+    case 'processing':
+    case 'pending':
+      return 'warning' as const
+    case 'suppressed':
+      return 'destructive' as const
+    case 'retried':
+      return 'secondary' as const
+    default:
+      return 'secondary' as const
+  }
+}
+function stateLabel(state: string) {
+  const s = (state || '').toString()
+  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '—'
+}
 
 const {
   items,
@@ -77,9 +102,12 @@ function toggleExpand(id: string) {
                   <TableCell>{{ b.recipient }}</TableCell>
                   <TableCell>{{ b.mailclass }}</TableCell>
                   <TableCell class="font-mono text-caption">{{ b.smtpStatus }}</TableCell>
-                  <TableCell><Badge variant="destructive">{{ b.bounceType }}</Badge></TableCell>
                   <TableCell>
-                    <Badge v-if="b.classification" variant="outline">{{ b.classification }}</Badge>
+                    <Badge v-if="b.bounceType" variant="outline">{{ b.bounceType }}</Badge>
+                    <span v-else class="text-medium-emphasis">—</span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge v-if="b.classification" variant="outline" class="bounce-classification">{{ b.classification }}</Badge>
                     <span v-else class="text-medium-emphasis">—</span>
                   </TableCell>
                   <TableCell style="max-width: 384px">
@@ -87,7 +115,7 @@ function toggleExpand(id: string) {
                       b.diagnostic
                     }}</span>
                   </TableCell>
-                  <TableCell><StatusBadge :status="b.processingState" /></TableCell>
+                  <TableCell><Badge :variant="stateVariant(b.processingState)">{{ stateLabel(b.processingState) }}</Badge></TableCell>
                 </TableRow>
                 <tr v-if="expandedId === b.id">
                   <td :colspan="9" class="px-4 py-3">
@@ -121,5 +149,12 @@ function toggleExpand(id: string) {
 <style scoped>
 .row-clickable {
   cursor: pointer;
+}
+
+/* Uniform width so the classification badges line up into a tidy column
+   (widths otherwise range from ~104px to ~145px). Higher specificity than the
+   Badge component's own min-width so this wins. */
+:deep(.v-chip.bounce-classification) {
+  min-width: 150px;
 }
 </style>
