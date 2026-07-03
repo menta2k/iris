@@ -15,7 +15,6 @@ import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
@@ -29,6 +28,11 @@ const { items, loading, error, notImplemented, load } = useAsyncList<Suppression
 const { toast } = useToast()
 
 const SUPPRESSION_STATUSES = ['active', 'disabled', 'expired']
+const SUPPRESSION_STATUS_ITEMS = SUPPRESSION_STATUSES.map((s) => ({ title: s, value: s }))
+const SUPPRESSION_TYPE_ITEMS = [
+  { title: 'email', value: 'email' },
+  { title: 'domain', value: 'domain' },
+]
 
 const dialogOpen = ref(false)
 const saving = ref(false)
@@ -111,7 +115,7 @@ async function submit() {
       empty-message="No suppressions on record."
     >
       <Card>
-        <CardContent class="p-0">
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -126,9 +130,9 @@ async function submit() {
             <TableBody>
               <TableRow v-for="s in items" :key="s.id">
                 <TableCell><Badge variant="outline">{{ s.type }}</Badge></TableCell>
-                <TableCell class="font-medium">{{ s.value }}</TableCell>
+                <TableCell class="font-weight-medium">{{ s.value }}</TableCell>
                 <TableCell><Badge variant="destructive">{{ s.reason }}</Badge></TableCell>
-                <TableCell class="text-muted-foreground">{{ s.source }}</TableCell>
+                <TableCell class="text-medium-emphasis">{{ s.source }}</TableCell>
                 <TableCell><StatusBadge :status="s.status" /></TableCell>
                 <TableCell class="text-right">
                   <Button
@@ -151,15 +155,20 @@ async function submit() {
       <DialogHeader>
         <DialogTitle>{{ isEdit ? 'Edit Suppression' : 'Add Suppression' }}</DialogTitle>
       </DialogHeader>
-      <form class="space-y-4" @submit.prevent="submit">
-        <div class="space-y-1.5">
+      <form class="d-flex flex-column ga-4" @submit.prevent="submit">
+        <div class="d-flex flex-column ga-1">
           <Label for="supp-type">Type</Label>
-          <Select id="supp-type" v-model="form.type" :disabled="isEdit">
-            <option value="email">email</option>
-            <option value="domain">domain</option>
-          </Select>
+          <v-select
+            id="supp-type"
+            v-model="form.type"
+            :items="SUPPRESSION_TYPE_ITEMS"
+            :disabled="isEdit"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="supp-value">Value</Label>
           <Input
             id="supp-value"
@@ -167,17 +176,22 @@ async function submit() {
             :disabled="isEdit"
             :placeholder="form.type === 'domain' ? 'example.com' : 'user@example.com'"
           />
-          <p v-if="isEdit" class="text-xs text-muted-foreground">Type and value are immutable.</p>
+          <p v-if="isEdit" class="text-caption text-medium-emphasis">Type and value are immutable.</p>
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="supp-reason">Reason</Label>
           <Input id="supp-reason" v-model="form.reason" placeholder="hard_bounce" />
         </div>
-        <div v-if="isEdit" class="space-y-1.5">
+        <div v-if="isEdit" class="d-flex flex-column ga-1">
           <Label for="supp-status">Status</Label>
-          <Select id="supp-status" v-model="form.status">
-            <option v-for="s in SUPPRESSION_STATUSES" :key="s" :value="s">{{ s }}</option>
-          </Select>
+          <v-select
+            id="supp-status"
+            v-model="form.status"
+            :items="SUPPRESSION_STATUS_ITEMS"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" @click="dialogOpen = false">Cancel</Button>

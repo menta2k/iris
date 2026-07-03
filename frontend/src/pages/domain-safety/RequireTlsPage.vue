@@ -15,7 +15,6 @@ import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
@@ -32,6 +31,7 @@ const MODES: { value: TLSPolicyMode; label: string }[] = [
   { value: 'required', label: 'required (STARTTLS + valid cert)' },
   { value: 'required_insecure', label: 'required_insecure (STARTTLS, skip cert)' },
 ]
+const MODE_ITEMS = MODES.map((m) => ({ title: m.label, value: m.value }))
 
 const dialogOpen = ref(false)
 const saving = ref(false)
@@ -92,7 +92,7 @@ async function remove(p: TLSPolicy) {
       empty-message="No require-TLS domains configured."
     >
       <Card>
-        <CardContent class="p-0">
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -104,7 +104,7 @@ async function remove(p: TLSPolicy) {
             </TableHeader>
             <TableBody>
               <TableRow v-for="p in items" :key="p.id">
-                <TableCell class="font-medium">{{ p.domain }}</TableCell>
+                <TableCell class="font-weight-medium">{{ p.domain }}</TableCell>
                 <TableCell><Badge variant="outline">{{ p.mode }}</Badge></TableCell>
                 <TableCell><StatusBadge :status="p.status" /></TableCell>
                 <TableCell class="text-right">
@@ -129,16 +129,21 @@ async function remove(p: TLSPolicy) {
       <DialogHeader>
         <DialogTitle>Add Require-TLS Domain</DialogTitle>
       </DialogHeader>
-      <form class="space-y-4" @submit.prevent="submit">
-        <div class="space-y-1.5">
+      <form class="d-flex flex-column ga-4" @submit.prevent="submit">
+        <div class="d-flex flex-column ga-1">
           <Label for="tls-domain">Destination domain</Label>
           <Input id="tls-domain" v-model="form.domain" placeholder="secure.example.com" />
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="tls-mode">Mode</Label>
-          <Select id="tls-mode" v-model="form.mode">
-            <option v-for="m in MODES" :key="m.value" :value="m.value">{{ m.label }}</option>
-          </Select>
+          <v-select
+            id="tls-mode"
+            v-model="form.mode"
+            :items="MODE_ITEMS"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" @click="dialogOpen = false">Cancel</Button>

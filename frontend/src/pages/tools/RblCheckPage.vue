@@ -65,20 +65,20 @@ async function run() {
           <span v-if="report.skipped?.length">Skipped (non-IPv4): {{ report.skipped.join(', ') }}.</span>
         </CardDescription>
       </CardHeader>
-      <CardContent class="p-0">
+      <CardContent class="pa-0">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>IP</TableHead>
               <TableHead>Source</TableHead>
               <TableHead>Overall</TableHead>
-              <TableHead v-for="z in report.zones ?? []" :key="z" class="text-xs">{{ z }}</TableHead>
+              <TableHead v-for="z in report.zones ?? []" :key="z" class="text-caption">{{ z }}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow v-for="ip in report.results ?? []" :key="ip.ip">
               <TableCell class="font-mono">{{ ip.ip }}</TableCell>
-              <TableCell class="text-muted-foreground">{{ ip.source }}</TableCell>
+              <TableCell class="text-medium-emphasis">{{ ip.source }}</TableCell>
               <TableCell>
                 <Badge :variant="ip.listed ? 'destructive' : 'success'">
                   {{ ip.listed ? 'Listed' : 'Clean' }}
@@ -98,7 +98,7 @@ async function run() {
       </CardContent>
     </Card>
 
-    <p v-else class="text-sm text-muted-foreground">
+    <p v-else class="text-body-2 text-medium-emphasis">
       Click "Run check" to test all configured IPs against the blocklists.
     </p>
   </div>

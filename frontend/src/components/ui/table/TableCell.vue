@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { cn } from '@/lib/utils'
+// Plain element inside the v-table wrapper (P3): styling comes from v-table.
 defineProps<{ class?: string }>()
 </script>
 
 <template>
-  <td :class="cn('px-3 py-2 align-middle [&:has([role=checkbox])]:pr-0', $props.class)">
+  <td :class="$props.class">
     <slot />
   </td>
 </template>

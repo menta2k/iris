@@ -15,7 +15,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Select } from '@/components/ui/select'
 import { useToast } from '@/composables/useToast'
 import { dmarcService } from '@/services'
 import { ApiError } from '@/services/http'
@@ -32,6 +31,11 @@ const stats = ref<DmarcStats | null>(null)
 
 const pct = (n: number, total: number) => (total > 0 ? Math.round((n / total) * 1000) / 10 : 0)
 const total = computed(() => stats.value?.totalMessages ?? 0)
+
+const domainItems = computed(() => [
+  { title: 'All domains', value: '' },
+  ...domains.value.map((d) => ({ title: d, value: d })),
+])
 
 const dispEl = ref<HTMLDivElement | null>(null)
 const seriesEl = ref<HTMLDivElement | null>(null)
@@ -139,49 +143,67 @@ watch([stats, loading], () => {
       description="Aggregated statistics from inbound DMARC aggregate reports. Set the report address in Global Settings and advertise it as rua= in your domains' DMARC records."
     >
       <template #actions>
-        <Select v-model="domain" class="w-56" data-testid="dmarc-domain-filter">
-          <option value="">All domains</option>
-          <option v-for="d in domains" :key="d" :value="d">{{ d }}</option>
-        </Select>
+        <v-select
+          v-model="domain"
+          :items="domainItems"
+          data-testid="dmarc-domain-filter"
+          variant="outlined"
+          density="compact"
+          hide-details
+          style="min-width: 224px"
+        />
       </template>
     </PageHeader>
 
-    <div class="mb-4 grid grid-cols-2 gap-4 md:grid-cols-4">
-      <Card>
-        <CardHeader class="pb-1"><CardTitle class="text-sm text-muted-foreground">Messages</CardTitle></CardHeader>
-        <CardContent class="text-2xl font-semibold tabular-nums">{{ total.toLocaleString() }}</CardContent>
-      </Card>
-      <Card>
-        <CardHeader class="pb-1"><CardTitle class="text-sm text-muted-foreground">DMARC pass</CardTitle></CardHeader>
-        <CardContent class="text-2xl font-semibold tabular-nums">
-          {{ pct(stats?.dmarcPass ?? 0, total) }}%
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader class="pb-1"><CardTitle class="text-sm text-muted-foreground">SPF pass</CardTitle></CardHeader>
-        <CardContent class="text-2xl font-semibold tabular-nums">{{ pct(stats?.spfPass ?? 0, total) }}%</CardContent>
-      </Card>
-      <Card>
-        <CardHeader class="pb-1"><CardTitle class="text-sm text-muted-foreground">DKIM pass</CardTitle></CardHeader>
-        <CardContent class="text-2xl font-semibold tabular-nums">{{ pct(stats?.dkimPass ?? 0, total) }}%</CardContent>
-      </Card>
-    </div>
+    <v-row dense class="mb-2">
+      <v-col cols="6" md="3">
+        <Card>
+          <CardHeader class="pb-1"><CardTitle class="text-body-2 text-medium-emphasis">Messages</CardTitle></CardHeader>
+          <CardContent class="text-h5 font-weight-bold tabular-nums">{{ total.toLocaleString() }}</CardContent>
+        </Card>
+      </v-col>
+      <v-col cols="6" md="3">
+        <Card>
+          <CardHeader class="pb-1"><CardTitle class="text-body-2 text-medium-emphasis">DMARC pass</CardTitle></CardHeader>
+          <CardContent class="text-h5 font-weight-bold tabular-nums">
+            {{ pct(stats?.dmarcPass ?? 0, total) }}%
+          </CardContent>
+        </Card>
+      </v-col>
+      <v-col cols="6" md="3">
+        <Card>
+          <CardHeader class="pb-1"><CardTitle class="text-body-2 text-medium-emphasis">SPF pass</CardTitle></CardHeader>
+          <CardContent class="text-h5 font-weight-bold tabular-nums">{{ pct(stats?.spfPass ?? 0, total) }}%</CardContent>
+        </Card>
+      </v-col>
+      <v-col cols="6" md="3">
+        <Card>
+          <CardHeader class="pb-1"><CardTitle class="text-body-2 text-medium-emphasis">DKIM pass</CardTitle></CardHeader>
+          <CardContent class="text-h5 font-weight-bold tabular-nums">{{ pct(stats?.dkimPass ?? 0, total) }}%</CardContent>
+        </Card>
+      </v-col>
+    </v-row>
 
-    <div class="mb-4 grid gap-4 lg:grid-cols-3">
-      <Card>
-        <CardHeader><CardTitle class="text-sm text-muted-foreground">Disposition</CardTitle></CardHeader>
-        <CardContent><div ref="dispEl" class="h-56 w-full" /></CardContent>
-      </Card>
-      <Card class="lg:col-span-2">
-        <CardHeader><CardTitle class="text-sm text-muted-foreground">Volume & DMARC pass / day</CardTitle></CardHeader>
-        <CardContent><div ref="seriesEl" class="h-56 w-full" /></CardContent>
-      </Card>
-    </div>
+    <v-row dense class="mb-2">
+      <v-col cols="12" lg="4">
+        <Card>
+          <CardHeader><CardTitle class="text-body-2 text-medium-emphasis">Disposition</CardTitle></CardHeader>
+          <CardContent><div ref="dispEl" class="w-100" style="height: 224px" /></CardContent>
+        </Card>
+      </v-col>
+      <v-col cols="12" lg="8">
+        <Card>
+          <CardHeader><CardTitle class="text-body-2 text-medium-emphasis">Volume & DMARC pass / day</CardTitle></CardHeader>
+          <CardContent><div ref="seriesEl" class="w-100" style="height: 224px" /></CardContent>
+        </Card>
+      </v-col>
+    </v-row>
 
-    <div class="grid gap-4 lg:grid-cols-2">
+    <v-row dense>
+      <v-col cols="12" lg="6">
       <Card>
-        <CardHeader><CardTitle class="text-sm">Top source IPs</CardTitle></CardHeader>
-        <CardContent class="p-0">
+        <CardHeader><CardTitle class="text-body-2">Top source IPs</CardTitle></CardHeader>
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -193,10 +215,10 @@ watch([stats, loading], () => {
             </TableHeader>
             <TableBody>
               <TableRow v-for="s in stats?.topSources ?? []" :key="s.ip">
-                <TableCell class="font-mono text-xs">{{ s.ip }}</TableCell>
+                <TableCell class="font-mono text-caption">{{ s.ip }}</TableCell>
                 <TableCell class="text-right tabular-nums">{{ s.total.toLocaleString() }}</TableCell>
-                <TableCell class="text-right tabular-nums text-green-600">{{ s.pass.toLocaleString() }}</TableCell>
-                <TableCell class="text-right tabular-nums" :class="s.fail ? 'text-destructive' : ''">
+                <TableCell class="text-right tabular-nums text-success">{{ s.pass.toLocaleString() }}</TableCell>
+                <TableCell class="text-right tabular-nums" :class="s.fail ? 'text-error' : ''">
                   {{ s.fail.toLocaleString() }}
                 </TableCell>
               </TableRow>
@@ -204,9 +226,11 @@ watch([stats, loading], () => {
           </Table>
         </CardContent>
       </Card>
+      </v-col>
+      <v-col cols="12" lg="6">
       <Card>
-        <CardHeader><CardTitle class="text-sm">By domain</CardTitle></CardHeader>
-        <CardContent class="p-0">
+        <CardHeader><CardTitle class="text-body-2">By domain</CardTitle></CardHeader>
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -217,7 +241,7 @@ watch([stats, loading], () => {
             </TableHeader>
             <TableBody>
               <TableRow v-for="d in stats?.domains ?? []" :key="d.domain">
-                <TableCell class="font-medium">{{ d.domain }}</TableCell>
+                <TableCell class="font-weight-medium">{{ d.domain }}</TableCell>
                 <TableCell class="text-right tabular-nums">{{ d.messages.toLocaleString() }}</TableCell>
                 <TableCell class="text-right">
                   <Badge :variant="pct(d.pass, d.messages) >= 95 ? 'success' : 'warning'">
@@ -229,9 +253,10 @@ watch([stats, loading], () => {
           </Table>
         </CardContent>
       </Card>
-    </div>
+      </v-col>
+    </v-row>
 
-    <p v-if="!loading && total === 0" class="mt-4 text-sm text-muted-foreground">
+    <p v-if="!loading && total === 0" class="mt-4 text-body-2 text-medium-emphasis">
       No DMARC reports yet. Configure the report address in Global Settings and advertise it as
       <code>rua=</code> in your DMARC DNS records.
     </p>

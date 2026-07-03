@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { StatusBadge } from '@/components/ui/badge'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -26,6 +26,21 @@ const { items, loading, error, notImplemented, load } = useAsyncList<SubjectClas
   loader: () => classificationsService.list(),
 })
 const { toast } = useToast()
+
+// Colour-code the Source column: manual rules (human-authored) → indigo,
+// AI-generated labels → green. Unknown sources fall back to neutral.
+const SOURCE_VARIANT: Record<string, 'default' | 'success'> = {
+  manual: 'default',
+  ai: 'success',
+}
+function sourceVariant(source: string) {
+  return SOURCE_VARIANT[(source || '').toLowerCase()] ?? 'secondary'
+}
+function sourceLabel(source: string) {
+  const s = (source || '').toLowerCase()
+  if (s === 'ai') return 'AI'
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Unknown'
+}
 
 const dialogOpen = ref(false)
 const saving = ref(false)
@@ -118,7 +133,7 @@ async function remove(c: SubjectClassification) {
       empty-message="No classification rules yet. They appear here as you add rules or the AI labels new subjects."
     >
       <Card>
-        <CardContent class="p-0">
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -131,28 +146,30 @@ async function remove(c: SubjectClassification) {
             </TableHeader>
             <TableBody>
               <TableRow v-for="c in items" :key="c.id">
-                <TableCell class="max-w-md truncate" :title="c.subject">{{ c.subject }}</TableCell>
-                <TableCell class="font-medium">{{ c.label }}</TableCell>
-                <TableCell><StatusBadge :status="c.source" /></TableCell>
+                <TableCell class="text-truncate" style="max-width: 448px" :title="c.subject">{{ c.subject }}</TableCell>
+                <TableCell class="font-weight-medium">{{ c.label }}</TableCell>
+                <TableCell><Badge :variant="sourceVariant(c.source)">{{ sourceLabel(c.source) }}</Badge></TableCell>
                 <TableCell class="text-right tabular-nums">{{ c.hitCount }}</TableCell>
-                <TableCell class="text-right space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    :data-testid="`edit-classification-${c.id}`"
-                    @click="openEdit(c)"
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    :disabled="deletingId === c.id"
-                    :data-testid="`delete-classification-${c.id}`"
-                    @click="remove(c)"
-                  >
-                    {{ deletingId === c.id ? 'Removing…' : 'Remove' }}
-                  </Button>
+                <TableCell class="text-right">
+                  <div class="d-flex justify-end ga-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      :data-testid="`edit-classification-${c.id}`"
+                      @click="openEdit(c)"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      :disabled="deletingId === c.id"
+                      :data-testid="`delete-classification-${c.id}`"
+                      @click="remove(c)"
+                    >
+                      {{ deletingId === c.id ? 'Removing…' : 'Remove' }}
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -165,19 +182,19 @@ async function remove(c: SubjectClassification) {
       <DialogHeader>
         <DialogTitle>{{ isEdit ? 'Edit Classification' : 'Create Classification' }}</DialogTitle>
       </DialogHeader>
-      <form class="space-y-4" @submit.prevent="submit">
-        <div class="space-y-1.5">
+      <form class="d-flex flex-column ga-4" @submit.prevent="submit">
+        <div class="d-flex flex-column ga-1">
           <Label for="cls-subject">Subject</Label>
           <Input id="cls-subject" v-model="form.subject" placeholder="Your order has shipped" />
-          <p class="text-xs text-muted-foreground">
+          <p class="text-caption text-medium-emphasis">
             A representative subject. It is normalized (digits/prefixes stripped) into a matching
             key, so similar subjects match this rule.
           </p>
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="cls-label">Label</Label>
           <Input id="cls-label" v-model="form.label" placeholder="shipping update" />
-          <p class="text-xs text-muted-foreground">One or two words. Longer input is truncated.</p>
+          <p class="text-caption text-medium-emphasis">One or two words. Longer input is truncated.</p>
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" @click="dialogOpen = false">Cancel</Button>

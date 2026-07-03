@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 
 withDefaults(
   defineProps<{
@@ -20,22 +18,24 @@ const emit = defineEmits<{
   (e: 'next'): void
   (e: 'pageSizeChange', size: number): void
 }>()
-
-function onPageSize(event: Event) {
-  emit('pageSizeChange', Number((event.target as HTMLSelectElement).value))
-}
 </script>
 
 <template>
-  <div class="mt-3 flex items-center justify-between text-sm">
-    <div class="flex items-center gap-2 text-muted-foreground">
-      <Label for="page-size" class="text-xs">Rows</Label>
-      <Select id="page-size" :model-value="String(pageSize)" class="h-8 w-20" @change="onPageSize">
-        <option v-for="s in pageSizes" :key="s" :value="String(s)">{{ s }}</option>
-      </Select>
+  <div class="d-flex align-center justify-space-between mt-3 text-body-2">
+    <div class="d-flex align-center ga-2 text-medium-emphasis">
+      <v-select
+        :model-value="pageSize"
+        :items="pageSizes"
+        label="Rows"
+        variant="outlined"
+        density="compact"
+        hide-details
+        style="max-width: 110px"
+        @update:model-value="emit('pageSizeChange', Number($event))"
+      />
       <span class="ml-2">Page {{ pageNumber }}</span>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="d-flex align-center ga-2">
       <Button
         variant="outline"
         size="sm"

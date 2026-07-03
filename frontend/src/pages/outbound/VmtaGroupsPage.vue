@@ -15,7 +15,6 @@ import { StatusBadge, Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
@@ -29,6 +28,7 @@ const { items, loading, error, notImplemented, load } = useAsyncList<VMTAGroup>(
 const { toast } = useToast()
 
 const GROUP_STATUSES = ['active', 'disabled']
+const groupStatusItems = GROUP_STATUSES.map((s) => ({ title: s, value: s }))
 
 const availableVmtas = ref<VMTA[]>([])
 const dialogOpen = ref(false)
@@ -68,6 +68,16 @@ function weightPct(weight: number, list: ReadonlyArray<{ weight: number }>): num
 // VMTAs already chosen by a member row, so other rows can't pick a duplicate
 // (the backend rejects VMTA_GROUP_MEMBER_DUPLICATE).
 const chosenVmtaIds = computed(() => new Set(members.value.map((m) => m.vmta_id).filter(Boolean)))
+
+// v-select items for one member row: VMTAs already picked by ANOTHER row are
+// disabled so the operator can't create a duplicate member.
+function memberVmtaItems(currentId: string) {
+  return availableVmtas.value.map((v) => ({
+    title: `${v.name} (${v.ipAddress})`,
+    value: v.id,
+    props: { disabled: currentId !== v.id && chosenVmtaIds.value.has(v.id) },
+  }))
+}
 
 async function openCreate() {
   mode.value = 'create'
@@ -163,11 +173,11 @@ async function submit() {
               <TableRow v-for="g in items" :key="g.id">
                 <TableCell class="font-medium">{{ g.name }}</TableCell>
                 <TableCell>
-                  <div class="flex flex-wrap gap-1">
+                  <div class="d-flex flex-wrap ga-1">
                     <Badge v-for="m in g.members" :key="m.vmtaId" variant="secondary">
                       {{ vmtaLabel(m.vmtaId) }} · {{ weightPct(m.weight, g.members) }}%
                     </Badge>
-                    <span v-if="!g.members?.length" class="text-xs text-muted-foreground">—</span>
+                    <span v-if="!g.members?.length" class="text-caption text-medium-emphasis">—</span>
                   </div>
                 </TableCell>
                 <TableCell><StatusBadge :status="g.status" /></TableCell>
@@ -192,44 +202,47 @@ async function submit() {
       <DialogHeader>
         <DialogTitle>{{ isEdit ? 'Edit VMTA Group' : 'Create VMTA Group' }}</DialogTitle>
       </DialogHeader>
-      <form class="space-y-4" @submit.prevent="submit">
-        <div class="space-y-1.5">
+      <form class="d-flex flex-column ga-4" @submit.prevent="submit">
+        <div class="d-flex flex-column ga-1">
           <Label for="group-name">Name</Label>
           <Input id="group-name" v-model="name" placeholder="pool-marketing" />
         </div>
 
-        <div v-if="isEdit" class="space-y-1.5">
+        <div v-if="isEdit" class="d-flex flex-column ga-1">
           <Label for="group-status">Status</Label>
-          <Select id="group-status" v-model="status">
-            <option v-for="s in GROUP_STATUSES" :key="s" :value="s">{{ s }}</option>
-          </Select>
+          <v-select
+            id="group-status"
+            v-model="status"
+            :items="groupStatusItems"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
         </div>
 
-        <div class="space-y-2">
-          <div class="flex items-center justify-between">
+        <div class="d-flex flex-column ga-2">
+          <div class="d-flex align-center justify-space-between">
             <Label>Weighted Members</Label>
             <Button type="button" variant="outline" size="sm" @click="addMember">Add member</Button>
           </div>
-          <p v-if="availableVmtas.length === 0" class="text-xs text-muted-foreground">
+          <p v-if="availableVmtas.length === 0" class="text-caption text-medium-emphasis">
             No VMTAs available — create a VMTA first.
           </p>
-          <p v-else-if="members.length === 0" class="text-xs text-muted-foreground">
+          <p v-else-if="members.length === 0" class="text-caption text-medium-emphasis">
             Add at least one VMTA member. Weights are relative; each member's share of the pool is
             shown as a percentage.
           </p>
-          <div v-for="(m, i) in members" :key="i" class="flex items-center gap-2">
-            <Select v-model="m.vmta_id" class="flex-1">
-              <option
-                v-for="v in availableVmtas"
-                :key="v.id"
-                :value="v.id"
-                :disabled="m.vmta_id !== v.id && chosenVmtaIds.has(v.id)"
-              >
-                {{ v.name }} ({{ v.ipAddress }})
-              </option>
-            </Select>
+          <div v-for="(m, i) in members" :key="i" class="d-flex align-center ga-2">
+            <v-select
+              v-model="m.vmta_id"
+              :items="memberVmtaItems(m.vmta_id)"
+              variant="outlined"
+              density="compact"
+              hide-details
+              class="flex-grow-1"
+            />
             <Input v-model.number="m.weight" type="number" min="1" class="w-24" placeholder="weight" />
-            <span class="w-10 text-right text-xs tabular-nums text-muted-foreground">
+            <span class="text-right text-caption tabular-nums text-medium-emphasis" style="width: 40px">
               {{ weightPct(m.weight, members) }}%
             </span>
             <Button type="button" variant="ghost" size="icon" @click="removeMember(i)">×</Button>

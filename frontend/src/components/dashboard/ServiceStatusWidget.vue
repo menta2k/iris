@@ -8,11 +8,11 @@ defineProps<{ state?: string }>()
 <template>
   <Card data-testid="service-status-widget">
     <CardHeader class="pb-2">
-      <CardTitle class="text-sm text-muted-foreground">KumoMTA Service</CardTitle>
+      <CardTitle class="text-body-2 text-medium-emphasis">KumoMTA Service</CardTitle>
     </CardHeader>
     <CardContent>
-      <div class="flex items-center justify-between">
-        <span class="text-2xl font-semibold">{{ state ?? 'Unknown' }}</span>
+      <div class="d-flex align-center justify-space-between">
+        <span class="text-h5 font-weight-bold">{{ state ?? 'Unknown' }}</span>
         <StatusBadge :status="state" />
       </div>
     </CardContent>

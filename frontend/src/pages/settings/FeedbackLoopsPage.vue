@@ -15,7 +15,6 @@ import { StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
@@ -29,6 +28,7 @@ const { items, loading, error, notImplemented, load } = useAsyncList<FeedbackLoo
 const { toast } = useToast()
 
 const FBL_STATUSES: FeedbackLoopStatus[] = ['awaiting_approval', 'approved']
+const FBL_STATUS_ITEMS = FBL_STATUSES.map((s) => ({ title: s, value: s }))
 
 const dialogOpen = ref(false)
 const saving = ref(false)
@@ -131,7 +131,7 @@ async function remove(f: FeedbackLoop) {
       empty-message="No feedback loops configured."
     >
       <Card>
-        <CardContent class="p-0">
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -144,28 +144,30 @@ async function remove(f: FeedbackLoop) {
             </TableHeader>
             <TableBody>
               <TableRow v-for="f in items" :key="f.id">
-                <TableCell class="font-medium">{{ f.domain }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ f.feedbackAddress }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ f.forwardAddress || '—' }}</TableCell>
+                <TableCell class="font-weight-medium">{{ f.domain }}</TableCell>
+                <TableCell class="font-mono text-caption">{{ f.feedbackAddress }}</TableCell>
+                <TableCell class="font-mono text-caption">{{ f.forwardAddress || '—' }}</TableCell>
                 <TableCell><StatusBadge :status="f.status" /></TableCell>
-                <TableCell class="text-right space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    :data-testid="`edit-feedback-loop-${f.id}`"
-                    @click="openEdit(f)"
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    :disabled="deletingId === f.id"
-                    :data-testid="`delete-feedback-loop-${f.id}`"
-                    @click="remove(f)"
-                  >
-                    {{ deletingId === f.id ? 'Removing…' : 'Remove' }}
-                  </Button>
+                <TableCell class="text-right">
+                  <div class="d-flex justify-end ga-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      :data-testid="`edit-feedback-loop-${f.id}`"
+                      @click="openEdit(f)"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      :disabled="deletingId === f.id"
+                      :data-testid="`delete-feedback-loop-${f.id}`"
+                      @click="remove(f)"
+                    >
+                      {{ deletingId === f.id ? 'Removing…' : 'Remove' }}
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -178,26 +180,31 @@ async function remove(f: FeedbackLoop) {
       <DialogHeader>
         <DialogTitle>{{ isEdit ? 'Edit Feedback Loop' : 'Create Feedback Loop' }}</DialogTitle>
       </DialogHeader>
-      <form class="space-y-4" @submit.prevent="submit">
-        <div class="space-y-1.5">
+      <form class="d-flex flex-column ga-4" @submit.prevent="submit">
+        <div class="d-flex flex-column ga-1">
           <Label for="fbl-domain">Domain</Label>
           <Input id="fbl-domain" v-model="form.domain" placeholder="fbl.example.com" />
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="fbl-feedback">Feedback Address</Label>
           <Input id="fbl-feedback" v-model="form.feedback_address" placeholder="fbl@fbl.example.com" />
-          <p class="text-xs text-muted-foreground">Must be an address at the domain above.</p>
+          <p class="text-caption text-medium-emphasis">Must be an address at the domain above.</p>
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="fbl-status">Status</Label>
-          <Select id="fbl-status" v-model="form.status">
-            <option v-for="s in FBL_STATUSES" :key="s" :value="s">{{ s }}</option>
-          </Select>
+          <v-select
+            id="fbl-status"
+            v-model="form.status"
+            :items="FBL_STATUS_ITEMS"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
         </div>
-        <div v-if="isAwaiting" class="space-y-1.5">
+        <div v-if="isAwaiting" class="d-flex flex-column ga-1">
           <Label for="fbl-forward">Forward Address</Label>
           <Input id="fbl-forward" v-model="form.forward_address" placeholder="ops@example.com" />
-          <p class="text-xs text-muted-foreground">
+          <p class="text-caption text-medium-emphasis">
             Mail to the feedback address is forwarded here until the loop is approved.
           </p>
         </div>

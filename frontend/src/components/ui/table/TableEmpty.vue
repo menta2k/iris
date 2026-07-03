@@ -4,7 +4,7 @@ defineProps<{ colspan: number; message?: string }>()
 
 <template>
   <tr>
-    <td :colspan="colspan" class="px-3 py-10 text-center text-sm text-muted-foreground">
+    <td :colspan="colspan" class="px-3 py-10 text-center text-body-2 text-medium-emphasis">
       <slot>{{ message ?? 'No records found.' }}</slot>
     </td>
   </tr>

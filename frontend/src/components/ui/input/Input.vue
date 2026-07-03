@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { cn } from '@/lib/utils'
-
+// Thin wrapper over v-text-field (P3). Renders a real <input> that keeps
+// the given id (for <Label for>) and native input events, so existing
+// pages and component tests keep working.
 defineProps<{
   modelValue?: string | number
   type?: string
@@ -12,24 +13,18 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
-
-function onInput(event: Event) {
-  emit('update:modelValue', (event.target as HTMLInputElement).value)
-}
 </script>
 
 <template>
-  <input
+  <v-text-field
+    :model-value="modelValue"
     :type="type ?? 'text'"
-    :value="modelValue"
     :placeholder="placeholder"
     :disabled="disabled"
-    :class="
-      cn(
-        'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
-        $props.class,
-      )
-    "
-    @input="onInput"
+    variant="outlined"
+    density="compact"
+    hide-details
+    :class="$props.class"
+    @update:model-value="emit('update:modelValue', $event)"
   />
 </template>

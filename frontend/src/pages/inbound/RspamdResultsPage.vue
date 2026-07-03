@@ -20,10 +20,21 @@ const { items, loading, error, notImplemented } = useAsyncList<RspamdResult>({
   loader: () => inboundAutomationService.listRspamdResults(),
 })
 
-function scoreVariant(score: number) {
-  if (score >= 15) return 'destructive' as const
-  if (score >= 5) return 'warning' as const
-  return 'success' as const
+// Colour-code the rspamd verdict: reject / soft reject → red, header-tagging
+// actions → amber, greylist → neutral, no action (clean) → green.
+function actionVariant(action: string) {
+  switch ((action || '').toLowerCase()) {
+    case 'reject':
+    case 'soft reject':
+      return 'destructive' as const
+    case 'add header':
+    case 'rewrite subject':
+      return 'warning' as const
+    case 'no action':
+      return 'success' as const
+    default:
+      return 'secondary' as const
+  }
 }
 </script>
 
@@ -38,7 +49,7 @@ function scoreVariant(score: number) {
       empty-message="No Rspamd results recorded."
     >
       <Card>
-        <CardContent class="p-0">
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -53,15 +64,15 @@ function scoreVariant(score: number) {
             </TableHeader>
             <TableBody>
               <TableRow v-for="r in items" :key="r.id">
-                <TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDateTime(r.eventTime) }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ r.recipient || '—' }}</TableCell>
-                <TableCell class="font-mono text-xs text-muted-foreground">{{ r.messageId || '—' }}</TableCell>
+                <TableCell class="text-no-wrap text-medium-emphasis">{{ formatDateTime(r.eventTime) }}</TableCell>
+                <TableCell class="font-mono text-caption">{{ r.recipient || '—' }}</TableCell>
+                <TableCell class="font-mono text-caption text-medium-emphasis">{{ r.messageId || '—' }}</TableCell>
+                <TableCell class="tabular-nums">{{ r.score }}</TableCell>
                 <TableCell>
-                  <Badge :variant="scoreVariant(r.score)">{{ r.score }}</Badge>
+                  <Badge :variant="actionVariant(r.action)">{{ r.action }}</Badge>
                 </TableCell>
-                <TableCell>{{ r.action }}</TableCell>
-                <TableCell class="font-mono text-xs text-muted-foreground">{{ r.symbols?.length ? r.symbols.join(', ') : '—' }}</TableCell>
-                <TableCell class="text-muted-foreground">{{ r.reason }}</TableCell>
+                <TableCell class="font-mono text-caption text-medium-emphasis">{{ r.symbols?.length ? r.symbols.join(', ') : '—' }}</TableCell>
+                <TableCell class="text-medium-emphasis">{{ r.reason }}</TableCell>
               </TableRow>
             </TableBody>
           </Table>

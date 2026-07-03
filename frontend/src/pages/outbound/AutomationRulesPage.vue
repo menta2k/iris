@@ -15,7 +15,6 @@ import { StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useToast } from '@/composables/useToast'
 import { automationService } from '@/services'
@@ -46,6 +45,23 @@ const form = ref({
 
 const isEdit = computed(() => mode.value === 'edit')
 const isSetConfig = computed(() => form.value.action === 'set_config')
+
+// v-select item lists ({ title, value }) for the dropdowns.
+const actionItems = [
+  { title: 'suspend', value: 'suspend' },
+  { title: 'suspend tenant', value: 'suspend_tenant' },
+  { title: 'set config (tighten a limit)', value: 'set_config' },
+]
+const configNameItems = [
+  { title: 'max_message_rate', value: 'max_message_rate' },
+  { title: 'max_connection_rate', value: 'max_connection_rate' },
+  { title: 'connection_limit', value: 'connection_limit' },
+  { title: 'max_deliveries_per_connection', value: 'max_deliveries_per_connection' },
+]
+const statusItems = [
+  { title: 'active', value: 'active' },
+  { title: 'disabled', value: 'disabled' },
+]
 
 function actionLabel(r: AutomationRule): string {
   if (r.action === 'set_config') return `set ${r.configName}=${r.configValue}`
@@ -165,7 +181,7 @@ load()
       empty-message="No automation rules yet."
     >
       <Card>
-        <CardContent class="p-0">
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -180,17 +196,19 @@ load()
             </TableHeader>
             <TableBody>
               <TableRow v-for="r in items" :key="r.id">
-                <TableCell class="font-mono text-xs">{{ r.domain }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ r.regex }}</TableCell>
+                <TableCell class="font-mono text-caption">{{ r.domain }}</TableCell>
+                <TableCell class="font-mono text-caption">{{ r.regex }}</TableCell>
                 <TableCell>{{ actionLabel(r) }}</TableCell>
                 <TableCell>{{ r.trigger }}</TableCell>
                 <TableCell>{{ r.duration }}</TableCell>
                 <TableCell><StatusBadge :status="r.status" /></TableCell>
-                <TableCell class="space-x-1 text-right">
-                  <Button variant="outline" size="sm" @click="openEdit(r)">Edit</Button>
-                  <Button variant="outline" size="sm" @click="toggle(r)">
-                    {{ r.status === 'active' ? 'Disable' : 'Enable' }}
-                  </Button>
+                <TableCell class="text-right">
+                  <div class="d-flex justify-end ga-1">
+                    <Button variant="outline" size="sm" @click="openEdit(r)">Edit</Button>
+                    <Button variant="outline" size="sm" @click="toggle(r)">
+                      {{ r.status === 'active' ? 'Disable' : 'Enable' }}
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -203,56 +221,65 @@ load()
       <DialogHeader>
         <DialogTitle>{{ isEdit ? 'Edit rule' : 'Add automation rule' }}</DialogTitle>
       </DialogHeader>
-      <form class="space-y-4" @submit.prevent="submit">
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
+      <form class="d-flex flex-column ga-4" @submit.prevent="submit">
+        <v-row dense>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="a-domain">Domain</Label>
             <Input id="a-domain" v-model="form.domain" placeholder="comcast.net or default" />
-          </div>
-          <div class="space-y-1.5">
+          </v-col>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="a-duration">Duration</Label>
             <Input id="a-duration" v-model="form.duration" placeholder="2 hours" />
-          </div>
-        </div>
-        <div class="space-y-1.5">
+          </v-col>
+        </v-row>
+        <div class="d-flex flex-column ga-1">
           <Label for="a-regex">Match (regex on the SMTP response)</Label>
           <Input id="a-regex" v-model="form.regex" placeholder="RL0000" />
         </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
+        <v-row dense>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="a-action">Action</Label>
-            <Select id="a-action" v-model="form.action">
-              <option value="suspend">suspend</option>
-              <option value="suspend_tenant">suspend tenant</option>
-              <option value="set_config">set config (tighten a limit)</option>
-            </Select>
-          </div>
-          <div class="space-y-1.5">
+            <v-select
+              id="a-action"
+              v-model="form.action"
+              :items="actionItems"
+              variant="outlined"
+              density="compact"
+              hide-details
+            />
+          </v-col>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="a-trigger">Trigger</Label>
             <Input id="a-trigger" v-model="form.trigger" placeholder="immediate or 2/hr" />
-          </div>
-        </div>
-        <div v-if="isSetConfig" class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
+          </v-col>
+        </v-row>
+        <v-row v-if="isSetConfig" dense>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="a-cfg-name">Limit</Label>
-            <Select id="a-cfg-name" v-model="form.config_name">
-              <option value="max_message_rate">max_message_rate</option>
-              <option value="max_connection_rate">max_connection_rate</option>
-              <option value="connection_limit">connection_limit</option>
-              <option value="max_deliveries_per_connection">max_deliveries_per_connection</option>
-            </Select>
-          </div>
-          <div class="space-y-1.5">
+            <v-select
+              id="a-cfg-name"
+              v-model="form.config_name"
+              :items="configNameItems"
+              variant="outlined"
+              density="compact"
+              hide-details
+            />
+          </v-col>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="a-cfg-value">Value</Label>
             <Input id="a-cfg-value" v-model="form.config_value" placeholder="100/h" />
-          </div>
-        </div>
-        <div v-if="isEdit" class="space-y-1.5">
+          </v-col>
+        </v-row>
+        <div v-if="isEdit" class="d-flex flex-column ga-1">
           <Label for="a-status">Status</Label>
-          <Select id="a-status" v-model="form.status">
-            <option value="active">active</option>
-            <option value="disabled">disabled</option>
-          </Select>
+          <v-select
+            id="a-status"
+            v-model="form.status"
+            :items="statusItems"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" @click="dialogOpen = false">Cancel</Button>

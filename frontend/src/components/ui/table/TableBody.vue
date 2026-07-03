@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { cn } from '@/lib/utils'
+// Plain element inside the v-table wrapper (P3): styling comes from v-table.
 defineProps<{ class?: string }>()
 </script>
 
 <template>
-  <tbody :class="cn('[&_tr:last-child]:border-0', $props.class)">
+  <tbody :class="$props.class">
     <slot />
   </tbody>
 </template>

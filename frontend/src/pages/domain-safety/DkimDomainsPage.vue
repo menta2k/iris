@@ -15,7 +15,6 @@ import { StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
@@ -29,6 +28,7 @@ const { items, loading, error, notImplemented, load } = useAsyncList<DkimDomain>
 const { toast } = useToast()
 
 const DKIM_STATUSES = ['ready', 'disabled', 'needs_attention']
+const DKIM_STATUS_ITEMS = DKIM_STATUSES.map((s) => ({ title: s, value: s }))
 
 const dialogOpen = ref(false)
 const saving = ref(false)
@@ -150,7 +150,7 @@ async function submit() {
       empty-message="No DKIM domains configured."
     >
       <Card>
-        <CardContent class="p-0">
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -163,9 +163,9 @@ async function submit() {
             </TableHeader>
             <TableBody>
               <TableRow v-for="d in items" :key="d.id">
-                <TableCell class="font-medium">{{ d.domain }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ d.selector }}</TableCell>
-                <TableCell class="font-mono text-xs text-muted-foreground">{{ d.publicKeyFingerprint }}</TableCell>
+                <TableCell class="font-weight-medium">{{ d.domain }}</TableCell>
+                <TableCell class="font-mono text-caption">{{ d.selector }}</TableCell>
+                <TableCell class="font-mono text-caption text-medium-emphasis">{{ d.publicKeyFingerprint }}</TableCell>
                 <TableCell><StatusBadge :status="d.status" /></TableCell>
                 <TableCell class="text-right">
                   <Button
@@ -191,8 +191,8 @@ async function submit() {
           Paste a PEM-encoded RSA private key, or generate a new key pair and publish the DNS record.
         </DialogDescription>
       </DialogHeader>
-      <form class="space-y-4" @submit.prevent="submit">
-        <div class="space-y-1.5">
+      <form class="d-flex flex-column ga-4" @submit.prevent="submit">
+        <div class="d-flex flex-column ga-1">
           <Label for="dkim-domain">Domain</Label>
           <Input
             id="dkim-domain"
@@ -200,14 +200,14 @@ async function submit() {
             placeholder="example.com"
             :disabled="isEdit"
           />
-          <p v-if="isEdit" class="text-xs text-muted-foreground">The domain is immutable.</p>
+          <p v-if="isEdit" class="text-caption text-medium-emphasis">The domain is immutable.</p>
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="dkim-selector">Selector</Label>
           <Input id="dkim-selector" v-model="form.selector" placeholder="s1" />
         </div>
-        <div class="space-y-1.5">
-          <div class="flex items-center justify-between">
+        <div class="d-flex flex-column ga-1">
+          <div class="d-flex align-center justify-space-between">
             <Label for="dkim-key">Private Key (PEM)</Label>
             <Button
               type="button"
@@ -220,40 +220,46 @@ async function submit() {
               {{ generating ? 'Generating…' : 'Generate key pair' }}
             </Button>
           </div>
-          <textarea
+          <v-textarea
             id="dkim-key"
             v-model="form.private_key_ref"
             rows="5"
             spellcheck="false"
             placeholder="-----BEGIN RSA PRIVATE KEY-----"
-            class="flex w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            variant="outlined"
+            density="compact"
+            hide-details
+            auto-grow
+            class="font-mono text-caption"
           />
-          <p class="text-xs text-muted-foreground">
+          <p class="text-caption text-medium-emphasis">
             <span v-if="isEdit">Leave blank to keep the existing key. </span>
             The key is stored server-side and never shown again after saving.
           </p>
-          <p v-if="form.public_key_fingerprint" class="text-xs text-muted-foreground">
+          <p v-if="form.public_key_fingerprint" class="text-caption text-medium-emphasis">
             Fingerprint: <span class="font-mono">{{ form.public_key_fingerprint }}</span>
           </p>
         </div>
-        <div
-          v-if="dnsRecord"
-          class="space-y-1.5 rounded-md border border-amber-300 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950"
-        >
-          <p class="text-xs font-medium">Publish this DNS TXT record, then save:</p>
-          <div class="space-y-1 font-mono text-xs break-all">
-            <div><span class="text-muted-foreground">name:</span> {{ dnsRecord.name }}</div>
-            <div><span class="text-muted-foreground">type:</span> TXT</div>
-            <div><span class="text-muted-foreground">value:</span> {{ dnsRecord.value }}</div>
+        <v-alert v-if="dnsRecord" type="warning" variant="tonal" density="comfortable">
+          <p class="text-caption font-weight-medium">Publish this DNS TXT record, then save:</p>
+          <div class="d-flex flex-column ga-1 font-mono text-caption text-break">
+            <div><span class="text-medium-emphasis">name:</span> {{ dnsRecord.name }}</div>
+            <div><span class="text-medium-emphasis">type:</span> TXT</div>
+            <div><span class="text-medium-emphasis">value:</span> {{ dnsRecord.value }}</div>
           </div>
-        </div>
-        <div v-if="isEdit" class="space-y-1.5">
+        </v-alert>
+        <div v-if="isEdit" class="d-flex flex-column ga-1">
           <Label for="dkim-status">Status</Label>
-          <Select id="dkim-status" v-model="form.status">
-            <option v-for="s in DKIM_STATUSES" :key="s" :value="s">{{ s }}</option>
-          </Select>
-          <p class="text-xs text-muted-foreground">
-            Setting status to <span class="font-medium">ready</span> activates DKIM signing for this
+          <v-select
+            id="dkim-status"
+            v-model="form.status"
+            :items="DKIM_STATUS_ITEMS"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
+          <p class="text-caption text-medium-emphasis">
+            Setting status to <span class="font-weight-medium">ready</span> activates DKIM signing for this
             domain in the generated KumoMTA config.
           </p>
         </div>

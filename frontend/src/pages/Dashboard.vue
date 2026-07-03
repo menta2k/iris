@@ -55,17 +55,25 @@ onMounted(load)
     <PageHeader title="Dashboard" description="Operational overview of your KumoMTA deployment." />
 
     <DataState :loading="loading" :error="error" :not-implemented="notImplemented">
-      <div class="space-y-6">
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <ServiceStatusWidget :state="summary?.serviceState" />
-          <QueueHealthWidget :queued="summary?.queuedMessages" />
-        </div>
+      <div class="d-flex flex-column ga-6">
+        <v-row dense>
+          <v-col cols="12" sm="6" lg="4">
+            <ServiceStatusWidget :state="summary?.serviceState" />
+          </v-col>
+          <v-col cols="12" sm="6" lg="4">
+            <QueueHealthWidget :queued="summary?.queuedMessages" />
+          </v-col>
+        </v-row>
         <MailFlowPanel />
         <WarmupStatsPanel />
-        <div class="grid gap-4 lg:grid-cols-2">
-          <RecentMailActivity :events="recentMail" :count="summary?.recentMailEvents" />
-          <RecentAuditActivity :events="recentAudit" :count="summary?.recentAuditEvents" />
-        </div>
+        <v-row dense>
+          <v-col cols="12" lg="6">
+            <RecentMailActivity :events="recentMail" :count="summary?.recentMailEvents" />
+          </v-col>
+          <v-col cols="12" lg="6">
+            <RecentAuditActivity :events="recentAudit" :count="summary?.recentAuditEvents" />
+          </v-col>
+        </v-row>
       </div>
     </DataState>
   </div>

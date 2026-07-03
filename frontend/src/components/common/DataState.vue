@@ -11,25 +11,26 @@ defineProps<{
 <template>
   <div
     v-if="loading"
-    class="flex items-center justify-center py-12 text-sm text-muted-foreground"
+    class="d-flex align-center justify-center ga-3 py-12 text-body-2 text-medium-emphasis"
   >
+    <v-progress-circular indeterminate size="20" width="2" />
     Loading…
   </div>
-  <div
-    v-else-if="error"
-    class="rounded-md border border-destructive/40 bg-destructive/5 px-4 py-8 text-center text-sm text-destructive"
-  >
+  <v-alert v-else-if="error" type="error" variant="tonal" density="comfortable" class="text-center">
     {{ error }}
-  </div>
-  <div
+  </v-alert>
+  <v-alert
     v-else-if="notImplemented"
-    class="rounded-md border border-warning/40 bg-warning/5 px-4 py-8 text-center text-sm text-warning"
+    type="warning"
+    variant="tonal"
+    density="comfortable"
+    class="text-center"
   >
     This feature is not available yet. The backend endpoint is still in progress.
-  </div>
+  </v-alert>
   <div
     v-else-if="empty"
-    class="rounded-md border border-dashed px-4 py-10 text-center text-sm text-muted-foreground"
+    class="border border-dashed rounded px-4 py-10 text-center text-body-2 text-medium-emphasis"
   >
     {{ emptyMessage ?? 'No records found.' }}
   </div>

@@ -15,7 +15,6 @@ import { StatusBadge, Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
@@ -29,6 +28,13 @@ const { items, loading, error, notImplemented, load } = useAsyncList<Listener>({
 const { toast } = useToast()
 
 const LISTENER_STATUSES = ['active', 'disabled']
+
+// v-select item lists ({ title, value }).
+const listenerStatusItems = LISTENER_STATUSES.map((s) => ({ title: s, value: s }))
+const listenerRoleItems: Array<{ title: string; value: ListenerRole }> = [
+  { title: 'Inbound (MX — receives mail, no relay)', value: 'inbound' },
+  { title: 'Submission (authorized senders relay outbound)', value: 'submission' },
+]
 
 const dialogOpen = ref(false)
 const saving = ref(false)
@@ -204,39 +210,50 @@ async function submit() {
       <DialogHeader>
         <DialogTitle>{{ isEdit ? 'Edit Listener' : 'Create Listener' }}</DialogTitle>
       </DialogHeader>
-      <form class="space-y-4" @submit.prevent="submit">
-        <div class="space-y-1.5">
+      <form class="d-flex flex-column ga-4" @submit.prevent="submit">
+        <div class="d-flex flex-column ga-1">
           <Label for="listener-name">Name</Label>
           <Input id="listener-name" v-model="form.name" placeholder="esmtp-east-1" />
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="listener-role">Role</Label>
-          <Select id="listener-role" v-model="form.role" data-testid="listener-role" @change="onRoleChange">
-            <option value="inbound">Inbound (MX — receives mail, no relay)</option>
-            <option value="submission">Submission (authorized senders relay outbound)</option>
-          </Select>
-          <p class="text-xs text-muted-foreground">
+          <v-select
+            id="listener-role"
+            data-testid="listener-role"
+            :model-value="form.role"
+            :items="listenerRoleItems"
+            variant="outlined"
+            density="compact"
+            hide-details
+            @update:model-value="
+              (v: ListenerRole) => {
+                form.role = v
+                onRoleChange()
+              }
+            "
+          />
+          <p class="text-caption text-medium-emphasis">
             <strong>Inbound</strong> accepts mail for local domains and must leave the relay
             allowlist empty. <strong>Submission</strong> requires at least one relay host. Loopback
             always relays. (Picking a role suggests its conventional port.)
           </p>
         </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
+        <v-row dense>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="listener-ip">IP Address</Label>
             <Input id="listener-ip" v-model="form.ip_address" placeholder="203.0.113.10" />
-            <p class="text-xs text-muted-foreground">A concrete IP — not 0.0.0.0.</p>
-          </div>
-          <div class="space-y-1.5">
+            <p class="text-caption text-medium-emphasis">A concrete IP — not 0.0.0.0.</p>
+          </v-col>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="listener-port">Port</Label>
             <Input id="listener-port" v-model.number="form.port" type="number" placeholder="25" />
-          </div>
-        </div>
-        <div class="space-y-1.5">
+          </v-col>
+        </v-row>
+        <div class="d-flex flex-column ga-1">
           <Label for="listener-hostname">Hostname (EHLO)</Label>
           <Input id="listener-hostname" v-model="form.hostname" placeholder="mail.example.com" />
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label class="flex items-center gap-2">
             <input
               id="listener-tls"
@@ -248,7 +265,7 @@ async function submit() {
           </Label>
         </div>
         <template v-if="form.tls_enabled">
-          <div class="space-y-1.5">
+          <div class="d-flex flex-column ga-1">
             <Label for="listener-cert">TLS Certificate Path</Label>
             <Input
               id="listener-cert"
@@ -256,7 +273,7 @@ async function submit() {
               placeholder="/etc/iris/tls/cert.pem"
             />
           </div>
-          <div class="space-y-1.5">
+          <div class="d-flex flex-column ga-1">
             <Label for="listener-key">TLS Key Path</Label>
             <Input
               id="listener-key"
@@ -265,8 +282,8 @@ async function submit() {
             />
           </div>
         </template>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
+        <v-row dense>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="listener-max-size">Max Message Size (bytes)</Label>
             <Input
               id="listener-max-size"
@@ -274,36 +291,41 @@ async function submit() {
               type="number"
               placeholder="0"
             />
-            <p class="text-xs text-muted-foreground">0 = unlimited.</p>
-          </div>
-          <div class="space-y-1.5">
+            <p class="text-caption text-medium-emphasis">0 = unlimited.</p>
+          </v-col>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label class="flex items-center gap-2 pt-7">
               <input id="listener-auth" v-model="form.require_auth" type="checkbox" />
               Require Auth
             </Label>
-          </div>
-        </div>
-        <div class="space-y-1.5">
+          </v-col>
+        </v-row>
+        <div class="d-flex flex-column ga-1">
           <Label for="listener-relay">Relay allowlist (IPs / CIDRs)</Label>
           <textarea
             id="listener-relay"
             v-model="form.relay_hosts_text"
             rows="3"
-            class="flex w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            class="d-flex w-100 rounded border border-input bg-background px-3 py-1 text-body-2 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             placeholder="10.1.111.0/24, 192.168.1.5"
           ></textarea>
-          <p class="text-xs text-muted-foreground">
+          <p class="text-caption text-medium-emphasis">
             Hosts allowed to relay (submit outbound) through this listener — comma/newline-separated.
             Loopback (127.0.0.1) is always allowed. <strong>Leave blank for loopback-only</strong>
             (inbound-only / MX listener that otherwise accepts mail only for local domains). Add CIDRs
             on a submission listener (e.g. :587) to authorize other senders.
           </p>
         </div>
-        <div v-if="isEdit" class="space-y-1.5">
+        <div v-if="isEdit" class="d-flex flex-column ga-1">
           <Label for="listener-status">Status</Label>
-          <Select id="listener-status" v-model="form.status">
-            <option v-for="s in LISTENER_STATUSES" :key="s" :value="s">{{ s }}</option>
-          </Select>
+          <v-select
+            id="listener-status"
+            v-model="form.status"
+            :items="listenerStatusItems"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" @click="dialogOpen = false">Cancel</Button>

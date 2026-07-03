@@ -130,7 +130,7 @@ onBeforeUnmount(() => timer && clearInterval(timer))
       empty-message="No scheduled queues — nothing waiting for delivery."
     >
       <Card class="mb-6">
-        <CardContent class="p-0">
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -142,16 +142,16 @@ onBeforeUnmount(() => timer && clearInterval(timer))
             </TableHeader>
             <TableBody>
               <TableRow v-for="q in items" :key="q.domain">
-                <TableCell class="font-medium">{{ q.domain }}</TableCell>
+                <TableCell class="font-weight-medium">{{ q.domain }}</TableCell>
                 <TableCell class="tabular-nums">{{ Number(q.depth ?? 0).toLocaleString() }}</TableCell>
                 <TableCell>
                   <StatusBadge :status="q.suspended ? 'suspended' : 'running'" />
-                  <span v-if="q.suspended && q.suspendReason" class="ml-2 text-xs text-muted-foreground">
+                  <span v-if="q.suspended && q.suspendReason" class="ml-2 text-caption text-medium-emphasis">
                     {{ q.suspendReason }}
                   </span>
                 </TableCell>
                 <TableCell class="text-right">
-                  <div class="flex justify-end gap-2">
+                  <div class="d-flex justify-end ga-2">
                     <Button
                       v-if="!q.suspended"
                       size="sm"
@@ -177,9 +177,9 @@ onBeforeUnmount(() => timer && clearInterval(timer))
 
     <Card>
       <CardHeader>
-        <CardTitle class="text-sm">In the queue — deferred messages</CardTitle>
+        <CardTitle class="text-body-2">In the queue — deferred messages</CardTitle>
       </CardHeader>
-      <CardContent class="p-0">
+      <CardContent class="pa-0">
         <Table>
           <TableHeader>
             <TableRow>
@@ -191,18 +191,18 @@ onBeforeUnmount(() => timer && clearInterval(timer))
           </TableHeader>
           <TableBody>
             <TableRow v-for="m in queued" :key="m.id">
-              <TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDateTime(m.eventTime) }}</TableCell>
+              <TableCell class="text-no-wrap text-medium-emphasis">{{ formatDateTime(m.eventTime) }}</TableCell>
               <TableCell>{{ m.recipient }}</TableCell>
-              <TableCell class="text-muted-foreground">{{ m.fromHeader || m.sender }}</TableCell>
-              <TableCell class="max-w-md">
-                <span class="font-mono text-xs">
-                  <span v-if="m.smtpStatus" class="font-semibold">{{ m.smtpStatus }}</span>
-                  <span class="block truncate">{{ m.diagnostic }}</span>
+              <TableCell class="text-medium-emphasis">{{ m.fromHeader || m.sender }}</TableCell>
+              <TableCell style="max-width: 448px">
+                <span class="font-mono text-caption">
+                  <span v-if="m.smtpStatus" class="font-weight-bold">{{ m.smtpStatus }}</span>
+                  <span class="d-block text-truncate">{{ m.diagnostic }}</span>
                 </span>
               </TableCell>
             </TableRow>
             <TableRow v-if="queued.length === 0">
-              <TableCell colspan="4" class="text-center text-sm text-muted-foreground">
+              <TableCell colspan="4" class="text-center text-body-2 text-medium-emphasis">
                 No messages in the queue.
               </TableCell>
             </TableRow>

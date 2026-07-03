@@ -1,37 +1,48 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { cva, type VariantProps } from 'class-variance-authority'
-import { cn } from '@/lib/utils'
 
-const badgeVariants = cva(
-  'inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors',
-  {
-    variants: {
-      variant: {
-        default: 'border-transparent bg-primary/15 text-primary',
-        secondary: 'border-transparent bg-secondary text-secondary-foreground',
-        destructive: 'border-transparent bg-destructive/15 text-destructive',
-        success: 'border-transparent bg-success/15 text-success',
-        warning: 'border-transparent bg-warning/15 text-warning',
-        outline: 'text-foreground',
-      },
-    },
-    defaultVariants: { variant: 'default' },
-  },
-)
+// Thin wrapper mapping the legacy badge API onto v-chip (P3). Tonal chips
+// reproduce the old soft "color/15 background + colored text" look.
+type Variant = 'default' | 'secondary' | 'destructive' | 'success' | 'warning' | 'outline'
 
-type BadgeVariants = VariantProps<typeof badgeVariants>
+const props = withDefaults(defineProps<{ variant?: Variant; class?: string }>(), {
+  variant: 'default',
+})
 
-const props = defineProps<{
-  variant?: BadgeVariants['variant']
-  class?: string
-}>()
+const APPEARANCE: Record<Variant, { color?: string; variant: 'tonal' | 'outlined' }> = {
+  default: { color: 'primary', variant: 'tonal' },
+  secondary: { color: 'secondary', variant: 'tonal' },
+  destructive: { color: 'error', variant: 'tonal' },
+  success: { color: 'success', variant: 'tonal' },
+  warning: { color: 'warning', variant: 'tonal' },
+  outline: { variant: 'outlined' },
+}
 
-const classes = computed(() => cn(badgeVariants({ variant: props.variant }), props.class))
+const appearance = computed(() => APPEARANCE[props.variant])
 </script>
 
 <template>
-  <span :class="classes">
+  <v-chip
+    :color="appearance.color"
+    :variant="appearance.variant"
+    size="small"
+    label
+    class="ui-badge"
+    :class="$props.class"
+  >
     <slot />
-  </span>
+  </v-chip>
 </template>
+
+<style scoped>
+/* Shared minimum width + centered label so status/MFA/role badges align into
+   uniform pills within a column (Active, Disabled, Optional, Required, …).
+   Longer multi-word labels expand past the floor as needed. */
+.ui-badge {
+  min-width: 92px;
+}
+.ui-badge :deep(.v-chip__content) {
+  justify-content: center;
+  width: 100%;
+}
+</style>

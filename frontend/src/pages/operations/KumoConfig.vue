@@ -82,85 +82,106 @@ const shortChecksum = (checksum: string) => (checksum ? checksum.slice(0, 12) : 
       </template>
     </PageHeader>
 
-    <p class="mb-4 text-sm text-muted-foreground">
+    <p class="mb-4 text-body-2 text-medium-emphasis">
       Applying writes the actual KumoMTA configuration file and reloads the service. This affects
       live mail delivery — preview the generated policy first.
     </p>
 
-    <div
+    <v-alert
       v-if="previewError"
       data-testid="config-error"
-      class="mb-4 rounded-md border border-destructive/40 bg-destructive/5 px-4 py-6 text-center text-sm text-destructive"
+      type="error"
+      variant="tonal"
+      density="comfortable"
+      class="mb-4 text-center text-body-2"
     >
       {{ previewError }}
-    </div>
+    </v-alert>
 
     <div
       v-else-if="!preview"
-      class="mb-4 rounded-md border border-dashed px-4 py-10 text-center text-sm text-muted-foreground"
+      class="mb-4 rounded border border-dashed px-4 py-10 text-center text-body-2 text-medium-emphasis"
     >
       Click “Generate / Preview” to render the current KumoMTA policy.
     </div>
 
     <template v-else>
-      <div
+      <v-alert
         v-if="preview.valid === false"
         data-testid="config-lint-error"
-        class="mb-4 rounded-md border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        type="error"
+        variant="tonal"
+        density="comfortable"
+        class="mb-4 text-body-2"
       >
-        <p class="font-medium">Generated policy failed Lua validation — apply is disabled.</p>
-        <ul class="mt-1 list-inside list-disc font-mono text-xs">
+        <p class="font-weight-medium">Generated policy failed Lua validation — apply is disabled.</p>
+        <ul class="mt-1 font-mono text-caption" style="list-style: disc inside">
           <li v-for="(issue, i) in preview.lintIssues ?? []" :key="i">{{ issue }}</li>
         </ul>
-      </div>
-      <div
+      </v-alert>
+      <v-alert
         v-else-if="preview.valid"
         data-testid="config-lint-ok"
-        class="mb-4 rounded-md border border-emerald-500/40 bg-emerald-500/5 px-4 py-2 text-sm text-emerald-700 dark:text-emerald-400"
+        type="success"
+        variant="tonal"
+        density="comfortable"
+        class="mb-4 text-body-2"
       >
         Policy is valid Lua and ready to apply.
-      </div>
+      </v-alert>
 
-      <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <Card>
-          <CardContent class="p-4">
-            <div class="text-xs text-muted-foreground">VMTAs</div>
-            <div class="text-2xl font-semibold tabular-nums">{{ preview.vmtaCount }}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="p-4">
-            <div class="text-xs text-muted-foreground">Pools</div>
-            <div class="text-2xl font-semibold tabular-nums">{{ preview.poolCount }}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="p-4">
-            <div class="text-xs text-muted-foreground">Routes</div>
-            <div class="text-2xl font-semibold tabular-nums">{{ preview.routeCount }}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="p-4">
-            <div class="text-xs text-muted-foreground">DKIM</div>
-            <div class="text-2xl font-semibold tabular-nums">{{ preview.dkimCount }}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="p-4">
-            <div class="text-xs text-muted-foreground">Suppressions</div>
-            <div class="text-2xl font-semibold tabular-nums">{{ preview.suppressionCount }}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent class="p-4">
-            <div class="text-xs text-muted-foreground">Checksum</div>
-            <div class="mt-1">
-              <Badge variant="secondary" class="font-mono">{{ shortChecksum(preview.checksum) }}</Badge>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <v-row dense class="mb-4">
+        <v-col cols="6" sm="4" lg="2">
+          <Card>
+            <CardContent class="pa-4">
+              <div class="text-caption text-medium-emphasis">VMTAs</div>
+              <div class="text-h5 font-weight-bold tabular-nums">{{ preview.vmtaCount }}</div>
+            </CardContent>
+          </Card>
+        </v-col>
+        <v-col cols="6" sm="4" lg="2">
+          <Card>
+            <CardContent class="pa-4">
+              <div class="text-caption text-medium-emphasis">Pools</div>
+              <div class="text-h5 font-weight-bold tabular-nums">{{ preview.poolCount }}</div>
+            </CardContent>
+          </Card>
+        </v-col>
+        <v-col cols="6" sm="4" lg="2">
+          <Card>
+            <CardContent class="pa-4">
+              <div class="text-caption text-medium-emphasis">Routes</div>
+              <div class="text-h5 font-weight-bold tabular-nums">{{ preview.routeCount }}</div>
+            </CardContent>
+          </Card>
+        </v-col>
+        <v-col cols="6" sm="4" lg="2">
+          <Card>
+            <CardContent class="pa-4">
+              <div class="text-caption text-medium-emphasis">DKIM</div>
+              <div class="text-h5 font-weight-bold tabular-nums">{{ preview.dkimCount }}</div>
+            </CardContent>
+          </Card>
+        </v-col>
+        <v-col cols="6" sm="4" lg="2">
+          <Card>
+            <CardContent class="pa-4">
+              <div class="text-caption text-medium-emphasis">Suppressions</div>
+              <div class="text-h5 font-weight-bold tabular-nums">{{ preview.suppressionCount }}</div>
+            </CardContent>
+          </Card>
+        </v-col>
+        <v-col cols="6" sm="4" lg="2">
+          <Card>
+            <CardContent class="pa-4">
+              <div class="text-caption text-medium-emphasis">Checksum</div>
+              <div class="mt-1">
+                <Badge variant="secondary" class="font-mono">{{ shortChecksum(preview.checksum) }}</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </v-col>
+      </v-row>
 
       <Card>
         <CardHeader>
@@ -170,7 +191,8 @@ const shortChecksum = (checksum: string) => (checksum ? checksum.slice(0, 12) : 
         <CardContent>
           <pre
             data-testid="config-content"
-            class="max-h-[28rem] overflow-auto rounded-md border bg-muted/40 p-4 font-mono text-xs leading-relaxed"
+            class="overflow-auto rounded border bg-surface-light pa-4 font-mono text-caption"
+            style="max-height: 28rem"
           ><code>{{ preview.content }}</code></pre>
         </CardContent>
       </Card>

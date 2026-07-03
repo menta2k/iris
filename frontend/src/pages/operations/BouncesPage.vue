@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
 import PaginationControls from '@/components/common/PaginationControls.vue'
@@ -30,6 +31,14 @@ const {
   prevPage,
   setPageSize,
 } = usePagedList<Bounce>({ loader: (page) => mailOperationsService.listBounces(page) })
+
+// Expandable master-detail row (single-expand): the full diagnostic is long,
+// the row shows a truncated preview and the expanded row the whole payload.
+const expandedId = ref<string | null>(null)
+
+function toggleExpand(id: string) {
+  expandedId.value = expandedId.value === id ? null : id
+}
 </script>
 
 <template>
@@ -43,10 +52,11 @@ const {
       empty-message="No bounces recorded."
     >
       <Card>
-        <CardContent class="p-0">
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead style="width: 40px" />
                 <TableHead>Time</TableHead>
                 <TableHead>Recipient</TableHead>
                 <TableHead>Mailclass</TableHead>
@@ -58,19 +68,36 @@ const {
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="b in items" :key="b.id">
-                <TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDateTime(b.eventTime) }}</TableCell>
-                <TableCell>{{ b.recipient }}</TableCell>
-                <TableCell>{{ b.mailclass }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ b.smtpStatus }}</TableCell>
-                <TableCell><Badge variant="destructive">{{ b.bounceType }}</Badge></TableCell>
-                <TableCell>
-                  <Badge v-if="b.classification" variant="outline">{{ b.classification }}</Badge>
-                  <span v-else class="text-muted-foreground">—</span>
-                </TableCell>
-                <TableCell class="text-muted-foreground">{{ b.diagnostic }}</TableCell>
-                <TableCell><StatusBadge :status="b.processingState" /></TableCell>
-              </TableRow>
+              <template v-for="b in items" :key="b.id">
+                <TableRow class="row-clickable" @click="toggleExpand(b.id)">
+                  <TableCell>
+                    <v-icon size="small" :icon="expandedId === b.id ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
+                  </TableCell>
+                  <TableCell class="text-no-wrap text-medium-emphasis">{{ formatDateTime(b.eventTime) }}</TableCell>
+                  <TableCell>{{ b.recipient }}</TableCell>
+                  <TableCell>{{ b.mailclass }}</TableCell>
+                  <TableCell class="font-mono text-caption">{{ b.smtpStatus }}</TableCell>
+                  <TableCell><Badge variant="destructive">{{ b.bounceType }}</Badge></TableCell>
+                  <TableCell>
+                    <Badge v-if="b.classification" variant="outline">{{ b.classification }}</Badge>
+                    <span v-else class="text-medium-emphasis">—</span>
+                  </TableCell>
+                  <TableCell style="max-width: 384px">
+                    <span class="d-block text-truncate text-medium-emphasis" :title="b.diagnostic">{{
+                      b.diagnostic
+                    }}</span>
+                  </TableCell>
+                  <TableCell><StatusBadge :status="b.processingState" /></TableCell>
+                </TableRow>
+                <tr v-if="expandedId === b.id">
+                  <td :colspan="9" class="px-4 py-3">
+                    <p class="mb-1 text-caption text-uppercase text-medium-emphasis">Full diagnostic</p>
+                    <code class="d-block pa-2 rounded border font-mono text-caption text-break">{{
+                      b.diagnostic || '—'
+                    }}</code>
+                  </td>
+                </tr>
+              </template>
             </TableBody>
           </Table>
         </CardContent>
@@ -90,3 +117,9 @@ const {
     />
   </div>
 </template>
+
+<style scoped>
+.row-clickable {
+  cursor: pointer;
+}
+</style>

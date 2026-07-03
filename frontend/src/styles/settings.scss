@@ -1,0 +1,20 @@
+// NOTE: $layers stays OFF. Compiling Vuetify into CSS cascade layers trips a
+// Chromium bug where `var(--v-layout-*)` in layered rules never resolves
+// against the inline custom properties Vuetify's layout engine writes, so
+// v-main loses its app-bar/drawer offsets (verified in Chromium 149).
+// Coexistence with Tailwind relies on source order instead: Vuetify styles
+// are imported before style.css, so Tailwind utilities win ties.
+@forward 'vuetify/settings' with (
+  // Match the font stack the app already uses (Tailwind's font-sans default)
+  // instead of Vuetify's Roboto, which isn't loaded.
+  $body-font-family: (
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif
+  )
+);

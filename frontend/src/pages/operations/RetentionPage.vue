@@ -123,7 +123,7 @@ async function run(tableName: string) {
       empty-message="No retention-managed tables."
     >
       <Card>
-        <CardContent class="p-0">
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -141,23 +141,23 @@ async function run(tableName: string) {
             <TableBody>
               <TableRow v-for="v in items" :key="v.policy.tableName">
                 <TableCell>
-                  <div class="font-medium">{{ v.label }}</div>
-                  <div class="font-mono text-xs text-muted-foreground">{{ v.policy.tableName }}</div>
+                  <div class="font-weight-medium">{{ v.label }}</div>
+                  <div class="font-mono text-caption text-medium-emphasis">{{ v.policy.tableName }}</div>
                 </TableCell>
                 <template v-if="v.hypertable">
                   <TableCell class="tabular-nums">
                     {{ formatBytes(v.totalBytes) }}
-                    <span v-if="v.compressedBytes > 0" class="text-xs text-muted-foreground">
+                    <span v-if="v.compressedBytes > 0" class="text-caption text-medium-emphasis">
                       ({{ formatBytes(v.compressedBytes) }} compressed)
                     </span>
                   </TableCell>
                   <TableCell class="tabular-nums">
                     {{ v.chunkCount }}
-                    <span v-if="v.compressedChunks > 0" class="text-xs text-muted-foreground">
+                    <span v-if="v.compressedChunks > 0" class="text-caption text-medium-emphasis">
                       ({{ v.compressedChunks }} comp.)
                     </span>
                   </TableCell>
-                  <TableCell class="whitespace-nowrap text-muted-foreground">
+                  <TableCell class="text-no-wrap text-medium-emphasis">
                     {{ v.oldestData ? formatDateTime(v.oldestData) : '—' }}
                   </TableCell>
                   <TableCell>
@@ -169,9 +169,9 @@ async function run(tableName: string) {
                       {{ v.policy.enabled ? 'enabled' : 'disabled' }}
                     </Badge>
                   </TableCell>
-                  <TableCell class="whitespace-nowrap text-xs text-muted-foreground">
+                  <TableCell class="text-no-wrap text-caption text-medium-emphasis">
                     <template v-if="v.lastRun">
-                      <span v-if="v.lastRun.error" class="text-destructive">error</span>
+                      <span v-if="v.lastRun.error" class="text-error">error</span>
                       <span v-else>
                         {{ formatDateTime(v.lastRun.startedAt) }} ·
                         −{{ formatBytes(Math.max(0, v.lastRun.bytesBefore - v.lastRun.bytesAfter)) }}
@@ -179,13 +179,15 @@ async function run(tableName: string) {
                     </template>
                     <template v-else>—</template>
                   </TableCell>
-                  <TableCell class="space-x-2 text-right">
-                    <Button variant="outline" size="sm" :data-testid="`edit-retention-${v.policy.tableName}`" @click="openEdit(v)">Edit</Button>
-                    <Button variant="outline" size="sm" :data-testid="`run-retention-${v.policy.tableName}`" @click="run(v.policy.tableName)">Run</Button>
+                  <TableCell class="text-right">
+                    <div class="d-flex justify-end ga-2">
+                      <Button variant="outline" size="sm" :data-testid="`edit-retention-${v.policy.tableName}`" @click="openEdit(v)">Edit</Button>
+                      <Button variant="outline" size="sm" :data-testid="`run-retention-${v.policy.tableName}`" @click="run(v.policy.tableName)">Run</Button>
+                    </div>
                   </TableCell>
                 </template>
                 <template v-else>
-                  <TableCell colspan="8" class="text-muted-foreground">
+                  <TableCell colspan="8" class="text-medium-emphasis">
                     TimescaleDB not enabled for this table — chunk-based retention unavailable.
                   </TableCell>
                 </template>
@@ -200,24 +202,24 @@ async function run(tableName: string) {
       <DialogHeader>
         <DialogTitle>Edit retention — {{ editTable }}</DialogTitle>
       </DialogHeader>
-      <form class="space-y-4" @submit.prevent="save">
-        <div class="space-y-1.5">
+      <form class="d-flex flex-column ga-4" @submit.prevent="save">
+        <div class="d-flex flex-column ga-1">
           <Label for="ret-keep">Keep (days)</Label>
           <Input id="ret-keep" v-model="form.retention_days" type="number" min="0" />
-          <p class="text-xs text-muted-foreground">Drop chunks older than this. <strong>0 = keep forever.</strong></p>
+          <p class="text-caption text-medium-emphasis">Drop chunks older than this. <strong>0 = keep forever.</strong></p>
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="ret-compress">Compress after (days)</Label>
           <Input id="ret-compress" v-model="form.compress_after_days" type="number" min="0" />
-          <p class="text-xs text-muted-foreground">
+          <p class="text-caption text-medium-emphasis">
             Compress chunks older than this (~90% smaller) before they are dropped. 0 = no compression. Must be less than the keep window.
           </p>
         </div>
-        <label class="flex items-center gap-2 text-sm">
-          <input v-model="form.enabled" type="checkbox" class="h-4 w-4" data-testid="ret-enabled" />
+        <label class="d-flex align-center ga-2 text-body-2">
+          <input v-model="form.enabled" type="checkbox" style="width: 16px; height: 16px" data-testid="ret-enabled" />
           Enabled (run automatically each day)
         </label>
-        <p v-if="formError" class="text-xs text-destructive">{{ formError }}</p>
+        <p v-if="formError" class="text-caption text-error">{{ formError }}</p>
         <DialogFooter>
           <Button type="button" variant="outline" @click="dialogOpen = false">Cancel</Button>
           <Button type="submit" :disabled="saving || !!formError">{{ saving ? 'Saving…' : 'Save' }}</Button>

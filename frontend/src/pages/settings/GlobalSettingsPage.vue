@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { useToast } from '@/composables/useToast'
 import { settingsService } from '@/services'
 import { acmeService } from '@/services/acme'
@@ -18,6 +17,19 @@ const { toast } = useToast()
 
 // Issued certificates available to serve the admin UI over HTTPS.
 const issuedCerts = ref<AcmeCertificate[]>([])
+
+const RSPAMD_MODE_ITEMS = [
+  { title: 'Off (disabled)', value: '' },
+  { title: 'Tag — scan & add X-Spam headers, never reject', value: 'tag' },
+  { title: 'Enforce — honor reject (550) / greylist (451)', value: 'enforce' },
+]
+
+const certItems = computed(() =>
+  issuedCerts.value.map((c) => ({
+    title: c.expiresAt ? `${c.domain} (expires ${formatDateTime(c.expiresAt)})` : c.domain,
+    value: c.domain,
+  })),
+)
 
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -172,7 +184,7 @@ onMounted(load)
     />
 
     <DataState :loading="loading" :error="error" :not-implemented="notImplemented">
-      <form class="max-w-2xl space-y-6" @submit.prevent="save">
+      <form class="d-flex flex-column ga-6" style="max-width: 672px" @submit.prevent="save">
         <Card>
           <CardHeader>
             <CardTitle>Inbound Spam Filtering (rspamd)</CardTitle>
@@ -181,19 +193,23 @@ onMounted(load)
               fail-open if rspamd is unreachable.
             </CardDescription>
           </CardHeader>
-          <CardContent class="space-y-4">
-            <div class="space-y-1.5">
+          <CardContent class="d-flex flex-column ga-4">
+            <div class="d-flex flex-column ga-1">
               <Label for="rspamd-mode">Mode</Label>
-              <Select id="rspamd-mode" v-model="form.rspamd_mode" data-testid="rspamd-mode">
-                <option value="">Off (disabled)</option>
-                <option value="tag">Tag — scan &amp; add X-Spam headers, never reject</option>
-                <option value="enforce">Enforce — honor reject (550) / greylist (451)</option>
-              </Select>
+              <v-select
+                id="rspamd-mode"
+                v-model="form.rspamd_mode"
+                :items="RSPAMD_MODE_ITEMS"
+                variant="outlined"
+                density="compact"
+                hide-details
+                data-testid="rspamd-mode"
+              />
             </div>
-            <div class="space-y-1.5">
+            <div class="d-flex flex-column ga-1">
               <Label for="rspamd-url">rspamd URL</Label>
               <Input id="rspamd-url" v-model="form.rspamd_url" placeholder="http://rspamd:11334" />
-              <p class="text-xs text-muted-foreground">Required when mode is Tag or Enforce.</p>
+              <p class="text-caption text-medium-emphasis">Required when mode is Tag or Enforce.</p>
             </div>
           </CardContent>
         </Card>
@@ -202,15 +218,15 @@ onMounted(load)
           <CardHeader>
             <CardTitle>Outbound &amp; Logging</CardTitle>
           </CardHeader>
-          <CardContent class="space-y-4">
-            <div class="space-y-1.5">
+          <CardContent class="d-flex flex-column ga-4">
+            <div class="d-flex flex-column ga-1">
               <Label for="ehlo">Default egress EHLO domain</Label>
               <Input id="ehlo" v-model="form.egress_ehlo_domain" placeholder="mail.example.com" />
             </div>
-            <div class="space-y-1.5">
+            <div class="d-flex flex-column ga-1">
               <Label for="redis">Log-stream Redis URL</Label>
               <Input id="redis" v-model="form.log_stream_redis_url" placeholder="redis://redis:6379" />
-              <p class="text-xs text-muted-foreground">
+              <p class="text-caption text-medium-emphasis">
                 Enables the KumoMTA log_hook that feeds the Mail Logs. The address KumoMTA reaches
                 Redis at.
               </p>
@@ -227,23 +243,23 @@ onMounted(load)
               KumoMTA defaults.
             </CardDescription>
           </CardHeader>
-          <CardContent class="space-y-4">
-            <div class="space-y-1.5">
+          <CardContent class="d-flex flex-column ga-4">
+            <div class="d-flex flex-column ga-1">
               <Label for="retry">Retry interval</Label>
               <Input id="retry" v-model="form.egress_retry_interval" placeholder="20m" />
-              <p class="text-xs text-muted-foreground">
+              <p class="text-caption text-medium-emphasis">
                 Base interval before the first retry; backs off exponentially.
               </p>
             </div>
-            <div class="space-y-1.5">
+            <div class="d-flex flex-column ga-1">
               <Label for="max-retry">Max retry interval</Label>
               <Input id="max-retry" v-model="form.egress_max_retry_interval" placeholder="2h" />
-              <p class="text-xs text-muted-foreground">Caps the exponential backoff.</p>
+              <p class="text-caption text-medium-emphasis">Caps the exponential backoff.</p>
             </div>
-            <div class="space-y-1.5">
+            <div class="d-flex flex-column ga-1">
               <Label for="max-age">Max message age</Label>
               <Input id="max-age" v-model="form.egress_max_age" placeholder="1d" />
-              <p class="text-xs text-muted-foreground">
+              <p class="text-caption text-medium-emphasis">
                 A message bounces if still undeliverable after this age.
               </p>
             </div>
@@ -258,23 +274,23 @@ onMounted(load)
               repeatedly-failing recipients. Requires the log-stream Redis URL above.
             </CardDescription>
           </CardHeader>
-          <CardContent class="space-y-4">
-            <div class="space-y-1.5">
+          <CardContent class="d-flex flex-column ga-4">
+            <div class="d-flex flex-column ga-1">
               <Label for="bounce-domain">Bounce domain</Label>
               <Input id="bounce-domain" v-model="form.bounce_domain" placeholder="bounce.example.com" />
-              <p class="text-xs text-muted-foreground">
+              <p class="text-caption text-medium-emphasis">
                 Mail to this domain is routed to the DSN catcher instead of being relayed. Leave
                 blank to disable the bounce pipeline.
               </p>
             </div>
-            <div class="space-y-1.5">
+            <div class="d-flex flex-column ga-1">
               <Label for="bounce-domain-template">Per-domain bounce template</Label>
               <Input
                 id="bounce-domain-template"
                 v-model="form.bounce_domain_template"
                 placeholder="bounce.kumo.{domain}"
               />
-              <p class="text-xs text-muted-foreground">
+              <p class="text-caption text-medium-emphasis">
                 Optional. When set, the return-path is derived per sending (DKIM) domain by
                 substituting <code>{domain}</code> — e.g. mail from <code>@example.com</code> uses
                 <code>bounce.kumo.example.com</code>, aligning SPF with the From-domain so it backs up
@@ -282,7 +298,7 @@ onMounted(load)
                 records. Leave blank to use the single bounce domain above for all mail.
               </p>
             </div>
-            <div class="flex items-start gap-2">
+            <div class="d-flex align-start ga-2">
               <input
                 id="auto-suppress"
                 v-model="form.auto_suppress_hard_bounces"
@@ -290,11 +306,11 @@ onMounted(load)
                 class="mt-1"
                 data-testid="auto-suppress"
               />
-              <Label for="auto-suppress" class="font-normal">
+              <Label for="auto-suppress" class="font-weight-regular">
                 Auto-suppress recipients on a hard (5xx) bounce
               </Label>
             </div>
-            <div class="space-y-1.5">
+            <div class="d-flex flex-column ga-1">
               <Label for="soft-threshold">Soft-bounce suppression threshold</Label>
               <Input
                 id="soft-threshold"
@@ -304,12 +320,12 @@ onMounted(load)
                 max="1000"
                 placeholder="0"
               />
-              <p class="text-xs text-muted-foreground">
+              <p class="text-caption text-medium-emphasis">
                 Suppress a recipient after this many soft (4xx) bounces. 0 disables soft-bounce
                 suppression.
               </p>
             </div>
-            <div class="flex items-start gap-2">
+            <div class="d-flex align-start ga-2">
               <input
                 id="fbl-require-verification"
                 v-model="form.fbl_require_verification"
@@ -317,16 +333,16 @@ onMounted(load)
                 class="mt-1"
                 data-testid="fbl-require-verification"
               />
-              <Label for="fbl-require-verification" class="font-normal">
+              <Label for="fbl-require-verification" class="font-weight-regular">
                 Require FBL verification before auto-suppressing
-                <span class="block text-xs text-muted-foreground">
+                <span class="d-block text-caption text-medium-emphasis">
                   Only suppress a complainant when the feedback report is proven to be about mail we
                   sent (X-KumoRef trace, send log, or our DKIM signature). Off = suppress every
                   complaint.
                 </span>
               </Label>
             </div>
-            <div class="space-y-1.5">
+            <div class="d-flex flex-column ga-1">
               <Label for="suppression-ttl">Suppression record lifetime</Label>
               <Input
                 id="suppression-ttl"
@@ -334,13 +350,13 @@ onMounted(load)
                 placeholder="30d"
                 data-testid="suppression-ttl"
               />
-              <p class="text-xs text-muted-foreground">
+              <p class="text-caption text-medium-emphasis">
                 How long a suppression entry blocks a recipient before it ages out (duration form,
                 e.g. <code>720h</code>, <code>30d</code>). Leave blank to keep suppressions
                 permanent. Applied as the Redis key TTL on the live suppression list.
               </p>
             </div>
-            <div class="space-y-1.5">
+            <div class="d-flex flex-column ga-1">
               <Label for="dmarc-email">DMARC report address</Label>
               <Input
                 id="dmarc-email"
@@ -348,13 +364,13 @@ onMounted(load)
                 placeholder="dmarc@kmx.example.com"
                 data-testid="dmarc-report-email"
               />
-              <p class="text-xs text-muted-foreground">
+              <p class="text-caption text-medium-emphasis">
                 Address to advertise as <code>rua=</code> in your domains' DMARC DNS records.
                 Inbound aggregate reports arriving here are parsed into the DMARC Reports page. One
                 address serves all your domains. Leave blank to disable.
               </p>
             </div>
-            <div class="space-y-1.5">
+            <div class="d-flex flex-column ga-1">
               <Label for="maildir-base">Inbound maildir base path</Label>
               <Input
                 id="maildir-base"
@@ -362,7 +378,7 @@ onMounted(load)
                 placeholder="/var/spool/iris/maildirs"
                 data-testid="inbound-maildir-base-path"
               />
-              <p class="text-xs text-muted-foreground">
+              <p class="text-caption text-medium-emphasis">
                 Filesystem root for inbound <strong>maildir</strong> routes that don't set their own
                 path. kumod writes one Maildir per recipient under
                 <code>&lt;base&gt;/&lt;domain&gt;/&lt;local-part&gt;</code>. Leave blank for the
@@ -377,12 +393,12 @@ onMounted(load)
             <CardTitle>Listeners</CardTitle>
             <CardDescription>Default binds emitted in the generated policy.</CardDescription>
           </CardHeader>
-          <CardContent class="space-y-4">
-            <div class="space-y-1.5">
+          <CardContent class="d-flex flex-column ga-4">
+            <div class="d-flex flex-column ga-1">
               <Label for="esmtp">ESMTP listen (host:port)</Label>
               <Input id="esmtp" v-model="form.esmtp_listen" placeholder="0.0.0.0:2525" />
             </div>
-            <div class="space-y-1.5">
+            <div class="d-flex flex-column ga-1">
               <Label for="http">HTTP listen (host:port)</Label>
               <Input id="http" v-model="form.http_listen" placeholder="0.0.0.0:8000" />
             </div>
@@ -394,15 +410,15 @@ onMounted(load)
             <CardTitle>Observability</CardTitle>
             <CardDescription>Metrics source for the dashboard charts.</CardDescription>
           </CardHeader>
-          <CardContent class="space-y-4">
-            <div class="space-y-1.5">
+          <CardContent class="d-flex flex-column ga-4">
+            <div class="d-flex flex-column ga-1">
               <Label for="prometheus-url">Prometheus URL</Label>
               <Input
                 id="prometheus-url"
                 v-model="form.prometheus_url"
                 placeholder="http://localhost:9090"
               />
-              <p class="text-xs text-muted-foreground">
+              <p class="text-caption text-medium-emphasis">
                 Base URL of the Prometheus that scrapes Iris/KumoMTA. When set, the dashboard
                 shows mail-flow charts. Leave blank to disable.
               </p>
@@ -419,8 +435,8 @@ onMounted(load)
               raw subject is never stored on the mail log — only the label.
             </CardDescription>
           </CardHeader>
-          <CardContent class="space-y-4">
-            <div class="flex items-start gap-2">
+          <CardContent class="d-flex flex-column ga-4">
+            <div class="d-flex align-start ga-2">
               <input
                 id="classify-subjects"
                 v-model="form.classify_subjects"
@@ -428,19 +444,19 @@ onMounted(load)
                 class="mt-1"
                 data-testid="classify-subjects"
               />
-              <Label for="classify-subjects" class="font-normal">
+              <Label for="classify-subjects" class="font-weight-regular">
                 Classify received mail by subject
-                <span class="block text-xs text-muted-foreground">
+                <span class="d-block text-caption text-medium-emphasis">
                   Requires the IRIS_OPENAI_API_KEY environment variable for the LLM fallback;
                   without it, only your existing rules match.
                 </span>
               </Label>
             </div>
-            <div class="space-y-1.5">
+            <div class="d-flex flex-column ga-1">
               <Label for="classify-model">Model</Label>
               <Input id="classify-model" v-model="form.classify_model" placeholder="gpt-4o-mini" />
             </div>
-            <div class="space-y-1.5">
+            <div class="d-flex flex-column ga-1">
               <Label for="classify-threshold">Similarity threshold</Label>
               <Input
                 id="classify-threshold"
@@ -450,19 +466,19 @@ onMounted(load)
                 max="1"
                 step="0.05"
               />
-              <p class="text-xs text-muted-foreground">
+              <p class="text-caption text-medium-emphasis">
                 Trigram similarity (0–1) required to reuse an existing label before calling the
                 model. Higher = stricter matches, more model calls. Default 0.45.
               </p>
             </div>
-            <div class="space-y-1.5">
+            <div class="d-flex flex-column ga-1">
               <Label for="classify-api-base">API base URL</Label>
               <Input
                 id="classify-api-base"
                 v-model="form.classify_api_base"
                 placeholder="https://api.openai.com/v1"
               />
-              <p class="text-xs text-muted-foreground">
+              <p class="text-caption text-medium-emphasis">
                 OpenAI-compatible endpoint (OpenAI, Azure OpenAI, or a local gateway).
               </p>
             </div>
@@ -477,15 +493,15 @@ onMounted(load)
               service restart (the listening socket is bound at startup).
             </CardDescription>
           </CardHeader>
-          <CardContent class="space-y-4">
-            <div class="space-y-1.5">
+          <CardContent class="d-flex flex-column ga-4">
+            <div class="d-flex flex-column ga-1">
               <Label for="admin-addr">Admin bind (host:port)</Label>
               <Input id="admin-addr" v-model="form.admin_http_addr" placeholder=":8080" />
-              <p class="text-xs text-muted-foreground">
+              <p class="text-caption text-medium-emphasis">
                 Overrides the configured HTTP bind. Leave blank to keep the startup config.
               </p>
             </div>
-            <div class="flex items-start gap-2">
+            <div class="d-flex align-start ga-2">
               <input
                 id="admin-tls"
                 v-model="form.admin_tls_enabled"
@@ -493,21 +509,24 @@ onMounted(load)
                 class="mt-1"
                 data-testid="admin-tls-enabled"
               />
-              <Label for="admin-tls" class="font-normal">
+              <Label for="admin-tls" class="font-weight-regular">
                 Serve HTTPS using an issued certificate
               </Label>
             </div>
-            <div v-if="form.admin_tls_enabled" class="space-y-1.5">
+            <div v-if="form.admin_tls_enabled" class="d-flex flex-column ga-1">
               <Label for="admin-cert">Certificate</Label>
-              <Select id="admin-cert" v-model="form.admin_tls_cert_domain" data-testid="admin-cert">
-                <option value="" disabled>
-                  {{ issuedCerts.length ? 'Select a certificate…' : 'No issued certificates' }}
-                </option>
-                <option v-for="c in issuedCerts" :key="c.id" :value="c.domain">
-                  {{ c.domain }}<span v-if="c.expiresAt"> (expires {{ formatDateTime(c.expiresAt) }})</span>
-                </option>
-              </Select>
-              <p class="text-xs text-muted-foreground">
+              <v-select
+                id="admin-cert"
+                v-model="form.admin_tls_cert_domain"
+                :items="certItems"
+                variant="outlined"
+                density="compact"
+                hide-details
+                :placeholder="issuedCerts.length ? 'Select a certificate…' : 'No issued certificates'"
+                no-data-text="No issued certificates"
+                data-testid="admin-cert"
+              />
+              <p class="text-caption text-medium-emphasis">
                 Issue certificates under TLS Certificates (ACME) first. If the selected cert can't be
                 loaded at startup, Iris falls back to plain HTTP (so a bad pick won't lock you out).
               </p>
@@ -524,20 +543,26 @@ onMounted(load)
               defaults (scan every 12h, renew within 30d of expiry).
             </CardDescription>
           </CardHeader>
-          <CardContent class="grid gap-4 sm:grid-cols-2">
-            <div class="space-y-1.5">
-              <Label for="renew-interval">Scan interval</Label>
-              <Input id="renew-interval" v-model="form.acme_renew_interval" placeholder="12h" />
-            </div>
-            <div class="space-y-1.5">
-              <Label for="renew-before">Renew before expiry</Label>
-              <Input id="renew-before" v-model="form.acme_renew_before" placeholder="30d" />
-            </div>
+          <CardContent>
+            <v-row dense>
+              <v-col cols="12" sm="6">
+                <div class="d-flex flex-column ga-1">
+                  <Label for="renew-interval">Scan interval</Label>
+                  <Input id="renew-interval" v-model="form.acme_renew_interval" placeholder="12h" />
+                </div>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <div class="d-flex flex-column ga-1">
+                  <Label for="renew-before">Renew before expiry</Label>
+                  <Input id="renew-before" v-model="form.acme_renew_before" placeholder="30d" />
+                </div>
+              </v-col>
+            </v-row>
           </CardContent>
         </Card>
 
-        <div class="flex items-center justify-between">
-          <p v-if="updatedBy" class="text-xs text-muted-foreground">
+        <div class="d-flex align-center justify-space-between">
+          <p v-if="updatedBy" class="text-caption text-medium-emphasis">
             Last updated by {{ updatedBy }}<span v-if="updatedAt"> at {{ updatedAt }}</span>
           </p>
           <Button type="submit" data-testid="save-settings" :disabled="saving">

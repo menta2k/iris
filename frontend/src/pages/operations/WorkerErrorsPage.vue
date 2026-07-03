@@ -16,11 +16,16 @@ import { StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { usePagedList } from '@/composables/usePagedList'
 import { workerErrorsService } from '@/services'
 import { formatDateTime } from '@/composables/useTimezone'
 import type { WorkerErrorLog, WorkerErrorLogFilters } from '@/types'
+
+const LEVEL_ITEMS = [
+  { title: 'All levels', value: '' },
+  { title: 'Error', value: 'error' },
+  { title: 'Warning', value: 'warn' },
+]
 
 const filters = ref<WorkerErrorLogFilters>({
   level: '',
@@ -59,6 +64,14 @@ function formatDetail(detail: string): string {
     return detail
   }
 }
+
+// Expandable master-detail row (single-expand): stack-trace-like payloads
+// need the full width, not a truncated cell.
+const expandedId = ref<string | null>(null)
+
+function toggleExpand(id: string) {
+  expandedId.value = expandedId.value === id ? null : id
+}
 </script>
 
 <template>
@@ -69,24 +82,31 @@ function formatDetail(detail: string): string {
     />
 
     <Card class="mb-4">
-      <CardContent class="p-4">
-        <form class="grid items-end gap-3 md:grid-cols-4" @submit.prevent="reload">
-          <div class="space-y-1">
-            <Label for="f-level">Level</Label>
-            <Select id="f-level" v-model="filters.level" data-testid="worker-error-level">
-              <option value="">All levels</option>
-              <option value="error">Error</option>
-              <option value="warn">Warning</option>
-            </Select>
-          </div>
-          <div class="space-y-1">
-            <Label for="f-worker">Worker</Label>
-            <Input id="f-worker" v-model="filters.worker" placeholder="dmarc" />
-          </div>
-          <div class="flex gap-2">
-            <Button type="submit" data-testid="apply-filters">Filter</Button>
-            <Button type="button" variant="outline" @click="resetFilters">Reset</Button>
-          </div>
+      <CardContent class="pa-4">
+        <form @submit.prevent="reload">
+          <v-row dense align="end">
+            <v-col cols="12" sm="4" md="3">
+              <Label for="f-level">Level</Label>
+              <v-select
+                id="f-level"
+                :model-value="filters.level"
+                :items="LEVEL_ITEMS"
+                data-testid="worker-error-level"
+                variant="outlined"
+                density="compact"
+                hide-details
+                @update:model-value="filters.level = $event"
+              />
+            </v-col>
+            <v-col cols="12" sm="4" md="3">
+              <Label for="f-worker">Worker</Label>
+              <Input id="f-worker" v-model="filters.worker" placeholder="dmarc" />
+            </v-col>
+            <v-col cols="12" sm="4" md="3" class="d-flex ga-2">
+              <Button type="submit" data-testid="apply-filters">Filter</Button>
+              <Button type="button" variant="outline" @click="resetFilters">Reset</Button>
+            </v-col>
+          </v-row>
         </form>
       </CardContent>
     </Card>
@@ -99,10 +119,11 @@ function formatDetail(detail: string): string {
       empty-message="No worker errors recorded — everything is processing cleanly."
     >
       <Card>
-        <CardContent class="p-0">
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead style="width: 40px" />
                 <TableHead>Time</TableHead>
                 <TableHead>Level</TableHead>
                 <TableHead>Worker</TableHead>
@@ -111,24 +132,43 @@ function formatDetail(detail: string): string {
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="w in items" :key="w.id">
-                <TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDateTime(w.eventTime) }}</TableCell>
-                <TableCell>
-                  <StatusBadge :status="w.level === 'warn' ? 'warning' : 'error'" />
-                </TableCell>
-                <TableCell class="font-mono text-xs">{{ w.worker || '—' }}</TableCell>
-                <TableCell class="max-w-md">
-                  <span class="block truncate" :title="w.message">{{ w.message }}</span>
-                </TableCell>
-                <TableCell class="max-w-md">
-                  <code
-                    v-if="formatDetail(w.detail)"
-                    class="block truncate font-mono text-xs text-muted-foreground"
-                    :title="formatDetail(w.detail)"
-                  >{{ w.detail }}</code>
-                  <span v-else class="text-muted-foreground">—</span>
-                </TableCell>
-              </TableRow>
+              <template v-for="w in items" :key="w.id">
+                <TableRow class="row-clickable" @click="toggleExpand(w.id)">
+                  <TableCell>
+                    <v-icon size="small" :icon="expandedId === w.id ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
+                  </TableCell>
+                  <TableCell class="text-no-wrap text-medium-emphasis">{{ formatDateTime(w.eventTime) }}</TableCell>
+                  <TableCell>
+                    <StatusBadge :status="w.level === 'warn' ? 'warning' : 'error'" />
+                  </TableCell>
+                  <TableCell class="font-mono text-caption">{{ w.worker || '—' }}</TableCell>
+                  <TableCell style="max-width: 448px">
+                    <span class="d-block text-truncate" :title="w.message">{{ w.message }}</span>
+                  </TableCell>
+                  <TableCell style="max-width: 384px">
+                    <code
+                      v-if="formatDetail(w.detail)"
+                      class="d-block text-truncate font-mono text-caption text-medium-emphasis"
+                      :title="formatDetail(w.detail)"
+                    >{{ w.detail }}</code>
+                    <span v-else class="text-medium-emphasis">—</span>
+                  </TableCell>
+                </TableRow>
+                <tr v-if="expandedId === w.id">
+                  <td :colspan="6" class="px-4 py-3">
+                    <p class="mb-1 text-caption text-uppercase text-medium-emphasis">Message</p>
+                    <code class="d-block pa-2 rounded border font-mono text-caption text-break mb-3">{{
+                      w.message
+                    }}</code>
+                    <template v-if="formatDetail(w.detail)">
+                      <p class="mb-1 text-caption text-uppercase text-medium-emphasis">Detail</p>
+                      <pre class="detail-pre pa-2 rounded border font-mono text-caption">{{
+                        formatDetail(w.detail)
+                      }}</pre>
+                    </template>
+                  </td>
+                </tr>
+              </template>
             </TableBody>
           </Table>
         </CardContent>
@@ -148,3 +188,14 @@ function formatDetail(detail: string): string {
     />
   </div>
 </template>
+
+<style scoped>
+.row-clickable {
+  cursor: pointer;
+}
+.detail-pre {
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+</style>

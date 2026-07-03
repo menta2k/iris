@@ -118,19 +118,15 @@ watch([series, loading], () => {
 
 <template>
   <Card data-testid="mail-flow-panel">
-    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle class="text-sm text-muted-foreground">Mail flow (events/min)</CardTitle>
-      <div class="flex gap-1">
+    <CardHeader class="d-flex flex-row align-center justify-space-between pb-2">
+      <CardTitle class="text-body-2 text-medium-emphasis">Mail flow (events/min)</CardTitle>
+      <div class="d-flex ga-1">
         <button
           v-for="r in RANGES"
           :key="r"
           type="button"
-          class="rounded px-2 py-0.5 text-xs font-medium transition-colors"
-          :class="
-            r === range
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:bg-muted'
-          "
+          class="rounded px-2 text-caption font-weight-medium"
+          :class="r === range ? 'bg-primary' : 'text-medium-emphasis'"
           @click="selectRange(r)"
         >
           {{ r }}
@@ -139,18 +135,18 @@ watch([series, loading], () => {
     </CardHeader>
     <CardContent>
       <!-- The chart canvas always exists so ECharts can mount; overlays cover it. -->
-      <div class="relative h-64 w-full">
-        <div ref="el" class="h-full w-full" />
+      <div class="position-relative w-100" style="height: 256px">
+        <div ref="el" class="h-100 w-100" />
         <div
           v-if="loading || error || notImplemented || prometheusUnavailable || !hasData"
-          class="absolute inset-0 flex items-center justify-center text-center text-sm text-muted-foreground"
+          class="position-absolute top-0 left-0 right-0 bottom-0 d-flex align-center justify-center text-center text-body-2 text-medium-emphasis"
         >
           <span v-if="loading">Loading…</span>
-          <span v-else-if="error" class="text-destructive">{{ error }}</span>
+          <span v-else-if="error" class="text-error">{{ error }}</span>
           <span v-else-if="notImplemented">Metrics endpoint not available.</span>
           <span v-else-if="prometheusUnavailable">
             No Prometheus configured. Set the Prometheus URL in
-            <RouterLink to="/settings" class="underline">Settings</RouterLink>.
+            <RouterLink to="/settings" class="text-decoration-underline">Settings</RouterLink>.
           </span>
           <span v-else>No data in this range yet.</span>
         </div>

@@ -1,5 +1,5 @@
 <template>
-  <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+  <div class="mt-6 d-flex flex-wrap justify-end ga-2">
     <slot />
   </div>
 </template>

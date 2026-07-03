@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { VSelect } from 'vuetify/components'
 import VmtaGroupsPage from '@/pages/outbound/VmtaGroupsPage.vue'
 import { outboundConfigService } from '@/services'
 import type { VMTA, VMTAGroup } from '@/types'
@@ -77,16 +78,19 @@ describe('VmtaGroupsPage', () => {
     addBtns[0].click()
     await flushPromises()
 
-    const selects = document.body.querySelectorAll(
-      'form select',
-    ) as NodeListOf<HTMLSelectElement>
+    // In create mode the only v-selects in the dialog are the member dropdowns.
+    const selects = wrapper.findAllComponents(VSelect)
     // The two member dropdowns must hold different VMTAs (no duplicate).
     expect(selects.length).toBeGreaterThanOrEqual(2)
-    expect(selects[0].value).not.toBe(selects[1].value)
-    // In the second dropdown, the option already chosen by the first is disabled.
-    const firstChoice = selects[0].value
-    const dupOption = Array.from(selects[1].options).find((o) => o.value === firstChoice)
-    expect(dupOption?.disabled).toBe(true)
+    const firstChoice = selects[0].props('modelValue')
+    expect(firstChoice).not.toBe(selects[1].props('modelValue'))
+    // In the second dropdown, the item already chosen by the first is disabled.
+    const secondItems = selects[1].props('items') as Array<{
+      value: string
+      props?: { disabled?: boolean }
+    }>
+    const dupItem = secondItems.find((i) => i.value === firstChoice)
+    expect(dupItem?.props?.disabled).toBe(true)
 
     wrapper.unmount()
   })

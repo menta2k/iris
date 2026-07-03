@@ -53,9 +53,9 @@ function pct(rate: number): string {
 
 // Color the bounce rate to flag warmup trouble at a glance.
 function bounceClass(rate: number): string {
-  if (rate >= 0.05) return 'text-destructive font-medium'
-  if (rate >= 0.02) return 'text-amber-600'
-  return 'text-muted-foreground'
+  if (rate >= 0.05) return 'text-error font-weight-medium'
+  if (rate >= 0.02) return 'text-warning'
+  return 'text-medium-emphasis'
 }
 
 onMounted(load)
@@ -64,21 +64,17 @@ watch(range, load)
 
 <template>
   <Card data-testid="warmup-stats-panel">
-    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle class="text-sm text-muted-foreground">
+    <CardHeader class="d-flex flex-row align-center justify-space-between pb-2">
+      <CardTitle class="text-body-2 text-medium-emphasis">
         Warmup delivery &amp; bounce by VMTA / domain
       </CardTitle>
-      <div class="flex gap-1">
+      <div class="d-flex ga-1">
         <button
           v-for="r in RANGES"
           :key="r"
           type="button"
-          class="rounded px-2 py-0.5 text-xs font-medium transition-colors"
-          :class="
-            r === range
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:bg-muted'
-          "
+          class="rounded px-2 text-caption font-weight-medium"
+          :class="r === range ? 'bg-primary' : 'text-medium-emphasis'"
           @click="selectRange(r)"
         >
           {{ r }}
@@ -86,11 +82,11 @@ watch(range, load)
       </div>
     </CardHeader>
     <CardContent>
-      <p v-if="error" class="py-6 text-center text-sm text-destructive">{{ error }}</p>
-      <p v-else-if="notImplemented" class="py-6 text-center text-sm text-muted-foreground">
+      <p v-if="error" class="py-6 text-center text-body-2 text-error">{{ error }}</p>
+      <p v-else-if="notImplemented" class="py-6 text-center text-body-2 text-medium-emphasis">
         Warmup stats endpoint not available.
       </p>
-      <p v-else-if="loading" class="py-6 text-center text-sm text-muted-foreground">Loading…</p>
+      <p v-else-if="loading" class="py-6 text-center text-body-2 text-medium-emphasis">Loading…</p>
       <Table v-else>
         <TableHeader>
           <TableRow>
@@ -110,20 +106,20 @@ watch(range, load)
             message="No delivery activity in this range yet."
           />
           <TableRow v-for="row in rows" :key="`${row.vmtaName}|${row.recipientDomain}`">
-            <TableCell class="whitespace-nowrap font-medium">{{ row.vmtaName }}</TableCell>
-            <TableCell class="whitespace-nowrap">{{ row.recipientDomain }}</TableCell>
+            <TableCell class="text-no-wrap font-weight-medium">{{ row.vmtaName }}</TableCell>
+            <TableCell class="text-no-wrap">{{ row.recipientDomain }}</TableCell>
             <TableCell class="text-right tabular-nums">{{ row.sent }}</TableCell>
             <TableCell class="text-right tabular-nums">{{ row.bounced }}</TableCell>
-            <TableCell class="text-right tabular-nums text-muted-foreground">
+            <TableCell class="text-right tabular-nums text-medium-emphasis">
               {{ row.deferred }}
             </TableCell>
             <TableCell class="text-right tabular-nums">
               <template v-if="Number(row.attempted) > 0">{{ pct(row.deliveryRate) }}</template>
-              <span v-else class="text-muted-foreground">—</span>
+              <span v-else class="text-medium-emphasis">—</span>
             </TableCell>
             <TableCell class="text-right tabular-nums" :class="bounceClass(row.bounceRate)">
               <template v-if="Number(row.attempted) > 0">{{ pct(row.bounceRate) }}</template>
-              <span v-else class="text-muted-foreground">—</span>
+              <span v-else class="text-medium-emphasis">—</span>
             </TableCell>
           </TableRow>
         </TableBody>

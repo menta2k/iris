@@ -3,12 +3,12 @@ defineProps<{ title: string; description?: string }>()
 </script>
 
 <template>
-  <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+  <div class="d-flex flex-wrap align-start justify-space-between ga-3 mb-5">
     <div>
-      <h1 class="text-xl font-semibold tracking-tight">{{ title }}</h1>
-      <p v-if="description" class="mt-1 text-sm text-muted-foreground">{{ description }}</p>
+      <h1 class="text-h5 font-weight-bold">{{ title }}</h1>
+      <p v-if="description" class="mt-1 text-body-2 text-medium-emphasis">{{ description }}</p>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="d-flex align-center ga-2">
       <slot name="actions" />
     </div>
   </div>

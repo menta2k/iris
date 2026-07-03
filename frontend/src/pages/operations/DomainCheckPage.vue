@@ -50,14 +50,14 @@ async function run() {
       description="Verify a domain's DNS is set up to send mail and accept bounces for this deployment: MX (points here), SPF (authorizes our IPs), and DKIM (selector published)."
     />
 
-    <Card class="mb-4 max-w-2xl">
+    <Card class="mb-4" style="max-width: 672px">
       <CardHeader>
         <CardTitle>Check a domain</CardTitle>
         <CardDescription>Runs live DNS lookups against the domain you enter.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form class="flex items-end gap-3" @submit.prevent="run">
-          <div class="flex-1 space-y-1.5">
+        <form class="d-flex align-end ga-3" @submit.prevent="run">
+          <div class="flex-grow-1 d-flex flex-column ga-1">
             <Label for="dc-domain">Domain</Label>
             <Input id="dc-domain" v-model="domain" placeholder="bounce.kmx.example.com" />
           </div>
@@ -68,19 +68,19 @@ async function run() {
       </CardContent>
     </Card>
 
-    <Card v-if="result" class="max-w-2xl">
+    <Card v-if="result" style="max-width: 672px">
       <CardHeader>
         <CardTitle>Results for <span class="font-mono">{{ result.domain }}</span></CardTitle>
       </CardHeader>
-      <CardContent class="space-y-4">
-        <div v-for="item in result.items ?? []" :key="item.name" class="rounded-md border p-3">
-          <div class="flex items-center justify-between">
-            <span class="font-medium">{{ item.name }}</span>
+      <CardContent class="d-flex flex-column ga-4">
+        <div v-for="item in result.items ?? []" :key="item.name" class="rounded border pa-3">
+          <div class="d-flex align-center justify-space-between">
+            <span class="font-weight-medium">{{ item.name }}</span>
             <Badge :variant="badgeVariant(item.status)">{{ item.status }}</Badge>
           </div>
-          <p class="mt-1 text-sm text-muted-foreground">{{ item.detail }}</p>
-          <ul v-if="item.records?.length" class="mt-2 space-y-0.5">
-            <li v-for="r in item.records" :key="r" class="break-all font-mono text-xs text-muted-foreground">
+          <p class="mt-1 text-body-2 text-medium-emphasis">{{ item.detail }}</p>
+          <ul v-if="item.records?.length" class="mt-2 d-flex flex-column ga-1">
+            <li v-for="r in item.records" :key="r" class="text-break font-mono text-caption text-medium-emphasis">
               {{ r }}
             </li>
           </ul>
