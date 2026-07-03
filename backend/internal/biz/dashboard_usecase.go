@@ -37,12 +37,53 @@ type WarmupDeliveryStatsResult struct {
 	Since int64  // unix seconds: window start
 }
 
+// MailClassStat is the mail-record volume for one mailclass over a window.
+// Count is every record; Delivered/Bounced/Deferred break it down by outcome
+// (delivered maps to the "sent" delivery status).
+type MailClassStat struct {
+	Mailclass string
+	Count     int64
+	Delivered int64
+	Bounced   int64
+	Deferred  int64
+}
+
+// MailClassStatsResult is the dashboard "mail by class" panel payload.
+type MailClassStatsResult struct {
+	Rows  []MailClassStat
+	Range string // echoed effective range
+	Since int64  // unix seconds: window start
+}
+
+// RecipientDomainStat is the mail-record volume for one recipient domain over a
+// window (the busiest domains, ranked by Count).
+type RecipientDomainStat struct {
+	RecipientDomain string
+	Count           int64
+	Delivered       int64
+	Bounced         int64
+	Deferred        int64
+}
+
+// RecipientDomainStatsResult is the dashboard "top recipient domains" payload.
+type RecipientDomainStatsResult struct {
+	Rows  []RecipientDomainStat
+	Range string // echoed effective range
+	Since int64  // unix seconds: window start
+}
+
 // DashboardRepo is the persistence boundary for dashboard statistics.
 type DashboardRepo interface {
 	Summary(ctx context.Context) (*DashboardSummary, error)
 	// DeliveryStats returns per-VMTA, per-recipient-domain raw counts for events
 	// at or after since. Rate fields are left zero for the usecase to derive.
 	DeliveryStats(ctx context.Context, since time.Time) ([]WarmupDeliveryStat, error)
+	// MailClassStats returns mail-record counts grouped by mailclass for events
+	// at or after since, ordered by total descending.
+	MailClassStats(ctx context.Context, since time.Time) ([]MailClassStat, error)
+	// RecipientDomainStats returns mail-record counts grouped by recipient domain
+	// for events at or after since, ordered by total descending, capped at limit.
+	RecipientDomainStats(ctx context.Context, since time.Time, limit int) ([]RecipientDomainStat, error)
 }
 
 // DashboardUsecase implements the dashboard summary (US6).
@@ -104,4 +145,39 @@ func (uc *DashboardUsecase) WarmupDeliveryStats(ctx context.Context, rng string)
 		}
 	}
 	return &WarmupDeliveryStatsResult{Rows: rows, Range: eff, Since: since.Unix()}, nil
+}
+
+// topRecipientDomains caps the "top recipient domains" panel.
+const topRecipientDomains = 10
+
+// MailClassStats returns mail-record volume grouped by mailclass over the given
+// lookback window, ordered by total descending.
+func (uc *DashboardUsecase) MailClassStats(ctx context.Context, rng string) (*MailClassStatsResult, error) {
+	if _, err := RequirePermission(ctx, PermDashboardRead); err != nil {
+		return nil, err
+	}
+	lookback, eff := warmupStatsLookback(rng)
+	since := time.Now().Add(-lookback)
+
+	rows, err := uc.repo.MailClassStats(ctx, since)
+	if err != nil {
+		return nil, err
+	}
+	return &MailClassStatsResult{Rows: rows, Range: eff, Since: since.Unix()}, nil
+}
+
+// RecipientDomainStats returns the busiest recipient domains by mail-record
+// volume over the given lookback window (top 10).
+func (uc *DashboardUsecase) RecipientDomainStats(ctx context.Context, rng string) (*RecipientDomainStatsResult, error) {
+	if _, err := RequirePermission(ctx, PermDashboardRead); err != nil {
+		return nil, err
+	}
+	lookback, eff := warmupStatsLookback(rng)
+	since := time.Now().Add(-lookback)
+
+	rows, err := uc.repo.RecipientDomainStats(ctx, since, topRecipientDomains)
+	if err != nil {
+		return nil, err
+	}
+	return &RecipientDomainStatsResult{Rows: rows, Range: eff, Since: since.Unix()}, nil
 }

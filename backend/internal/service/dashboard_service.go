@@ -74,3 +74,49 @@ func (s *Service) GetWarmupDeliveryStats(ctx context.Context, req *adminv1.GetWa
 	}
 	return out, nil
 }
+
+// GetMailClassStats returns mail-record volume grouped by mailclass over the
+// selected window ("mail by class" dashboard panel).
+func (s *Service) GetMailClassStats(ctx context.Context, req *adminv1.GetMailClassStatsRequest) (*adminv1.MailClassStats, error) {
+	if s.dashboard == nil {
+		return nil, notImplemented("GetMailClassStats")
+	}
+	res, err := s.dashboard.MailClassStats(ctx, req.GetRange())
+	if err != nil {
+		return nil, s.fail(ctx, "GetMailClassStats", err)
+	}
+	out := &adminv1.MailClassStats{Range: res.Range, Since: res.Since}
+	for _, row := range res.Rows {
+		out.Rows = append(out.Rows, &adminv1.MailClassStat{
+			Mailclass: row.Mailclass,
+			Count:     row.Count,
+			Delivered: row.Delivered,
+			Bounced:   row.Bounced,
+			Deferred:  row.Deferred,
+		})
+	}
+	return out, nil
+}
+
+// GetRecipientDomainStats returns the busiest recipient domains by mail-record
+// volume over the selected window ("top recipient domains" dashboard panel).
+func (s *Service) GetRecipientDomainStats(ctx context.Context, req *adminv1.GetRecipientDomainStatsRequest) (*adminv1.RecipientDomainStats, error) {
+	if s.dashboard == nil {
+		return nil, notImplemented("GetRecipientDomainStats")
+	}
+	res, err := s.dashboard.RecipientDomainStats(ctx, req.GetRange())
+	if err != nil {
+		return nil, s.fail(ctx, "GetRecipientDomainStats", err)
+	}
+	out := &adminv1.RecipientDomainStats{Range: res.Range, Since: res.Since}
+	for _, row := range res.Rows {
+		out.Rows = append(out.Rows, &adminv1.RecipientDomainStat{
+			RecipientDomain: row.RecipientDomain,
+			Count:           row.Count,
+			Delivered:       row.Delivered,
+			Bounced:         row.Bounced,
+			Deferred:        row.Deferred,
+		})
+	}
+	return out, nil
+}

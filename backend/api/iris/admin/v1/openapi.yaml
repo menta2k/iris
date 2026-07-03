@@ -361,6 +361,26 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ListBouncesReply'
+    /v1/dashboard/mailclass-stats:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                GetMailClassStats returns mail volume grouped by mailclass over a lookback
+                 window — powers the dashboard "mail by class" panel.
+            operationId: IrisAdminService_GetMailClassStats
+            parameters:
+                - name: range
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MailClassStats'
     /v1/dashboard/metrics:
         get:
             tags:
@@ -381,6 +401,26 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/MetricsTimeseries'
+    /v1/dashboard/recipient-domain-stats:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                GetRecipientDomainStats returns the busiest recipient domains by mail volume
+                 over a lookback window — powers the dashboard "top recipient domains" panel.
+            operationId: IrisAdminService_GetRecipientDomainStats
+            parameters:
+                - name: range
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RecipientDomainStats'
     /v1/dashboard/summary:
         get:
             tags:
@@ -648,6 +688,10 @@ paths:
                   schema:
                     type: string
                 - name: to
+                  in: query
+                  schema:
+                    type: string
+                - name: reporter
                   in: query
                   schema:
                     type: string
@@ -2520,6 +2564,18 @@ components:
                     format: int32
                 received_at:
                     type: string
+        DmarcReporterStat:
+            type: object
+            properties:
+                reporter:
+                    type: string
+                messages:
+                    type: integer
+                    format: int32
+                pass:
+                    type: integer
+                    format: int32
+            description: DmarcReporterStat is a per-reporter (org_name) rollup — who sent the reports.
         DmarcSource:
             type: object
             properties:
@@ -2565,6 +2621,13 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/DmarcDay'
+                reporters:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DmarcReporterStat'
+                    description: |-
+                        Per-reporter breakdown; ignores the reporter filter so the drill-down list
+                         stays complete even when one reporter is selected.
         DomainBounceCheck:
             type: object
             properties:
@@ -3135,6 +3198,34 @@ components:
         LogoutRequest:
             type: object
             properties: {}
+        MailClassStat:
+            type: object
+            properties:
+                mailclass:
+                    type: string
+                count:
+                    type: string
+                delivered:
+                    type: string
+                bounced:
+                    type: string
+                deferred:
+                    type: string
+            description: |-
+                MailClassStat is one mailclass with its mail-record counts over the window.
+                 count is the total records; the delivered/bounced/deferred breakdown lets the
+                 UI show delivery health per class.
+        MailClassStats:
+            type: object
+            properties:
+                rows:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/MailClassStat'
+                range:
+                    type: string
+                since:
+                    type: string
         MailRecord:
             type: object
             properties:
@@ -3292,6 +3383,33 @@ components:
                 listed:
                     type: boolean
                 reason:
+                    type: string
+        RecipientDomainStat:
+            type: object
+            properties:
+                recipient_domain:
+                    type: string
+                count:
+                    type: string
+                delivered:
+                    type: string
+                bounced:
+                    type: string
+                deferred:
+                    type: string
+            description: |-
+                RecipientDomainStat is one recipient domain with its mail-record counts over
+                 the window (the busiest domains, ranked by count).
+        RecipientDomainStats:
+            type: object
+            properties:
+                rows:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/RecipientDomainStat'
+                range:
+                    type: string
+                since:
                     type: string
         RequestAcmeCertificateRequest:
             type: object

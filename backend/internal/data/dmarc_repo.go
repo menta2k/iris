@@ -115,11 +115,17 @@ func (r *DMARCRepo) Stats(ctx context.Context, f biz.DMARCFilter) (*biz.DMARCSta
 	if !f.To.IsZero() {
 		to = f.To
 	}
-	where := `JOIN dmarc_reports rep ON rep.id = r.report_id
+	// whereBase scopes by domain + date only (used for the reporter breakdown so
+	// the drill-down list stays complete). where adds the reporter predicate and
+	// is used for every reporter-scoped aggregation.
+	whereBase := `JOIN dmarc_reports rep ON rep.id = r.report_id
 		WHERE ($1 = '' OR rep.domain = $1)
 		  AND ($2::timestamptz IS NULL OR rep.date_begin >= $2)
 		  AND ($3::timestamptz IS NULL OR rep.date_begin <= $3)`
-	args := []any{f.Domain, from, to}
+	baseArgs := []any{f.Domain, from, to}
+	where := whereBase + `
+		  AND ($4 = '' OR rep.org_name = $4)`
+	args := []any{f.Domain, from, to, f.Reporter}
 	out := &biz.DMARCStats{}
 
 	// Totals.
@@ -182,6 +188,28 @@ func (r *DMARCRepo) Stats(ctx context.Context, f biz.DMARCFilter) (*biz.DMARCSta
 		out.Domains = append(out.Domains, d)
 	}
 	if err := domRows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Per-reporter breakdown. Uses whereBase (no reporter predicate) so the
+	// drill-down list stays complete even when a reporter is selected.
+	repRows, err := r.db.Pool.Query(ctx, `
+		SELECT rep.org_name, COALESCE(SUM(r.count),0),
+		       COALESCE(SUM(r.count) FILTER (WHERE `+dmarcAligned+`),0)
+		FROM dmarc_records r `+whereBase+`
+		GROUP BY rep.org_name ORDER BY 2 DESC`, baseArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("dmarc reporters breakdown: %w", err)
+	}
+	defer repRows.Close()
+	for repRows.Next() {
+		var rp biz.DMARCReporterStat
+		if err := repRows.Scan(&rp.Reporter, &rp.Messages, &rp.Pass); err != nil {
+			return nil, fmt.Errorf("scan dmarc reporter stat: %w", err)
+		}
+		out.Reporters = append(out.Reporters, rp)
+	}
+	if err := repRows.Err(); err != nil {
 		return nil, err
 	}
 

@@ -54,7 +54,9 @@ const OperationIrisAdminServiceGetAcmeDnsProvider = "/iris.admin.v1.IrisAdminSer
 const OperationIrisAdminServiceGetDashboardSummary = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
 const OperationIrisAdminServiceGetDmarcStats = "/iris.admin.v1.IrisAdminService/GetDmarcStats"
 const OperationIrisAdminServiceGetGlobalSettings = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
+const OperationIrisAdminServiceGetMailClassStats = "/iris.admin.v1.IrisAdminService/GetMailClassStats"
 const OperationIrisAdminServiceGetMetricsTimeseries = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
+const OperationIrisAdminServiceGetRecipientDomainStats = "/iris.admin.v1.IrisAdminService/GetRecipientDomainStats"
 const OperationIrisAdminServiceGetWarmupDeliveryStats = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
 const OperationIrisAdminServiceKumoConfigStatus = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
 const OperationIrisAdminServiceListAcmeCertificates = "/iris.admin.v1.IrisAdminService/ListAcmeCertificates"
@@ -169,9 +171,15 @@ type IrisAdminServiceHTTPServer interface {
 	GetDmarcStats(context.Context, *GetDmarcStatsRequest) (*DmarcStats, error)
 	// GetGlobalSettings Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error)
+	// GetMailClassStats GetMailClassStats returns mail volume grouped by mailclass over a lookback
+	// window — powers the dashboard "mail by class" panel.
+	GetMailClassStats(context.Context, *GetMailClassStatsRequest) (*MailClassStats, error)
 	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(context.Context, *GetMetricsTimeseriesRequest) (*MetricsTimeseries, error)
+	// GetRecipientDomainStats GetRecipientDomainStats returns the busiest recipient domains by mail volume
+	// over a lookback window — powers the dashboard "top recipient domains" panel.
+	GetRecipientDomainStats(context.Context, *GetRecipientDomainStatsRequest) (*RecipientDomainStats, error)
 	// GetWarmupDeliveryStats GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
 	// bounce rates over a lookback window — used to watch IP-warmup health.
 	GetWarmupDeliveryStats(context.Context, *GetWarmupDeliveryStatsRequest) (*WarmupDeliveryStats, error)
@@ -356,6 +364,8 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.GET("/v1/dashboard/summary", _IrisAdminService_GetDashboardSummary0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/metrics", _IrisAdminService_GetMetricsTimeseries0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/warmup-stats", _IrisAdminService_GetWarmupDeliveryStats0_HTTP_Handler(srv))
+	r.GET("/v1/dashboard/mailclass-stats", _IrisAdminService_GetMailClassStats0_HTTP_Handler(srv))
+	r.GET("/v1/dashboard/recipient-domain-stats", _IrisAdminService_GetRecipientDomainStats0_HTTP_Handler(srv))
 	r.GET("/v1/domain-check/{domain}", _IrisAdminService_CheckDomainBounceSetup0_HTTP_Handler(srv))
 	r.POST("/v1/tools/diagnose", _IrisAdminService_Diagnose0_HTTP_Handler(srv))
 	r.POST("/v1/tools/rbl-check", _IrisAdminService_RblCheck0_HTTP_Handler(srv))
@@ -2073,6 +2083,44 @@ func _IrisAdminService_GetWarmupDeliveryStats0_HTTP_Handler(srv IrisAdminService
 	}
 }
 
+func _IrisAdminService_GetMailClassStats0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetMailClassStatsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetMailClassStats)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetMailClassStats(ctx, req.(*GetMailClassStatsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*MailClassStats)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_GetRecipientDomainStats0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetRecipientDomainStatsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetRecipientDomainStats)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetRecipientDomainStats(ctx, req.(*GetRecipientDomainStatsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*RecipientDomainStats)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_CheckDomainBounceSetup0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in CheckDomainBounceSetupRequest
@@ -2464,9 +2512,15 @@ type IrisAdminServiceHTTPClient interface {
 	GetDmarcStats(ctx context.Context, req *GetDmarcStatsRequest, opts ...http.CallOption) (rsp *DmarcStats, err error)
 	// GetGlobalSettings Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(ctx context.Context, req *GetGlobalSettingsRequest, opts ...http.CallOption) (rsp *GlobalSettings, err error)
+	// GetMailClassStats GetMailClassStats returns mail volume grouped by mailclass over a lookback
+	// window — powers the dashboard "mail by class" panel.
+	GetMailClassStats(ctx context.Context, req *GetMailClassStatsRequest, opts ...http.CallOption) (rsp *MailClassStats, err error)
 	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(ctx context.Context, req *GetMetricsTimeseriesRequest, opts ...http.CallOption) (rsp *MetricsTimeseries, err error)
+	// GetRecipientDomainStats GetRecipientDomainStats returns the busiest recipient domains by mail volume
+	// over a lookback window — powers the dashboard "top recipient domains" panel.
+	GetRecipientDomainStats(ctx context.Context, req *GetRecipientDomainStatsRequest, opts ...http.CallOption) (rsp *RecipientDomainStats, err error)
 	// GetWarmupDeliveryStats GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
 	// bounce rates over a lookback window — used to watch IP-warmup health.
 	GetWarmupDeliveryStats(ctx context.Context, req *GetWarmupDeliveryStatsRequest, opts ...http.CallOption) (rsp *WarmupDeliveryStats, err error)
@@ -3051,6 +3105,21 @@ func (c *IrisAdminServiceHTTPClientImpl) GetGlobalSettings(ctx context.Context, 
 	return &out, nil
 }
 
+// GetMailClassStats GetMailClassStats returns mail volume grouped by mailclass over a lookback
+// window — powers the dashboard "mail by class" panel.
+func (c *IrisAdminServiceHTTPClientImpl) GetMailClassStats(ctx context.Context, in *GetMailClassStatsRequest, opts ...http.CallOption) (*MailClassStats, error) {
+	var out MailClassStats
+	pattern := "/v1/dashboard/mailclass-stats"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetMailClassStats))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 // bounces, deferrals, receptions) from the configured Prometheus.
 func (c *IrisAdminServiceHTTPClientImpl) GetMetricsTimeseries(ctx context.Context, in *GetMetricsTimeseriesRequest, opts ...http.CallOption) (*MetricsTimeseries, error) {
@@ -3058,6 +3127,21 @@ func (c *IrisAdminServiceHTTPClientImpl) GetMetricsTimeseries(ctx context.Contex
 	pattern := "/v1/dashboard/metrics"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceGetMetricsTimeseries))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetRecipientDomainStats GetRecipientDomainStats returns the busiest recipient domains by mail volume
+// over a lookback window — powers the dashboard "top recipient domains" panel.
+func (c *IrisAdminServiceHTTPClientImpl) GetRecipientDomainStats(ctx context.Context, in *GetRecipientDomainStatsRequest, opts ...http.CallOption) (*RecipientDomainStats, error) {
+	var out RecipientDomainStats
+	pattern := "/v1/dashboard/recipient-domain-stats"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetRecipientDomainStats))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

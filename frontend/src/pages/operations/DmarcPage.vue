@@ -26,6 +26,7 @@ const { toast } = useToast()
 
 const domains = ref<string[]>([])
 const domain = ref('')
+const reporter = ref('')
 const loading = ref(false)
 const stats = ref<DmarcStats | null>(null)
 
@@ -36,6 +37,18 @@ const domainItems = computed(() => [
   { title: 'All domains', value: '' },
   ...domains.value.map((d) => ({ title: d, value: d })),
 ])
+
+// Reporter drill-down. The reporters breakdown ignores the reporter filter, so
+// this list stays complete even while one reporter is selected.
+const reporterItems = computed(() => [
+  { title: 'All reporters', value: '' },
+  ...(stats.value?.reporters ?? []).map((r) => ({ title: r.reporter, value: r.reporter })),
+])
+
+// Toggle a reporter drill-down from the "By reporter" table.
+function selectReporter(name: string) {
+  reporter.value = reporter.value === name ? '' : name
+}
 
 const dispEl = ref<HTMLDivElement | null>(null)
 const seriesEl = ref<HTMLDivElement | null>(null)
@@ -92,7 +105,7 @@ function renderCharts() {
 async function load() {
   loading.value = true
   try {
-    stats.value = await dmarcService.stats(domain.value || undefined)
+    stats.value = await dmarcService.stats(domain.value || undefined, reporter.value || undefined)
   } catch (err) {
     stats.value = null
     if (!(err instanceof ApiError && err.notImplemented)) {
@@ -131,6 +144,7 @@ onBeforeUnmount(() => {
 })
 
 watch(domain, load)
+watch(reporter, load)
 watch([stats, loading], () => {
   if (stats.value) renderCharts()
 })
@@ -143,15 +157,26 @@ watch([stats, loading], () => {
       description="Aggregated statistics from inbound DMARC aggregate reports. Set the report address in Global Settings and advertise it as rua= in your domains' DMARC records."
     >
       <template #actions>
-        <v-select
-          v-model="domain"
-          :items="domainItems"
-          data-testid="dmarc-domain-filter"
-          variant="outlined"
-          density="compact"
-          hide-details
-          style="min-width: 224px"
-        />
+        <div class="d-flex ga-2">
+          <v-select
+            v-model="domain"
+            :items="domainItems"
+            data-testid="dmarc-domain-filter"
+            variant="outlined"
+            density="compact"
+            hide-details
+            style="min-width: 200px"
+          />
+          <v-select
+            v-model="reporter"
+            :items="reporterItems"
+            data-testid="dmarc-reporter-filter"
+            variant="outlined"
+            density="compact"
+            hide-details
+            style="min-width: 200px"
+          />
+        </div>
       </template>
     </PageHeader>
 
@@ -200,7 +225,7 @@ watch([stats, loading], () => {
     </v-row>
 
     <v-row dense>
-      <v-col cols="12" lg="6">
+      <v-col cols="12" lg="4">
       <Card>
         <CardHeader><CardTitle class="text-body-2">Top source IPs</CardTitle></CardHeader>
         <CardContent class="pa-0">
@@ -227,7 +252,7 @@ watch([stats, loading], () => {
         </CardContent>
       </Card>
       </v-col>
-      <v-col cols="12" lg="6">
+      <v-col cols="12" lg="4">
       <Card>
         <CardHeader><CardTitle class="text-body-2">By domain</CardTitle></CardHeader>
         <CardContent class="pa-0">
@@ -254,6 +279,44 @@ watch([stats, loading], () => {
         </CardContent>
       </Card>
       </v-col>
+      <v-col cols="12" lg="4">
+      <Card>
+        <CardHeader class="d-flex flex-row align-center justify-space-between">
+          <CardTitle class="text-body-2">By reporter</CardTitle>
+          <span class="text-caption text-medium-emphasis">Click to drill down</span>
+        </CardHeader>
+        <CardContent class="pa-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Reporter</TableHead>
+                <TableHead class="text-right">Messages</TableHead>
+                <TableHead class="text-right">Pass rate</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow
+                v-for="r in stats?.reporters ?? []"
+                :key="r.reporter"
+                :class="reporter === r.reporter ? 'row-clickable row-selected' : 'row-clickable'"
+                :title="reporter === r.reporter ? 'Clear reporter filter' : `Drill down to ${r.reporter}`"
+                @click="selectReporter(r.reporter)"
+              >
+                <TableCell class="font-weight-medium text-truncate" style="max-width: 160px">
+                  {{ r.reporter }}
+                </TableCell>
+                <TableCell class="text-right tabular-nums">{{ r.messages.toLocaleString() }}</TableCell>
+                <TableCell class="text-right">
+                  <Badge :variant="pct(r.pass, r.messages) >= 95 ? 'success' : 'warning'">
+                    {{ pct(r.pass, r.messages) }}%
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      </v-col>
     </v-row>
 
     <p v-if="!loading && total === 0" class="mt-4 text-body-2 text-medium-emphasis">
@@ -262,3 +325,12 @@ watch([stats, loading], () => {
     </p>
   </div>
 </template>
+
+<style scoped>
+.row-clickable {
+  cursor: pointer;
+}
+.row-selected {
+  background: rgba(var(--v-theme-primary), 0.08);
+}
+</style>

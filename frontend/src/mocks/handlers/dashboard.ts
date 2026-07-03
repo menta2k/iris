@@ -2,7 +2,13 @@
 // warmup time-series. The `range` query param is interpolated into the path by
 // the service, so it arrives here as a normal query string.
 
-import { dashboardSummary, metricsTimeseries, warmupDeliveryStats } from '../fixtures/dashboard'
+import {
+  dashboardSummary,
+  mailClassStats,
+  metricsTimeseries,
+  recipientDomainStats,
+  warmupDeliveryStats,
+} from '../fixtures/dashboard'
 import { ok, type Route } from '../router'
 
 export const dashboardRoutes: Route[] = [
@@ -11,6 +17,16 @@ export const dashboardRoutes: Route[] = [
     method: 'GET',
     pattern: '/dashboard/warmup-stats',
     handler: (ctx) => ok(warmupDeliveryStats(ctx.query.range || '24h')),
+  },
+  {
+    method: 'GET',
+    pattern: '/dashboard/mailclass-stats',
+    handler: (ctx) => ok(mailClassStats(ctx.query.range || '24h')),
+  },
+  {
+    method: 'GET',
+    pattern: '/dashboard/recipient-domain-stats',
+    handler: (ctx) => ok(recipientDomainStats(ctx.query.range || '24h')),
   },
   {
     method: 'GET',

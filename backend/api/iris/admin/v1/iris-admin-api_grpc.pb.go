@@ -98,6 +98,8 @@ const (
 	IrisAdminService_GetDashboardSummary_FullMethodName         = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
 	IrisAdminService_GetMetricsTimeseries_FullMethodName        = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
 	IrisAdminService_GetWarmupDeliveryStats_FullMethodName      = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
+	IrisAdminService_GetMailClassStats_FullMethodName           = "/iris.admin.v1.IrisAdminService/GetMailClassStats"
+	IrisAdminService_GetRecipientDomainStats_FullMethodName     = "/iris.admin.v1.IrisAdminService/GetRecipientDomainStats"
 	IrisAdminService_CheckDomainBounceSetup_FullMethodName      = "/iris.admin.v1.IrisAdminService/CheckDomainBounceSetup"
 	IrisAdminService_Diagnose_FullMethodName                    = "/iris.admin.v1.IrisAdminService/Diagnose"
 	IrisAdminService_RblCheck_FullMethodName                    = "/iris.admin.v1.IrisAdminService/RblCheck"
@@ -246,6 +248,12 @@ type IrisAdminServiceClient interface {
 	// GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
 	// bounce rates over a lookback window — used to watch IP-warmup health.
 	GetWarmupDeliveryStats(ctx context.Context, in *GetWarmupDeliveryStatsRequest, opts ...grpc.CallOption) (*WarmupDeliveryStats, error)
+	// GetMailClassStats returns mail volume grouped by mailclass over a lookback
+	// window — powers the dashboard "mail by class" panel.
+	GetMailClassStats(ctx context.Context, in *GetMailClassStatsRequest, opts ...grpc.CallOption) (*MailClassStats, error)
+	// GetRecipientDomainStats returns the busiest recipient domains by mail volume
+	// over a lookback window — powers the dashboard "top recipient domains" panel.
+	GetRecipientDomainStats(ctx context.Context, in *GetRecipientDomainStatsRequest, opts ...grpc.CallOption) (*RecipientDomainStats, error)
 	// CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
 	// (authorizes our egress IPs), and DKIM (selector records) via live DNS.
 	CheckDomainBounceSetup(ctx context.Context, in *CheckDomainBounceSetupRequest, opts ...grpc.CallOption) (*DomainBounceCheck, error)
@@ -1077,6 +1085,26 @@ func (c *irisAdminServiceClient) GetWarmupDeliveryStats(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) GetMailClassStats(ctx context.Context, in *GetMailClassStatsRequest, opts ...grpc.CallOption) (*MailClassStats, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MailClassStats)
+	err := c.cc.Invoke(ctx, IrisAdminService_GetMailClassStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) GetRecipientDomainStats(ctx context.Context, in *GetRecipientDomainStatsRequest, opts ...grpc.CallOption) (*RecipientDomainStats, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RecipientDomainStats)
+	err := c.cc.Invoke(ctx, IrisAdminService_GetRecipientDomainStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) CheckDomainBounceSetup(ctx context.Context, in *CheckDomainBounceSetupRequest, opts ...grpc.CallOption) (*DomainBounceCheck, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DomainBounceCheck)
@@ -1367,6 +1395,12 @@ type IrisAdminServiceServer interface {
 	// GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
 	// bounce rates over a lookback window — used to watch IP-warmup health.
 	GetWarmupDeliveryStats(context.Context, *GetWarmupDeliveryStatsRequest) (*WarmupDeliveryStats, error)
+	// GetMailClassStats returns mail volume grouped by mailclass over a lookback
+	// window — powers the dashboard "mail by class" panel.
+	GetMailClassStats(context.Context, *GetMailClassStatsRequest) (*MailClassStats, error)
+	// GetRecipientDomainStats returns the busiest recipient domains by mail volume
+	// over a lookback window — powers the dashboard "top recipient domains" panel.
+	GetRecipientDomainStats(context.Context, *GetRecipientDomainStatsRequest) (*RecipientDomainStats, error)
 	// CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
 	// (authorizes our egress IPs), and DKIM (selector records) via live DNS.
 	CheckDomainBounceSetup(context.Context, *CheckDomainBounceSetupRequest) (*DomainBounceCheck, error)
@@ -1644,6 +1678,12 @@ func (UnimplementedIrisAdminServiceServer) GetMetricsTimeseries(context.Context,
 }
 func (UnimplementedIrisAdminServiceServer) GetWarmupDeliveryStats(context.Context, *GetWarmupDeliveryStatsRequest) (*WarmupDeliveryStats, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetWarmupDeliveryStats not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) GetMailClassStats(context.Context, *GetMailClassStatsRequest) (*MailClassStats, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetMailClassStats not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) GetRecipientDomainStats(context.Context, *GetRecipientDomainStatsRequest) (*RecipientDomainStats, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRecipientDomainStats not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) CheckDomainBounceSetup(context.Context, *CheckDomainBounceSetupRequest) (*DomainBounceCheck, error) {
 	return nil, status.Error(codes.Unimplemented, "method CheckDomainBounceSetup not implemented")
@@ -3136,6 +3176,42 @@ func _IrisAdminService_GetWarmupDeliveryStats_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_GetMailClassStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMailClassStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).GetMailClassStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_GetMailClassStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).GetMailClassStats(ctx, req.(*GetMailClassStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_GetRecipientDomainStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRecipientDomainStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).GetRecipientDomainStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_GetRecipientDomainStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).GetRecipientDomainStats(ctx, req.(*GetRecipientDomainStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_CheckDomainBounceSetup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CheckDomainBounceSetupRequest)
 	if err := dec(in); err != nil {
@@ -3746,6 +3822,14 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetWarmupDeliveryStats",
 			Handler:    _IrisAdminService_GetWarmupDeliveryStats_Handler,
+		},
+		{
+			MethodName: "GetMailClassStats",
+			Handler:    _IrisAdminService_GetMailClassStats_Handler,
+		},
+		{
+			MethodName: "GetRecipientDomainStats",
+			Handler:    _IrisAdminService_GetRecipientDomainStats_Handler,
 		},
 		{
 			MethodName: "CheckDomainBounceSetup",

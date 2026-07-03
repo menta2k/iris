@@ -104,7 +104,21 @@ export const operationsRoutes: Route[] = [
     pattern: '/dmarc/stats',
     handler: (ctx) => {
       const domains = ctx.query.domain ? [ctx.query.domain] : dmarcDomains
-      const total = 18432
+      // Reporters (org_name) with their share of the grand total. The breakdown
+      // always lists every reporter; selecting one drills the summary/charts
+      // down to that reporter's slice.
+      const REPORTERS = [
+        { reporter: 'google.com', share: 0.52 },
+        { reporter: 'Yahoo', share: 0.23 },
+        { reporter: 'Enterprise Outlook', share: 0.14 },
+        { reporter: 'Mail.Ru', share: 0.07 },
+        { reporter: 'AMAZON-SES', share: 0.04 },
+      ]
+      const grandTotal = 18432
+      const selShare = ctx.query.reporter
+        ? (REPORTERS.find((r) => r.reporter === ctx.query.reporter)?.share ?? 0)
+        : 1
+      const total = Math.round(grandTotal * selShare)
       return ok({
         totalMessages: total,
         dmarcPass: Math.round(total * 0.97),
@@ -116,12 +130,23 @@ export const operationsRoutes: Route[] = [
           { label: 'reject', count: Math.round(total * 0.01) },
         ],
         topSources: [
-          { ip: '209.85.220.41', total: 8200, pass: 8050, fail: 150 },
-          { ip: '74.6.231.20', total: 4100, pass: 3990, fail: 110 },
-          { ip: '40.92.38.5', total: 2300, pass: 2260, fail: 40 },
+          { ip: '209.85.220.41', total: Math.round(8200 * selShare), pass: Math.round(8050 * selShare), fail: Math.round(150 * selShare) },
+          { ip: '74.6.231.20', total: Math.round(4100 * selShare), pass: Math.round(3990 * selShare), fail: Math.round(110 * selShare) },
+          { ip: '40.92.38.5', total: Math.round(2300 * selShare), pass: Math.round(2260 * selShare), fail: Math.round(40 * selShare) },
         ],
-        domains: domains.map((domain, i) => ({ domain, messages: 6000 - i * 1500, pass: (6000 - i * 1500) - 120 })),
-        series: Array.from({ length: 14 }, (_, i) => ({ date: new Date(Date.now() - (13 - i) * 86400000).toISOString().slice(0, 10), messages: 1200 + Math.round(Math.sin(i) * 200) + 100, pass: 1180 + Math.round(Math.sin(i) * 180) })),
+        domains: domains.map((domain, i) => {
+          const messages = Math.round((6000 - i * 1500) * selShare)
+          return { domain, messages, pass: Math.max(0, messages - Math.round(120 * selShare)) }
+        }),
+        reporters: REPORTERS.map(({ reporter, share }) => {
+          const messages = Math.round(grandTotal * share)
+          return { reporter, messages, pass: Math.round(messages * 0.97) }
+        }),
+        series: Array.from({ length: 14 }, (_, i) => ({
+          date: new Date(Date.now() - (13 - i) * 86400000).toISOString().slice(0, 10),
+          messages: Math.round((1200 + Math.round(Math.sin(i) * 200) + 100) * selShare),
+          pass: Math.round((1180 + Math.round(Math.sin(i) * 180)) * selShare),
+        })),
       })
     },
   },

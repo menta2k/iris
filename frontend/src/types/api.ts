@@ -920,6 +920,37 @@ export interface WarmupDeliveryStats {
   since: string
 }
 
+// Mail-record volume grouped by mailclass over a lookback window. int64 counts
+// serialize as JSON strings via proto-JSON.
+export interface MailClassStat {
+  mailclass: string
+  count: string
+  delivered: string
+  bounced: string
+  deferred: string
+}
+
+export interface MailClassStats {
+  rows?: MailClassStat[]
+  range: string
+  since: string
+}
+
+// Mail-record volume grouped by recipient domain (busiest first) over a window.
+export interface RecipientDomainStat {
+  recipientDomain: string
+  count: string
+  delivered: string
+  bounced: string
+  deferred: string
+}
+
+export interface RecipientDomainStats {
+  rows?: RecipientDomainStat[]
+  range: string
+  since: string
+}
+
 // ---- Domain bounce-readiness check ----
 export interface DomainCheckItem {
   name: string
@@ -949,6 +980,12 @@ export interface DmarcDomainStat {
   messages: number
   pass: number
 }
+// Per-reporter (org_name) rollup — who sent the aggregate reports.
+export interface DmarcReporterStat {
+  reporter: string
+  messages: number
+  pass: number
+}
 export interface DmarcDay {
   date: string
   messages: number
@@ -963,6 +1000,7 @@ export interface DmarcStats {
   topSources?: DmarcSource[]
   domains?: DmarcDomainStat[]
   series?: DmarcDay[]
+  reporters?: DmarcReporterStat[]
 }
 export interface DmarcReport {
   orgName: string

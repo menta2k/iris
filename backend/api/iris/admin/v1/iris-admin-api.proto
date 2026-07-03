@@ -303,6 +303,16 @@ service IrisAdminService {
   rpc GetWarmupDeliveryStats(GetWarmupDeliveryStatsRequest) returns (WarmupDeliveryStats) {
     option (google.api.http) = { get: "/v1/dashboard/warmup-stats" };
   }
+  // GetMailClassStats returns mail volume grouped by mailclass over a lookback
+  // window — powers the dashboard "mail by class" panel.
+  rpc GetMailClassStats(GetMailClassStatsRequest) returns (MailClassStats) {
+    option (google.api.http) = { get: "/v1/dashboard/mailclass-stats" };
+  }
+  // GetRecipientDomainStats returns the busiest recipient domains by mail volume
+  // over a lookback window — powers the dashboard "top recipient domains" panel.
+  rpc GetRecipientDomainStats(GetRecipientDomainStatsRequest) returns (RecipientDomainStats) {
+    option (google.api.http) = { get: "/v1/dashboard/recipient-domain-stats" };
+  }
   // CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
   // (authorizes our egress IPs), and DKIM (selector records) via live DNS.
   rpc CheckDomainBounceSetup(CheckDomainBounceSetupRequest) returns (DomainBounceCheck) {
@@ -1253,13 +1263,16 @@ message RblCheckReply {
 
 // DMARC aggregate reports.
 message GetDmarcStatsRequest {
-  string domain = 1;  // optional filter
-  string from = 2;    // optional RFC3339
-  string to = 3;      // optional RFC3339
+  string domain = 1;    // optional filter
+  string from = 2;      // optional RFC3339
+  string to = 3;        // optional RFC3339
+  string reporter = 4;  // optional org_name filter — drill down to one reporter
 }
 message DmarcCount { string label = 1; int32 count = 2; }
 message DmarcSource { string ip = 1; int32 total = 2; int32 pass = 3; int32 fail = 4; }
 message DmarcDomainStat { string domain = 1; int32 messages = 2; int32 pass = 3; }
+// DmarcReporterStat is a per-reporter (org_name) rollup — who sent the reports.
+message DmarcReporterStat { string reporter = 1; int32 messages = 2; int32 pass = 3; }
 message DmarcDay { string date = 1; int32 messages = 2; int32 pass = 3; }
 message DmarcStats {
   int32 total_messages = 1;
@@ -1270,6 +1283,9 @@ message DmarcStats {
   repeated DmarcSource top_sources = 6;
   repeated DmarcDomainStat domains = 7;
   repeated DmarcDay series = 8;
+  // Per-reporter breakdown; ignores the reporter filter so the drill-down list
+  // stays complete even when one reporter is selected.
+  repeated DmarcReporterStat reporters = 9;
 }
 message DmarcReport {
   string org_name = 1;
@@ -1402,6 +1418,47 @@ message WarmupDeliveryStat {
 }
 message WarmupDeliveryStats {
   repeated WarmupDeliveryStat rows = 1;
+  string range = 2;            // echoed effective range
+  int64 since = 3;             // unix seconds: window start
+}
+
+// GetMailClassStats selects the lookback window: "1h" | "6h" | "24h" | "7d"
+// (empty defaults to "24h").
+message GetMailClassStatsRequest {
+  string range = 1;
+}
+// MailClassStat is one mailclass with its mail-record counts over the window.
+// count is the total records; the delivered/bounced/deferred breakdown lets the
+// UI show delivery health per class.
+message MailClassStat {
+  string mailclass = 1;
+  int64 count = 2;             // total mail_records for this class in the window
+  int64 delivered = 3;
+  int64 bounced = 4;
+  int64 deferred = 5;
+}
+message MailClassStats {
+  repeated MailClassStat rows = 1;
+  string range = 2;            // echoed effective range
+  int64 since = 3;             // unix seconds: window start
+}
+
+// GetRecipientDomainStats selects the lookback window: "1h" | "6h" | "24h" |
+// "7d" (empty defaults to "24h").
+message GetRecipientDomainStatsRequest {
+  string range = 1;
+}
+// RecipientDomainStat is one recipient domain with its mail-record counts over
+// the window (the busiest domains, ranked by count).
+message RecipientDomainStat {
+  string recipient_domain = 1;
+  int64 count = 2;             // total mail_records for this domain in the window
+  int64 delivered = 3;
+  int64 bounced = 4;
+  int64 deferred = 5;
+}
+message RecipientDomainStats {
+  repeated RecipientDomainStat rows = 1;
   string range = 2;            // echoed effective range
   int64 since = 3;             // unix seconds: window start
 }

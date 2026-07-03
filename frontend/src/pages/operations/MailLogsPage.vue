@@ -83,6 +83,7 @@ const ALL_COLUMNS = [
   { key: 'from', title: 'From' },
   { key: 'sender', title: 'Sender (envelope)' },
   { key: 'recipient', title: 'Recipient' },
+  { key: 'recipientDomain', title: 'Recipient Domain' },
   { key: 'vmta', title: 'VMTA' },
   { key: 'status', title: 'Status' },
   { key: 'type', title: 'Type' },
@@ -260,6 +261,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onEsc))
                 <TableHead v-if="isVisible('from')">From</TableHead>
                 <TableHead v-if="isVisible('sender')">Sender (envelope)</TableHead>
                 <TableHead v-if="isVisible('recipient')">Recipient</TableHead>
+                <TableHead v-if="isVisible('recipientDomain')">Recipient Domain</TableHead>
                 <TableHead v-if="isVisible('vmta')">VMTA</TableHead>
                 <TableHead v-if="isVisible('status')">Status</TableHead>
                 <TableHead v-if="isVisible('type')">Type</TableHead>
@@ -288,6 +290,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onEsc))
                   }}</span>
                 </TableCell>
                 <TableCell v-if="isVisible('recipient')">{{ m.recipient }}</TableCell>
+                <TableCell v-if="isVisible('recipientDomain')" class="text-medium-emphasis">{{
+                  m.recipientDomain || '—'
+                }}</TableCell>
                 <TableCell v-if="isVisible('vmta')" class="font-mono text-caption">{{
                   m.egressSource || m.vmtaId || '—'
                 }}</TableCell>

@@ -38,7 +38,10 @@ export const mailRecords: MailRecord[] = MESSAGE_IDS.flatMap((mid, mi) => {
   const klass = MAILCLASSES[mi % MAILCLASSES.length]
   const sender = SENDERS[mi % SENDERS.length]
   const fromHeader = FROM_HEADERS[mi % FROM_HEADERS.length]
+  // One recipient per message; its domain is the recipientDomain so the two
+  // columns agree, and all events of the message share the same address.
   const domain = pick(RECIPIENT_DOMAINS)
+  const recipientAddr = `${randomString(6)}@${domain}`
   const vmta = `vmta${(mi % 7) + 1}`
   const baseMin = mi * 9 + 2
   return Array.from({ length: 4 }, (_, k) => {
@@ -51,7 +54,7 @@ export const mailRecords: MailRecord[] = MESSAGE_IDS.flatMap((mid, mi) => {
       mailclass: klass,
       sender,
       fromHeader,
-      recipient: recipient(),
+      recipient: recipientAddr,
       recipientDomain: domain,
       vmtaId: vmta,
       egressSource: vmta,

@@ -27,6 +27,14 @@ type DMARCDomainStat struct {
 	Pass     int
 }
 
+// DMARCReporterStat is a per-reporter (org_name) rollup — the receiving org that
+// sent the aggregate reports.
+type DMARCReporterStat struct {
+	Reporter string
+	Messages int
+	Pass     int
+}
+
 // DMARCDay is a daily volume/pass point for the time series.
 type DMARCDay struct {
 	Date     string // YYYY-MM-DD
@@ -44,13 +52,18 @@ type DMARCStats struct {
 	TopSources    []DMARCSource
 	Domains       []DMARCDomainStat
 	Series        []DMARCDay
+	// Reporters is the per-reporter breakdown; it ignores the Reporter filter so
+	// the drill-down list stays complete even when one reporter is selected.
+	Reporters []DMARCReporterStat
 }
 
-// DMARCFilter narrows the aggregation by domain and date range (zero = open).
+// DMARCFilter narrows the aggregation by domain, reporter (org_name), and date
+// range (zero-value fields are open).
 type DMARCFilter struct {
-	Domain string
-	From   time.Time
-	To     time.Time
+	Domain   string
+	Reporter string
+	From     time.Time
+	To       time.Time
 }
 
 // DMARCRepo is the persistence boundary for DMARC reports.
@@ -80,12 +93,19 @@ func (uc *DMARCUsecase) Ingest(ctx context.Context, report *DMARCReport, records
 	return uc.repo.InsertReport(ctx, report, records)
 }
 
-// Stats returns the aggregated view after an authorization check.
-func (uc *DMARCUsecase) Stats(ctx context.Context, domain string, from, to time.Time) (*DMARCStats, error) {
+// Stats returns the aggregated view after an authorization check. reporter
+// (org_name) optionally drills the summary/charts down to a single reporter; the
+// Reporters breakdown always lists every reporter in the domain/date scope.
+func (uc *DMARCUsecase) Stats(ctx context.Context, domain, reporter string, from, to time.Time) (*DMARCStats, error) {
 	if _, err := RequirePermission(ctx, PermMailRead); err != nil {
 		return nil, err
 	}
-	return uc.repo.Stats(ctx, DMARCFilter{Domain: strings.ToLower(strings.TrimSpace(domain)), From: from, To: to})
+	return uc.repo.Stats(ctx, DMARCFilter{
+		Domain:   strings.ToLower(strings.TrimSpace(domain)),
+		Reporter: strings.TrimSpace(reporter),
+		From:     from,
+		To:       to,
+	})
 }
 
 // ListReports returns recent reports (optionally filtered by domain).

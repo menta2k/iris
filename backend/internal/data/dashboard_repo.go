@@ -100,3 +100,79 @@ func (r *DashboardRepo) DeliveryStats(ctx context.Context, since time.Time) ([]b
 	}
 	return out, nil
 }
+
+// MailClassStats aggregates mail-record volume per mailclass since the given
+// time. Count is every record for the class; delivered/bounced/deferred break
+// it down by terminal status (delivered == the "sent" status).
+func (r *DashboardRepo) MailClassStats(ctx context.Context, since time.Time) ([]biz.MailClassStat, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT
+			m.mailclass                           AS mailclass,
+			count(*)                              AS count,
+			count(*) FILTER (WHERE m.status = $2) AS delivered,
+			count(*) FILTER (WHERE m.status = $3) AS bounced,
+			count(*) FILTER (WHERE m.status = $4) AS deferred
+		FROM mail_records m
+		WHERE m.event_time >= $1
+			AND m.mailclass <> ''
+		GROUP BY m.mailclass
+		ORDER BY count(*) DESC, m.mailclass
+		LIMIT 100`,
+		since, biz.MailSent, biz.MailBounced, biz.MailDeferred)
+	if err != nil {
+		return nil, fmt.Errorf("mailclass stats: %w", err)
+	}
+	defer rows.Close()
+
+	var out []biz.MailClassStat
+	for rows.Next() {
+		var s biz.MailClassStat
+		if err := rows.Scan(&s.Mailclass, &s.Count, &s.Delivered, &s.Bounced, &s.Deferred); err != nil {
+			return nil, fmt.Errorf("scan mailclass stat: %w", err)
+		}
+		out = append(out, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("mailclass stats rows: %w", err)
+	}
+	return out, nil
+}
+
+// RecipientDomainStats aggregates mail-record volume per recipient domain since
+// the given time, ranked by total descending and capped at limit.
+func (r *DashboardRepo) RecipientDomainStats(ctx context.Context, since time.Time, limit int) ([]biz.RecipientDomainStat, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT
+			m.recipient_domain                    AS recipient_domain,
+			count(*)                              AS count,
+			count(*) FILTER (WHERE m.status = $2) AS delivered,
+			count(*) FILTER (WHERE m.status = $3) AS bounced,
+			count(*) FILTER (WHERE m.status = $4) AS deferred
+		FROM mail_records m
+		WHERE m.event_time >= $1
+			AND m.recipient_domain <> ''
+		GROUP BY m.recipient_domain
+		ORDER BY count(*) DESC, m.recipient_domain
+		LIMIT $5`,
+		since, biz.MailSent, biz.MailBounced, biz.MailDeferred, limit)
+	if err != nil {
+		return nil, fmt.Errorf("recipient domain stats: %w", err)
+	}
+	defer rows.Close()
+
+	var out []biz.RecipientDomainStat
+	for rows.Next() {
+		var s biz.RecipientDomainStat
+		if err := rows.Scan(&s.RecipientDomain, &s.Count, &s.Delivered, &s.Bounced, &s.Deferred); err != nil {
+			return nil, fmt.Errorf("scan recipient domain stat: %w", err)
+		}
+		out = append(out, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("recipient domain stats rows: %w", err)
+	}
+	return out, nil
+}

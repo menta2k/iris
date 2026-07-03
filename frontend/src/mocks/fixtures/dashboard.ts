@@ -4,12 +4,17 @@
 
 import type {
   DashboardSummary,
+  MailClassStat,
+  MailClassStats,
   MetricPoint,
   MetricsSeries,
   MetricsTimeseries,
+  RecipientDomainStat,
+  RecipientDomainStats,
   WarmupDeliveryStat,
   WarmupDeliveryStats,
 } from '../../types'
+import { mailRecords } from './operations'
 
 export const dashboardSummary: DashboardSummary = {
   serviceState: 'healthy',
@@ -72,6 +77,83 @@ const WARMUP_VMTAS: Array<[string, string]> = [
   ['vmta3', 'promo-3'],
   ['vmta1', 'promo-1'],
 ]
+
+// ---- Mail volume by class / recipient domain -------------------------------
+
+interface VolumeTally {
+  count: number
+  delivered: number
+  bounced: number
+  deferred: number
+}
+
+// Scale the handful of fixture records up to deployment-sized numbers, larger
+// for the wider window.
+function rangeScale(range: string): number {
+  return range === '7d' ? 34 : 6
+}
+
+// Group the mail-record fixture by a key, counting total + terminal outcomes.
+function tallyBy(keyOf: (r: (typeof mailRecords)[number]) => string): Map<string, VolumeTally> {
+  const map = new Map<string, VolumeTally>()
+  for (const r of mailRecords) {
+    const key = keyOf(r)
+    if (!key) continue
+    const e = map.get(key) ?? { count: 0, delivered: 0, bounced: 0, deferred: 0 }
+    e.count += 1
+    if (r.status === 'delivered' || r.status === 'sent') e.delivered += 1
+    else if (r.status === 'bounced') e.bounced += 1
+    else if (r.status === 'deferred') e.deferred += 1
+    map.set(key, e)
+  }
+  return map
+}
+
+function scaled(t: VolumeTally, scale: number): VolumeTally {
+  return {
+    count: t.count * scale,
+    delivered: t.delivered * scale,
+    bounced: t.bounced * scale,
+    deferred: t.deferred * scale,
+  }
+}
+
+export function mailClassStats(range: string): MailClassStats {
+  const scale = rangeScale(range)
+  const since = range === '7d' ? '7 days ago' : '24 hours ago'
+  const rows: MailClassStat[] = [...tallyBy((r) => r.mailclass).entries()]
+    .map(([mailclass, t]) => {
+      const s = scaled(t, scale)
+      return {
+        mailclass,
+        count: String(s.count),
+        delivered: String(s.delivered),
+        bounced: String(s.bounced),
+        deferred: String(s.deferred),
+      } satisfies MailClassStat
+    })
+    .sort((a, b) => Number(b.count) - Number(a.count))
+  return { rows, range, since }
+}
+
+export function recipientDomainStats(range: string): RecipientDomainStats {
+  const scale = rangeScale(range)
+  const since = range === '7d' ? '7 days ago' : '24 hours ago'
+  const rows: RecipientDomainStat[] = [...tallyBy((r) => r.recipientDomain).entries()]
+    .map(([recipientDomain, t]) => {
+      const s = scaled(t, scale)
+      return {
+        recipientDomain,
+        count: String(s.count),
+        delivered: String(s.delivered),
+        bounced: String(s.bounced),
+        deferred: String(s.deferred),
+      } satisfies RecipientDomainStat
+    })
+    .sort((a, b) => Number(b.count) - Number(a.count))
+    .slice(0, 10)
+  return { rows, range, since }
+}
 
 export function warmupDeliveryStats(range: string): WarmupDeliveryStats {
   const since = range === '7d' ? '7 days ago' : '24 hours ago'

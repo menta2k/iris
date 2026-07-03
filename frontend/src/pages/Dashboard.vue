@@ -8,7 +8,9 @@ import RecentMailActivity from '@/components/dashboard/RecentMailActivity.vue'
 import RecentAuditActivity from '@/components/dashboard/RecentAuditActivity.vue'
 import MailFlowPanel from '@/components/dashboard/MailFlowPanel.vue'
 import WarmupStatsPanel from '@/components/dashboard/WarmupStatsPanel.vue'
+import MailVolumePanel, { type VolumeRow } from '@/components/dashboard/MailVolumePanel.vue'
 import { dashboardService, mailOperationsService, identityAuditService } from '@/services'
+import type { WarmupStatsRange } from '@/services/dashboard'
 import { ApiError } from '@/services/http'
 import type { AuditEntry, DashboardSummary, MailRecord } from '@/types'
 
@@ -47,6 +49,30 @@ async function load() {
   }
 }
 
+// Fetchers for the mail-volume panels; map the int64-as-string counts into the
+// numeric shape the panel renders.
+async function loadMailClassStats(range: WarmupStatsRange): Promise<VolumeRow[]> {
+  const res = await dashboardService.getMailClassStats(range)
+  return (res.rows ?? []).map((r) => ({
+    name: r.mailclass,
+    count: Number(r.count),
+    delivered: Number(r.delivered),
+    bounced: Number(r.bounced),
+    deferred: Number(r.deferred),
+  }))
+}
+
+async function loadRecipientDomainStats(range: WarmupStatsRange): Promise<VolumeRow[]> {
+  const res = await dashboardService.getRecipientDomainStats(range)
+  return (res.rows ?? []).map((r) => ({
+    name: r.recipientDomain,
+    count: Number(r.count),
+    delivered: Number(r.delivered),
+    bounced: Number(r.bounced),
+    deferred: Number(r.deferred),
+  }))
+}
+
 onMounted(load)
 </script>
 
@@ -65,6 +91,22 @@ onMounted(load)
           </v-col>
         </v-row>
         <MailFlowPanel />
+        <v-row dense>
+          <v-col cols="12" lg="6">
+            <MailVolumePanel
+              title="Mail by class"
+              :fetcher="loadMailClassStats"
+              empty-message="No mail in this range yet."
+            />
+          </v-col>
+          <v-col cols="12" lg="6">
+            <MailVolumePanel
+              title="Top recipient domains"
+              :fetcher="loadRecipientDomainStats"
+              empty-message="No recipient activity in this range yet."
+            />
+          </v-col>
+        </v-row>
         <WarmupStatsPanel />
         <v-row dense>
           <v-col cols="12" lg="6">
