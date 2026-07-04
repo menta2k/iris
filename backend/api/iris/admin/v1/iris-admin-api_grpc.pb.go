@@ -85,6 +85,7 @@ const (
 	IrisAdminService_RequestServiceControl_FullMethodName       = "/iris.admin.v1.IrisAdminService/RequestServiceControl"
 	IrisAdminService_GenerateKumoConfig_FullMethodName          = "/iris.admin.v1.IrisAdminService/GenerateKumoConfig"
 	IrisAdminService_ApplyKumoConfig_FullMethodName             = "/iris.admin.v1.IrisAdminService/ApplyKumoConfig"
+	IrisAdminService_GetAppliedKumoConfig_FullMethodName        = "/iris.admin.v1.IrisAdminService/GetAppliedKumoConfig"
 	IrisAdminService_KumoConfigStatus_FullMethodName            = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
 	IrisAdminService_GetAcmeAccount_FullMethodName              = "/iris.admin.v1.IrisAdminService/GetAcmeAccount"
 	IrisAdminService_SaveAcmeAccount_FullMethodName             = "/iris.admin.v1.IrisAdminService/SaveAcmeAccount"
@@ -98,6 +99,7 @@ const (
 	IrisAdminService_GetDashboardSummary_FullMethodName         = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
 	IrisAdminService_GetMetricsTimeseries_FullMethodName        = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
 	IrisAdminService_GetWarmupDeliveryStats_FullMethodName      = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
+	IrisAdminService_GetQueueTimeHistogram_FullMethodName       = "/iris.admin.v1.IrisAdminService/GetQueueTimeHistogram"
 	IrisAdminService_GetMailClassStats_FullMethodName           = "/iris.admin.v1.IrisAdminService/GetMailClassStats"
 	IrisAdminService_GetRecipientDomainStats_FullMethodName     = "/iris.admin.v1.IrisAdminService/GetRecipientDomainStats"
 	IrisAdminService_CheckDomainBounceSetup_FullMethodName      = "/iris.admin.v1.IrisAdminService/CheckDomainBounceSetup"
@@ -225,6 +227,9 @@ type IrisAdminServiceClient interface {
 	// ApplyKumoConfig renders the configuration, writes it to KumoMTA, and
 	// reloads the service. High-risk: requires confirmation and is audited.
 	ApplyKumoConfig(ctx context.Context, in *ApplyKumoConfigRequest, opts ...grpc.CallOption) (*ApplyKumoConfigReply, error)
+	// GetAppliedKumoConfig returns the KumoMTA policy currently running (the last
+	// one Iris applied) so the UI can diff it against a freshly generated policy.
+	GetAppliedKumoConfig(ctx context.Context, in *GetAppliedKumoConfigRequest, opts ...grpc.CallOption) (*AppliedKumoConfig, error)
 	// KumoConfigStatus reports whether the current configuration has drifted from
 	// the last applied policy (a regenerate/apply is pending).
 	KumoConfigStatus(ctx context.Context, in *KumoConfigStatusRequest, opts ...grpc.CallOption) (*KumoConfigStatusReply, error)
@@ -248,6 +253,10 @@ type IrisAdminServiceClient interface {
 	// GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
 	// bounce rates over a lookback window — used to watch IP-warmup health.
 	GetWarmupDeliveryStats(ctx context.Context, in *GetWarmupDeliveryStatsRequest, opts ...grpc.CallOption) (*WarmupDeliveryStats, error)
+	// GetQueueTimeHistogram returns the delivery queue-time distribution (from the
+	// iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
+	// to one mail class.
+	GetQueueTimeHistogram(ctx context.Context, in *GetQueueTimeHistogramRequest, opts ...grpc.CallOption) (*QueueTimeHistogram, error)
 	// GetMailClassStats returns mail volume grouped by mailclass over a lookback
 	// window — powers the dashboard "mail by class" panel.
 	GetMailClassStats(ctx context.Context, in *GetMailClassStatsRequest, opts ...grpc.CallOption) (*MailClassStats, error)
@@ -955,6 +964,16 @@ func (c *irisAdminServiceClient) ApplyKumoConfig(ctx context.Context, in *ApplyK
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) GetAppliedKumoConfig(ctx context.Context, in *GetAppliedKumoConfigRequest, opts ...grpc.CallOption) (*AppliedKumoConfig, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AppliedKumoConfig)
+	err := c.cc.Invoke(ctx, IrisAdminService_GetAppliedKumoConfig_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) KumoConfigStatus(ctx context.Context, in *KumoConfigStatusRequest, opts ...grpc.CallOption) (*KumoConfigStatusReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(KumoConfigStatusReply)
@@ -1079,6 +1098,16 @@ func (c *irisAdminServiceClient) GetWarmupDeliveryStats(ctx context.Context, in 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(WarmupDeliveryStats)
 	err := c.cc.Invoke(ctx, IrisAdminService_GetWarmupDeliveryStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) GetQueueTimeHistogram(ctx context.Context, in *GetQueueTimeHistogramRequest, opts ...grpc.CallOption) (*QueueTimeHistogram, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(QueueTimeHistogram)
+	err := c.cc.Invoke(ctx, IrisAdminService_GetQueueTimeHistogram_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1372,6 +1401,9 @@ type IrisAdminServiceServer interface {
 	// ApplyKumoConfig renders the configuration, writes it to KumoMTA, and
 	// reloads the service. High-risk: requires confirmation and is audited.
 	ApplyKumoConfig(context.Context, *ApplyKumoConfigRequest) (*ApplyKumoConfigReply, error)
+	// GetAppliedKumoConfig returns the KumoMTA policy currently running (the last
+	// one Iris applied) so the UI can diff it against a freshly generated policy.
+	GetAppliedKumoConfig(context.Context, *GetAppliedKumoConfigRequest) (*AppliedKumoConfig, error)
 	// KumoConfigStatus reports whether the current configuration has drifted from
 	// the last applied policy (a regenerate/apply is pending).
 	KumoConfigStatus(context.Context, *KumoConfigStatusRequest) (*KumoConfigStatusReply, error)
@@ -1395,6 +1427,10 @@ type IrisAdminServiceServer interface {
 	// GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
 	// bounce rates over a lookback window — used to watch IP-warmup health.
 	GetWarmupDeliveryStats(context.Context, *GetWarmupDeliveryStatsRequest) (*WarmupDeliveryStats, error)
+	// GetQueueTimeHistogram returns the delivery queue-time distribution (from the
+	// iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
+	// to one mail class.
+	GetQueueTimeHistogram(context.Context, *GetQueueTimeHistogramRequest) (*QueueTimeHistogram, error)
 	// GetMailClassStats returns mail volume grouped by mailclass over a lookback
 	// window — powers the dashboard "mail by class" panel.
 	GetMailClassStats(context.Context, *GetMailClassStatsRequest) (*MailClassStats, error)
@@ -1640,6 +1676,9 @@ func (UnimplementedIrisAdminServiceServer) GenerateKumoConfig(context.Context, *
 func (UnimplementedIrisAdminServiceServer) ApplyKumoConfig(context.Context, *ApplyKumoConfigRequest) (*ApplyKumoConfigReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ApplyKumoConfig not implemented")
 }
+func (UnimplementedIrisAdminServiceServer) GetAppliedKumoConfig(context.Context, *GetAppliedKumoConfigRequest) (*AppliedKumoConfig, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAppliedKumoConfig not implemented")
+}
 func (UnimplementedIrisAdminServiceServer) KumoConfigStatus(context.Context, *KumoConfigStatusRequest) (*KumoConfigStatusReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method KumoConfigStatus not implemented")
 }
@@ -1678,6 +1717,9 @@ func (UnimplementedIrisAdminServiceServer) GetMetricsTimeseries(context.Context,
 }
 func (UnimplementedIrisAdminServiceServer) GetWarmupDeliveryStats(context.Context, *GetWarmupDeliveryStatsRequest) (*WarmupDeliveryStats, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetWarmupDeliveryStats not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) GetQueueTimeHistogram(context.Context, *GetQueueTimeHistogramRequest) (*QueueTimeHistogram, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetQueueTimeHistogram not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) GetMailClassStats(context.Context, *GetMailClassStatsRequest) (*MailClassStats, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetMailClassStats not implemented")
@@ -2942,6 +2984,24 @@ func _IrisAdminService_ApplyKumoConfig_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_GetAppliedKumoConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAppliedKumoConfigRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).GetAppliedKumoConfig(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_GetAppliedKumoConfig_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).GetAppliedKumoConfig(ctx, req.(*GetAppliedKumoConfigRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_KumoConfigStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(KumoConfigStatusRequest)
 	if err := dec(in); err != nil {
@@ -3172,6 +3232,24 @@ func _IrisAdminService_GetWarmupDeliveryStats_Handler(srv interface{}, ctx conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IrisAdminServiceServer).GetWarmupDeliveryStats(ctx, req.(*GetWarmupDeliveryStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_GetQueueTimeHistogram_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetQueueTimeHistogramRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).GetQueueTimeHistogram(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_GetQueueTimeHistogram_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).GetQueueTimeHistogram(ctx, req.(*GetQueueTimeHistogramRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -3772,6 +3850,10 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _IrisAdminService_ApplyKumoConfig_Handler,
 		},
 		{
+			MethodName: "GetAppliedKumoConfig",
+			Handler:    _IrisAdminService_GetAppliedKumoConfig_Handler,
+		},
+		{
 			MethodName: "KumoConfigStatus",
 			Handler:    _IrisAdminService_KumoConfigStatus_Handler,
 		},
@@ -3822,6 +3904,10 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetWarmupDeliveryStats",
 			Handler:    _IrisAdminService_GetWarmupDeliveryStats_Handler,
+		},
+		{
+			MethodName: "GetQueueTimeHistogram",
+			Handler:    _IrisAdminService_GetQueueTimeHistogram_Handler,
 		},
 		{
 			MethodName: "GetMailClassStats",

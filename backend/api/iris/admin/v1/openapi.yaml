@@ -401,6 +401,31 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/MetricsTimeseries'
+    /v1/dashboard/queue-time-histogram:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                GetQueueTimeHistogram returns the delivery queue-time distribution (from the
+                 iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
+                 to one mail class.
+            operationId: IrisAdminService_GetQueueTimeHistogram
+            parameters:
+                - name: range
+                  in: query
+                  schema:
+                    type: string
+                - name: mailclass
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/QueueTimeHistogram'
     /v1/dashboard/recipient-domain-stats:
         get:
             tags:
@@ -913,6 +938,21 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/DeleteInboundRouteReply'
+    /v1/kumomta/config:applied:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                GetAppliedKumoConfig returns the KumoMTA policy currently running (the last
+                 one Iris applied) so the UI can diff it against a freshly generated policy.
+            operationId: IrisAdminService_GetAppliedKumoConfig
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AppliedKumoConfig'
     /v1/kumomta/config:apply:
         post:
             tags:
@@ -2073,6 +2113,18 @@ components:
                     items:
                         type: string
             description: DNS-01 provider registry metadata (drives the dynamic credentials form).
+        AppliedKumoConfig:
+            type: object
+            properties:
+                content:
+                    type: string
+                checksum:
+                    type: string
+                applied_at:
+                    type: string
+                never_applied:
+                    type: boolean
+            description: AppliedKumoConfig is the policy currently running on KumoMTA (last applied).
         ApplyKumoConfigReply:
             type: object
             properties:
@@ -3342,6 +3394,36 @@ components:
                     type: string
                 summary:
                     type: string
+        QueueTimeBucket:
+            type: object
+            properties:
+                le:
+                    type: string
+                upper_bound:
+                    type: number
+                    format: double
+                count:
+                    type: string
+            description: |-
+                QueueTimeBucket is one histogram bucket: the per-bucket (non-cumulative) count
+                 of deliveries whose queue time fell in (previous upper bound, upper_bound].
+        QueueTimeHistogram:
+            type: object
+            properties:
+                buckets:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/QueueTimeBucket'
+                mailclasses:
+                    type: array
+                    items:
+                        type: string
+                total_count:
+                    type: string
+                range:
+                    type: string
+                prometheus_available:
+                    type: boolean
         RblCheckReply:
             type: object
             properties:

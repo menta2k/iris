@@ -9,6 +9,7 @@ import type {
   MetricPoint,
   MetricsSeries,
   MetricsTimeseries,
+  QueueTimeHistogram,
   RecipientDomainStat,
   RecipientDomainStats,
   WarmupDeliveryStat,
@@ -153,6 +154,47 @@ export function recipientDomainStats(range: string): RecipientDomainStats {
     .sort((a, b) => Number(b.count) - Number(a.count))
     .slice(0, 10)
   return { rows, range, since }
+}
+
+// ---- Delivery queue-time histogram -----------------------------------------
+
+// Bucket upper bounds (seconds) matching the backend histogram, plus the +Inf
+// overflow. base is a realistic right-skewed distribution (most mail delivers
+// fast, a long tail of deferred-then-delivered).
+const QUEUE_BUCKET_BOUNDS = [0.1, 0.5, 1, 2, 5, 10, 30, 60, 120, 300, 600, 1800, 3600, Infinity]
+const QUEUE_BUCKET_BASE = [1200, 3400, 2600, 1500, 900, 500, 300, 180, 120, 80, 40, 20, 8, 4]
+
+export function queueTimeHistogram(range: string, mailclass: string): QueueTimeHistogram {
+  const rangeScale = range === '7d' ? 5 : range === '24h' ? 1 : range === '1h' ? 0.12 : 0.5
+  const mcScale =
+    mailclass === 'transactional'
+      ? 0.5
+      : mailclass === 'promo'
+        ? 0.3
+        : mailclass === 'newsletter'
+          ? 0.2
+          : 1
+  const scale = rangeScale * mcScale
+  let total = 0
+  const buckets = QUEUE_BUCKET_BOUNDS.map((ub, i) => {
+    const count = Math.round(QUEUE_BUCKET_BASE[i] * scale)
+    total += count
+    const isInf = !isFinite(ub)
+    return {
+      le: isInf ? '+Inf' : String(ub),
+      // upperBound is unused by the UI (it derives bounds from `le`); 0 for +Inf
+      // to avoid a non-finite value in JSON.
+      upperBound: isInf ? 0 : ub,
+      count: String(count),
+    }
+  })
+  return {
+    buckets,
+    mailclasses: ['newsletter', 'promo', 'transactional'],
+    totalCount: String(total),
+    range,
+    prometheusAvailable: true,
+  }
 }
 
 export function warmupDeliveryStats(range: string): WarmupDeliveryStats {

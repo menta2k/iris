@@ -51,11 +51,13 @@ const OperationIrisAdminServiceGenerateDKIMKey = "/iris.admin.v1.IrisAdminServic
 const OperationIrisAdminServiceGenerateKumoConfig = "/iris.admin.v1.IrisAdminService/GenerateKumoConfig"
 const OperationIrisAdminServiceGetAcmeAccount = "/iris.admin.v1.IrisAdminService/GetAcmeAccount"
 const OperationIrisAdminServiceGetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/GetAcmeDnsProvider"
+const OperationIrisAdminServiceGetAppliedKumoConfig = "/iris.admin.v1.IrisAdminService/GetAppliedKumoConfig"
 const OperationIrisAdminServiceGetDashboardSummary = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
 const OperationIrisAdminServiceGetDmarcStats = "/iris.admin.v1.IrisAdminService/GetDmarcStats"
 const OperationIrisAdminServiceGetGlobalSettings = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
 const OperationIrisAdminServiceGetMailClassStats = "/iris.admin.v1.IrisAdminService/GetMailClassStats"
 const OperationIrisAdminServiceGetMetricsTimeseries = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
+const OperationIrisAdminServiceGetQueueTimeHistogram = "/iris.admin.v1.IrisAdminService/GetQueueTimeHistogram"
 const OperationIrisAdminServiceGetRecipientDomainStats = "/iris.admin.v1.IrisAdminService/GetRecipientDomainStats"
 const OperationIrisAdminServiceGetWarmupDeliveryStats = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
 const OperationIrisAdminServiceKumoConfigStatus = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
@@ -166,6 +168,9 @@ type IrisAdminServiceHTTPServer interface {
 	// GetAcmeAccount ACME (Let's Encrypt) -------------------------------------------------------
 	GetAcmeAccount(context.Context, *GetAcmeAccountRequest) (*AcmeAccount, error)
 	GetAcmeDnsProvider(context.Context, *GetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
+	// GetAppliedKumoConfig GetAppliedKumoConfig returns the KumoMTA policy currently running (the last
+	// one Iris applied) so the UI can diff it against a freshly generated policy.
+	GetAppliedKumoConfig(context.Context, *GetAppliedKumoConfigRequest) (*AppliedKumoConfig, error)
 	GetDashboardSummary(context.Context, *GetDashboardSummaryRequest) (*DashboardSummary, error)
 	// GetDmarcStats DMARC aggregate reports -----------------------------------------------------
 	GetDmarcStats(context.Context, *GetDmarcStatsRequest) (*DmarcStats, error)
@@ -177,6 +182,10 @@ type IrisAdminServiceHTTPServer interface {
 	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(context.Context, *GetMetricsTimeseriesRequest) (*MetricsTimeseries, error)
+	// GetQueueTimeHistogram GetQueueTimeHistogram returns the delivery queue-time distribution (from the
+	// iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
+	// to one mail class.
+	GetQueueTimeHistogram(context.Context, *GetQueueTimeHistogramRequest) (*QueueTimeHistogram, error)
 	// GetRecipientDomainStats GetRecipientDomainStats returns the busiest recipient domains by mail volume
 	// over a lookback window — powers the dashboard "top recipient domains" panel.
 	GetRecipientDomainStats(context.Context, *GetRecipientDomainStatsRequest) (*RecipientDomainStats, error)
@@ -351,6 +360,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.POST("/v1/kumomta:service-control", _IrisAdminService_RequestServiceControl0_HTTP_Handler(srv))
 	r.GET("/v1/kumomta/config:generate", _IrisAdminService_GenerateKumoConfig0_HTTP_Handler(srv))
 	r.POST("/v1/kumomta/config:apply", _IrisAdminService_ApplyKumoConfig0_HTTP_Handler(srv))
+	r.GET("/v1/kumomta/config:applied", _IrisAdminService_GetAppliedKumoConfig0_HTTP_Handler(srv))
 	r.GET("/v1/kumomta/config:status", _IrisAdminService_KumoConfigStatus0_HTTP_Handler(srv))
 	r.GET("/v1/acme/account", _IrisAdminService_GetAcmeAccount0_HTTP_Handler(srv))
 	r.PUT("/v1/acme/account", _IrisAdminService_SaveAcmeAccount0_HTTP_Handler(srv))
@@ -364,6 +374,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.GET("/v1/dashboard/summary", _IrisAdminService_GetDashboardSummary0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/metrics", _IrisAdminService_GetMetricsTimeseries0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/warmup-stats", _IrisAdminService_GetWarmupDeliveryStats0_HTTP_Handler(srv))
+	r.GET("/v1/dashboard/queue-time-histogram", _IrisAdminService_GetQueueTimeHistogram0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/mailclass-stats", _IrisAdminService_GetMailClassStats0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/recipient-domain-stats", _IrisAdminService_GetRecipientDomainStats0_HTTP_Handler(srv))
 	r.GET("/v1/domain-check/{domain}", _IrisAdminService_CheckDomainBounceSetup0_HTTP_Handler(srv))
@@ -1824,6 +1835,25 @@ func _IrisAdminService_ApplyKumoConfig0_HTTP_Handler(srv IrisAdminServiceHTTPSer
 	}
 }
 
+func _IrisAdminService_GetAppliedKumoConfig0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetAppliedKumoConfigRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetAppliedKumoConfig)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetAppliedKumoConfig(ctx, req.(*GetAppliedKumoConfigRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AppliedKumoConfig)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_KumoConfigStatus0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in KumoConfigStatusRequest
@@ -2079,6 +2109,25 @@ func _IrisAdminService_GetWarmupDeliveryStats0_HTTP_Handler(srv IrisAdminService
 			return err
 		}
 		reply := out.(*WarmupDeliveryStats)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_GetQueueTimeHistogram0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetQueueTimeHistogramRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetQueueTimeHistogram)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetQueueTimeHistogram(ctx, req.(*GetQueueTimeHistogramRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*QueueTimeHistogram)
 		return ctx.Result(200, reply)
 	}
 }
@@ -2507,6 +2556,9 @@ type IrisAdminServiceHTTPClient interface {
 	// GetAcmeAccount ACME (Let's Encrypt) -------------------------------------------------------
 	GetAcmeAccount(ctx context.Context, req *GetAcmeAccountRequest, opts ...http.CallOption) (rsp *AcmeAccount, err error)
 	GetAcmeDnsProvider(ctx context.Context, req *GetAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
+	// GetAppliedKumoConfig GetAppliedKumoConfig returns the KumoMTA policy currently running (the last
+	// one Iris applied) so the UI can diff it against a freshly generated policy.
+	GetAppliedKumoConfig(ctx context.Context, req *GetAppliedKumoConfigRequest, opts ...http.CallOption) (rsp *AppliedKumoConfig, err error)
 	GetDashboardSummary(ctx context.Context, req *GetDashboardSummaryRequest, opts ...http.CallOption) (rsp *DashboardSummary, err error)
 	// GetDmarcStats DMARC aggregate reports -----------------------------------------------------
 	GetDmarcStats(ctx context.Context, req *GetDmarcStatsRequest, opts ...http.CallOption) (rsp *DmarcStats, err error)
@@ -2518,6 +2570,10 @@ type IrisAdminServiceHTTPClient interface {
 	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(ctx context.Context, req *GetMetricsTimeseriesRequest, opts ...http.CallOption) (rsp *MetricsTimeseries, err error)
+	// GetQueueTimeHistogram GetQueueTimeHistogram returns the delivery queue-time distribution (from the
+	// iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
+	// to one mail class.
+	GetQueueTimeHistogram(ctx context.Context, req *GetQueueTimeHistogramRequest, opts ...http.CallOption) (rsp *QueueTimeHistogram, err error)
 	// GetRecipientDomainStats GetRecipientDomainStats returns the busiest recipient domains by mail volume
 	// over a lookback window — powers the dashboard "top recipient domains" panel.
 	GetRecipientDomainStats(ctx context.Context, req *GetRecipientDomainStatsRequest, opts ...http.CallOption) (rsp *RecipientDomainStats, err error)
@@ -3064,6 +3120,21 @@ func (c *IrisAdminServiceHTTPClientImpl) GetAcmeDnsProvider(ctx context.Context,
 	return &out, nil
 }
 
+// GetAppliedKumoConfig GetAppliedKumoConfig returns the KumoMTA policy currently running (the last
+// one Iris applied) so the UI can diff it against a freshly generated policy.
+func (c *IrisAdminServiceHTTPClientImpl) GetAppliedKumoConfig(ctx context.Context, in *GetAppliedKumoConfigRequest, opts ...http.CallOption) (*AppliedKumoConfig, error) {
+	var out AppliedKumoConfig
+	pattern := "/v1/kumomta/config:applied"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetAppliedKumoConfig))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) GetDashboardSummary(ctx context.Context, in *GetDashboardSummaryRequest, opts ...http.CallOption) (*DashboardSummary, error) {
 	var out DashboardSummary
 	pattern := "/v1/dashboard/summary"
@@ -3127,6 +3198,22 @@ func (c *IrisAdminServiceHTTPClientImpl) GetMetricsTimeseries(ctx context.Contex
 	pattern := "/v1/dashboard/metrics"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceGetMetricsTimeseries))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetQueueTimeHistogram GetQueueTimeHistogram returns the delivery queue-time distribution (from the
+// iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
+// to one mail class.
+func (c *IrisAdminServiceHTTPClientImpl) GetQueueTimeHistogram(ctx context.Context, in *GetQueueTimeHistogramRequest, opts ...http.CallOption) (*QueueTimeHistogram, error) {
+	var out QueueTimeHistogram
+	pattern := "/v1/dashboard/queue-time-histogram"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetQueueTimeHistogram))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

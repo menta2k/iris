@@ -10,7 +10,7 @@ import type {
   Queue,
   WorkerErrorLog,
 } from '../../types'
-import { hoursAgo, messageId, minutesAgo, pick, randomString } from './util'
+import { hoursAgo, iso, messageId, minutesAgo, pick, randomString } from './util'
 
 const RECIPIENT_DOMAINS = ['gmail.com', 'yahoo.com', 'outlook.com', 'icloud.com', 'example.com']
 const MAILCLASSES = ['transactional', 'promo', 'newsletter']
@@ -30,8 +30,14 @@ function recipient(): string {
   return `${randomString(6)}@${pick(RECIPIENT_DOMAINS)}`
 }
 
-// Build a handful of message-ids, then emit several events per message so the
-// Mail Logs detail drawer ("all events for this message") has data to show.
+// Queue times (ms) between Reception and the first outcome, spanning sub-second
+// to a couple of minutes so the detail view's "Delivery time" reads realistically.
+const QUEUE_DELAYS_MS = [420, 1300, 3400, 8000, 21000, 47000, 95000, 138000]
+const MIN_MS = 60_000
+
+// Build a handful of message-ids, then emit a lifecycle per message: a Reception
+// event followed by outcome events a queue-delay later, so the Mail Logs detail
+// drawer can show all events for a message and derive its delivery time.
 const MESSAGE_IDS = Array.from({ length: 14 }, () => messageId())
 
 export const mailRecords: MailRecord[] = MESSAGE_IDS.flatMap((mid, mi) => {
@@ -43,14 +49,22 @@ export const mailRecords: MailRecord[] = MESSAGE_IDS.flatMap((mid, mi) => {
   const domain = pick(RECIPIENT_DOMAINS)
   const recipientAddr = `${randomString(6)}@${domain}`
   const vmta = `vmta${(mi % 7) + 1}`
-  const baseMin = mi * 9 + 2
+  // Reception time (ms ago); older messages sit further in the past.
+  const receptionMsAgo = (mi * 9 + 2) * MIN_MS
+  const queueDelayMs = QUEUE_DELAYS_MS[mi % QUEUE_DELAYS_MS.length]
+
   return Array.from({ length: 4 }, (_, k) => {
-    const status = STATUSES[(mi + k) % STATUSES.length]
-    const minutes = baseMin + k * 2
+    // k=0 is the Reception; later events are the delivery outcome(s), which
+    // happen queueDelayMs after reception (a few seconds apart thereafter).
+    const isReception = k === 0
+    const status = isReception ? 'received' : STATUSES[(mi + k) % STATUSES.length]
+    const msAgo = isReception
+      ? receptionMsAgo
+      : Math.max(0, receptionMsAgo - queueDelayMs - (k - 1) * 4000)
     return {
       id: `mr_${mi}_${k}`,
       messageId: mid,
-      eventTime: minutesAgo(minutes),
+      eventTime: iso(msAgo),
       mailclass: klass,
       sender,
       fromHeader,
@@ -65,7 +79,9 @@ export const mailRecords: MailRecord[] = MESSAGE_IDS.flatMap((mid, mi) => {
           ? '250 2.0.0 OK'
           : status === 'bounced'
             ? '550 5.1.1 User unknown'
-            : '421 4.7.0 Try again later',
+            : status === 'deferred'
+              ? '421 4.7.0 Try again later'
+              : '',
       diagnostic:
         status === 'bounced'
           ? 'host said: 550 5.1.1 The email account does not exist'

@@ -9,6 +9,7 @@ import RecentAuditActivity from '@/components/dashboard/RecentAuditActivity.vue'
 import MailFlowPanel from '@/components/dashboard/MailFlowPanel.vue'
 import WarmupStatsPanel from '@/components/dashboard/WarmupStatsPanel.vue'
 import MailVolumePanel, { type VolumeRow } from '@/components/dashboard/MailVolumePanel.vue'
+import QueueTimeHistogramPanel from '@/components/dashboard/QueueTimeHistogramPanel.vue'
 import { dashboardService, mailOperationsService, identityAuditService } from '@/services'
 import type { WarmupStatsRange } from '@/services/dashboard'
 import { ApiError } from '@/services/http'
@@ -107,6 +108,7 @@ onMounted(load)
             />
           </v-col>
         </v-row>
+        <QueueTimeHistogramPanel />
         <WarmupStatsPanel />
         <v-row dense>
           <v-col cols="12" lg="6">

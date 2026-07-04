@@ -712,6 +712,15 @@ export interface KumoConfigApplyRequest {
   confirmation_id: string
 }
 
+// The policy currently running on KumoMTA (the last one Iris applied), used to
+// diff against a freshly generated policy.
+export interface AppliedKumoConfig {
+  content: string
+  checksum: string
+  appliedAt: string
+  neverApplied: boolean
+}
+
 // ---- Global settings (deployment-level policy knobs) ----
 
 export interface GlobalSettings {
@@ -817,6 +826,22 @@ export interface MetricsTimeseries {
   series?: MetricsSeries[]
   range: string
   stepSeconds: number
+  prometheusAvailable: boolean
+}
+
+// Delivery queue-time distribution (from the iris_mail_queue_time_seconds
+// histogram). Counts are int64 → JSON strings.
+export interface QueueTimeBucket {
+  le: string
+  upperBound: number
+  count: string
+}
+
+export interface QueueTimeHistogram {
+  buckets?: QueueTimeBucket[]
+  mailclasses?: string[]
+  totalCount: string
+  range: string
   prometheusAvailable: boolean
 }
 

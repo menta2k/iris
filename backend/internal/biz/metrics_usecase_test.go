@@ -130,3 +130,41 @@ func TestMetricsCuratedStatusLabels(t *testing.T) {
 		}
 	}
 }
+
+func TestDeCumulate(t *testing.T) {
+	// Cumulative le buckets arrive unsorted; per-bucket counts are the deltas.
+	samples := []promSample{
+		{Metric: map[string]string{"le": "1"}, Value: 5},
+		{Metric: map[string]string{"le": "0.5"}, Value: 3},
+		{Metric: map[string]string{"le": "+Inf"}, Value: 10},
+		{Metric: map[string]string{"le": "5"}, Value: 8.4}, // fractional → rounded
+	}
+	buckets, total := deCumulate(samples)
+	if total != 10 {
+		t.Fatalf("total = %d, want 10", total)
+	}
+	wantLe := []string{"0.5", "1", "5", "+Inf"}
+	wantCount := []int64{3, 2, 3, 2} // 3, 5-3, round(8.4)-5, 10-8
+	if len(buckets) != len(wantLe) {
+		t.Fatalf("got %d buckets, want %d", len(buckets), len(wantLe))
+	}
+	for i, b := range buckets {
+		if b.Le != wantLe[i] || b.Count != wantCount[i] {
+			t.Fatalf("bucket %d = {le:%s count:%d}, want {le:%s count:%d}", i, b.Le, b.Count, wantLe[i], wantCount[i])
+		}
+	}
+}
+
+func TestQueueTimeHistogramUnavailableWhenNoURL(t *testing.T) {
+	uc := NewMetricsUsecase(fakePromURL{url: ""}, &fakeDoer{})
+	h, err := uc.QueueTimeHistogram(ownerCtx(), "6h", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if h.PrometheusAvailable {
+		t.Fatal("expected PrometheusAvailable=false without a URL")
+	}
+	if h.Range != "6h" {
+		t.Fatalf("range = %q, want 6h", h.Range)
+	}
+}

@@ -6,6 +6,7 @@ import {
   dashboardSummary,
   mailClassStats,
   metricsTimeseries,
+  queueTimeHistogram,
   recipientDomainStats,
   warmupDeliveryStats,
 } from '../fixtures/dashboard'
@@ -32,5 +33,10 @@ export const dashboardRoutes: Route[] = [
     method: 'GET',
     pattern: '/dashboard/metrics',
     handler: (ctx) => ok(metricsTimeseries(ctx.query.range || '6h')),
+  },
+  {
+    method: 'GET',
+    pattern: '/dashboard/queue-time-histogram',
+    handler: (ctx) => ok(queueTimeHistogram(ctx.query.range || '6h', ctx.query.mailclass || '')),
   },
 ]

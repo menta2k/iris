@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -124,6 +126,179 @@ func (uc *MetricsUsecase) Timeseries(ctx context.Context, rng string) (*MetricsT
 			return nil, Internal(err, "prometheus query %q", s.key)
 		}
 		out.Series = append(out.Series, MetricsSeries{Key: s.key, Label: s.label, Points: pts})
+	}
+	return out, nil
+}
+
+// QueueTimeBucket is one delivery-queue-time histogram bucket: the per-bucket
+// (non-cumulative) count of deliveries whose queue time fell in
+// (previous upper bound, UpperBound]. UpperBound is +Inf for the overflow bucket.
+type QueueTimeBucket struct {
+	Le         string  // Prometheus le label verbatim ("0.5", "+Inf")
+	UpperBound float64 // parsed le; math.Inf(1) for "+Inf"
+	Count      int64
+}
+
+// QueueTimeHistogram is the delivery-queue-time distribution over a window, from
+// the iris_mail_queue_time_seconds histogram. Mailclasses lists the classes that
+// have data (for the drill-down selector); empty mailclass filter = global.
+type QueueTimeHistogram struct {
+	Buckets             []QueueTimeBucket
+	Mailclasses         []string
+	TotalCount          int64
+	Range               string
+	PrometheusAvailable bool
+}
+
+// QueueTimeHistogram returns the delivery queue-time distribution over the given
+// lookback. A non-empty mailclass narrows to one class; empty aggregates all
+// (the global view). Returns PrometheusAvailable=false (not an error) when no
+// Prometheus URL is configured.
+func (uc *MetricsUsecase) QueueTimeHistogram(ctx context.Context, rng, mailclass string) (*QueueTimeHistogram, error) {
+	if _, err := RequirePermission(ctx, PermDashboardRead); err != nil {
+		return nil, err
+	}
+	// eff ∈ {1h,6h,24h,7d} is also a valid Prometheus range-vector window.
+	_, _, _, eff := rangeParams(rng)
+	out := &QueueTimeHistogram{Range: eff}
+
+	base := ""
+	if uc.urls != nil {
+		base = strings.TrimRight(strings.TrimSpace(uc.urls.PrometheusURLNow(ctx)), "/")
+	}
+	if base == "" {
+		out.PrometheusAvailable = false
+		return out, nil
+	}
+	out.PrometheusAvailable = true
+
+	selector := "iris_mail_queue_time_seconds_bucket"
+	if mc := strings.TrimSpace(mailclass); mc != "" {
+		selector = fmt.Sprintf(`iris_mail_queue_time_seconds_bucket{mailclass=%q}`, mc)
+	}
+	// Cumulative per-le counts over the window (summed across all other labels).
+	bucketQuery := fmt.Sprintf(`sum by (le) (increase(%s[%s]))`, selector, eff)
+	samples, err := uc.queryInstant(ctx, base, bucketQuery)
+	if err != nil {
+		return nil, Internal(err, "prometheus queue-time histogram query")
+	}
+	out.Buckets, out.TotalCount = deCumulate(samples)
+
+	// Available mail classes (for the selector), independent of the filter.
+	if classes, err := uc.queryInstant(ctx, base,
+		`group by (mailclass) (iris_mail_queue_time_seconds_count)`); err == nil {
+		seen := map[string]bool{}
+		for _, s := range classes {
+			if mc := s.Metric["mailclass"]; mc != "" && mc != labelUnknownValue && !seen[mc] {
+				seen[mc] = true
+				out.Mailclasses = append(out.Mailclasses, mc)
+			}
+		}
+		sort.Strings(out.Mailclasses)
+	}
+	return out, nil
+}
+
+// labelUnknownValue mirrors metrics.or's placeholder for empty label values.
+const labelUnknownValue = "unknown"
+
+// deCumulate turns Prometheus cumulative le buckets into per-bucket counts. The
+// input samples each carry an `le` label; output is ordered by ascending upper
+// bound. Fractional increase() values (rate extrapolation) are rounded.
+func deCumulate(samples []promSample) ([]QueueTimeBucket, int64) {
+	type leVal struct {
+		le    string
+		bound float64
+		cum   float64
+	}
+	var ordered []leVal
+	for _, s := range samples {
+		raw, ok := s.Metric["le"]
+		if !ok {
+			continue
+		}
+		bound := math.Inf(1)
+		if raw != "+Inf" {
+			b, err := strconv.ParseFloat(raw, 64)
+			if err != nil {
+				continue
+			}
+			bound = b
+		}
+		ordered = append(ordered, leVal{le: raw, bound: bound, cum: s.Value})
+	}
+	sort.Slice(ordered, func(i, j int) bool { return ordered[i].bound < ordered[j].bound })
+
+	var buckets []QueueTimeBucket
+	var prev float64
+	for _, o := range ordered {
+		c := o.cum - prev
+		prev = o.cum
+		if c < 0 {
+			c = 0
+		}
+		buckets = append(buckets, QueueTimeBucket{Le: o.le, UpperBound: o.bound, Count: int64(math.Round(c))})
+	}
+	// Total = the +Inf cumulative (the last, highest bound), rounded.
+	var total int64
+	if len(ordered) > 0 {
+		total = int64(math.Round(ordered[len(ordered)-1].cum))
+	}
+	return buckets, total
+}
+
+// promSample is one instant-query vector element: its metric labels and value.
+type promSample struct {
+	Metric map[string]string
+	Value  float64
+}
+
+// queryInstant calls Prometheus' /api/v1/query and returns the vector result.
+func (uc *MetricsUsecase) queryInstant(ctx context.Context, base, query string) ([]promSample, error) {
+	q := url.Values{}
+	q.Set("query", query)
+	endpoint := base + "/api/v1/query?" + q.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := uc.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("prometheus returned HTTP %d", resp.StatusCode)
+	}
+
+	var pr struct {
+		Status string `json:"status"`
+		Error  string `json:"error"`
+		Data   struct {
+			Result []struct {
+				Metric map[string]string `json:"metric"`
+				Value  [2]any            `json:"value"`
+			} `json:"result"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&pr); err != nil {
+		return nil, err
+	}
+	if pr.Status != "success" {
+		return nil, fmt.Errorf("prometheus query failed: %s", pr.Error)
+	}
+	var out []promSample
+	for _, r := range pr.Data.Result {
+		raw, ok := r.Value[1].(string)
+		if !ok {
+			continue
+		}
+		val, err := strconv.ParseFloat(raw, 64)
+		if err != nil {
+			continue // NaN/Inf strings are skipped
+		}
+		out = append(out, promSample{Metric: r.Metric, Value: val})
 	}
 	return out, nil
 }

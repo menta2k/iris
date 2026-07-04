@@ -247,6 +247,14 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 	metrics.RecordMailEvent(mr.Status, mr.Mailclass, mr.RecipientDomain)
 	metrics.RecordVMTAEvent(rec.EgressSource, mr.Status)
 
+	// Queue latency: on a successful Delivery, observe how long the message sat
+	// in the queue (Reception → Delivery) into the histogram, by mail class.
+	if rec.Type == biz.KumoDelivery {
+		if d, ok := rec.QueueLatency(now); ok {
+			metrics.RecordQueueTime(mr.Mailclass, d.Seconds())
+		}
+	}
+
 	// Optional subject classification: the Subject header is only on Reception.
 	// When the feature is on, hand {message_id, subject} to the async worker via
 	// a transient stream — the subject is never persisted on mail_records.

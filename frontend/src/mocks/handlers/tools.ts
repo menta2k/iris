@@ -133,6 +133,25 @@ export const toolsRoutes: Route[] = [
     pattern: '/kumomta/config:status',
     handler: () => ok({ drift: false, neverApplied: false, currentChecksum: 'sha256:abc', appliedChecksum: 'sha256:abc', appliedAt: hoursAgo(2), restartRequired: false }),
   },
+  {
+    // The running policy — intentionally a few lines different from what
+    // config:generate renders, so the diff view has something to show.
+    method: 'GET',
+    pattern: '/kumomta/config:applied',
+    handler: () => {
+      const vmtaCount = Math.max(0, all('vmtas').length - 1)
+      const poolCount = all('vmtaGroups').length
+      const routeCount = Math.max(0, all('routingRules').length - 1)
+      const content = [
+        '-- iris-rendered init.lua',
+        "local kumo = require 'kumo'",
+        'kumo.on("get_egress_source", function(name) return kumo.make_egress_source(EGRESS_SOURCES[name]) end)',
+        `-- ${vmtaCount} vmta(s), ${poolCount} pool(s), ${routeCount} route(s)`,
+        '-- last applied by ops@iris.local',
+      ].join('\n')
+      return ok({ content, checksum: 'sha256:running', appliedAt: hoursAgo(2), neverApplied: false })
+    },
+  },
 
   // ---- Diagnose ----
   {

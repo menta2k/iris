@@ -252,6 +252,11 @@ service IrisAdminService {
   rpc ApplyKumoConfig(ApplyKumoConfigRequest) returns (ApplyKumoConfigReply) {
     option (google.api.http) = { post: "/v1/kumomta/config:apply" body: "*" };
   }
+  // GetAppliedKumoConfig returns the KumoMTA policy currently running (the last
+  // one Iris applied) so the UI can diff it against a freshly generated policy.
+  rpc GetAppliedKumoConfig(GetAppliedKumoConfigRequest) returns (AppliedKumoConfig) {
+    option (google.api.http) = { get: "/v1/kumomta/config:applied" };
+  }
   // KumoConfigStatus reports whether the current configuration has drifted from
   // the last applied policy (a regenerate/apply is pending).
   rpc KumoConfigStatus(KumoConfigStatusRequest) returns (KumoConfigStatusReply) {
@@ -302,6 +307,12 @@ service IrisAdminService {
   // bounce rates over a lookback window — used to watch IP-warmup health.
   rpc GetWarmupDeliveryStats(GetWarmupDeliveryStatsRequest) returns (WarmupDeliveryStats) {
     option (google.api.http) = { get: "/v1/dashboard/warmup-stats" };
+  }
+  // GetQueueTimeHistogram returns the delivery queue-time distribution (from the
+  // iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
+  // to one mail class.
+  rpc GetQueueTimeHistogram(GetQueueTimeHistogramRequest) returns (QueueTimeHistogram) {
+    option (google.api.http) = { get: "/v1/dashboard/queue-time-histogram" };
   }
   // GetMailClassStats returns mail volume grouped by mailclass over a lookback
   // window — powers the dashboard "mail by class" panel.
@@ -1195,6 +1206,14 @@ message SetAcmeDnsProviderRequest {
 }
 message ClearAcmeDnsProviderRequest {}
 
+message GetAppliedKumoConfigRequest {}
+// AppliedKumoConfig is the policy currently running on KumoMTA (last applied).
+message AppliedKumoConfig {
+  string content = 1;       // full Lua policy; empty when never applied
+  string checksum = 2;
+  string applied_at = 3;    // RFC3339; empty when never applied
+  bool never_applied = 4;
+}
 message KumoConfigStatusRequest {}
 message KumoConfigStatusReply {
   // drift is true when the current configuration differs from the last applied
@@ -1461,6 +1480,27 @@ message RecipientDomainStats {
   repeated RecipientDomainStat rows = 1;
   string range = 2;            // echoed effective range
   int64 since = 3;             // unix seconds: window start
+}
+
+// GetQueueTimeHistogram selects the lookback window ("1h" | "6h" | "24h" | "7d",
+// empty → "6h") and optionally narrows to one mail class (empty = global).
+message GetQueueTimeHistogramRequest {
+  string range = 1;
+  string mailclass = 2;
+}
+// QueueTimeBucket is one histogram bucket: the per-bucket (non-cumulative) count
+// of deliveries whose queue time fell in (previous upper bound, upper_bound].
+message QueueTimeBucket {
+  string le = 1;             // Prometheus le label ("0.5", "+Inf")
+  double upper_bound = 2;    // parsed le; +Inf for the overflow bucket
+  int64 count = 3;
+}
+message QueueTimeHistogram {
+  repeated QueueTimeBucket buckets = 1;
+  repeated string mailclasses = 2;      // classes with data (for the selector)
+  int64 total_count = 3;
+  string range = 4;                     // echoed effective range
+  bool prometheus_available = 5;        // false when no Prometheus is configured
 }
 
 // Global settings — deployment-level policy knobs an operator edits in the UI.

@@ -48,6 +48,30 @@ func (s *Service) GetMetricsTimeseries(ctx context.Context, req *adminv1.GetMetr
 	return out, nil
 }
 
+// GetQueueTimeHistogram returns the delivery queue-time distribution over the
+// selected window, global or narrowed to one mail class.
+func (s *Service) GetQueueTimeHistogram(ctx context.Context, req *adminv1.GetQueueTimeHistogramRequest) (*adminv1.QueueTimeHistogram, error) {
+	if s.metrics == nil {
+		return nil, notImplemented("GetQueueTimeHistogram")
+	}
+	h, err := s.metrics.QueueTimeHistogram(ctx, req.GetRange(), req.GetMailclass())
+	if err != nil {
+		return nil, s.fail(ctx, "GetQueueTimeHistogram", err)
+	}
+	out := &adminv1.QueueTimeHistogram{
+		Mailclasses:         h.Mailclasses,
+		TotalCount:          h.TotalCount,
+		Range:               h.Range,
+		PrometheusAvailable: h.PrometheusAvailable,
+	}
+	for _, b := range h.Buckets {
+		out.Buckets = append(out.Buckets, &adminv1.QueueTimeBucket{
+			Le: b.Le, UpperBound: b.UpperBound, Count: b.Count,
+		})
+	}
+	return out, nil
+}
+
 // GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
 // bounce rates over the selected window (IP-warmup health).
 func (s *Service) GetWarmupDeliveryStats(ctx context.Context, req *adminv1.GetWarmupDeliveryStatsRequest) (*adminv1.WarmupDeliveryStats, error) {

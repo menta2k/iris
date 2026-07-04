@@ -23,9 +23,52 @@ interface Field {
   mono?: boolean
 }
 
+function eventMs(r: MailRecord): number {
+  return new Date(r.eventTime).getTime()
+}
+
+const DELIVERED_STATUS = new Set(['sent', 'delivered'])
+
+// Delivery time = how long the message sat in the queue, from its Reception
+// event to its successful Delivery (Sent) event. Derived from the loaded
+// lifecycle events for this message; null when either end isn't present.
+const deliveryDuration = computed<number | null>(() => {
+  const events = props.related.length ? props.related : [props.record]
+  let received: number | null = null
+  let sent: number | null = null
+  for (const r of events) {
+    const type = (r.recordType || '').toLowerCase()
+    const status = (r.status || '').toLowerCase()
+    const t = eventMs(r)
+    if (Number.isNaN(t)) continue
+    if (type === 'reception' || status === 'received') {
+      received = received === null ? t : Math.min(received, t)
+    }
+    if (type === 'delivery' || DELIVERED_STATUS.has(status)) {
+      sent = sent === null ? t : Math.min(sent, t)
+    }
+  }
+  if (received === null || sent === null || sent < received) return null
+  return sent - received
+})
+
+// Human-readable duration: "480 ms", "3.2 s", "1m 12s", "1h 4m".
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms} ms`
+  const s = ms / 1000
+  if (s < 60) return `${s < 10 ? s.toFixed(1) : Math.round(s)} s`
+  const totalMin = Math.floor(s / 60)
+  if (totalMin < 60) return `${totalMin}m ${Math.round(s % 60)}s`
+  return `${Math.floor(totalMin / 60)}h ${totalMin % 60}m`
+}
+
 const fields = computed<Field[]>(() =>
   [
     { label: 'Event time', value: formatDateTime(props.record.eventTime) },
+    {
+      label: 'Delivery time (in queue)',
+      value: deliveryDuration.value !== null ? formatDuration(deliveryDuration.value) : '',
+    },
     { label: 'Message ID', value: props.record.messageId, mono: true },
     { label: 'Record type', value: props.record.recordType || '—' },
     { label: 'Mailclass', value: props.record.mailclass || '—' },

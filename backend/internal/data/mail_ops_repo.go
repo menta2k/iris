@@ -183,21 +183,38 @@ func (r *MailOpsRepo) GetAppliedChecksum(ctx context.Context) (string, string, *
 	return checksum, initChecksum, appliedAt, nil
 }
 
-// SetAppliedChecksum records a successful config apply on the singleton row.
-func (r *MailOpsRepo) SetAppliedChecksum(ctx context.Context, checksum, initChecksum, by string) error {
+// SetAppliedChecksum records a successful config apply on the singleton row,
+// including the full policy content so the UI can diff pending vs running.
+func (r *MailOpsRepo) SetAppliedChecksum(ctx context.Context, checksum, initChecksum, content, by string) error {
 	_, err := r.db.Pool.Exec(ctx, `
-		INSERT INTO config_state (id, applied_checksum, applied_init_checksum, applied_at, applied_by)
-		VALUES (1, $1, $2, now(), $3)
+		INSERT INTO config_state (id, applied_checksum, applied_init_checksum, applied_content, applied_at, applied_by)
+		VALUES (1, $1, $2, $3, now(), $4)
 		ON CONFLICT (id) DO UPDATE
 		SET applied_checksum = EXCLUDED.applied_checksum,
 		    applied_init_checksum = EXCLUDED.applied_init_checksum,
+		    applied_content = EXCLUDED.applied_content,
 		    applied_at = EXCLUDED.applied_at,
 		    applied_by = EXCLUDED.applied_by`,
-		checksum, initChecksum, nullableUUID(by))
+		checksum, initChecksum, content, nullableUUID(by))
 	if err != nil {
 		return fmt.Errorf("set applied checksum: %w", err)
 	}
 	return nil
+}
+
+// GetAppliedContent returns the full policy content last successfully applied,
+// its checksum, and when it was applied (empty content when never applied).
+func (r *MailOpsRepo) GetAppliedContent(ctx context.Context) (content, checksum string, appliedAt *time.Time, err error) {
+	err = r.db.Pool.QueryRow(ctx,
+		`SELECT applied_content, applied_checksum, applied_at FROM config_state WHERE id = 1`).
+		Scan(&content, &checksum, &appliedAt)
+	if err == pgx.ErrNoRows {
+		return "", "", nil, nil
+	}
+	if err != nil {
+		return "", "", nil, fmt.Errorf("get applied content: %w", err)
+	}
+	return content, checksum, appliedAt, nil
 }
 
 // InsertMailEvent appends a mail-record row for a KumoMTA log event. Each event

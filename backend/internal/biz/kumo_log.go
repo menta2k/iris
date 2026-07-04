@@ -15,8 +15,12 @@ const KumoLogMaxBytes = 1 << 20 // 1 MiB
 // a message's lifecycle (Reception → retries → Delivery/Bounce), which is how
 // the Logs UI reconstructs a single message's timeline.
 type KumoLogRecord struct {
-	Type         string          `json:"type"`
-	Timestamp    json.RawMessage `json:"timestamp"`
+	Type      string          `json:"type"`
+	Timestamp json.RawMessage `json:"timestamp"`
+	// Created is when KumoMTA first received/created the message. Present on
+	// Delivery/Bounce/TransientFailure records, so a Delivery event alone yields
+	// the queue latency (Timestamp - Created) without correlating events.
+	Created      json.RawMessage `json:"created"`
 	ID           string          `json:"id"`
 	Sender       string          `json:"sender"`
 	Recipient    string          `json:"recipient"`
@@ -185,25 +189,54 @@ func (r *KumoLogRecord) MailStatus() string {
 	}
 }
 
+// parseKumoTime decodes a KumoMTA log timestamp, accepting either an RFC3339
+// string or a Unix epoch number. ok is false when absent/unparseable.
+func parseKumoTime(raw json.RawMessage) (t time.Time, ok bool) {
+	if len(raw) == 0 {
+		return time.Time{}, false
+	}
+	var s string
+	if err := json.Unmarshal(raw, &s); err == nil && s != "" {
+		if parsed, perr := time.Parse(time.RFC3339, s); perr == nil {
+			return parsed.UTC(), true
+		}
+	}
+	var secs float64
+	if err := json.Unmarshal(raw, &secs); err == nil && secs > 0 {
+		return time.Unix(int64(secs), 0).UTC(), true
+	}
+	return time.Time{}, false
+}
+
 // EventTime resolves the record timestamp, accepting either an RFC3339 string
 // or a Unix epoch number. It falls back to now on absence/parse failure.
 func (r *KumoLogRecord) EventTime(now time.Time) time.Time {
-	if len(r.Timestamp) == 0 {
-		return now
-	}
-	// String timestamp (RFC3339).
-	var s string
-	if err := json.Unmarshal(r.Timestamp, &s); err == nil && s != "" {
-		if t, perr := time.Parse(time.RFC3339, s); perr == nil {
-			return t.UTC()
-		}
-	}
-	// Numeric (Unix seconds).
-	var secs float64
-	if err := json.Unmarshal(r.Timestamp, &secs); err == nil && secs > 0 {
-		return time.Unix(int64(secs), 0).UTC()
+	if t, ok := parseKumoTime(r.Timestamp); ok {
+		return t
 	}
 	return now
+}
+
+// CreatedTime resolves the message creation (Reception) timestamp from the
+// `created` field. ok is false when the field is absent/unparseable.
+func (r *KumoLogRecord) CreatedTime() (time.Time, bool) {
+	return parseKumoTime(r.Created)
+}
+
+// QueueLatency returns how long the message sat in the queue before this event —
+// the time from its creation (Reception) to the event timestamp. It is
+// meaningful on Delivery records. ok is false when `created` is missing or the
+// duration is negative (clock skew).
+func (r *KumoLogRecord) QueueLatency(now time.Time) (d time.Duration, ok bool) {
+	created, ok := r.CreatedTime()
+	if !ok {
+		return 0, false
+	}
+	d = r.EventTime(now).Sub(created)
+	if d < 0 {
+		return 0, false
+	}
+	return d, true
 }
 
 // RecipientDomainOf returns the lowercased domain of the record's recipient.
