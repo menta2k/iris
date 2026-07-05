@@ -179,6 +179,50 @@ func TestRenderDefinesSpoolsAndLocalLogs(t *testing.T) {
 	}
 }
 
+func TestRenderChecksumIgnoresGeneratedBy(t *testing.T) {
+	// The generated_by comment records who rendered the policy; it must NOT change
+	// the checksum, or drift detection nags "changes pending" whenever a different
+	// user regenerates an identical policy. The comment must still ship in Content.
+	base := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "l1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+	}
+	a := base
+	a.GeneratedBy = "alice@example.com"
+	b := base
+	b.GeneratedBy = "bob@example.com"
+
+	ra, err := RenderKumoConfig(a)
+	if err != nil {
+		t.Fatalf("render a: %v", err)
+	}
+	rb, err := RenderKumoConfig(b)
+	if err != nil {
+		t.Fatalf("render b: %v", err)
+	}
+	if ra.Checksum != rb.Checksum {
+		t.Fatalf("checksum must ignore generated_by: %s != %s", ra.Checksum, rb.Checksum)
+	}
+	if ra.InitChecksum != rb.InitChecksum {
+		t.Fatalf("init checksum must ignore generated_by")
+	}
+	// The audit comment still ships in the rendered content.
+	if !strings.Contains(ra.Content, "-- generated_by = alice@example.com") {
+		t.Fatalf("generated_by comment must remain in content:\n%s", ra.Content)
+	}
+	// A real policy change (an extra VMTA) MUST still change the checksum.
+	c := base
+	c.GeneratedBy = "alice@example.com"
+	c.VMTAs = append(append([]*VMTA{}, base.VMTAs...),
+		&VMTA{ID: "v2", Name: "v2", ListenerID: "l1", IPAddress: "203.0.113.2", EHLOName: "v2.example.com", Status: VMTAStatusActive})
+	rc, err := RenderKumoConfig(c)
+	if err != nil {
+		t.Fatalf("render c: %v", err)
+	}
+	if rc.Checksum == ra.Checksum {
+		t.Fatal("a real policy change must change the checksum")
+	}
+}
+
 func TestRenderDKIMSigningWiring(t *testing.T) {
 	// DKIM signing must use the real KumoMTA API, verified end-to-end against a
 	// live kumod: signing happens on reception (there is no

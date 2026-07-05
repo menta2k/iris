@@ -113,3 +113,19 @@ func LuaNumber(f float64) (string, error) {
 func sanitizeComment(s string) string {
 	return strings.NewReplacer("\n", " ", "\r", " ", "\x00", "").Replace(s)
 }
+
+// stripVolatileHeader removes the user-specific `-- generated_by = ...` header
+// comment from the rendered policy so it does not influence the config checksum.
+// Two functionally-identical policies rendered by different users must hash the
+// same, or drift detection would raise a spurious "changes pending".
+func stripVolatileHeader(content string) string {
+	lines := strings.Split(content, "\n")
+	filtered := make([]string, 0, len(lines))
+	for _, l := range lines {
+		if strings.HasPrefix(l, "-- generated_by = ") {
+			continue
+		}
+		filtered = append(filtered, l)
+	}
+	return strings.Join(filtered, "\n")
+}

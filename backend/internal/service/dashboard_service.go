@@ -97,6 +97,12 @@ func (s *Service) GetWarmupDeliveryStats(ctx context.Context, req *adminv1.GetWa
 			BounceRate:      row.BounceRate,
 		})
 	}
+	for _, d := range res.DeferredByDomain {
+		out.DeferredByDomain = append(out.DeferredByDomain, &adminv1.DomainDeferredStat{
+			RecipientDomain: d.RecipientDomain,
+			Messages:        d.Messages,
+		})
+	}
 	return out, nil
 }
 

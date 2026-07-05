@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table'
 import { dashboardService, type WarmupStatsRange } from '@/services/dashboard'
 import { ApiError } from '@/services/http'
-import type { WarmupDeliveryStat } from '@/types'
+import type { DomainDeferredStat, WarmupDeliveryStat } from '@/types'
 
 const RANGES: WarmupStatsRange[] = ['24h', '7d']
 
@@ -21,6 +21,7 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const notImplemented = ref(false)
 const rows = ref<WarmupDeliveryStat[]>([])
+const deferredByDomain = ref<DomainDeferredStat[]>([])
 
 async function load() {
   loading.value = true
@@ -29,8 +30,10 @@ async function load() {
   try {
     const res = await dashboardService.getWarmupStats(range.value)
     rows.value = res.rows ?? []
+    deferredByDomain.value = res.deferredByDomain ?? []
   } catch (err) {
     rows.value = []
+    deferredByDomain.value = []
     if (err instanceof ApiError && err.notImplemented) {
       notImplemented.value = true
     } else {
@@ -87,7 +90,30 @@ watch(range, load)
         Warmup stats endpoint not available.
       </p>
       <p v-else-if="loading" class="py-6 text-center text-body-2 text-medium-emphasis">Loading…</p>
-      <Table v-else>
+      <template v-else>
+        <!-- Distinct messages deferred per domain (deduped across VMTAs). The
+             per-VMTA "Deferred" column below is per-IP incidence, so a message
+             retried across IPs is counted once here but once per IP there —
+             don't sum the column. -->
+        <div v-if="deferredByDomain.length" class="mb-3 rounded border pa-3">
+          <div class="mb-1 d-flex align-center ga-2">
+            <span class="text-caption font-weight-medium">Messages deferred by domain</span>
+            <span class="text-caption text-medium-emphasis">distinct — the "Deferred" column below is per IP</span>
+          </div>
+          <div class="d-flex flex-wrap ga-2">
+            <span
+              v-for="d in deferredByDomain"
+              :key="d.recipientDomain"
+              class="d-inline-flex align-center ga-1 rounded border px-2 py-1 text-caption"
+            >
+              <span class="font-mono">{{ d.recipientDomain }}</span>
+              <span class="tabular-nums text-warning font-weight-medium">{{
+                Number(d.messages).toLocaleString()
+              }}</span>
+            </span>
+          </div>
+        </div>
+        <Table>
         <TableHeader>
           <TableRow>
             <TableHead>VMTA</TableHead>
@@ -123,7 +149,8 @@ watch(range, load)
             </TableCell>
           </TableRow>
         </TableBody>
-      </Table>
+        </Table>
+      </template>
     </CardContent>
   </Card>
 </template>

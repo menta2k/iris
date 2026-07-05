@@ -7,12 +7,13 @@ import (
 )
 
 type fakeDashboardRepo struct {
-	summary     *DashboardSummary
-	stats       []WarmupDeliveryStat
-	classStats  []MailClassStat
-	domainStats []RecipientDomainStat
-	domainLimit int
-	since       time.Time
+	summary          *DashboardSummary
+	stats            []WarmupDeliveryStat
+	deferredByDomain []DomainDeferredStat
+	classStats       []MailClassStat
+	domainStats      []RecipientDomainStat
+	domainLimit      int
+	since            time.Time
 }
 
 func (f *fakeDashboardRepo) Summary(context.Context) (*DashboardSummary, error) {
@@ -22,6 +23,11 @@ func (f *fakeDashboardRepo) Summary(context.Context) (*DashboardSummary, error) 
 func (f *fakeDashboardRepo) DeliveryStats(_ context.Context, since time.Time) ([]WarmupDeliveryStat, error) {
 	f.since = since
 	return f.stats, nil
+}
+
+func (f *fakeDashboardRepo) DeferredByDomain(_ context.Context, since time.Time) ([]DomainDeferredStat, error) {
+	f.since = since
+	return f.deferredByDomain, nil
 }
 
 func (f *fakeDashboardRepo) MailClassStats(_ context.Context, since time.Time) ([]MailClassStat, error) {
@@ -110,6 +116,22 @@ func TestWarmupDeliveryStatsDerivesRates(t *testing.T) {
 	b := res.Rows[1]
 	if b.Attempted != 0 || b.DeliveryRate != 0 || b.BounceRate != 0 {
 		t.Fatalf("zero-terminal row: %+v", b)
+	}
+}
+
+func TestWarmupDeliveryStatsIncludesDeferredByDomain(t *testing.T) {
+	repo := &fakeDashboardRepo{deferredByDomain: []DomainDeferredStat{
+		{RecipientDomain: "gmail.com", Messages: 232},
+		{RecipientDomain: "abv.bg", Messages: 12},
+	}}
+	uc := NewDashboardUsecase(repo)
+	res, err := uc.WarmupDeliveryStats(ownerCtx(), "24h")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(res.DeferredByDomain) != 2 || res.DeferredByDomain[0].RecipientDomain != "gmail.com" ||
+		res.DeferredByDomain[0].Messages != 232 {
+		t.Fatalf("unexpected deferred-by-domain: %+v", res.DeferredByDomain)
 	}
 }
 

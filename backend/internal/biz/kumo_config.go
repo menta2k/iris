@@ -327,7 +327,11 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	writeQueueConfig(&b, snap)
 
 	content := b.String()
-	sum := sha256.Sum256([]byte(content))
+	// Checksum over the policy WITHOUT the user-specific `generated_by` comment:
+	// it records who rendered the config and must not trip drift detection when a
+	// different user regenerates an otherwise-identical policy. The comment still
+	// ships in Content (audit); it just doesn't influence the checksum.
+	sum := sha256.Sum256([]byte(stripVolatileHeader(content)))
 	initSum := sha256.Sum256([]byte(initContent))
 
 	issues := LintLua(content)

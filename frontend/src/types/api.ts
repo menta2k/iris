@@ -941,8 +941,16 @@ export interface WarmupDeliveryStat {
   bounceRate: number
 }
 
+// Distinct messages that deferred to one recipient domain, deduped across VMTAs
+// (so it's summable, unlike the per-VMTA rows). int64 → JSON string.
+export interface DomainDeferredStat {
+  recipientDomain: string
+  messages: string
+}
+
 export interface WarmupDeliveryStats {
   rows?: WarmupDeliveryStat[]
+  deferredByDomain?: DomainDeferredStat[]
   range: string
   since: string
 }

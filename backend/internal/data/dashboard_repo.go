@@ -121,6 +121,41 @@ func (r *DashboardRepo) DeliveryStats(ctx context.Context, since time.Time) ([]b
 	return out, nil
 }
 
+// DeferredByDomain counts DISTINCT messages that deferred per recipient domain
+// since the given time. Uses the same scope as DeliveryStats (a real egress
+// attempt) but dedupes across VMTAs, so a message that retried across several
+// IPs counts once — the summable "messages deferred" number.
+func (r *DashboardRepo) DeferredByDomain(ctx context.Context, since time.Time) ([]biz.DomainDeferredStat, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT m.recipient_domain, count(DISTINCT m.message_id) AS messages
+		FROM mail_records m
+		WHERE m.event_time >= $1
+			AND m.status = $2
+			AND m.egress_source <> ''
+			AND m.recipient_domain <> ''
+		GROUP BY m.recipient_domain
+		ORDER BY 2 DESC, m.recipient_domain
+		LIMIT 200`,
+		since, biz.MailDeferred)
+	if err != nil {
+		return nil, fmt.Errorf("deferred by domain: %w", err)
+	}
+	defer rows.Close()
+
+	var out []biz.DomainDeferredStat
+	for rows.Next() {
+		var s biz.DomainDeferredStat
+		if err := rows.Scan(&s.RecipientDomain, &s.Messages); err != nil {
+			return nil, fmt.Errorf("scan deferred-by-domain: %w", err)
+		}
+		out = append(out, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("deferred-by-domain rows: %w", err)
+	}
+	return out, nil
+}
+
 // MailClassStats aggregates mail-record volume per mailclass since the given
 // time. Count is every record for the class; delivered/bounced/deferred break
 // it down by terminal status (delivered == the "sent" status).

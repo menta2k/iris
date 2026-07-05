@@ -2708,6 +2708,17 @@ components:
                     type: array
                     items:
                         type: string
+        DomainDeferredStat:
+            type: object
+            properties:
+                recipient_domain:
+                    type: string
+                messages:
+                    type: string
+            description: |-
+                DomainDeferredStat is the count of DISTINCT messages that deferred to one
+                 recipient domain (deduped across VMTAs). Unlike the per-VMTA rows, these
+                 numbers are summable — a message that retried across several IPs counts once.
         EnrollMFAReply:
             type: object
             properties:
@@ -4229,6 +4240,13 @@ components:
                     type: string
                 since:
                     type: string
+                deferred_by_domain:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DomainDeferredStat'
+                    description: |-
+                        Distinct messages deferred per recipient domain (deduped across VMTAs), so
+                         the number reflects "messages deferred", not per-IP retry incidence.
         WarmupSchedule:
             type: object
             properties:
