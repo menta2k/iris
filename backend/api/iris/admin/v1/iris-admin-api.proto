@@ -1434,7 +1434,7 @@ message WarmupDeliveryStat {
   string recipient_domain = 3;
   int64 sent = 4;              // delivered
   int64 bounced = 5;           // permanent failure
-  int64 deferred = 6;          // transient (4xx) — informational, not in rates
+  int64 deferred = 6;          // distinct messages that deferred (not attempts); informational, not in rates
   int64 attempted = 7;         // sent + bounced (terminal outcomes)
   double delivery_rate = 8;    // sent / attempted
   double bounce_rate = 9;      // bounced / attempted

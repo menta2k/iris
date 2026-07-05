@@ -35,6 +35,25 @@ func (f *fakeDashboardRepo) RecipientDomainStats(_ context.Context, since time.T
 	return f.domainStats, nil
 }
 
+func TestDashboardSummaryUsesLiveQueueDepth(t *testing.T) {
+	// Repo reports a stale/empty queued count; the live queue admin overrides it
+	// with the sum of scheduled depths. (fakeQueueAdmin is in queue_action_test.go.)
+	repo := &fakeDashboardRepo{summary: &DashboardSummary{QueuedMessages: 0, ServiceState: "running"}}
+	queue := &fakeQueueAdmin{summary: []*QueueState{
+		{Domain: "gmail.com", Depth: 374},
+		{Domain: "abv.bg", Depth: 40},
+		{Domain: "yahoo.com", Depth: 7},
+	}}
+	uc := NewDashboardUsecase(repo).WithQueueAdmin(queue)
+	got, err := uc.Summary(ownerCtx())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.QueuedMessages != 421 {
+		t.Fatalf("queued = %d, want 421 (sum of live scheduled depths)", got.QueuedMessages)
+	}
+}
+
 func TestDashboardSummaryRequiresPermission(t *testing.T) {
 	uc := NewDashboardUsecase(&fakeDashboardRepo{summary: &DashboardSummary{}})
 	ctx := WithIdentity(context.Background(), &Identity{

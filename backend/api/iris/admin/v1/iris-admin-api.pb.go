@@ -11936,7 +11936,7 @@ type WarmupDeliveryStat struct {
 	RecipientDomain string                 `protobuf:"bytes,3,opt,name=recipient_domain,json=recipientDomain,proto3" json:"recipient_domain,omitempty"`
 	Sent            int64                  `protobuf:"varint,4,opt,name=sent,proto3" json:"sent,omitempty"`                                      // delivered
 	Bounced         int64                  `protobuf:"varint,5,opt,name=bounced,proto3" json:"bounced,omitempty"`                                // permanent failure
-	Deferred        int64                  `protobuf:"varint,6,opt,name=deferred,proto3" json:"deferred,omitempty"`                              // transient (4xx) — informational, not in rates
+	Deferred        int64                  `protobuf:"varint,6,opt,name=deferred,proto3" json:"deferred,omitempty"`                              // distinct messages that deferred (not attempts); informational, not in rates
 	Attempted       int64                  `protobuf:"varint,7,opt,name=attempted,proto3" json:"attempted,omitempty"`                            // sent + bounced (terminal outcomes)
 	DeliveryRate    float64                `protobuf:"fixed64,8,opt,name=delivery_rate,json=deliveryRate,proto3" json:"delivery_rate,omitempty"` // sent / attempted
 	BounceRate      float64                `protobuf:"fixed64,9,opt,name=bounce_rate,json=bounceRate,proto3" json:"bounce_rate,omitempty"`       // bounced / attempted

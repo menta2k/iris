@@ -27,7 +27,7 @@ type WarmupDeliveryStat struct {
 	RecipientDomain string
 	Sent            int64
 	Bounced         int64
-	Deferred        int64
+	Deferred        int64   // distinct messages that deferred (not retry attempts)
 	Attempted       int64   // Sent + Bounced (terminal outcomes)
 	DeliveryRate    float64 // Sent / Attempted, 0..1
 	BounceRate      float64 // Bounced / Attempted, 0..1
@@ -91,7 +91,8 @@ type DashboardRepo interface {
 
 // DashboardUsecase implements the dashboard summary (US6).
 type DashboardUsecase struct {
-	repo DashboardRepo
+	repo  DashboardRepo
+	queue KumoQueueAdmin
 }
 
 // NewDashboardUsecase constructs the use case.
@@ -99,12 +100,36 @@ func NewDashboardUsecase(repo DashboardRepo) *DashboardUsecase {
 	return &DashboardUsecase{repo: repo}
 }
 
+// WithQueueAdmin wires kumod's live queue port so Queued Messages reflects the
+// real scheduled-queue depth rather than the (unsynced) mailclass_queues table.
+func (uc *DashboardUsecase) WithQueueAdmin(q KumoQueueAdmin) *DashboardUsecase {
+	uc.queue = q
+	return uc
+}
+
 // Summary returns the dashboard summary after an authorization check.
 func (uc *DashboardUsecase) Summary(ctx context.Context) (*DashboardSummary, error) {
 	if _, err := RequirePermission(ctx, PermDashboardRead); err != nil {
 		return nil, err
 	}
-	return uc.repo.Summary(ctx)
+	s, err := uc.repo.Summary(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// Queued Messages: sum kumod's live per-domain scheduled-queue depths (the
+	// same source the Queues page uses). The mailclass_queues table the repo
+	// reads is never synced, so without this it reads 0. Best-effort — if the
+	// live query is unavailable, keep the repo value rather than fail the page.
+	if uc.queue != nil {
+		if states, qerr := uc.queue.QueueSummary(ctx); qerr == nil {
+			var total int64
+			for _, st := range states {
+				total += st.Depth
+			}
+			s.QueuedMessages = total
+		}
+	}
+	return s, nil
 }
 
 // warmupStatsLookback maps a range token to its lookback duration and the

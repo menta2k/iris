@@ -303,7 +303,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		Inbound:         inboundUC,
 		InboundRoutes:   inboundRouteUC,
 		FBL:             fblUC,
-		Dashboard:       biz.NewDashboardUsecase(data.NewDashboardRepo(db)),
+		Dashboard:       biz.NewDashboardUsecase(data.NewDashboardRepo(db)).WithQueueAdmin(queueAdmin),
 		Metrics:         biz.NewMetricsUsecase(settingsUC, nil),
 		KumoConfig:      kumoConfigUC,
 		Settings:        settingsUC,

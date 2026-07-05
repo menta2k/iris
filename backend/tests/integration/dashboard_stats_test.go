@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/menta2k/iris/backend/internal/biz"
 	"github.com/menta2k/iris/backend/internal/data"
@@ -44,5 +45,46 @@ func TestDashboardSummaryAggregates(t *testing.T) {
 	}
 	if summary.RecentAuditEvents != 1 {
 		t.Fatalf("expected 1 recent audit event, got %d", summary.RecentAuditEvents)
+	}
+}
+
+// TestDeliveryStatsCountsDistinctDeferrals verifies the warmup "Deferred" column
+// counts distinct messages, not retry attempts: a message that logs several
+// TransientFailure (deferred) rows must count once.
+func TestDeliveryStatsCountsDistinctDeferrals(t *testing.T) {
+	db := setupDB(t)
+	ctx := context.Background()
+
+	// One message deferred 3 times (3 TransientFailure rows) on vmta-a/gmail.com.
+	for range 3 {
+		if _, err := db.Pool.Exec(ctx, `
+			INSERT INTO mail_records (message_id, mailclass, recipient, recipient_domain, egress_source, status)
+			VALUES ('mdef1','bulk','x@gmail.com','gmail.com','vmta-a','deferred')`); err != nil {
+			t.Fatalf("seed deferred: %v", err)
+		}
+	}
+	// A second distinct message deferred once on the same vmta/domain.
+	if _, err := db.Pool.Exec(ctx, `
+		INSERT INTO mail_records (message_id, mailclass, recipient, recipient_domain, egress_source, status)
+		VALUES ('mdef2','bulk','y@gmail.com','gmail.com','vmta-a','deferred')`); err != nil {
+		t.Fatalf("seed deferred 2: %v", err)
+	}
+
+	rows, err := data.NewDashboardRepo(db).DeliveryStats(ctx, time.Now().Add(-time.Hour))
+	if err != nil {
+		t.Fatalf("delivery stats: %v", err)
+	}
+	var got *biz.WarmupDeliveryStat
+	for i := range rows {
+		if rows[i].VMTAName == "vmta-a" && rows[i].RecipientDomain == "gmail.com" {
+			got = &rows[i]
+		}
+	}
+	if got == nil {
+		t.Fatal("expected a vmta-a/gmail.com row")
+	}
+	// 4 deferred rows across 2 distinct messages → Deferred must be 2, not 4.
+	if got.Deferred != 2 {
+		t.Fatalf("deferred = %d, want 2 (distinct messages, not attempts)", got.Deferred)
 	}
 }

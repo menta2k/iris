@@ -74,15 +74,20 @@ func (r *DashboardRepo) Summary(ctx context.Context) (*biz.DashboardSummary, err
 // and vmta_id is not populated on log rows — so we group by the source name and
 // LEFT JOIN vmtas to recover the id for linking. Only delivery-attempt statuses
 // are counted; rate fields are left for the usecase to derive.
+//
+// Deferred counts DISTINCT messages, not attempts: KumoMTA emits a
+// TransientFailure record on every failed retry, so one message can defer many
+// times (e.g. a mailbox-full 452 retried for days). Counting distinct
+// message_ids reports "messages that deferred", not "retry attempts".
 func (r *DashboardRepo) DeliveryStats(ctx context.Context, since time.Time) ([]biz.WarmupDeliveryStat, error) {
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT
-			coalesce(v.id::text, '')              AS vmta_id,
-			m.egress_source                       AS vmta_name,
-			m.recipient_domain                    AS recipient_domain,
-			count(*) FILTER (WHERE m.status = $2) AS sent,
-			count(*) FILTER (WHERE m.status = $3) AS bounced,
-			count(*) FILTER (WHERE m.status = $4) AS deferred
+			coalesce(v.id::text, '')                              AS vmta_id,
+			m.egress_source                                       AS vmta_name,
+			m.recipient_domain                                    AS recipient_domain,
+			count(*) FILTER (WHERE m.status = $2)                 AS sent,
+			count(*) FILTER (WHERE m.status = $3)                 AS bounced,
+			count(DISTINCT m.message_id) FILTER (WHERE m.status = $4) AS deferred
 		FROM mail_records m
 		LEFT JOIN vmtas v ON v.name = m.egress_source
 		WHERE m.event_time >= $1
