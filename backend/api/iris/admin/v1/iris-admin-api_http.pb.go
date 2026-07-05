@@ -24,12 +24,14 @@ const OperationIrisAdminServiceChangePassword = "/iris.admin.v1.IrisAdminService
 const OperationIrisAdminServiceCheckDomainBounceSetup = "/iris.admin.v1.IrisAdminService/CheckDomainBounceSetup"
 const OperationIrisAdminServiceClearAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/ClearAcmeDnsProvider"
 const OperationIrisAdminServiceConfirmMFA = "/iris.admin.v1.IrisAdminService/ConfirmMFA"
+const OperationIrisAdminServiceCreateAutomationRule = "/iris.admin.v1.IrisAdminService/CreateAutomationRule"
 const OperationIrisAdminServiceCreateDKIMDomain = "/iris.admin.v1.IrisAdminService/CreateDKIMDomain"
 const OperationIrisAdminServiceCreateDeliveryBlueprint = "/iris.admin.v1.IrisAdminService/CreateDeliveryBlueprint"
 const OperationIrisAdminServiceCreateFeedbackLoop = "/iris.admin.v1.IrisAdminService/CreateFeedbackLoop"
 const OperationIrisAdminServiceCreateInboundRoute = "/iris.admin.v1.IrisAdminService/CreateInboundRoute"
 const OperationIrisAdminServiceCreateListener = "/iris.admin.v1.IrisAdminService/CreateListener"
 const OperationIrisAdminServiceCreateRoutingRule = "/iris.admin.v1.IrisAdminService/CreateRoutingRule"
+const OperationIrisAdminServiceCreateSubjectClassification = "/iris.admin.v1.IrisAdminService/CreateSubjectClassification"
 const OperationIrisAdminServiceCreateSuppression = "/iris.admin.v1.IrisAdminService/CreateSuppression"
 const OperationIrisAdminServiceCreateTLSPolicy = "/iris.admin.v1.IrisAdminService/CreateTLSPolicy"
 const OperationIrisAdminServiceCreateUser = "/iris.admin.v1.IrisAdminService/CreateUser"
@@ -40,6 +42,7 @@ const OperationIrisAdminServiceCurrentUser = "/iris.admin.v1.IrisAdminService/Cu
 const OperationIrisAdminServiceDeleteAcmeCertificate = "/iris.admin.v1.IrisAdminService/DeleteAcmeCertificate"
 const OperationIrisAdminServiceDeleteFeedbackLoop = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
 const OperationIrisAdminServiceDeleteInboundRoute = "/iris.admin.v1.IrisAdminService/DeleteInboundRoute"
+const OperationIrisAdminServiceDeleteSubjectClassification = "/iris.admin.v1.IrisAdminService/DeleteSubjectClassification"
 const OperationIrisAdminServiceDeleteTLSPolicy = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
 const OperationIrisAdminServiceDiagnose = "/iris.admin.v1.IrisAdminService/Diagnose"
 const OperationIrisAdminServiceDisableMFA = "/iris.admin.v1.IrisAdminService/DisableMFA"
@@ -48,14 +51,20 @@ const OperationIrisAdminServiceGenerateDKIMKey = "/iris.admin.v1.IrisAdminServic
 const OperationIrisAdminServiceGenerateKumoConfig = "/iris.admin.v1.IrisAdminService/GenerateKumoConfig"
 const OperationIrisAdminServiceGetAcmeAccount = "/iris.admin.v1.IrisAdminService/GetAcmeAccount"
 const OperationIrisAdminServiceGetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/GetAcmeDnsProvider"
+const OperationIrisAdminServiceGetAppliedKumoConfig = "/iris.admin.v1.IrisAdminService/GetAppliedKumoConfig"
 const OperationIrisAdminServiceGetDashboardSummary = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
 const OperationIrisAdminServiceGetDmarcStats = "/iris.admin.v1.IrisAdminService/GetDmarcStats"
 const OperationIrisAdminServiceGetGlobalSettings = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
+const OperationIrisAdminServiceGetMailClassStats = "/iris.admin.v1.IrisAdminService/GetMailClassStats"
 const OperationIrisAdminServiceGetMetricsTimeseries = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
+const OperationIrisAdminServiceGetQueueTimeHistogram = "/iris.admin.v1.IrisAdminService/GetQueueTimeHistogram"
+const OperationIrisAdminServiceGetRecipientDomainStats = "/iris.admin.v1.IrisAdminService/GetRecipientDomainStats"
+const OperationIrisAdminServiceGetWarmupDeliveryStats = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
 const OperationIrisAdminServiceKumoConfigStatus = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
 const OperationIrisAdminServiceListAcmeCertificates = "/iris.admin.v1.IrisAdminService/ListAcmeCertificates"
 const OperationIrisAdminServiceListAcmeDnsProviders = "/iris.admin.v1.IrisAdminService/ListAcmeDnsProviders"
 const OperationIrisAdminServiceListAuditEntries = "/iris.admin.v1.IrisAdminService/ListAuditEntries"
+const OperationIrisAdminServiceListAutomationRules = "/iris.admin.v1.IrisAdminService/ListAutomationRules"
 const OperationIrisAdminServiceListBounces = "/iris.admin.v1.IrisAdminService/ListBounces"
 const OperationIrisAdminServiceListDKIMDomains = "/iris.admin.v1.IrisAdminService/ListDKIMDomains"
 const OperationIrisAdminServiceListDeliveryBlueprints = "/iris.admin.v1.IrisAdminService/ListDeliveryBlueprints"
@@ -70,6 +79,7 @@ const OperationIrisAdminServiceListQueues = "/iris.admin.v1.IrisAdminService/Lis
 const OperationIrisAdminServiceListRetentionPolicies = "/iris.admin.v1.IrisAdminService/ListRetentionPolicies"
 const OperationIrisAdminServiceListRoutingRules = "/iris.admin.v1.IrisAdminService/ListRoutingRules"
 const OperationIrisAdminServiceListRspamdResults = "/iris.admin.v1.IrisAdminService/ListRspamdResults"
+const OperationIrisAdminServiceListSubjectClassifications = "/iris.admin.v1.IrisAdminService/ListSubjectClassifications"
 const OperationIrisAdminServiceListSuppressions = "/iris.admin.v1.IrisAdminService/ListSuppressions"
 const OperationIrisAdminServiceListTLSPolicies = "/iris.admin.v1.IrisAdminService/ListTLSPolicies"
 const OperationIrisAdminServiceListUsers = "/iris.admin.v1.IrisAdminService/ListUsers"
@@ -90,7 +100,9 @@ const OperationIrisAdminServiceRunRetention = "/iris.admin.v1.IrisAdminService/R
 const OperationIrisAdminServiceSaveAcmeAccount = "/iris.admin.v1.IrisAdminService/SaveAcmeAccount"
 const OperationIrisAdminServiceSeedDeliveryBlueprints = "/iris.admin.v1.IrisAdminService/SeedDeliveryBlueprints"
 const OperationIrisAdminServiceSetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
+const OperationIrisAdminServiceSetAutomationRuleStatus = "/iris.admin.v1.IrisAdminService/SetAutomationRuleStatus"
 const OperationIrisAdminServiceSetDeliveryBlueprintStatus = "/iris.admin.v1.IrisAdminService/SetDeliveryBlueprintStatus"
+const OperationIrisAdminServiceUpdateAutomationRule = "/iris.admin.v1.IrisAdminService/UpdateAutomationRule"
 const OperationIrisAdminServiceUpdateDKIMDomain = "/iris.admin.v1.IrisAdminService/UpdateDKIMDomain"
 const OperationIrisAdminServiceUpdateDeliveryBlueprint = "/iris.admin.v1.IrisAdminService/UpdateDeliveryBlueprint"
 const OperationIrisAdminServiceUpdateFeedbackLoop = "/iris.admin.v1.IrisAdminService/UpdateFeedbackLoop"
@@ -99,6 +111,7 @@ const OperationIrisAdminServiceUpdateInboundRoute = "/iris.admin.v1.IrisAdminSer
 const OperationIrisAdminServiceUpdateListener = "/iris.admin.v1.IrisAdminService/UpdateListener"
 const OperationIrisAdminServiceUpdateRetentionPolicy = "/iris.admin.v1.IrisAdminService/UpdateRetentionPolicy"
 const OperationIrisAdminServiceUpdateRoutingRule = "/iris.admin.v1.IrisAdminService/UpdateRoutingRule"
+const OperationIrisAdminServiceUpdateSubjectClassification = "/iris.admin.v1.IrisAdminService/UpdateSubjectClassification"
 const OperationIrisAdminServiceUpdateSuppression = "/iris.admin.v1.IrisAdminService/UpdateSuppression"
 const OperationIrisAdminServiceUpdateUser = "/iris.admin.v1.IrisAdminService/UpdateUser"
 const OperationIrisAdminServiceUpdateVMTA = "/iris.admin.v1.IrisAdminService/UpdateVMTA"
@@ -117,12 +130,14 @@ type IrisAdminServiceHTTPServer interface {
 	CheckDomainBounceSetup(context.Context, *CheckDomainBounceSetupRequest) (*DomainBounceCheck, error)
 	ClearAcmeDnsProvider(context.Context, *ClearAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	ConfirmMFA(context.Context, *ConfirmMFARequest) (*ConfirmMFAReply, error)
+	CreateAutomationRule(context.Context, *CreateAutomationRuleRequest) (*AutomationRule, error)
 	CreateDKIMDomain(context.Context, *CreateDKIMDomainRequest) (*DKIMDomain, error)
 	CreateDeliveryBlueprint(context.Context, *CreateDeliveryBlueprintRequest) (*DeliveryBlueprint, error)
 	CreateFeedbackLoop(context.Context, *CreateFeedbackLoopRequest) (*FeedbackLoop, error)
 	CreateInboundRoute(context.Context, *CreateInboundRouteRequest) (*InboundRoute, error)
 	CreateListener(context.Context, *CreateListenerRequest) (*Listener, error)
 	CreateRoutingRule(context.Context, *CreateRoutingRuleRequest) (*RoutingRule, error)
+	CreateSubjectClassification(context.Context, *CreateSubjectClassificationRequest) (*SubjectClassification, error)
 	CreateSuppression(context.Context, *CreateSuppressionRequest) (*Suppression, error)
 	CreateTLSPolicy(context.Context, *CreateTLSPolicyRequest) (*TLSPolicy, error)
 	CreateUser(context.Context, *CreateUserRequest) (*User, error)
@@ -135,6 +150,7 @@ type IrisAdminServiceHTTPServer interface {
 	DeleteAcmeCertificate(context.Context, *DeleteAcmeCertificateRequest) (*DeleteAcmeCertificateReply, error)
 	DeleteFeedbackLoop(context.Context, *DeleteFeedbackLoopRequest) (*DeleteFeedbackLoopReply, error)
 	DeleteInboundRoute(context.Context, *DeleteInboundRouteRequest) (*DeleteInboundRouteReply, error)
+	DeleteSubjectClassification(context.Context, *DeleteSubjectClassificationRequest) (*DeleteSubjectClassificationReply, error)
 	DeleteTLSPolicy(context.Context, *DeleteTLSPolicyRequest) (*DeleteTLSPolicyReply, error)
 	// Diagnose Tools ---------------------------------------------------------------------
 	// Diagnose reports how mail from a given address is handled and whether the
@@ -152,14 +168,30 @@ type IrisAdminServiceHTTPServer interface {
 	// GetAcmeAccount ACME (Let's Encrypt) -------------------------------------------------------
 	GetAcmeAccount(context.Context, *GetAcmeAccountRequest) (*AcmeAccount, error)
 	GetAcmeDnsProvider(context.Context, *GetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
+	// GetAppliedKumoConfig GetAppliedKumoConfig returns the KumoMTA policy currently running (the last
+	// one Iris applied) so the UI can diff it against a freshly generated policy.
+	GetAppliedKumoConfig(context.Context, *GetAppliedKumoConfigRequest) (*AppliedKumoConfig, error)
 	GetDashboardSummary(context.Context, *GetDashboardSummaryRequest) (*DashboardSummary, error)
 	// GetDmarcStats DMARC aggregate reports -----------------------------------------------------
 	GetDmarcStats(context.Context, *GetDmarcStatsRequest) (*DmarcStats, error)
 	// GetGlobalSettings Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error)
+	// GetMailClassStats GetMailClassStats returns mail volume grouped by mailclass over a lookback
+	// window — powers the dashboard "mail by class" panel.
+	GetMailClassStats(context.Context, *GetMailClassStatsRequest) (*MailClassStats, error)
 	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(context.Context, *GetMetricsTimeseriesRequest) (*MetricsTimeseries, error)
+	// GetQueueTimeHistogram GetQueueTimeHistogram returns the delivery queue-time distribution (from the
+	// iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
+	// to one mail class.
+	GetQueueTimeHistogram(context.Context, *GetQueueTimeHistogramRequest) (*QueueTimeHistogram, error)
+	// GetRecipientDomainStats GetRecipientDomainStats returns the busiest recipient domains by mail volume
+	// over a lookback window — powers the dashboard "top recipient domains" panel.
+	GetRecipientDomainStats(context.Context, *GetRecipientDomainStatsRequest) (*RecipientDomainStats, error)
+	// GetWarmupDeliveryStats GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
+	// bounce rates over a lookback window — used to watch IP-warmup health.
+	GetWarmupDeliveryStats(context.Context, *GetWarmupDeliveryStatsRequest) (*WarmupDeliveryStats, error)
 	// KumoConfigStatus KumoConfigStatus reports whether the current configuration has drifted from
 	// the last applied policy (a regenerate/apply is pending).
 	KumoConfigStatus(context.Context, *KumoConfigStatusRequest) (*KumoConfigStatusReply, error)
@@ -167,6 +199,8 @@ type IrisAdminServiceHTTPServer interface {
 	// ListAcmeDnsProviders ACME DNS-01 challenge provider configuration.
 	ListAcmeDnsProviders(context.Context, *ListAcmeDnsProvidersRequest) (*ListAcmeDnsProvidersReply, error)
 	ListAuditEntries(context.Context, *ListAuditEntriesRequest) (*ListAuditEntriesReply, error)
+	// ListAutomationRules TSA automation rules (operator-authored reactive back-off).
+	ListAutomationRules(context.Context, *ListAutomationRulesRequest) (*ListAutomationRulesReply, error)
 	ListBounces(context.Context, *ListBouncesRequest) (*ListBouncesReply, error)
 	// ListDKIMDomains Domain & recipient safety ------------------------------------------------
 	ListDKIMDomains(context.Context, *ListDKIMDomainsRequest) (*ListDKIMDomainsReply, error)
@@ -193,6 +227,9 @@ type IrisAdminServiceHTTPServer interface {
 	ListRetentionPolicies(context.Context, *ListRetentionPoliciesRequest) (*ListRetentionPoliciesReply, error)
 	ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesReply, error)
 	ListRspamdResults(context.Context, *ListRspamdResultsRequest) (*ListRspamdResultsReply, error)
+	// ListSubjectClassifications Subject classifications (rules for the optional subject-classification
+	// feature; operator-authored plus AI-generated cache).
+	ListSubjectClassifications(context.Context, *ListSubjectClassificationsRequest) (*ListSubjectClassificationsReply, error)
 	ListSuppressions(context.Context, *ListSuppressionsRequest) (*ListSuppressionsReply, error)
 	// ListTLSPolicies Require-TLS policies (outbound delivery must use TLS for these domains) ---
 	ListTLSPolicies(context.Context, *ListTLSPoliciesRequest) (*ListTLSPoliciesReply, error)
@@ -233,7 +270,9 @@ type IrisAdminServiceHTTPServer interface {
 	SaveAcmeAccount(context.Context, *SaveAcmeAccountRequest) (*AcmeAccount, error)
 	SeedDeliveryBlueprints(context.Context, *SeedDeliveryBlueprintsRequest) (*SeedDeliveryBlueprintsReply, error)
 	SetAcmeDnsProvider(context.Context, *SetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
+	SetAutomationRuleStatus(context.Context, *SetAutomationRuleStatusRequest) (*AutomationRule, error)
 	SetDeliveryBlueprintStatus(context.Context, *SetDeliveryBlueprintStatusRequest) (*DeliveryBlueprint, error)
+	UpdateAutomationRule(context.Context, *UpdateAutomationRuleRequest) (*AutomationRule, error)
 	UpdateDKIMDomain(context.Context, *UpdateDKIMDomainRequest) (*DKIMDomain, error)
 	UpdateDeliveryBlueprint(context.Context, *UpdateDeliveryBlueprintRequest) (*DeliveryBlueprint, error)
 	UpdateFeedbackLoop(context.Context, *UpdateFeedbackLoopRequest) (*FeedbackLoop, error)
@@ -242,6 +281,7 @@ type IrisAdminServiceHTTPServer interface {
 	UpdateListener(context.Context, *UpdateListenerRequest) (*Listener, error)
 	UpdateRetentionPolicy(context.Context, *UpdateRetentionPolicyRequest) (*RetentionPolicy, error)
 	UpdateRoutingRule(context.Context, *UpdateRoutingRuleRequest) (*RoutingRule, error)
+	UpdateSubjectClassification(context.Context, *UpdateSubjectClassificationRequest) (*SubjectClassification, error)
 	UpdateSuppression(context.Context, *UpdateSuppressionRequest) (*Suppression, error)
 	UpdateUser(context.Context, *UpdateUserRequest) (*User, error)
 	UpdateVMTA(context.Context, *UpdateVMTARequest) (*VMTA, error)
@@ -273,6 +313,10 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.PUT("/v1/delivery-blueprints/{id}", _IrisAdminService_UpdateDeliveryBlueprint0_HTTP_Handler(srv))
 	r.POST("/v1/delivery-blueprints/{id}:status", _IrisAdminService_SetDeliveryBlueprintStatus0_HTTP_Handler(srv))
 	r.POST("/v1/delivery-blueprints:seed-defaults", _IrisAdminService_SeedDeliveryBlueprints0_HTTP_Handler(srv))
+	r.GET("/v1/automation-rules", _IrisAdminService_ListAutomationRules0_HTTP_Handler(srv))
+	r.POST("/v1/automation-rules", _IrisAdminService_CreateAutomationRule0_HTTP_Handler(srv))
+	r.PUT("/v1/automation-rules/{id}", _IrisAdminService_UpdateAutomationRule0_HTTP_Handler(srv))
+	r.POST("/v1/automation-rules/{id}:status", _IrisAdminService_SetAutomationRuleStatus0_HTTP_Handler(srv))
 	r.GET("/v1/routing-rules", _IrisAdminService_ListRoutingRules0_HTTP_Handler(srv))
 	r.POST("/v1/routing-rules", _IrisAdminService_CreateRoutingRule0_HTTP_Handler(srv))
 	r.PUT("/v1/routing-rules/{id}", _IrisAdminService_UpdateRoutingRule0_HTTP_Handler(srv))
@@ -316,6 +360,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.POST("/v1/kumomta:service-control", _IrisAdminService_RequestServiceControl0_HTTP_Handler(srv))
 	r.GET("/v1/kumomta/config:generate", _IrisAdminService_GenerateKumoConfig0_HTTP_Handler(srv))
 	r.POST("/v1/kumomta/config:apply", _IrisAdminService_ApplyKumoConfig0_HTTP_Handler(srv))
+	r.GET("/v1/kumomta/config:applied", _IrisAdminService_GetAppliedKumoConfig0_HTTP_Handler(srv))
 	r.GET("/v1/kumomta/config:status", _IrisAdminService_KumoConfigStatus0_HTTP_Handler(srv))
 	r.GET("/v1/acme/account", _IrisAdminService_GetAcmeAccount0_HTTP_Handler(srv))
 	r.PUT("/v1/acme/account", _IrisAdminService_SaveAcmeAccount0_HTTP_Handler(srv))
@@ -328,6 +373,10 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.DELETE("/v1/acme/dns-provider", _IrisAdminService_ClearAcmeDnsProvider0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/summary", _IrisAdminService_GetDashboardSummary0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/metrics", _IrisAdminService_GetMetricsTimeseries0_HTTP_Handler(srv))
+	r.GET("/v1/dashboard/warmup-stats", _IrisAdminService_GetWarmupDeliveryStats0_HTTP_Handler(srv))
+	r.GET("/v1/dashboard/queue-time-histogram", _IrisAdminService_GetQueueTimeHistogram0_HTTP_Handler(srv))
+	r.GET("/v1/dashboard/mailclass-stats", _IrisAdminService_GetMailClassStats0_HTTP_Handler(srv))
+	r.GET("/v1/dashboard/recipient-domain-stats", _IrisAdminService_GetRecipientDomainStats0_HTTP_Handler(srv))
 	r.GET("/v1/domain-check/{domain}", _IrisAdminService_CheckDomainBounceSetup0_HTTP_Handler(srv))
 	r.POST("/v1/tools/diagnose", _IrisAdminService_Diagnose0_HTTP_Handler(srv))
 	r.POST("/v1/tools/rbl-check", _IrisAdminService_RblCheck0_HTTP_Handler(srv))
@@ -340,6 +389,10 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.POST("/v1/retention:run", _IrisAdminService_RunRetention0_HTTP_Handler(srv))
 	r.GET("/v1/settings", _IrisAdminService_GetGlobalSettings0_HTTP_Handler(srv))
 	r.PUT("/v1/settings", _IrisAdminService_UpdateGlobalSettings0_HTTP_Handler(srv))
+	r.GET("/v1/subject-classifications", _IrisAdminService_ListSubjectClassifications0_HTTP_Handler(srv))
+	r.POST("/v1/subject-classifications", _IrisAdminService_CreateSubjectClassification0_HTTP_Handler(srv))
+	r.PUT("/v1/subject-classifications/{id}", _IrisAdminService_UpdateSubjectClassification0_HTTP_Handler(srv))
+	r.DELETE("/v1/subject-classifications/{id}", _IrisAdminService_DeleteSubjectClassification0_HTTP_Handler(srv))
 }
 
 func _IrisAdminService_ListListeners0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
@@ -765,6 +818,97 @@ func _IrisAdminService_SeedDeliveryBlueprints0_HTTP_Handler(srv IrisAdminService
 			return err
 		}
 		reply := out.(*SeedDeliveryBlueprintsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ListAutomationRules0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListAutomationRulesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListAutomationRules)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListAutomationRules(ctx, req.(*ListAutomationRulesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListAutomationRulesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CreateAutomationRule0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateAutomationRuleRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCreateAutomationRule)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateAutomationRule(ctx, req.(*CreateAutomationRuleRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AutomationRule)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateAutomationRule0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateAutomationRuleRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateAutomationRule)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateAutomationRule(ctx, req.(*UpdateAutomationRuleRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AutomationRule)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_SetAutomationRuleStatus0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SetAutomationRuleStatusRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceSetAutomationRuleStatus)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SetAutomationRuleStatus(ctx, req.(*SetAutomationRuleStatusRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AutomationRule)
 		return ctx.Result(200, reply)
 	}
 }
@@ -1691,6 +1835,25 @@ func _IrisAdminService_ApplyKumoConfig0_HTTP_Handler(srv IrisAdminServiceHTTPSer
 	}
 }
 
+func _IrisAdminService_GetAppliedKumoConfig0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetAppliedKumoConfigRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetAppliedKumoConfig)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetAppliedKumoConfig(ctx, req.(*GetAppliedKumoConfigRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AppliedKumoConfig)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_KumoConfigStatus0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in KumoConfigStatusRequest
@@ -1927,6 +2090,82 @@ func _IrisAdminService_GetMetricsTimeseries0_HTTP_Handler(srv IrisAdminServiceHT
 			return err
 		}
 		reply := out.(*MetricsTimeseries)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_GetWarmupDeliveryStats0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetWarmupDeliveryStatsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetWarmupDeliveryStats)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetWarmupDeliveryStats(ctx, req.(*GetWarmupDeliveryStatsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*WarmupDeliveryStats)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_GetQueueTimeHistogram0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetQueueTimeHistogramRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetQueueTimeHistogram)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetQueueTimeHistogram(ctx, req.(*GetQueueTimeHistogramRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*QueueTimeHistogram)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_GetMailClassStats0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetMailClassStatsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetMailClassStats)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetMailClassStats(ctx, req.(*GetMailClassStatsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*MailClassStats)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_GetRecipientDomainStats0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetRecipientDomainStatsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetRecipientDomainStats)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetRecipientDomainStats(ctx, req.(*GetRecipientDomainStatsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*RecipientDomainStats)
 		return ctx.Result(200, reply)
 	}
 }
@@ -2180,6 +2419,94 @@ func _IrisAdminService_UpdateGlobalSettings0_HTTP_Handler(srv IrisAdminServiceHT
 	}
 }
 
+func _IrisAdminService_ListSubjectClassifications0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListSubjectClassificationsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListSubjectClassifications)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListSubjectClassifications(ctx, req.(*ListSubjectClassificationsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListSubjectClassificationsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CreateSubjectClassification0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateSubjectClassificationRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCreateSubjectClassification)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateSubjectClassification(ctx, req.(*CreateSubjectClassificationRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*SubjectClassification)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateSubjectClassification0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateSubjectClassificationRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateSubjectClassification)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateSubjectClassification(ctx, req.(*UpdateSubjectClassificationRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*SubjectClassification)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_DeleteSubjectClassification0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteSubjectClassificationRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceDeleteSubjectClassification)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteSubjectClassification(ctx, req.(*DeleteSubjectClassificationRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteSubjectClassificationReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type IrisAdminServiceHTTPClient interface {
 	// ApplyKumoConfig ApplyKumoConfig renders the configuration, writes it to KumoMTA, and
 	// reloads the service. High-risk: requires confirmation and is audited.
@@ -2191,12 +2518,14 @@ type IrisAdminServiceHTTPClient interface {
 	CheckDomainBounceSetup(ctx context.Context, req *CheckDomainBounceSetupRequest, opts ...http.CallOption) (rsp *DomainBounceCheck, err error)
 	ClearAcmeDnsProvider(ctx context.Context, req *ClearAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	ConfirmMFA(ctx context.Context, req *ConfirmMFARequest, opts ...http.CallOption) (rsp *ConfirmMFAReply, err error)
+	CreateAutomationRule(ctx context.Context, req *CreateAutomationRuleRequest, opts ...http.CallOption) (rsp *AutomationRule, err error)
 	CreateDKIMDomain(ctx context.Context, req *CreateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
 	CreateDeliveryBlueprint(ctx context.Context, req *CreateDeliveryBlueprintRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
 	CreateFeedbackLoop(ctx context.Context, req *CreateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
 	CreateInboundRoute(ctx context.Context, req *CreateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
 	CreateListener(ctx context.Context, req *CreateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
 	CreateRoutingRule(ctx context.Context, req *CreateRoutingRuleRequest, opts ...http.CallOption) (rsp *RoutingRule, err error)
+	CreateSubjectClassification(ctx context.Context, req *CreateSubjectClassificationRequest, opts ...http.CallOption) (rsp *SubjectClassification, err error)
 	CreateSuppression(ctx context.Context, req *CreateSuppressionRequest, opts ...http.CallOption) (rsp *Suppression, err error)
 	CreateTLSPolicy(ctx context.Context, req *CreateTLSPolicyRequest, opts ...http.CallOption) (rsp *TLSPolicy, err error)
 	CreateUser(ctx context.Context, req *CreateUserRequest, opts ...http.CallOption) (rsp *User, err error)
@@ -2209,6 +2538,7 @@ type IrisAdminServiceHTTPClient interface {
 	DeleteAcmeCertificate(ctx context.Context, req *DeleteAcmeCertificateRequest, opts ...http.CallOption) (rsp *DeleteAcmeCertificateReply, err error)
 	DeleteFeedbackLoop(ctx context.Context, req *DeleteFeedbackLoopRequest, opts ...http.CallOption) (rsp *DeleteFeedbackLoopReply, err error)
 	DeleteInboundRoute(ctx context.Context, req *DeleteInboundRouteRequest, opts ...http.CallOption) (rsp *DeleteInboundRouteReply, err error)
+	DeleteSubjectClassification(ctx context.Context, req *DeleteSubjectClassificationRequest, opts ...http.CallOption) (rsp *DeleteSubjectClassificationReply, err error)
 	DeleteTLSPolicy(ctx context.Context, req *DeleteTLSPolicyRequest, opts ...http.CallOption) (rsp *DeleteTLSPolicyReply, err error)
 	// Diagnose Tools ---------------------------------------------------------------------
 	// Diagnose reports how mail from a given address is handled and whether the
@@ -2226,14 +2556,30 @@ type IrisAdminServiceHTTPClient interface {
 	// GetAcmeAccount ACME (Let's Encrypt) -------------------------------------------------------
 	GetAcmeAccount(ctx context.Context, req *GetAcmeAccountRequest, opts ...http.CallOption) (rsp *AcmeAccount, err error)
 	GetAcmeDnsProvider(ctx context.Context, req *GetAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
+	// GetAppliedKumoConfig GetAppliedKumoConfig returns the KumoMTA policy currently running (the last
+	// one Iris applied) so the UI can diff it against a freshly generated policy.
+	GetAppliedKumoConfig(ctx context.Context, req *GetAppliedKumoConfigRequest, opts ...http.CallOption) (rsp *AppliedKumoConfig, err error)
 	GetDashboardSummary(ctx context.Context, req *GetDashboardSummaryRequest, opts ...http.CallOption) (rsp *DashboardSummary, err error)
 	// GetDmarcStats DMARC aggregate reports -----------------------------------------------------
 	GetDmarcStats(ctx context.Context, req *GetDmarcStatsRequest, opts ...http.CallOption) (rsp *DmarcStats, err error)
 	// GetGlobalSettings Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(ctx context.Context, req *GetGlobalSettingsRequest, opts ...http.CallOption) (rsp *GlobalSettings, err error)
+	// GetMailClassStats GetMailClassStats returns mail volume grouped by mailclass over a lookback
+	// window — powers the dashboard "mail by class" panel.
+	GetMailClassStats(ctx context.Context, req *GetMailClassStatsRequest, opts ...http.CallOption) (rsp *MailClassStats, err error)
 	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(ctx context.Context, req *GetMetricsTimeseriesRequest, opts ...http.CallOption) (rsp *MetricsTimeseries, err error)
+	// GetQueueTimeHistogram GetQueueTimeHistogram returns the delivery queue-time distribution (from the
+	// iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
+	// to one mail class.
+	GetQueueTimeHistogram(ctx context.Context, req *GetQueueTimeHistogramRequest, opts ...http.CallOption) (rsp *QueueTimeHistogram, err error)
+	// GetRecipientDomainStats GetRecipientDomainStats returns the busiest recipient domains by mail volume
+	// over a lookback window — powers the dashboard "top recipient domains" panel.
+	GetRecipientDomainStats(ctx context.Context, req *GetRecipientDomainStatsRequest, opts ...http.CallOption) (rsp *RecipientDomainStats, err error)
+	// GetWarmupDeliveryStats GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
+	// bounce rates over a lookback window — used to watch IP-warmup health.
+	GetWarmupDeliveryStats(ctx context.Context, req *GetWarmupDeliveryStatsRequest, opts ...http.CallOption) (rsp *WarmupDeliveryStats, err error)
 	// KumoConfigStatus KumoConfigStatus reports whether the current configuration has drifted from
 	// the last applied policy (a regenerate/apply is pending).
 	KumoConfigStatus(ctx context.Context, req *KumoConfigStatusRequest, opts ...http.CallOption) (rsp *KumoConfigStatusReply, err error)
@@ -2241,6 +2587,8 @@ type IrisAdminServiceHTTPClient interface {
 	// ListAcmeDnsProviders ACME DNS-01 challenge provider configuration.
 	ListAcmeDnsProviders(ctx context.Context, req *ListAcmeDnsProvidersRequest, opts ...http.CallOption) (rsp *ListAcmeDnsProvidersReply, err error)
 	ListAuditEntries(ctx context.Context, req *ListAuditEntriesRequest, opts ...http.CallOption) (rsp *ListAuditEntriesReply, err error)
+	// ListAutomationRules TSA automation rules (operator-authored reactive back-off).
+	ListAutomationRules(ctx context.Context, req *ListAutomationRulesRequest, opts ...http.CallOption) (rsp *ListAutomationRulesReply, err error)
 	ListBounces(ctx context.Context, req *ListBouncesRequest, opts ...http.CallOption) (rsp *ListBouncesReply, err error)
 	// ListDKIMDomains Domain & recipient safety ------------------------------------------------
 	ListDKIMDomains(ctx context.Context, req *ListDKIMDomainsRequest, opts ...http.CallOption) (rsp *ListDKIMDomainsReply, err error)
@@ -2267,6 +2615,9 @@ type IrisAdminServiceHTTPClient interface {
 	ListRetentionPolicies(ctx context.Context, req *ListRetentionPoliciesRequest, opts ...http.CallOption) (rsp *ListRetentionPoliciesReply, err error)
 	ListRoutingRules(ctx context.Context, req *ListRoutingRulesRequest, opts ...http.CallOption) (rsp *ListRoutingRulesReply, err error)
 	ListRspamdResults(ctx context.Context, req *ListRspamdResultsRequest, opts ...http.CallOption) (rsp *ListRspamdResultsReply, err error)
+	// ListSubjectClassifications Subject classifications (rules for the optional subject-classification
+	// feature; operator-authored plus AI-generated cache).
+	ListSubjectClassifications(ctx context.Context, req *ListSubjectClassificationsRequest, opts ...http.CallOption) (rsp *ListSubjectClassificationsReply, err error)
 	ListSuppressions(ctx context.Context, req *ListSuppressionsRequest, opts ...http.CallOption) (rsp *ListSuppressionsReply, err error)
 	// ListTLSPolicies Require-TLS policies (outbound delivery must use TLS for these domains) ---
 	ListTLSPolicies(ctx context.Context, req *ListTLSPoliciesRequest, opts ...http.CallOption) (rsp *ListTLSPoliciesReply, err error)
@@ -2307,7 +2658,9 @@ type IrisAdminServiceHTTPClient interface {
 	SaveAcmeAccount(ctx context.Context, req *SaveAcmeAccountRequest, opts ...http.CallOption) (rsp *AcmeAccount, err error)
 	SeedDeliveryBlueprints(ctx context.Context, req *SeedDeliveryBlueprintsRequest, opts ...http.CallOption) (rsp *SeedDeliveryBlueprintsReply, err error)
 	SetAcmeDnsProvider(ctx context.Context, req *SetAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
+	SetAutomationRuleStatus(ctx context.Context, req *SetAutomationRuleStatusRequest, opts ...http.CallOption) (rsp *AutomationRule, err error)
 	SetDeliveryBlueprintStatus(ctx context.Context, req *SetDeliveryBlueprintStatusRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
+	UpdateAutomationRule(ctx context.Context, req *UpdateAutomationRuleRequest, opts ...http.CallOption) (rsp *AutomationRule, err error)
 	UpdateDKIMDomain(ctx context.Context, req *UpdateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
 	UpdateDeliveryBlueprint(ctx context.Context, req *UpdateDeliveryBlueprintRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
 	UpdateFeedbackLoop(ctx context.Context, req *UpdateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
@@ -2316,6 +2669,7 @@ type IrisAdminServiceHTTPClient interface {
 	UpdateListener(ctx context.Context, req *UpdateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
 	UpdateRetentionPolicy(ctx context.Context, req *UpdateRetentionPolicyRequest, opts ...http.CallOption) (rsp *RetentionPolicy, err error)
 	UpdateRoutingRule(ctx context.Context, req *UpdateRoutingRuleRequest, opts ...http.CallOption) (rsp *RoutingRule, err error)
+	UpdateSubjectClassification(ctx context.Context, req *UpdateSubjectClassificationRequest, opts ...http.CallOption) (rsp *SubjectClassification, err error)
 	UpdateSuppression(ctx context.Context, req *UpdateSuppressionRequest, opts ...http.CallOption) (rsp *Suppression, err error)
 	UpdateUser(ctx context.Context, req *UpdateUserRequest, opts ...http.CallOption) (rsp *User, err error)
 	UpdateVMTA(ctx context.Context, req *UpdateVMTARequest, opts ...http.CallOption) (rsp *VMTA, err error)
@@ -2404,6 +2758,19 @@ func (c *IrisAdminServiceHTTPClientImpl) ConfirmMFA(ctx context.Context, in *Con
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) CreateAutomationRule(ctx context.Context, in *CreateAutomationRuleRequest, opts ...http.CallOption) (*AutomationRule, error) {
+	var out AutomationRule
+	pattern := "/v1/automation-rules"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateAutomationRule))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) CreateDKIMDomain(ctx context.Context, in *CreateDKIMDomainRequest, opts ...http.CallOption) (*DKIMDomain, error) {
 	var out DKIMDomain
 	pattern := "/v1/dkim-domains"
@@ -2474,6 +2841,19 @@ func (c *IrisAdminServiceHTTPClientImpl) CreateRoutingRule(ctx context.Context, 
 	pattern := "/v1/routing-rules"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateRoutingRule))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) CreateSubjectClassification(ctx context.Context, in *CreateSubjectClassificationRequest, opts ...http.CallOption) (*SubjectClassification, error) {
+	var out SubjectClassification
+	pattern := "/v1/subject-classifications"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateSubjectClassification))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -2614,6 +2994,19 @@ func (c *IrisAdminServiceHTTPClientImpl) DeleteInboundRoute(ctx context.Context,
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) DeleteSubjectClassification(ctx context.Context, in *DeleteSubjectClassificationRequest, opts ...http.CallOption) (*DeleteSubjectClassificationReply, error) {
+	var out DeleteSubjectClassificationReply
+	pattern := "/v1/subject-classifications/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteSubjectClassification))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) DeleteTLSPolicy(ctx context.Context, in *DeleteTLSPolicyRequest, opts ...http.CallOption) (*DeleteTLSPolicyReply, error) {
 	var out DeleteTLSPolicyReply
 	pattern := "/v1/tls-policies/{id}"
@@ -2727,6 +3120,21 @@ func (c *IrisAdminServiceHTTPClientImpl) GetAcmeDnsProvider(ctx context.Context,
 	return &out, nil
 }
 
+// GetAppliedKumoConfig GetAppliedKumoConfig returns the KumoMTA policy currently running (the last
+// one Iris applied) so the UI can diff it against a freshly generated policy.
+func (c *IrisAdminServiceHTTPClientImpl) GetAppliedKumoConfig(ctx context.Context, in *GetAppliedKumoConfigRequest, opts ...http.CallOption) (*AppliedKumoConfig, error) {
+	var out AppliedKumoConfig
+	pattern := "/v1/kumomta/config:applied"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetAppliedKumoConfig))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) GetDashboardSummary(ctx context.Context, in *GetDashboardSummaryRequest, opts ...http.CallOption) (*DashboardSummary, error) {
 	var out DashboardSummary
 	pattern := "/v1/dashboard/summary"
@@ -2768,6 +3176,21 @@ func (c *IrisAdminServiceHTTPClientImpl) GetGlobalSettings(ctx context.Context, 
 	return &out, nil
 }
 
+// GetMailClassStats GetMailClassStats returns mail volume grouped by mailclass over a lookback
+// window — powers the dashboard "mail by class" panel.
+func (c *IrisAdminServiceHTTPClientImpl) GetMailClassStats(ctx context.Context, in *GetMailClassStatsRequest, opts ...http.CallOption) (*MailClassStats, error) {
+	var out MailClassStats
+	pattern := "/v1/dashboard/mailclass-stats"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetMailClassStats))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 // bounces, deferrals, receptions) from the configured Prometheus.
 func (c *IrisAdminServiceHTTPClientImpl) GetMetricsTimeseries(ctx context.Context, in *GetMetricsTimeseriesRequest, opts ...http.CallOption) (*MetricsTimeseries, error) {
@@ -2775,6 +3198,52 @@ func (c *IrisAdminServiceHTTPClientImpl) GetMetricsTimeseries(ctx context.Contex
 	pattern := "/v1/dashboard/metrics"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceGetMetricsTimeseries))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetQueueTimeHistogram GetQueueTimeHistogram returns the delivery queue-time distribution (from the
+// iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
+// to one mail class.
+func (c *IrisAdminServiceHTTPClientImpl) GetQueueTimeHistogram(ctx context.Context, in *GetQueueTimeHistogramRequest, opts ...http.CallOption) (*QueueTimeHistogram, error) {
+	var out QueueTimeHistogram
+	pattern := "/v1/dashboard/queue-time-histogram"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetQueueTimeHistogram))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetRecipientDomainStats GetRecipientDomainStats returns the busiest recipient domains by mail volume
+// over a lookback window — powers the dashboard "top recipient domains" panel.
+func (c *IrisAdminServiceHTTPClientImpl) GetRecipientDomainStats(ctx context.Context, in *GetRecipientDomainStatsRequest, opts ...http.CallOption) (*RecipientDomainStats, error) {
+	var out RecipientDomainStats
+	pattern := "/v1/dashboard/recipient-domain-stats"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetRecipientDomainStats))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetWarmupDeliveryStats GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
+// bounce rates over a lookback window — used to watch IP-warmup health.
+func (c *IrisAdminServiceHTTPClientImpl) GetWarmupDeliveryStats(ctx context.Context, in *GetWarmupDeliveryStatsRequest, opts ...http.CallOption) (*WarmupDeliveryStats, error) {
+	var out WarmupDeliveryStats
+	pattern := "/v1/dashboard/warmup-stats"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetWarmupDeliveryStats))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -2830,6 +3299,20 @@ func (c *IrisAdminServiceHTTPClientImpl) ListAuditEntries(ctx context.Context, i
 	pattern := "/v1/audit-entries"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListAuditEntries))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListAutomationRules TSA automation rules (operator-authored reactive back-off).
+func (c *IrisAdminServiceHTTPClientImpl) ListAutomationRules(ctx context.Context, in *ListAutomationRulesRequest, opts ...http.CallOption) (*ListAutomationRulesReply, error) {
+	var out ListAutomationRulesReply
+	pattern := "/v1/automation-rules"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListAutomationRules))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -3024,6 +3507,21 @@ func (c *IrisAdminServiceHTTPClientImpl) ListRspamdResults(ctx context.Context, 
 	pattern := "/v1/rspamd-results"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListRspamdResults))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListSubjectClassifications Subject classifications (rules for the optional subject-classification
+// feature; operator-authored plus AI-generated cache).
+func (c *IrisAdminServiceHTTPClientImpl) ListSubjectClassifications(ctx context.Context, in *ListSubjectClassificationsRequest, opts ...http.CallOption) (*ListSubjectClassificationsReply, error) {
+	var out ListSubjectClassificationsReply
+	pattern := "/v1/subject-classifications"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListSubjectClassifications))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -3312,6 +3810,19 @@ func (c *IrisAdminServiceHTTPClientImpl) SetAcmeDnsProvider(ctx context.Context,
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) SetAutomationRuleStatus(ctx context.Context, in *SetAutomationRuleStatusRequest, opts ...http.CallOption) (*AutomationRule, error) {
+	var out AutomationRule
+	pattern := "/v1/automation-rules/{id}:status"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceSetAutomationRuleStatus))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) SetDeliveryBlueprintStatus(ctx context.Context, in *SetDeliveryBlueprintStatusRequest, opts ...http.CallOption) (*DeliveryBlueprint, error) {
 	var out DeliveryBlueprint
 	pattern := "/v1/delivery-blueprints/{id}:status"
@@ -3319,6 +3830,19 @@ func (c *IrisAdminServiceHTTPClientImpl) SetDeliveryBlueprintStatus(ctx context.
 	opts = append(opts, http.Operation(OperationIrisAdminServiceSetDeliveryBlueprintStatus))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) UpdateAutomationRule(ctx context.Context, in *UpdateAutomationRuleRequest, opts ...http.CallOption) (*AutomationRule, error) {
+	var out AutomationRule
+	pattern := "/v1/automation-rules/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateAutomationRule))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -3421,6 +3945,19 @@ func (c *IrisAdminServiceHTTPClientImpl) UpdateRoutingRule(ctx context.Context, 
 	pattern := "/v1/routing-rules/{id}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateRoutingRule))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) UpdateSubjectClassification(ctx context.Context, in *UpdateSubjectClassificationRequest, opts ...http.CallOption) (*SubjectClassification, error) {
+	var out SubjectClassification
+	pattern := "/v1/subject-classifications/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateSubjectClassification))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {

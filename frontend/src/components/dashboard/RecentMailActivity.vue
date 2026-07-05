@@ -19,9 +19,9 @@ defineProps<{ events?: MailRecord[]; count?: string }>()
 <template>
   <Card data-testid="recent-mail-activity">
     <CardHeader>
-      <CardTitle class="flex items-center justify-between">
+      <CardTitle class="d-flex align-center justify-space-between">
         <span>Recent Mail Activity</span>
-        <span v-if="count" class="text-sm font-normal text-muted-foreground">{{ count }} in last hour</span>
+        <span v-if="count" class="text-body-2 font-weight-regular text-medium-emphasis">{{ count }} in last hour</span>
       </CardTitle>
     </CardHeader>
     <CardContent>
@@ -37,7 +37,7 @@ defineProps<{ events?: MailRecord[]; count?: string }>()
         <TableBody>
           <TableEmpty v-if="!events || events.length === 0" :colspan="4" message="No recent mail events." />
           <TableRow v-for="ev in events" :key="ev.id">
-            <TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDateTime(ev.eventTime) }}</TableCell>
+            <TableCell class="text-no-wrap text-medium-emphasis">{{ formatDateTime(ev.eventTime) }}</TableCell>
             <TableCell>{{ ev.recipient }}</TableCell>
             <TableCell>{{ ev.mailclass }}</TableCell>
             <TableCell><StatusBadge :status="ev.status" /></TableCell>

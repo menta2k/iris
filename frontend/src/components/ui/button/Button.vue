@@ -1,56 +1,55 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { cva, type VariantProps } from 'class-variance-authority'
-import { cn } from '@/lib/utils'
 
-const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
-  {
-    variants: {
-      variant: {
-        default: 'bg-primary text-primary-foreground shadow hover:bg-primary/90',
-        destructive:
-          'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90',
-        outline:
-          'border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground',
-        secondary: 'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
-        ghost: 'hover:bg-accent hover:text-accent-foreground',
-        link: 'text-primary underline-offset-4 hover:underline',
-      },
-      size: {
-        default: 'h-9 px-4 py-2',
-        sm: 'h-8 rounded-md px-3 text-xs',
-        lg: 'h-10 rounded-md px-8',
-        icon: 'h-9 w-9',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-      size: 'default',
-    },
-  },
-)
-
-type ButtonVariants = VariantProps<typeof buttonVariants>
+// Thin wrapper mapping the legacy shadcn-style API onto v-btn so ~30 call
+// sites keep working unchanged during the Vuetify migration (P3).
+type Variant = 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
+type Size = 'default' | 'sm' | 'lg' | 'icon'
 
 const props = withDefaults(
   defineProps<{
-    variant?: ButtonVariants['variant']
-    size?: ButtonVariants['size']
+    variant?: Variant
+    size?: Size
     type?: 'button' | 'submit' | 'reset'
     disabled?: boolean
     class?: string
   }>(),
-  { type: 'button' },
+  { variant: 'default', size: 'default', type: 'button' },
 )
 
-const classes = computed(() =>
-  cn(buttonVariants({ variant: props.variant, size: props.size }), props.class),
-)
+const APPEARANCE: Record<
+  Variant,
+  { color?: string; variant: 'flat' | 'outlined' | 'tonal' | 'text' | 'plain' }
+> = {
+  default: { color: 'primary', variant: 'flat' },
+  destructive: { color: 'error', variant: 'flat' },
+  outline: { variant: 'outlined' },
+  secondary: { color: 'secondary', variant: 'tonal' },
+  ghost: { variant: 'text' },
+  link: { color: 'primary', variant: 'plain' },
+}
+
+const SIZES: Record<Size, string | undefined> = {
+  default: undefined,
+  sm: 'small',
+  lg: 'large',
+  icon: 'small',
+}
+
+const appearance = computed(() => APPEARANCE[props.variant])
+const vSize = computed(() => SIZES[props.size])
 </script>
 
 <template>
-  <button :type="type" :disabled="disabled" :class="classes">
+  <v-btn
+    :type="type"
+    :disabled="disabled"
+    :color="appearance.color"
+    :variant="appearance.variant"
+    :size="vSize"
+    :icon="size === 'icon'"
+    :class="$props.class"
+  >
     <slot />
-  </button>
+  </v-btn>
 </template>

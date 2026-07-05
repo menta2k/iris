@@ -70,6 +70,19 @@ service IrisAdminService {
   rpc SeedDeliveryBlueprints(SeedDeliveryBlueprintsRequest) returns (SeedDeliveryBlueprintsReply) {
     option (google.api.http) = { post: "/v1/delivery-blueprints:seed-defaults" body: "*" };
   }
+  // TSA automation rules (operator-authored reactive back-off).
+  rpc ListAutomationRules(ListAutomationRulesRequest) returns (ListAutomationRulesReply) {
+    option (google.api.http) = { get: "/v1/automation-rules" };
+  }
+  rpc CreateAutomationRule(CreateAutomationRuleRequest) returns (AutomationRule) {
+    option (google.api.http) = { post: "/v1/automation-rules" body: "*" };
+  }
+  rpc UpdateAutomationRule(UpdateAutomationRuleRequest) returns (AutomationRule) {
+    option (google.api.http) = { put: "/v1/automation-rules/{id}" body: "*" };
+  }
+  rpc SetAutomationRuleStatus(SetAutomationRuleStatusRequest) returns (AutomationRule) {
+    option (google.api.http) = { post: "/v1/automation-rules/{id}:status" body: "*" };
+  }
   rpc ListRoutingRules(ListRoutingRulesRequest) returns (ListRoutingRulesReply) {
     option (google.api.http) = { get: "/v1/routing-rules" };
   }
@@ -239,6 +252,11 @@ service IrisAdminService {
   rpc ApplyKumoConfig(ApplyKumoConfigRequest) returns (ApplyKumoConfigReply) {
     option (google.api.http) = { post: "/v1/kumomta/config:apply" body: "*" };
   }
+  // GetAppliedKumoConfig returns the KumoMTA policy currently running (the last
+  // one Iris applied) so the UI can diff it against a freshly generated policy.
+  rpc GetAppliedKumoConfig(GetAppliedKumoConfigRequest) returns (AppliedKumoConfig) {
+    option (google.api.http) = { get: "/v1/kumomta/config:applied" };
+  }
   // KumoConfigStatus reports whether the current configuration has drifted from
   // the last applied policy (a regenerate/apply is pending).
   rpc KumoConfigStatus(KumoConfigStatusRequest) returns (KumoConfigStatusReply) {
@@ -284,6 +302,27 @@ service IrisAdminService {
   // bounces, deferrals, receptions) from the configured Prometheus.
   rpc GetMetricsTimeseries(GetMetricsTimeseriesRequest) returns (MetricsTimeseries) {
     option (google.api.http) = { get: "/v1/dashboard/metrics" };
+  }
+  // GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
+  // bounce rates over a lookback window — used to watch IP-warmup health.
+  rpc GetWarmupDeliveryStats(GetWarmupDeliveryStatsRequest) returns (WarmupDeliveryStats) {
+    option (google.api.http) = { get: "/v1/dashboard/warmup-stats" };
+  }
+  // GetQueueTimeHistogram returns the delivery queue-time distribution (from the
+  // iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
+  // to one mail class.
+  rpc GetQueueTimeHistogram(GetQueueTimeHistogramRequest) returns (QueueTimeHistogram) {
+    option (google.api.http) = { get: "/v1/dashboard/queue-time-histogram" };
+  }
+  // GetMailClassStats returns mail volume grouped by mailclass over a lookback
+  // window — powers the dashboard "mail by class" panel.
+  rpc GetMailClassStats(GetMailClassStatsRequest) returns (MailClassStats) {
+    option (google.api.http) = { get: "/v1/dashboard/mailclass-stats" };
+  }
+  // GetRecipientDomainStats returns the busiest recipient domains by mail volume
+  // over a lookback window — powers the dashboard "top recipient domains" panel.
+  rpc GetRecipientDomainStats(GetRecipientDomainStatsRequest) returns (RecipientDomainStats) {
+    option (google.api.http) = { get: "/v1/dashboard/recipient-domain-stats" };
   }
   // CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
   // (authorizes our egress IPs), and DKIM (selector records) via live DNS.
@@ -338,6 +377,21 @@ service IrisAdminService {
   }
   rpc UpdateGlobalSettings(UpdateGlobalSettingsRequest) returns (GlobalSettings) {
     option (google.api.http) = { put: "/v1/settings" body: "*" };
+  }
+
+  // Subject classifications (rules for the optional subject-classification
+  // feature; operator-authored plus AI-generated cache).
+  rpc ListSubjectClassifications(ListSubjectClassificationsRequest) returns (ListSubjectClassificationsReply) {
+    option (google.api.http) = { get: "/v1/subject-classifications" };
+  }
+  rpc CreateSubjectClassification(CreateSubjectClassificationRequest) returns (SubjectClassification) {
+    option (google.api.http) = { post: "/v1/subject-classifications" body: "*" };
+  }
+  rpc UpdateSubjectClassification(UpdateSubjectClassificationRequest) returns (SubjectClassification) {
+    option (google.api.http) = { put: "/v1/subject-classifications/{id}" body: "*" };
+  }
+  rpc DeleteSubjectClassification(DeleteSubjectClassificationRequest) returns (DeleteSubjectClassificationReply) {
+    option (google.api.http) = { delete: "/v1/subject-classifications/{id}" };
   }
 }
 
@@ -538,6 +592,49 @@ message SeedDeliveryBlueprintsReply {
   int32 inserted = 1;
 }
 
+// ---- TSA automation rules ----
+message AutomationRule {
+  string id = 1;
+  string domain = 2;
+  string regex = 3;
+  string action = 4; // suspend | suspend_tenant | set_config
+  string config_name = 5;
+  string config_value = 6;
+  string trigger = 7; // "immediate" or a rate like "2/hr"
+  string duration = 8;
+  string status = 9;
+  string created_at = 10;
+  string updated_at = 11;
+}
+message ListAutomationRulesRequest {}
+message ListAutomationRulesReply {
+  repeated AutomationRule items = 1;
+}
+message CreateAutomationRuleRequest {
+  string domain = 1;
+  string regex = 2;
+  string action = 3;
+  string config_name = 4;
+  string config_value = 5;
+  string trigger = 6;
+  string duration = 7;
+}
+message UpdateAutomationRuleRequest {
+  string id = 1;
+  string domain = 2;
+  string regex = 3;
+  string action = 4;
+  string config_name = 5;
+  string config_value = 6;
+  string trigger = 7;
+  string duration = 8;
+  string status = 9;
+}
+message SetAutomationRuleStatusRequest {
+  string id = 1;
+  string status = 2;
+}
+
 message ListVMTAsRequest {
   PageRequest page = 1;
   string status = 2;
@@ -638,6 +735,10 @@ message MailRecord {
   // TransientFailure/AdminBounce/Expiration). Distinguishes the three types that
   // share status="bounced".
   string record_type = 14;
+  // Optional subject-derived classification label (≤2 words). Populated by the
+  // classification worker on the Reception row; empty when the feature is off or
+  // not yet resolved. The raw subject is never returned — only the label.
+  string classification = 15;
 }
 message Bounce {
   string id = 1;
@@ -1105,6 +1206,14 @@ message SetAcmeDnsProviderRequest {
 }
 message ClearAcmeDnsProviderRequest {}
 
+message GetAppliedKumoConfigRequest {}
+// AppliedKumoConfig is the policy currently running on KumoMTA (last applied).
+message AppliedKumoConfig {
+  string content = 1;       // full Lua policy; empty when never applied
+  string checksum = 2;
+  string applied_at = 3;    // RFC3339; empty when never applied
+  bool never_applied = 4;
+}
 message KumoConfigStatusRequest {}
 message KumoConfigStatusReply {
   // drift is true when the current configuration differs from the last applied
@@ -1173,13 +1282,16 @@ message RblCheckReply {
 
 // DMARC aggregate reports.
 message GetDmarcStatsRequest {
-  string domain = 1;  // optional filter
-  string from = 2;    // optional RFC3339
-  string to = 3;      // optional RFC3339
+  string domain = 1;    // optional filter
+  string from = 2;      // optional RFC3339
+  string to = 3;        // optional RFC3339
+  string reporter = 4;  // optional org_name filter — drill down to one reporter
 }
 message DmarcCount { string label = 1; int32 count = 2; }
 message DmarcSource { string ip = 1; int32 total = 2; int32 pass = 3; int32 fail = 4; }
 message DmarcDomainStat { string domain = 1; int32 messages = 2; int32 pass = 3; }
+// DmarcReporterStat is a per-reporter (org_name) rollup — who sent the reports.
+message DmarcReporterStat { string reporter = 1; int32 messages = 2; int32 pass = 3; }
 message DmarcDay { string date = 1; int32 messages = 2; int32 pass = 3; }
 message DmarcStats {
   int32 total_messages = 1;
@@ -1190,6 +1302,9 @@ message DmarcStats {
   repeated DmarcSource top_sources = 6;
   repeated DmarcDomainStat domains = 7;
   repeated DmarcDay series = 8;
+  // Per-reporter breakdown; ignores the reporter filter so the drill-down list
+  // stays complete even when one reporter is selected.
+  repeated DmarcReporterStat reporters = 9;
 }
 message DmarcReport {
   string org_name = 1;
@@ -1278,6 +1393,10 @@ message DashboardSummary {
   int64 queued_messages = 2;
   int64 recent_mail_events = 3;
   int64 recent_audit_events = 4;
+  // deferred_in_queue counts messages currently deferred in the queue: they
+  // logged a transient failure but no terminal delivery/bounce since — still
+  // retrying, not yet bounced.
+  int64 deferred_in_queue = 5;
 }
 
 // GetMetricsTimeseries selects the lookback window: "1h" | "6h" | "24h" | "7d"
@@ -1299,6 +1418,93 @@ message MetricsTimeseries {
   string range = 2;            // echoed effective range
   int64 step_seconds = 3;      // resolution between points
   bool prometheus_available = 4; // false when no Prometheus URL is configured
+}
+
+// GetWarmupDeliveryStats selects the lookback window: "1h" | "6h" | "24h" | "7d"
+// (empty defaults to "24h").
+message GetWarmupDeliveryStatsRequest {
+  string range = 1;
+}
+// WarmupDeliveryStat is one (VMTA, recipient-domain) row. delivery_rate and
+// bounce_rate are fractions in [0,1] over terminal outcomes (sent + bounced);
+// deferred is shown separately and is NOT in that denominator.
+message WarmupDeliveryStat {
+  string vmta_id = 1;          // empty when the egress source has no matching VMTA
+  string vmta_name = 2;        // egress source name from the delivery log
+  string recipient_domain = 3;
+  int64 sent = 4;              // delivered
+  int64 bounced = 5;           // permanent failure
+  int64 deferred = 6;          // distinct messages that deferred (not attempts); informational, not in rates
+  int64 attempted = 7;         // sent + bounced (terminal outcomes)
+  double delivery_rate = 8;    // sent / attempted
+  double bounce_rate = 9;      // bounced / attempted
+}
+message WarmupDeliveryStats {
+  repeated WarmupDeliveryStat rows = 1;
+  string range = 2;            // echoed effective range
+  int64 since = 3;             // unix seconds: window start
+}
+
+// GetMailClassStats selects the lookback window: "1h" | "6h" | "24h" | "7d"
+// (empty defaults to "24h").
+message GetMailClassStatsRequest {
+  string range = 1;
+}
+// MailClassStat is one mailclass with its mail-record counts over the window.
+// count is the total records; the delivered/bounced/deferred breakdown lets the
+// UI show delivery health per class.
+message MailClassStat {
+  string mailclass = 1;
+  int64 count = 2;             // total mail_records for this class in the window
+  int64 delivered = 3;
+  int64 bounced = 4;
+  int64 deferred = 5;
+}
+message MailClassStats {
+  repeated MailClassStat rows = 1;
+  string range = 2;            // echoed effective range
+  int64 since = 3;             // unix seconds: window start
+}
+
+// GetRecipientDomainStats selects the lookback window: "1h" | "6h" | "24h" |
+// "7d" (empty defaults to "24h").
+message GetRecipientDomainStatsRequest {
+  string range = 1;
+}
+// RecipientDomainStat is one recipient domain with its mail-record counts over
+// the window (the busiest domains, ranked by count).
+message RecipientDomainStat {
+  string recipient_domain = 1;
+  int64 count = 2;             // total mail_records for this domain in the window
+  int64 delivered = 3;
+  int64 bounced = 4;
+  int64 deferred = 5;
+}
+message RecipientDomainStats {
+  repeated RecipientDomainStat rows = 1;
+  string range = 2;            // echoed effective range
+  int64 since = 3;             // unix seconds: window start
+}
+
+// GetQueueTimeHistogram selects the lookback window ("1h" | "6h" | "24h" | "7d",
+// empty → "6h") and optionally narrows to one mail class (empty = global).
+message GetQueueTimeHistogramRequest {
+  string range = 1;
+  string mailclass = 2;
+}
+// QueueTimeBucket is one histogram bucket: the per-bucket (non-cumulative) count
+// of deliveries whose queue time fell in (previous upper bound, upper_bound].
+message QueueTimeBucket {
+  string le = 1;             // Prometheus le label ("0.5", "+Inf")
+  double upper_bound = 2;    // parsed le; +Inf for the overflow bucket
+  int64 count = 3;
+}
+message QueueTimeHistogram {
+  repeated QueueTimeBucket buckets = 1;
+  repeated string mailclasses = 2;      // classes with data (for the selector)
+  int64 total_count = 3;
+  string range = 4;                     // echoed effective range
+  bool prometheus_available = 5;        // false when no Prometheus is configured
 }
 
 // Global settings — deployment-level policy knobs an operator edits in the UI.
@@ -1352,6 +1558,14 @@ message GlobalSettings {
   // @bounce.kumo.example.com), so SPF aligns with the From-domain. Empty uses the
   // single global bounce_domain for all mail.
   string bounce_domain_template = 26;
+  // Subject classification (optional; off by default). classify_subjects is the
+  // toggle; classify_model / classify_threshold (0..1) / classify_api_base tune
+  // the OpenAI-compatible LLM fallback. The API key comes from
+  // IRIS_OPENAI_API_KEY and is never persisted here.
+  bool classify_subjects = 27;
+  string classify_model = 28;
+  double classify_threshold = 29;
+  string classify_api_base = 30;
 }
 message GetGlobalSettingsRequest {}
 message UpdateGlobalSettingsRequest {
@@ -1380,4 +1594,42 @@ message UpdateGlobalSettingsRequest {
   string inbound_maildir_base_path = 23;
   // Per-sending-domain bounce return-path template (see GlobalSettings).
   string bounce_domain_template = 24;
+  // Subject classification knobs (see GlobalSettings).
+  bool classify_subjects = 25;
+  string classify_model = 26;
+  double classify_threshold = 27;
+  string classify_api_base = 28;
+}
+
+// A subject → label classification rule. source is "manual" (operator-authored)
+// or "ai" (generated by the LLM fallback and cached). hit_count is how many
+// messages matched it. subject_normalized is the trigram matching key.
+message SubjectClassification {
+  string id = 1;
+  string subject = 2;
+  string subject_normalized = 3;
+  string label = 4;
+  string source = 5;
+  int64 hit_count = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+message ListSubjectClassificationsRequest {}
+message ListSubjectClassificationsReply {
+  repeated SubjectClassification items = 1;
+}
+message CreateSubjectClassificationRequest {
+  string subject = 1;
+  string label = 2;
+}
+message UpdateSubjectClassificationRequest {
+  string id = 1;
+  string subject = 2;
+  string label = 3;
+}
+message DeleteSubjectClassificationRequest {
+  string id = 1;
+}
+message DeleteSubjectClassificationReply {
+  bool ok = 1;
 }

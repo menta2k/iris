@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { VSelect } from 'vuetify/components'
 import InboundRoutesPage from '@/pages/inbound/InboundRoutesPage.vue'
 import { inboundAutomationService } from '@/services'
 import type { InboundRoute } from '@/types'
@@ -72,9 +73,11 @@ describe('InboundRoutesPage', () => {
     await flushPromises()
 
     // Switch the action to forward; the smarthost field must appear.
-    const actionSelect = document.body.querySelector('#ir-action') as HTMLSelectElement
-    actionSelect.value = 'forward'
-    actionSelect.dispatchEvent(new Event('change'))
+    const actionSelect = wrapper
+      .findAllComponents(VSelect)
+      .find((c) => c.html().includes('id="ir-action"'))
+    if (!actionSelect) throw new Error('ir-action v-select not found')
+    await actionSelect.setValue('forward')
     await flushPromises()
 
     expect(document.body.querySelector('#ir-fwd-host')).not.toBeNull()

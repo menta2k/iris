@@ -52,23 +52,24 @@ async function onSubmit() {
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-background px-4">
-    <Card class="w-full max-w-sm">
+  <div class="d-flex align-center justify-center bg-background px-4" style="min-height: 100vh">
+    <Card class="w-100" style="max-width: 384px">
       <CardHeader>
-        <div class="mb-1 flex items-center gap-2">
+        <div class="mb-1 d-flex align-center ga-2">
           <div
-            class="flex h-7 w-7 items-center justify-center rounded bg-primary text-sm font-bold text-primary-foreground"
+            class="d-flex align-center justify-center rounded bg-primary text-body-2 font-weight-bold"
+            style="width: 28px; height: 28px"
           >
             I
           </div>
-          <span class="text-sm font-semibold">Iris</span>
+          <span class="text-body-2 font-weight-bold">Iris</span>
         </div>
         <CardTitle>Sign in</CardTitle>
         <CardDescription>KumoMTA operator console</CardDescription>
       </CardHeader>
       <CardContent>
-        <form class="space-y-4" @submit.prevent="onSubmit">
-          <div class="space-y-1.5">
+        <form class="d-flex flex-column ga-4" @submit.prevent="onSubmit">
+          <div class="d-flex flex-column ga-1">
             <Label for="email">Email</Label>
             <Input
               id="email"
@@ -78,7 +79,7 @@ async function onSubmit() {
               :disabled="submitting"
             />
           </div>
-          <div class="space-y-1.5">
+          <div class="d-flex flex-column ga-1">
             <Label for="password">Password</Label>
             <Input
               id="password"
@@ -88,10 +89,10 @@ async function onSubmit() {
               :disabled="submitting"
             />
           </div>
-          <p v-if="error" class="text-sm text-destructive" role="alert">{{ error }}</p>
+          <p v-if="error" class="text-body-2 text-error" role="alert">{{ error }}</p>
           <Button
             type="submit"
-            class="w-full"
+            class="w-100"
             :disabled="submitting || !email || !password"
           >
             {{ submitting ? 'Signing in…' : 'Sign in' }}

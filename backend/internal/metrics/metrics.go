@@ -40,10 +40,25 @@ var (
 		Name: "iris_webhook_executions_total",
 		Help: "Webhook delivery executions by webhook and result (delivered, retrying, failed).",
 	}, []string{"webhook", "result"})
+
+	// MailQueueTime measures how long a message spent queued — from its creation
+	// (Reception) to a successful Delivery — sliced by mail class. Observed on
+	// Delivery events only. A histogram (not a gauge/counter) so the dashboard can
+	// draw the latency distribution and quantiles (p50/p90/p99). The mailclass
+	// label serves both views: aggregate over it (sum by le) for the global
+	// distribution, or keep it for the per-mail-class distribution.
+	//
+	// Buckets span 100ms to 1h: fast deliveries land sub-second, while messages
+	// that defer-then-deliver can sit in the queue for minutes.
+	MailQueueTime = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "iris_mail_queue_time_seconds",
+		Help:    "Time a message spent queued from Reception to successful Delivery, in seconds, by mail class.",
+		Buckets: []float64{0.1, 0.5, 1, 2, 5, 10, 30, 60, 120, 300, 600, 1800, 3600},
+	}, []string{"mailclass"})
 )
 
 func init() {
-	prometheus.MustRegister(MailEvents, VMTAEvents, Bounces, WebhookExecutions)
+	prometheus.MustRegister(MailEvents, VMTAEvents, Bounces, WebhookExecutions, MailQueueTime)
 }
 
 // RecordMailEvent records a single mail event (Reception/Delivery/Bounce).
@@ -68,6 +83,16 @@ func RecordBounce(bounceType, mailclass string) {
 // RecordWebhookExecution records a webhook delivery attempt outcome.
 func RecordWebhookExecution(webhook, result string) {
 	WebhookExecutions.WithLabelValues(or(webhook), or(result)).Inc()
+}
+
+// RecordQueueTime observes the queue latency (Reception → Delivery), in seconds,
+// of a delivered message for the given mail class. Negative durations (clock
+// skew) are dropped.
+func RecordQueueTime(mailclass string, seconds float64) {
+	if seconds < 0 {
+		return
+	}
+	MailQueueTime.WithLabelValues(or(mailclass)).Observe(seconds)
 }
 
 // or substitutes a stable placeholder for an empty label value so series do not

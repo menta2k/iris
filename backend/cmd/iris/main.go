@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -194,6 +195,16 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	settingsDefaults.TSAUrl = envOr("IRIS_TSA_URL", "")
 	settingsRepo := data.NewGlobalSettingsRepo(db)
 	settingsUC := biz.NewGlobalSettingsUsecase(settingsRepo, auditor, settingsDefaults)
+
+	// Optional subject classification: gated by global settings and, for the LLM
+	// fallback, the IRIS_OPENAI_API_KEY env var (absent → similarity-only, no AI).
+	subjectClassRepo := data.NewSubjectClassificationRepo(db)
+	var aiClassifier biz.SubjectAIClassifier
+	if key := strings.TrimSpace(os.Getenv("IRIS_OPENAI_API_KEY")); key != "" {
+		aiClassifier = biz.NewOpenAIClassifier(key, nil)
+	}
+	subjectClassifierUC := biz.NewSubjectClassifierUsecase(subjectClassRepo, aiClassifier, settingsUC)
+	subjectClassAdminUC := biz.NewSubjectClassificationUsecase(subjectClassRepo, auditor)
 	// Suppression list lives in Redis (write-through cache + per-entry TTL); the
 	// rendered policy consults it instead of an inline table. Attach the cache and
 	// TTL provider now that settingsUC exists, then backfill Redis from the DB so
@@ -216,8 +227,10 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	warmupUC := biz.NewWarmupUsecase(warmupRepo, outboundRepo, auditor)
 	blueprintRepo := data.NewBlueprintRepo(db)
 	blueprintUC := biz.NewBlueprintUsecase(blueprintRepo, auditor)
+	automationRepo := data.NewAutomationRepo(db)
+	automationUC := biz.NewAutomationUsecase(automationRepo, auditor)
 
-	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo, inboundRouteRepo, fblRepo, warmupRepo, blueprintRepo)
+	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo, inboundRouteRepo, fblRepo, warmupRepo, blueprintRepo, automationRepo)
 	kumoConfigUC := biz.NewKumoConfigUsecase(kumoSnapshotRepo, kumo, mailOpsRepo, auditor, settingsUC)
 	// Domain bounce-readiness checker (MX/SPF/DKIM via live DNS).
 	domainCheckUC := biz.NewDomainCheckUsecase(kumoSnapshotRepo, nil)
@@ -280,29 +293,31 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	}
 
 	deps := service.Deps{
-		Log:           log,
-		Auditor:       auditor,
-		Outbound:      outboundUC,
-		MailOps:       biz.NewMailOpsUsecase(mailOpsRepo, opsProducer, auditor).WithQueueAdmin(queueAdmin),
-		Identity:      identityUC,
-		Auth:          authUC,
-		DomainSafety:  domainSafetyUC,
-		Inbound:       inboundUC,
-		InboundRoutes: inboundRouteUC,
-		FBL:           fblUC,
-		Dashboard:     biz.NewDashboardUsecase(data.NewDashboardRepo(db)),
-		Metrics:       biz.NewMetricsUsecase(settingsUC, nil),
-		KumoConfig:    kumoConfigUC,
-		Settings:      settingsUC,
-		Acme:          acmeUC,
-		DomainCheck:   domainCheckUC,
-		Diagnose:      diagnoseUC,
-		RBL:           rblUC,
-		DMARC:         dmarcUC,
-		WorkerErrors:  workerErrorUC,
-		Retention:     retentionUC,
-		Warmup:        warmupUC,
-		Blueprints:    blueprintUC,
+		Log:             log,
+		Auditor:         auditor,
+		Outbound:        outboundUC,
+		MailOps:         biz.NewMailOpsUsecase(mailOpsRepo, opsProducer, auditor).WithQueueAdmin(queueAdmin),
+		Identity:        identityUC,
+		Auth:            authUC,
+		DomainSafety:    domainSafetyUC,
+		Inbound:         inboundUC,
+		InboundRoutes:   inboundRouteUC,
+		FBL:             fblUC,
+		Dashboard:       biz.NewDashboardUsecase(data.NewDashboardRepo(db)).WithQueueAdmin(queueAdmin),
+		Metrics:         biz.NewMetricsUsecase(settingsUC, nil),
+		KumoConfig:      kumoConfigUC,
+		Settings:        settingsUC,
+		Acme:            acmeUC,
+		DomainCheck:     domainCheckUC,
+		Diagnose:        diagnoseUC,
+		RBL:             rblUC,
+		DMARC:           dmarcUC,
+		WorkerErrors:    workerErrorUC,
+		Retention:       retentionUC,
+		Warmup:          warmupUC,
+		Blueprints:      blueprintUC,
+		Automation:      automationUC,
+		Classifications: subjectClassAdminUC,
 	}
 
 	svc := service.NewService(deps)
@@ -329,7 +344,12 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// Inbound-route webhooks are delivered in-policy by kumod (make.webhook_post),
 	// which forwards the raw message — there is no webhook fan-out worker.
 	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, wlog("log-stream")).
-		WithFeedbackVerification(domainSafetyRepo, settingsUC).Run)
+		WithFeedbackVerification(domainSafetyRepo, settingsUC).
+		WithClassification(settingsUC).Run)
+	// Optional subject classification: consumes the transient classify-pending
+	// stream, resolves labels (trigram → LLM), and backfills mail_records. Idles
+	// when the feature is off (nothing is enqueued).
+	startWorker(ctx, log, "classification", worker.NewClassificationWorker(streams, subjectClassifierUC, mailOpsRepo, data.StreamClassifyPending, wlog("classification")).Run)
 	// DSN consumer: async bounces captured at the configured bounce domain.
 	startWorker(ctx, log, "dsn", worker.NewDSNWorker(streams, mailOpsRepo, domainSafetyRepo, verpKey, biz.DSNStreamName, wlog("dsn")).Run)
 	startWorker(ctx, log, "dmarc", worker.NewDMARCWorker(streams, dmarcUC, biz.DMARCStreamName, wlog("dmarc")).Run)

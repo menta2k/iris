@@ -163,3 +163,27 @@ func TestKumoLogEventTimeFallbacks(t *testing.T) {
 		t.Fatal("missing timestamp should fall back to now")
 	}
 }
+
+func TestKumoLogQueueLatency(t *testing.T) {
+	now := time.Now()
+	// created → timestamp = 12s in the queue.
+	r, _ := ParseKumoLogRecord([]byte(`{"type":"Delivery","id":"m1",` +
+		`"created":"2026-06-20T10:00:00Z","timestamp":"2026-06-20T10:00:12Z"}`))
+	d, ok := r.QueueLatency(now)
+	if !ok || d != 12*time.Second {
+		t.Fatalf("queue latency = %v ok=%v, want 12s", d, ok)
+	}
+
+	// Missing `created` → not available.
+	noCreated, _ := ParseKumoLogRecord([]byte(`{"type":"Delivery","timestamp":"2026-06-20T10:00:12Z"}`))
+	if _, ok := noCreated.QueueLatency(now); ok {
+		t.Fatal("queue latency should be unavailable without created")
+	}
+
+	// Negative duration (clock skew) → dropped.
+	skew, _ := ParseKumoLogRecord([]byte(`{"type":"Delivery",` +
+		`"created":"2026-06-20T10:00:12Z","timestamp":"2026-06-20T10:00:00Z"}`))
+	if _, ok := skew.QueueLatency(now); ok {
+		t.Fatal("negative queue latency should be dropped")
+	}
+}

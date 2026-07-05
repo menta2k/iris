@@ -15,7 +15,6 @@ import { StatusBadge, Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
@@ -65,6 +64,11 @@ const targetTypes = [
 ]
 const RULE_STATUSES = ['active', 'disabled']
 
+// v-select item lists ({ title, value }) derived from the enums above.
+const matchTypeItems = matchTypes.map((t) => ({ title: t.label, value: t.value }))
+const targetTypeItems = targetTypes.map((t) => ({ title: t.label, value: t.value }))
+const ruleStatusItems = RULE_STATUSES.map((s) => ({ title: s, value: s }))
+
 const dialogOpen = ref(false)
 const saving = ref(false)
 const mode = ref<'create' | 'edit'>('create')
@@ -98,6 +102,17 @@ const targetOptions = computed(() =>
     ? availableVmtas.value.map((v) => ({ id: v.id, label: `${v.name} (${v.ipAddress})` }))
     : availableGroups.value.map((g) => ({ id: g.id, label: g.name })),
 )
+
+// Target dropdown items: a disabled placeholder row plus the options for the
+// selected target type.
+const targetIdItems = computed(() => [
+  {
+    title: targetOptions.value.length ? 'Select a target…' : 'No targets available',
+    value: '',
+    props: { disabled: true },
+  },
+  ...targetOptions.value.map((t) => ({ title: t.label, value: t.id })),
+])
 
 // When the target type changes, drop a now-invalid selection and pick the first
 // valid option of the new type.
@@ -215,7 +230,7 @@ async function submit() {
       empty-message="No routing rules configured yet."
     >
       <Card>
-        <CardContent class="p-0">
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -230,21 +245,21 @@ async function submit() {
             <TableBody>
               <TableRow v-for="r in items" :key="r.id">
                 <TableCell class="tabular-nums">{{ r.priority }}</TableCell>
-                <TableCell class="font-medium">{{ r.name }}</TableCell>
+                <TableCell class="font-weight-medium">{{ r.name }}</TableCell>
                 <TableCell>
                   <Badge variant="outline">{{ r.matchType }}</Badge>
-                  <span class="ml-2 font-mono text-xs">
+                  <span class="ml-2 font-mono text-caption">
                     <template v-if="r.matchType === 'mailclass'">{{ r.matchHeader }}: </template>{{ r.matchValue }}
                   </span>
                 </TableCell>
                 <TableCell>
                   <template v-if="r.matchType === 'sender_ip'">
                     <Badge variant="secondary">mail class</Badge>
-                    <span class="ml-2 font-mono text-xs">{{ r.assignMailclass }}</span>
+                    <span class="ml-2 font-mono text-caption">{{ r.assignMailclass }}</span>
                   </template>
                   <template v-else>
                     <Badge variant="secondary">{{ r.targetType }}</Badge>
-                    <span class="ml-2 text-xs">{{ targetName(r) }}</span>
+                    <span class="ml-2 text-caption">{{ targetName(r) }}</span>
                   </template>
                 </TableCell>
                 <TableCell><StatusBadge :status="r.status" /></TableCell>
@@ -269,19 +284,25 @@ async function submit() {
       <DialogHeader>
         <DialogTitle>{{ isEdit ? 'Edit Routing Rule' : 'Create Routing Rule' }}</DialogTitle>
       </DialogHeader>
-      <form class="space-y-4" @submit.prevent="submit">
-        <div class="space-y-1.5">
+      <form class="d-flex flex-column ga-4" @submit.prevent="submit">
+        <div class="d-flex flex-column ga-1">
           <Label for="rr-name">Name</Label>
           <Input id="rr-name" v-model="form.name" placeholder="route-gmail" />
         </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
+        <v-row dense>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="rr-match-type">Match Type</Label>
-            <Select id="rr-match-type" v-model="form.match_type" @change="onMatchTypeChange">
-              <option v-for="t in matchTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
-            </Select>
-          </div>
-          <div class="space-y-1.5">
+            <v-select
+              id="rr-match-type"
+              v-model="form.match_type"
+              :items="matchTypeItems"
+              variant="outlined"
+              density="compact"
+              hide-details
+              @update:model-value="onMatchTypeChange"
+            />
+          </v-col>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="rr-match-value">{{
               isMailclass ? 'Header Value' : isSenderIP ? 'Sender IP / CIDR' : 'Match Value'
             }}</Label>
@@ -290,17 +311,17 @@ async function submit() {
               v-model="form.match_value"
               :placeholder="isMailclass ? 'bulk' : isSenderIP ? '10.1.111.0/24' : 'gmail.com'"
             />
-          </div>
-        </div>
-        <div v-if="isMailclass" class="space-y-1.5">
+          </v-col>
+        </v-row>
+        <div v-if="isMailclass" class="d-flex flex-column ga-1">
           <Label for="rr-match-header">Header Name</Label>
           <Input id="rr-match-header" v-model="form.match_header" placeholder="X-Mail-Class" />
-          <p class="text-xs text-muted-foreground">
+          <p class="text-caption text-medium-emphasis">
             Routes mail whose <span class="font-mono">{{ form.match_header || 'X-Mail-Class' }}</span>
             header equals the value above.
           </p>
         </div>
-        <div v-if="isSenderIP" class="space-y-1.5">
+        <div v-if="isSenderIP" class="d-flex flex-column ga-1">
           <Label for="rr-assign-mailclass">Assign Mail Class</Label>
           <Input
             id="rr-assign-mailclass"
@@ -308,41 +329,55 @@ async function submit() {
             data-testid="rr-assign-mailclass"
             placeholder="test-class"
           />
-          <p class="text-xs text-muted-foreground">
+          <p class="text-caption text-medium-emphasis">
             Mail from this IP/CIDR with no mail-class header is tagged
             <span class="font-mono">{{ form.assign_mailclass || 'test-class' }}</span> and then
             follows that class's routing rule.
           </p>
         </div>
-        <div v-if="!isSenderIP" class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
+        <v-row v-if="!isSenderIP" dense>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="rr-target-type">Target Type</Label>
-            <Select id="rr-target-type" v-model="form.target_type" @change="onTargetTypeChange">
-              <option v-for="t in targetTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
-            </Select>
-          </div>
-          <div class="space-y-1.5">
+            <v-select
+              id="rr-target-type"
+              v-model="form.target_type"
+              :items="targetTypeItems"
+              variant="outlined"
+              density="compact"
+              hide-details
+              @update:model-value="onTargetTypeChange"
+            />
+          </v-col>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="rr-target-id">Target {{ form.target_type === 'vmta' ? 'VMTA' : 'Group' }}</Label>
-            <Select id="rr-target-id" v-model="form.target_id" data-testid="rr-target-id">
-              <option value="" disabled>
-                {{ targetOptions.length ? 'Select a target…' : 'No targets available' }}
-              </option>
-              <option v-for="t in targetOptions" :key="t.id" :value="t.id">{{ t.label }}</option>
-            </Select>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
+            <v-select
+              id="rr-target-id"
+              v-model="form.target_id"
+              :items="targetIdItems"
+              data-testid="rr-target-id"
+              variant="outlined"
+              density="compact"
+              hide-details
+            />
+          </v-col>
+        </v-row>
+        <v-row dense>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="rr-priority">Priority (higher wins)</Label>
             <Input id="rr-priority" v-model.number="form.priority" type="number" />
-          </div>
-          <div v-if="isEdit" class="space-y-1.5">
+          </v-col>
+          <v-col v-if="isEdit" cols="6" class="d-flex flex-column ga-1">
             <Label for="rr-status">Status</Label>
-            <Select id="rr-status" v-model="form.status">
-              <option v-for="s in RULE_STATUSES" :key="s" :value="s">{{ s }}</option>
-            </Select>
-          </div>
-        </div>
+            <v-select
+              id="rr-status"
+              v-model="form.status"
+              :items="ruleStatusItems"
+              variant="outlined"
+              density="compact"
+              hide-details
+            />
+          </v-col>
+        </v-row>
         <DialogFooter>
           <Button type="button" variant="outline" @click="dialogOpen = false">Cancel</Button>
           <Button type="submit" :disabled="saving || !canSubmit">

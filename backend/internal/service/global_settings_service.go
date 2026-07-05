@@ -49,6 +49,10 @@ func (s *Service) UpdateGlobalSettings(ctx context.Context, req *adminv1.UpdateG
 		FBLRequireVerification:  req.GetFblRequireVerification(),
 		InboundMaildirBasePath:  req.GetInboundMaildirBasePath(),
 		BounceDomainTemplate:    req.GetBounceDomainTemplate(),
+		ClassifySubjects:        req.GetClassifySubjects(),
+		ClassifyModel:           req.GetClassifyModel(),
+		ClassifyThreshold:       req.GetClassifyThreshold(),
+		ClassifyAPIBase:         req.GetClassifyApiBase(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "UpdateGlobalSettings", err)
@@ -85,6 +89,10 @@ func settingsToProto(g *biz.GlobalSettings) *adminv1.GlobalSettings {
 		FblRequireVerification:  g.FBLRequireVerification,
 		InboundMaildirBasePath:  g.InboundMaildirBasePath,
 		BounceDomainTemplate:    g.BounceDomainTemplate,
+		ClassifySubjects:        g.ClassifySubjects,
+		ClassifyModel:           g.ClassifyModel,
+		ClassifyThreshold:       g.ClassifyThreshold,
+		ClassifyApiBase:         g.ClassifyAPIBase,
 		UpdatedAt:               updatedAt,
 		UpdatedBy:               g.UpdatedBy,
 	}

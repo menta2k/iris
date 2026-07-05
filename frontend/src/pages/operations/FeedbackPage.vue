@@ -44,7 +44,7 @@ const {
       empty-message="No feedback reports recorded."
     >
       <Card>
-        <CardContent class="p-0">
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -58,8 +58,8 @@ const {
             </TableHeader>
             <TableBody>
               <TableRow v-for="f in items" :key="f.id">
-                <TableCell class="whitespace-nowrap text-muted-foreground">{{ f.receivedAt }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ f.source }}</TableCell>
+                <TableCell class="text-no-wrap text-medium-emphasis">{{ f.receivedAt }}</TableCell>
+                <TableCell class="font-mono text-caption">{{ f.source }}</TableCell>
                 <TableCell><Badge variant="warning">{{ f.reportType }}</Badge></TableCell>
                 <TableCell>{{ f.recipient }}</TableCell>
                 <TableCell>

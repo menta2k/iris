@@ -1,14 +1,30 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import { RouterView, useRouter } from 'vue-router'
+import { useDisplay } from 'vuetify'
 import SidebarNav from '@/components/navigation/SidebarNav.vue'
 import ConfigDriftBanner from '@/components/common/ConfigDriftBanner.vue'
+import SettingsDrawer from '@/components/common/SettingsDrawer.vue'
 import { Toaster } from '@/components/ui/toast'
-import { Button } from '@/components/ui/button'
 import TimezonePicker from '@/components/common/TimezonePicker.vue'
 import { useAuth } from '@/composables/useAuth'
+import { useThemeSync } from '@/composables/useThemeSync'
+import { useConfigStore } from '@/stores/config'
 
 const { user, role, logout } = useAuth()
 const router = useRouter()
+const { mdAndUp } = useDisplay()
+const config = useConfigStore()
+useThemeSync()
+
+const settingsOpen = ref(false)
+
+// Permanent (always visible) on desktop; overlay toggled from the app bar
+// on small screens.
+const drawer = ref(mdAndUp.value)
+watch(mdAndUp, (isDesktop) => {
+  drawer.value = isDesktop
+})
 
 async function onLogout() {
   await logout()
@@ -17,50 +33,63 @@ async function onLogout() {
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col bg-background">
-    <!-- Topbar -->
-    <header
-      class="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-card/80 px-4 backdrop-blur"
+  <v-app :class="{ 'skin-bordered': config.skin === 'bordered' }">
+    <v-navigation-drawer
+      v-model="drawer"
+      :permanent="mdAndUp"
+      :temporary="!mdAndUp"
+      width="260"
     >
-      <div class="flex items-center gap-2">
-        <div class="flex h-7 w-7 items-center justify-center rounded bg-primary text-sm font-bold text-primary-foreground">
-          I
+      <template #prepend>
+        <div class="d-flex align-center ga-2 px-4 py-4">
+          <div
+            class="d-flex align-center justify-center rounded bg-primary text-body-2 font-weight-bold"
+            style="width: 28px; height: 28px"
+          >
+            I
+          </div>
+          <div>
+            <p class="text-body-2 font-weight-bold">Iris</p>
+            <p class="text-caption text-uppercase text-medium-emphasis">
+              KumoMTA Admin
+            </p>
+          </div>
         </div>
-        <div class="leading-tight">
-          <p class="text-sm font-semibold">Iris</p>
-          <p class="text-[10px] uppercase tracking-widest text-muted-foreground">
-            KumoMTA Admin
-          </p>
-        </div>
-      </div>
+      </template>
+      <SidebarNav />
+    </v-navigation-drawer>
 
-      <div class="flex items-center gap-4">
+    <v-app-bar flat border density="comfortable">
+      <v-app-bar-nav-icon v-if="!mdAndUp" @click="drawer = !drawer" />
+      <v-spacer />
+      <div class="d-flex align-center ga-4 pr-4">
         <TimezonePicker />
-        <div class="text-right leading-tight">
-          <p class="text-xs font-medium">{{ user?.displayName || user?.email }}</p>
-          <p class="text-[10px] uppercase tracking-wide text-muted-foreground">{{ role }}</p>
+        <div class="text-right">
+          <p class="text-caption font-weight-medium">{{ user?.displayName || user?.email }}</p>
+          <p class="text-caption text-uppercase text-medium-emphasis">{{ role }}</p>
         </div>
-        <Button variant="outline" size="sm" @click="onLogout">Sign out</Button>
+        <v-btn
+          icon="mdi-cog-outline"
+          variant="text"
+          size="small"
+          aria-label="Open theme settings"
+          @click="settingsOpen = !settingsOpen"
+        />
+        <v-btn variant="outlined" size="small" color="primary" @click="onLogout">
+          Sign out
+        </v-btn>
       </div>
-    </header>
+    </v-app-bar>
 
-    <!-- Pending-config reminder -->
-    <ConfigDriftBanner class="sticky top-14 z-20" />
+    <SettingsDrawer v-model="settingsOpen" />
 
-    <div class="flex flex-1">
-      <!-- Sidebar -->
-      <aside class="w-60 shrink-0 border-r bg-card/40">
-        <div class="sticky top-14 max-h-[calc(100vh-3.5rem)] overflow-y-auto">
-          <SidebarNav />
-        </div>
-      </aside>
-
-      <!-- Main content -->
-      <main class="flex-1 overflow-x-auto px-6 py-6">
+    <v-main>
+      <ConfigDriftBanner />
+      <div class="px-6 py-6">
         <RouterView />
-      </main>
-    </div>
+      </div>
+    </v-main>
 
     <Toaster />
-  </div>
+  </v-app>
 </template>

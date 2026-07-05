@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { cn } from '@/lib/utils'
+// Thin wrapper over v-card (P3). Header/Title/Description/Content stay
+// presentational divs; the surface (color, radius, elevation, bordered
+// skin) now comes from Vuetify.
 defineProps<{ class?: string }>()
 </script>
 
 <template>
-  <div :class="cn('rounded-lg border bg-card text-card-foreground shadow-sm', $props.class)">
+  <v-card :class="$props.class">
     <slot />
-  </div>
+  </v-card>
 </template>

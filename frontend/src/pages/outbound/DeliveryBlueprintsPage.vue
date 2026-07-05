@@ -15,7 +15,6 @@ import { StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useToast } from '@/composables/useToast'
 import { blueprintsService } from '@/services'
@@ -45,6 +44,12 @@ const form = ref({
 })
 
 const isEdit = computed(() => mode.value === 'edit')
+
+// v-select item list ({ title, value }) for the status dropdown.
+const statusItems = [
+  { title: 'active', value: 'active' },
+  { title: 'disabled', value: 'disabled' },
+]
 
 // Group blueprints by provider, preserving a stable provider order.
 const grouped = computed(() => {
@@ -186,14 +191,14 @@ load()
       :empty="items.length === 0"
       empty-message="No blueprints yet. Use “Seed Defaults” to import the major providers."
     >
-      <div class="space-y-6">
+      <div class="d-flex flex-column ga-6">
         <Card v-for="g in grouped" :key="g.provider">
-          <CardHeader class="flex-row items-center gap-2 space-y-0">
+          <CardHeader class="d-flex flex-row align-center ga-2">
             <CardTitle>{{ g.provider }}</CardTitle>
-            <span class="text-xs text-muted-foreground">{{ g.rules.length }} rules</span>
+            <span class="text-caption text-medium-emphasis">{{ g.rules.length }} rules</span>
           </CardHeader>
-          <CardContent class="p-0">
-            <Table>
+          <CardContent class="pa-0">
+            <Table class="blueprint-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>MX Pattern</TableHead>
@@ -207,17 +212,19 @@ load()
               </TableHeader>
               <TableBody>
                 <TableRow v-for="b in g.rules" :key="b.id">
-                  <TableCell class="font-mono text-xs">{{ b.mxPattern }}</TableCell>
+                  <TableCell class="font-mono text-caption">{{ b.mxPattern }}</TableCell>
                   <TableCell>{{ b.connRate || '—' }}</TableCell>
                   <TableCell class="tabular-nums">{{ b.deliveriesPerConn }}</TableCell>
                   <TableCell class="tabular-nums">{{ b.connLimit }}</TableCell>
                   <TableCell class="tabular-nums">{{ b.dailyCap.toLocaleString() }}</TableCell>
                   <TableCell><StatusBadge :status="b.status" /></TableCell>
-                  <TableCell class="space-x-1 text-right">
-                    <Button variant="outline" size="sm" @click="openEdit(b)">Edit</Button>
-                    <Button variant="outline" size="sm" @click="toggle(b)">
-                      {{ b.status === 'active' ? 'Disable' : 'Enable' }}
-                    </Button>
+                  <TableCell class="text-right">
+                    <div class="d-flex justify-end ga-1">
+                      <Button variant="outline" size="sm" @click="openEdit(b)">Edit</Button>
+                      <Button variant="outline" size="sm" @click="toggle(b)">
+                        {{ b.status === 'active' ? 'Disable' : 'Enable' }}
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               </TableBody>
@@ -231,41 +238,45 @@ load()
       <DialogHeader>
         <DialogTitle>{{ isEdit ? 'Edit blueprint' : 'Add blueprint' }}</DialogTitle>
       </DialogHeader>
-      <form class="space-y-4" @submit.prevent="submit">
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
+      <form class="d-flex flex-column ga-4" @submit.prevent="submit">
+        <v-row dense>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="bp-provider">Provider</Label>
             <Input id="bp-provider" v-model="form.provider" placeholder="Gmail" />
-          </div>
-          <div class="space-y-1.5">
+          </v-col>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="bp-mx">MX Pattern</Label>
             <Input id="bp-mx" v-model="form.mx_pattern" placeholder="google.com" />
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
+          </v-col>
+        </v-row>
+        <v-row dense>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="bp-rate">Conn Rate</Label>
             <Input id="bp-rate" v-model="form.conn_rate" placeholder="5/min" />
-          </div>
-          <div class="space-y-1.5">
+          </v-col>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="bp-deliveries">Deliveries / Conn</Label>
             <Input id="bp-deliveries" v-model.number="form.deliveries_per_conn" type="number" />
-          </div>
-          <div class="space-y-1.5">
+          </v-col>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="bp-conn-limit">Conn Limit</Label>
             <Input id="bp-conn-limit" v-model.number="form.conn_limit" type="number" />
-          </div>
-          <div class="space-y-1.5">
+          </v-col>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="bp-daily">Daily Cap</Label>
             <Input id="bp-daily" v-model.number="form.daily_cap" type="number" />
-          </div>
-        </div>
-        <div v-if="isEdit" class="space-y-1.5">
+          </v-col>
+        </v-row>
+        <div v-if="isEdit" class="d-flex flex-column ga-1">
           <Label for="bp-status">Status</Label>
-          <Select id="bp-status" v-model="form.status">
-            <option value="active">active</option>
-            <option value="disabled">disabled</option>
-          </Select>
+          <v-select
+            id="bp-status"
+            v-model="form.status"
+            :items="statusItems"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" @click="dialogOpen = false">Cancel</Button>
@@ -277,3 +288,24 @@ load()
     </Dialog>
   </div>
 </template>
+
+<style scoped lang="scss">
+// Each provider group renders its own table, so by default every table
+// auto-sizes columns to its own row and the headers/values drift out of line
+// between groups. A shared fixed layout with explicit column widths keeps all
+// the group tables in lockstep so the columns read as one continuous grid.
+.blueprint-table :deep(table) {
+  table-layout: fixed;
+}
+
+.blueprint-table :deep(th),
+.blueprint-table :deep(td) {
+  &:nth-child(1) { width: 20%; } // MX Pattern
+  &:nth-child(2) { width: 11%; } // Conn Rate
+  &:nth-child(3) { width: 13%; } // Deliveries/Conn
+  &:nth-child(4) { width: 15%; } // Conn Limit
+  &:nth-child(5) { width: 15%; } // Daily Cap
+  &:nth-child(6) { width: 11%; } // Status
+  &:nth-child(7) { width: 15%; } // Actions
+}
+</style>

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
+import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
+import { VSelect } from 'vuetify/components'
 import VmtasPage from '@/pages/outbound/VmtasPage.vue'
 import { outboundConfigService } from '@/services'
 import type { Listener, VMTA } from '@/types'
@@ -48,6 +49,14 @@ vi.mock('@/composables/useToast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }))
 
+// The id/data-testid may land on an inner element of the v-select, so locate
+// the component whose rendered markup contains the marker attribute.
+function findSelect(wrapper: VueWrapper, marker: string) {
+  const sel = wrapper.findAllComponents(VSelect).find((c) => c.html().includes(marker))
+  if (!sel) throw new Error(`v-select matching ${marker} not found`)
+  return sel
+}
+
 describe('VmtasPage edit dialog', () => {
   beforeEach(() => {
     vi.mocked(outboundConfigService.listVmtas).mockResolvedValue({ items: [sampleVmta] })
@@ -79,15 +88,18 @@ describe('VmtasPage edit dialog', () => {
     expect(nameInput.value).toBe('vmta-east-1')
     const notesInput = document.body.querySelector('#vmta-notes') as HTMLInputElement
     expect(notesInput.value).toBe('primary egress')
-    const statusSelect = document.body.querySelector('#vmta-status') as HTMLSelectElement
-    expect(statusSelect.value).toBe('active')
+    const statusSelect = findSelect(wrapper, 'id="vmta-status"')
+    expect(statusSelect.props('modelValue')).toBe('active')
 
     // IP/EHLO are now EDITABLE fields owned by the VMTA, prefilled from the row;
     // the listener dropdown is an optional association, also prefilled.
-    const listenerSelect = document.body.querySelector(
-      '[data-testid="vmta-listener"]',
-    ) as HTMLSelectElement
-    expect(listenerSelect.value).toBe('lst-1')
+    const listenerSelect = findSelect(wrapper, 'data-testid="vmta-listener"')
+    expect(listenerSelect.props('modelValue')).toBe('lst-1')
+    // The dropdown offers the loaded listeners (plus the "none" placeholder).
+    expect(listenerSelect.props('items')).toEqual([
+      { title: '— None —', value: '' },
+      { title: 'esmtp-east-1 (203.0.113.10:25)', value: 'lst-1' },
+    ])
     const ipInput = document.body.querySelector('#vmta-ip') as HTMLInputElement
     expect(ipInput.value).toBe('203.0.113.10')
     expect(ipInput.disabled).toBe(false)
@@ -100,8 +112,7 @@ describe('VmtasPage edit dialog', () => {
     ipInput.dispatchEvent(new Event('input'))
     notesInput.value = 'updated notes'
     notesInput.dispatchEvent(new Event('input'))
-    statusSelect.value = 'disabled'
-    statusSelect.dispatchEvent(new Event('change'))
+    await statusSelect.setValue('disabled')
     const maxConn = document.body.querySelector('#vmta-max-conn') as HTMLInputElement
     maxConn.value = '5'
     maxConn.dispatchEvent(new Event('input'))

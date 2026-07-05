@@ -43,7 +43,7 @@ const {
       empty-message="No audit entries recorded."
     >
       <Card>
-        <CardContent class="p-0">
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -57,11 +57,11 @@ const {
             </TableHeader>
             <TableBody>
               <TableRow v-for="a in items" :key="a.id">
-                <TableCell class="whitespace-nowrap text-muted-foreground">{{ formatDateTime(a.occurredAt) }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ a.actorUserId }}</TableCell>
-                <TableCell class="font-medium">{{ a.operation }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ a.targetType }}/{{ a.targetId }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ a.ipAddress }}</TableCell>
+                <TableCell class="text-no-wrap text-medium-emphasis">{{ formatDateTime(a.occurredAt) }}</TableCell>
+                <TableCell class="font-mono text-caption">{{ a.actorUserId }}</TableCell>
+                <TableCell class="font-weight-medium">{{ a.operation }}</TableCell>
+                <TableCell class="font-mono text-caption">{{ a.targetType }}/{{ a.targetId }}</TableCell>
+                <TableCell class="font-mono text-caption">{{ a.ipAddress }}</TableCell>
                 <TableCell><StatusBadge :status="a.outcome" /></TableCell>
               </TableRow>
             </TableBody>

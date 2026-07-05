@@ -1,0 +1,117 @@
+// Settings fixtures: deployment-level global settings (singleton), retention
+// views, and subject-line classifications.
+
+import type {
+  GlobalSettings,
+  RetentionView,
+  SubjectClassification,
+} from '../../types'
+import { daysAgo, hoursAgo } from './util'
+
+export const globalSettings: GlobalSettings = {
+  rspamdMode: 'tag',
+  rspamdUrl: 'http://rspamd:11334',
+  egressEhloDomain: 'mta1.example.net',
+  logStreamRedisUrl: 'redis://redis:6379',
+  esmtpListen: '[::]:25',
+  httpListen: '[::]:8000',
+  egressRetryInterval: '5m',
+  egressMaxRetryInterval: '1h',
+  egressMaxAge: '72h',
+  bounceDomain: 'bounces.example.net',
+  bounceDomainTemplate: 'b-{mailclass}.example.net',
+  autoSuppressHardBounces: true,
+  softBounceThreshold: 5,
+  suppressionTtl: '720h',
+  dmarcReportEmail: 'dmarc@example.net',
+  adminHttpAddr: '127.0.0.1:8000',
+  adminTlsEnabled: true,
+  adminTlsCertDomain: 'admin.example.net',
+  acmeRenewInterval: '168h',
+  acmeRenewBefore: '720h',
+  prometheusUrl: 'http://prometheus:9090',
+  fblRequireVerification: true,
+  inboundMaildirBasePath: '/var/mail/inbound',
+  classifySubjects: true,
+  classifyModel: 'subject-classifier-v2',
+  classifyThreshold: 0.82,
+  classifyApiBase: 'http://classifier:8080',
+  updatedAt: hoursAgo(3),
+  updatedBy: 'admin@iris.local',
+}
+
+export const retentionViews: RetentionView[] = [
+  {
+    policy: { tableName: 'log_events', retentionDays: 30, compressAfterDays: 7, enabled: true, updatedAt: daysAgo(2), updatedBy: 'admin@iris.local' },
+    label: 'Mail log events',
+    hypertable: true,
+    chunkCount: 84,
+    compressedChunks: 63,
+    totalBytes: 4_812_646_400,
+    compressedBytes: 1_204_316_160,
+    uncompressedBytes: 3_608_330_240,
+    oldestData: daysAgo(30),
+    newestData: hoursAgo(0),
+    lastRun: { id: 'ret_1', tableName: 'log_events', startedAt: hoursAgo(5), finishedAt: hoursAgo(5), chunksCompressed: 4, chunksDropped: 1, bytesBefore: 5_000_000_000, bytesAfter: 4_812_646_400 },
+  },
+  {
+    policy: { tableName: 'feedback_events', retentionDays: 90, compressAfterDays: 14, enabled: true, updatedAt: daysAgo(2), updatedBy: 'admin@iris.local' },
+    label: 'Feedback / FBL events',
+    hypertable: true,
+    chunkCount: 48,
+    compressedChunks: 30,
+    totalBytes: 412_646_400,
+    compressedBytes: 104_316_160,
+    uncompressedBytes: 308_330_240,
+    oldestData: daysAgo(90),
+    newestData: hoursAgo(1),
+  },
+  {
+    policy: { tableName: 'audit_entries', retentionDays: 365, compressAfterDays: 30, enabled: true, updatedAt: daysAgo(10), updatedBy: 'admin@iris.local' },
+    label: 'Audit log',
+    hypertable: true,
+    chunkCount: 12,
+    compressedChunks: 6,
+    totalBytes: 58_646_400,
+    compressedBytes: 14_316_160,
+    uncompressedBytes: 44_330_240,
+    oldestData: daysAgo(120),
+    newestData: hoursAgo(0),
+  },
+  {
+    policy: { tableName: 'dsn_events', retentionDays: 60, compressAfterDays: 10, enabled: false, updatedAt: daysAgo(40), updatedBy: 'admin@iris.local' },
+    label: 'DSN events',
+    hypertable: true,
+    chunkCount: 20,
+    compressedChunks: 0,
+    totalBytes: 1_012_646_400,
+    compressedBytes: 0,
+    uncompressedBytes: 1_012_646_400,
+    oldestData: daysAgo(60),
+    newestData: hoursAgo(2),
+  },
+]
+
+const SUBJECT_LABELS: Array<[string, string, SubjectClassification['source']]> = [
+  ['Your invoice #10432', 'Invoice', 'ai'],
+  ['Reset your password', 'Password reset', 'manual'],
+  ['Welcome to Iris!', 'Welcome', 'manual'],
+  ['50% off this weekend only', 'Promo', 'ai'],
+  ['Your order has shipped', 'Receipt', 'ai'],
+  ['Security alert: new login', 'Notification', 'manual'],
+  ['Confirm your email address', 'Verification', 'manual'],
+  ['Your subscription renews soon', 'Billing', 'ai'],
+  ['Weekly digest — July edition', 'Newsletter', 'manual'],
+  ['Action required: update payment', 'Billing', 'ai'],
+]
+
+export const classifications: SubjectClassification[] = SUBJECT_LABELS.map(([subject, label, source], i) => ({
+  id: `cls_${i}`,
+  subject,
+  subjectNormalized: subject.toLowerCase(),
+  label,
+  source,
+  hitCount: String(Math.floor(Math.random() * 5000) + 10),
+  createdAt: daysAgo(30 - i),
+  updatedAt: daysAgo(i % 7),
+}))

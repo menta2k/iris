@@ -62,9 +62,9 @@ function onCancel() {
       <DialogDescription v-if="description">{{ description }}</DialogDescription>
     </DialogHeader>
 
-    <div v-if="confirmText" class="space-y-2">
+    <div v-if="confirmText" class="d-flex flex-column ga-2">
       <Label for="confirm-input">
-        Type <span class="font-mono text-foreground">{{ confirmText }}</span> to confirm
+        Type <span class="font-mono">{{ confirmText }}</span> to confirm
       </Label>
       <Input
         id="confirm-input"

@@ -26,6 +26,10 @@ type ConfigSnapshot struct {
 	// rendered into the base shaping config.
 	Blueprints []*DeliveryBlueprint
 
+	// AutomationRules are the active operator-authored TSA automation rules
+	// rendered into iris-automation.toml (loaded by the TSA daemon).
+	AutomationRules []*AutomationRule
+
 	// ShapingDir is the directory the policy loads iris-base.toml + iris-warmup.toml
 	// from (written next to the policy by the apply adapter). Empty falls back to
 	// the standard policy dir.
@@ -184,9 +188,11 @@ type RenderedConfig struct {
 	LintIssues []string
 	// ShapingBase / ShapingWarmup are the TOML sidecar files the policy loads via
 	// kumo.shaping.load when ShapingDir is configured (base blueprints + per-IP
-	// warmup overrides). The apply adapter writes them next to the policy.
-	ShapingBase   string
-	ShapingWarmup string
+	// warmup overrides). ShapingAutomation holds the TSA automation rules loaded
+	// by the TSA daemon. The apply adapter writes all three next to the policy.
+	ShapingBase       string
+	ShapingWarmup     string
+	ShapingAutomation string
 }
 
 // validateSnapshot re-runs model validation on every entity so the renderer
@@ -338,8 +344,9 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 		LintIssues:       issues,
 		// Shaping sidecar files (written next to the policy by the apply adapter
 		// when ShapingDir is set; the policy loads them via kumo.shaping.load).
-		ShapingBase:   RenderBaseShaping(snap.Blueprints),
-		ShapingWarmup: RenderWarmupShaping(snap.WarmupRates),
+		ShapingBase:       RenderBaseShaping(snap.Blueprints),
+		ShapingWarmup:     RenderWarmupShaping(snap.WarmupRates),
+		ShapingAutomation: RenderAutomation(snap.AutomationRules),
 	}, nil
 }
 
@@ -753,6 +760,7 @@ kumo.on('smtp_server_message_received', function(msg)
     return
   end
   iris_ensure_message_id(msg)
+  iris_ensure_date(msg)
   iris_dkim_sign(msg)
   local class = classify_mail(msg)
   if not class then
@@ -974,6 +982,18 @@ local function iris_ensure_message_id(msg)
   msg:prepend_header('Message-ID', string.format('<%s@%s>', tostring(msg:id()), domain))
 end
 
+-- ===== date =====
+-- RFC 5322 requires a Date. Injecting apps (and bare SMTP clients) sometimes
+-- omit it, which trips rspamd's MISSING_DATE and -- because the DKIM signer
+-- lists Date in its signed header set -- causes the signature to break when a
+-- downstream MTA (e.g. a receiving Postfix) inserts the missing Date. Add one
+-- when absent, before signing, so the Date is stable and covered by the DKIM
+-- signature applied immediately after. UTC, RFC 5322 format.
+local function iris_ensure_date(msg)
+  if msg:get_first_named_header_value('Date') then return end
+  msg:prepend_header('Date', os.date('!%a, %d %b %Y %H:%M:%S +0000'))
+end
+
 -- ===== dkim signing =====
 -- Resolve a From domain to a signer: exact match first, then walk up the parent
 -- labels so a key published at the organizational domain (example.com) also signs
@@ -1016,6 +1036,7 @@ end
 -- Sign mail injected via the HTTP API (the reception hook covers SMTP).
 kumo.on('http_message_generated', function(msg)
   iris_ensure_message_id(msg)
+  iris_ensure_date(msg)
   iris_dkim_sign(msg)
 end)
 
@@ -1146,7 +1167,10 @@ func writeEsmtpListener(b *strings.Builder, l *Listener) {
 // table. SOURCE_LIMITS is keyed by egress source (VMTA) name; REQUIRE_TLS_DOMAINS
 // is keyed by destination domain. get_egress_path_config applies both: the
 // connection limit for the source and enable_tls for a required-TLS domain, so
-// kumod refuses to deliver to that domain in cleartext.
+// kumod refuses to deliver to that domain in cleartext. Domains WITHOUT a
+// require-TLS policy fall back to OpportunisticInsecure (encrypt if offered, do
+// not hard-fail on cert verification) so legacy/retired receiver chains deliver
+// instead of deferring.
 // defaultPolicyDir is the directory the shaping sidecar files are loaded from
 // when no explicit ShapingDir is configured (the standard KumoMTA policy dir,
 // matching the example config_path). The apply adapter writes the files next to
@@ -1226,6 +1250,14 @@ kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
   local tls = REQUIRE_TLS_DOMAINS[string.lower(domain)]
   if tls then
     params.enable_tls = tls
+  else
+    -- Baseline for port-25 delivery: encrypt opportunistically but do NOT hard-
+    -- fail on certificate verification. Many large receivers (e.g. Outlook) still
+    -- chain through roots the current trust store has retired, or serve legacy/
+    -- incomplete chains; kumod's verifying default turns those into deferrals that
+    -- silently drag deliverability. Require-TLS domains above keep real
+    -- verification (Required). Matches Postfix's default posture for :25.
+    params.enable_tls = params.enable_tls or 'OpportunisticInsecure'
   end
   return kumo.make_egress_path(params)
 end)

@@ -29,6 +29,28 @@ func (s *Service) GenerateKumoConfig(ctx context.Context, req *adminv1.GenerateK
 	}, nil
 }
 
+// GetAppliedKumoConfig returns the policy currently running on KumoMTA (the last
+// one Iris applied) so the UI can diff it against a freshly generated policy.
+func (s *Service) GetAppliedKumoConfig(ctx context.Context, _ *adminv1.GetAppliedKumoConfigRequest) (*adminv1.AppliedKumoConfig, error) {
+	if s.kumoConfig == nil {
+		return nil, notImplemented("GetAppliedKumoConfig")
+	}
+	a, err := s.kumoConfig.Applied(ctx)
+	if err != nil {
+		return nil, s.fail(ctx, "GetAppliedKumoConfig", err)
+	}
+	appliedAt := ""
+	if a.AppliedAt != nil {
+		appliedAt = a.AppliedAt.UTC().Format("2006-01-02T15:04:05Z07:00")
+	}
+	return &adminv1.AppliedKumoConfig{
+		Content:      a.Content,
+		Checksum:     a.Checksum,
+		AppliedAt:    appliedAt,
+		NeverApplied: a.NeverApplied,
+	}, nil
+}
+
 // KumoConfigStatus reports whether the current config has drifted from the last
 // applied policy.
 func (s *Service) KumoConfigStatus(ctx context.Context, _ *adminv1.KumoConfigStatusRequest) (*adminv1.KumoConfigStatusReply, error) {

@@ -15,7 +15,6 @@ import { StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useToast } from '@/composables/useToast'
 import { warmupService, outboundConfigService } from '@/services'
@@ -53,6 +52,13 @@ const curveNames = computed(() => curves.value.map((c) => c.name))
 const curveOptions = computed(() => [...curveNames.value, 'custom'])
 const isEdit = computed(() => mode.value === 'edit')
 const isCustom = computed(() => form.value.curve === 'custom')
+
+// v-select item lists ({ title, value }) for the VMTA and curve dropdowns.
+const vmtaItems = computed(() => [
+  { title: '— Select a VMTA —', value: '' },
+  ...vmtas.value.map((v) => ({ title: `${v.name} (${v.ipAddress})`, value: v.id })),
+])
+const curveItems = computed(() => curveOptions.value.map((c) => ({ title: c, value: c })))
 
 function newStage(dayFrom: number): WarmupStageInput {
   return { day_from: dayFrom, day_to: dayFrom + 6, caps: { gmail: 50, microsoft: 50, yahoo: 50, default: 200 } }
@@ -221,7 +227,7 @@ load()
       empty-message="No warmup schedules yet."
     >
       <Card>
-        <CardContent class="p-0">
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -235,31 +241,33 @@ load()
             </TableHeader>
             <TableBody>
               <TableRow v-for="w in items" :key="w.id">
-                <TableCell class="font-medium">{{ w.vmtaName }}</TableCell>
+                <TableCell class="font-weight-medium">{{ w.vmtaName }}</TableCell>
                 <TableCell>{{ w.curve }}</TableCell>
                 <TableCell><StatusBadge :status="w.status" /></TableCell>
                 <TableCell class="tabular-nums">{{ progress(w) }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ capsToday(w) }}</TableCell>
-                <TableCell class="space-x-1 text-right">
-                  <Button
-                    v-if="w.status === 'scheduled' || w.status === 'active'"
-                    variant="outline"
-                    size="sm"
-                    @click="openEdit(w)"
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    v-if="w.status === 'active'"
-                    variant="outline"
-                    size="sm"
-                    @click="pause(w)"
-                  >
-                    Pause
-                  </Button>
-                  <Button v-if="w.status === 'paused'" variant="outline" size="sm" @click="resume(w)">
-                    Resume
-                  </Button>
+                <TableCell class="font-mono text-caption">{{ capsToday(w) }}</TableCell>
+                <TableCell class="text-right">
+                  <div class="d-flex justify-end ga-1">
+                    <Button
+                      v-if="w.status === 'scheduled' || w.status === 'active'"
+                      variant="outline"
+                      size="sm"
+                      @click="openEdit(w)"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      v-if="w.status === 'active'"
+                      variant="outline"
+                      size="sm"
+                      @click="pause(w)"
+                    >
+                      Pause
+                    </Button>
+                    <Button v-if="w.status === 'paused'" variant="outline" size="sm" @click="resume(w)">
+                      Resume
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -272,22 +280,30 @@ load()
       <DialogHeader>
         <DialogTitle>{{ isEdit ? 'Edit warmup' : 'New warmup' }}</DialogTitle>
       </DialogHeader>
-      <form class="space-y-4" @submit.prevent="submit">
-        <div v-if="!isEdit" class="space-y-1.5">
+      <form class="d-flex flex-column ga-4" @submit.prevent="submit">
+        <div v-if="!isEdit" class="d-flex flex-column ga-1">
           <Label for="warmup-vmta">VMTA</Label>
-          <Select id="warmup-vmta" v-model="form.vmta_id" data-testid="warmup-vmta">
-            <option value="">— Select a VMTA —</option>
-            <option v-for="v in vmtas" :key="v.id" :value="v.id">
-              {{ v.name }} ({{ v.ipAddress }})
-            </option>
-          </Select>
+          <v-select
+            id="warmup-vmta"
+            v-model="form.vmta_id"
+            :items="vmtaItems"
+            data-testid="warmup-vmta"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="warmup-curve">Curve</Label>
-          <Select id="warmup-curve" v-model="form.curve">
-            <option v-for="c in curveOptions" :key="c" :value="c">{{ c }}</option>
-          </Select>
-          <p class="text-xs text-muted-foreground">
+          <v-select
+            id="warmup-curve"
+            v-model="form.curve"
+            :items="curveItems"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
+          <p class="text-caption text-medium-emphasis">
             Built-in templates: standard (~21d), conservative (~30d), aggressive (~12d). Pick
             <code>custom</code> to define your own stages. Caps are per receiving-domain family
             (Gmail, Microsoft, Yahoo, default).
@@ -295,47 +311,47 @@ load()
         </div>
 
         <!-- Custom stage editor: contiguous day ranges with a per-MBP daily cap. -->
-        <div v-if="isCustom" class="space-y-2 rounded-md border p-3">
-          <div class="flex items-center justify-between">
+        <div v-if="isCustom" class="d-flex flex-column ga-2 rounded border pa-3">
+          <div class="d-flex align-center justify-space-between">
             <Label>Stages (messages/day)</Label>
             <Button type="button" variant="outline" size="sm" @click="addStage">Add stage</Button>
           </div>
-          <table class="w-full text-xs">
-            <thead class="text-muted-foreground">
+          <table class="w-100 text-caption">
+            <thead class="text-medium-emphasis">
               <tr>
-                <th class="text-left font-normal">Day from</th>
-                <th class="text-left font-normal">Day to</th>
-                <th class="text-left font-normal">Gmail</th>
-                <th class="text-left font-normal">Microsoft</th>
-                <th class="text-left font-normal">Yahoo</th>
-                <th class="text-left font-normal">Default</th>
+                <th class="text-left font-weight-regular">Day from</th>
+                <th class="text-left font-weight-regular">Day to</th>
+                <th class="text-left font-weight-regular">Gmail</th>
+                <th class="text-left font-weight-regular">Microsoft</th>
+                <th class="text-left font-weight-regular">Yahoo</th>
+                <th class="text-left font-weight-regular">Default</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(s, i) in form.stages" :key="i">
-                <td class="pr-1 py-0.5"><Input v-model.number="s.day_from" type="number" class="h-7" /></td>
-                <td class="pr-1"><Input v-model.number="s.day_to" type="number" class="h-7" /></td>
-                <td class="pr-1"><Input v-model.number="s.caps.gmail" type="number" class="h-7" /></td>
-                <td class="pr-1"><Input v-model.number="s.caps.microsoft" type="number" class="h-7" /></td>
-                <td class="pr-1"><Input v-model.number="s.caps.yahoo" type="number" class="h-7" /></td>
-                <td class="pr-1"><Input v-model.number="s.caps.default" type="number" class="h-7" /></td>
+                <td class="pr-1"><Input v-model.number="s.day_from" type="number" /></td>
+                <td class="pr-1"><Input v-model.number="s.day_to" type="number" /></td>
+                <td class="pr-1"><Input v-model.number="s.caps.gmail" type="number" /></td>
+                <td class="pr-1"><Input v-model.number="s.caps.microsoft" type="number" /></td>
+                <td class="pr-1"><Input v-model.number="s.caps.yahoo" type="number" /></td>
+                <td class="pr-1"><Input v-model.number="s.caps.default" type="number" /></td>
                 <td>
                   <Button type="button" variant="ghost" size="sm" @click="removeStage(i)">✕</Button>
                 </td>
               </tr>
             </tbody>
           </table>
-          <p class="text-xs text-muted-foreground">
+          <p class="text-caption text-medium-emphasis">
             Stages must be 1-based and contiguous (each starts the day after the previous ends).
             After the last day the warmup completes and the cap is removed.
           </p>
         </div>
 
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="warmup-start">Start date</Label>
           <Input id="warmup-start" v-model="form.start_date" type="date" />
-          <p class="text-xs text-muted-foreground">Day 1 of the ramp (UTC).</p>
+          <p class="text-caption text-medium-emphasis">Day 1 of the ramp (UTC).</p>
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" @click="dialogOpen = false">Cancel</Button>

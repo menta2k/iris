@@ -15,7 +15,6 @@ import { StatusBadge, Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
@@ -39,6 +38,14 @@ const ACTIONS: InboundRouteAction[] = ['maildir', 'forward', 'webhook']
 const STATUSES = ['active', 'disabled']
 const FORWARD_TLS: ForwardTLS[] = ['opportunistic', 'required', 'none']
 const SPAM_SCANS: SpamScanMode[] = ['default', 'off', 'tag', 'enforce']
+const MATCH_TYPES: InboundRouteMatchType[] = ['recipient_email', 'recipient_domain']
+
+// v-select item lists ({ title, value }) derived from the enums above.
+const actionItems = ACTIONS.map((a) => ({ title: a, value: a }))
+const statusItems = STATUSES.map((s) => ({ title: s, value: s }))
+const forwardTlsItems = FORWARD_TLS.map((t) => ({ title: t, value: t }))
+const spamScanItems = SPAM_SCANS.map((m) => ({ title: m, value: m }))
+const matchTypeItems = MATCH_TYPES.map((m) => ({ title: m, value: m }))
 
 interface RouteForm {
   name: string
@@ -83,6 +90,31 @@ const editId = ref<string | null>(null)
 const form = ref<RouteForm>(emptyForm())
 
 const isEdit = computed(() => mode.value === 'edit')
+
+// Colour-code the Action column so the delivery type is scannable at a glance:
+// maildir (local storage) → green, forward (relay) → indigo, webhook (external
+// HTTP) → amber. Unknown actions fall back to neutral.
+const ACTION_VARIANT: Record<InboundRouteAction, 'success' | 'default' | 'warning'> = {
+  maildir: 'success',
+  forward: 'default',
+  webhook: 'warning',
+}
+function actionVariant(action: string) {
+  return ACTION_VARIANT[action as InboundRouteAction] ?? 'secondary'
+}
+
+// Colour-code the Scan column by rspamd mode: enforce (rejects spam) → green,
+// tag (adds headers) → amber, off (no scanning) → red, default (inherits the
+// global mode) → neutral.
+const SCAN_VARIANT: Record<SpamScanMode, 'success' | 'warning' | 'destructive' | 'secondary'> = {
+  enforce: 'success',
+  tag: 'warning',
+  off: 'destructive',
+  default: 'secondary',
+}
+function scanVariant(scan: string) {
+  return SCAN_VARIANT[scan as SpamScanMode] ?? 'secondary'
+}
 
 function summarizeTarget(r: InboundRoute): string {
   switch (r.action) {
@@ -222,10 +254,10 @@ async function remove(r: InboundRoute) {
             <TableBody>
               <TableRow v-for="r in items" :key="r.id">
                 <TableCell class="font-medium">{{ r.name }}</TableCell>
-                <TableCell><Badge variant="outline">{{ r.action }}</Badge></TableCell>
-                <TableCell class="font-mono text-xs">{{ r.matchType }}: {{ r.matchValue }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ summarizeTarget(r) }}</TableCell>
-                <TableCell><Badge variant="outline">{{ r.spamScan || 'default' }}</Badge></TableCell>
+                <TableCell><Badge :variant="actionVariant(r.action)">{{ r.action }}</Badge></TableCell>
+                <TableCell class="font-mono text-caption">{{ r.matchType }}: {{ r.matchValue }}</TableCell>
+                <TableCell class="font-mono text-caption">{{ summarizeTarget(r) }}</TableCell>
+                <TableCell><Badge :variant="scanVariant(r.spamScan || 'default')">{{ r.spamScan || 'default' }}</Badge></TableCell>
                 <TableCell class="tabular-nums">{{ r.priority }}</TableCell>
                 <TableCell><StatusBadge :status="r.status" /></TableCell>
                 <TableCell class="space-x-2 text-right">
@@ -257,42 +289,64 @@ async function remove(r: InboundRoute) {
       <DialogHeader>
         <DialogTitle>{{ isEdit ? 'Edit Inbound Route' : 'Create Inbound Route' }}</DialogTitle>
       </DialogHeader>
-      <form class="space-y-4" @submit.prevent="submit">
-        <div class="space-y-1.5">
+      <form class="d-flex flex-column ga-4" @submit.prevent="submit">
+        <div class="d-flex flex-column ga-1">
           <Label for="ir-name">Name</Label>
           <Input id="ir-name" v-model="form.name" placeholder="archive-inbound" />
         </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
-            <Label for="ir-match-type">Match Type</Label>
-            <Select id="ir-match-type" v-model="form.match_type">
-              <option value="recipient_email">recipient_email</option>
-              <option value="recipient_domain">recipient_domain</option>
-            </Select>
-          </div>
-          <div class="space-y-1.5">
-            <Label for="ir-match-value">Match Value</Label>
-            <Input id="ir-match-value" v-model="form.match_value" placeholder="example.com" />
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
-            <Label for="ir-action">Action</Label>
-            <Select id="ir-action" v-model="form.action">
-              <option v-for="a in ACTIONS" :key="a" :value="a">{{ a }}</option>
-            </Select>
-          </div>
-          <div class="space-y-1.5">
-            <Label for="ir-priority">Priority</Label>
-            <Input id="ir-priority" v-model="form.priority" type="number" placeholder="0" />
-          </div>
-        </div>
-        <div class="space-y-1.5">
+        <v-row dense>
+          <v-col cols="6">
+            <div class="d-flex flex-column ga-1">
+              <Label for="ir-match-type">Match Type</Label>
+              <v-select
+                id="ir-match-type"
+                v-model="form.match_type"
+                :items="matchTypeItems"
+                variant="outlined"
+                density="compact"
+                hide-details
+              />
+            </div>
+          </v-col>
+          <v-col cols="6">
+            <div class="d-flex flex-column ga-1">
+              <Label for="ir-match-value">Match Value</Label>
+              <Input id="ir-match-value" v-model="form.match_value" placeholder="example.com" />
+            </div>
+          </v-col>
+        </v-row>
+        <v-row dense>
+          <v-col cols="6">
+            <div class="d-flex flex-column ga-1">
+              <Label for="ir-action">Action</Label>
+              <v-select
+                id="ir-action"
+                v-model="form.action"
+                :items="actionItems"
+                variant="outlined"
+                density="compact"
+                hide-details
+              />
+            </div>
+          </v-col>
+          <v-col cols="6">
+            <div class="d-flex flex-column ga-1">
+              <Label for="ir-priority">Priority</Label>
+              <Input id="ir-priority" v-model="form.priority" type="number" placeholder="0" />
+            </div>
+          </v-col>
+        </v-row>
+        <div class="d-flex flex-column ga-1">
           <Label for="ir-scan">Spam scan (rspamd)</Label>
-          <Select id="ir-scan" v-model="form.spam_scan">
-            <option v-for="m in SPAM_SCANS" :key="m" :value="m">{{ m }}</option>
-          </Select>
-          <p class="text-xs text-muted-foreground">
+          <v-select
+            id="ir-scan"
+            v-model="form.spam_scan"
+            :items="spamScanItems"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
+          <p class="text-caption text-medium-emphasis">
             <strong>default</strong> follows the global rspamd mode; <strong>off</strong> skips
             scanning; <strong>tag</strong> adds X-Spam headers; <strong>enforce</strong> rejects
             spam. Overrides apply only when an rspamd URL is configured in Settings.
@@ -300,58 +354,76 @@ async function remove(r: InboundRoute) {
         </div>
 
         <!-- maildir -->
-        <div v-if="form.action === 'maildir'" class="space-y-1.5">
+        <div v-if="form.action === 'maildir'" class="d-flex flex-column ga-1">
           <Label for="ir-maildir">Maildir Path</Label>
           <Input id="ir-maildir" v-model="form.maildir_path" placeholder="(blank = deployment base + /domain/user)" />
-          <p class="text-xs text-muted-foreground">
+          <p class="text-caption text-medium-emphasis">
             Leave blank to use the global Maildir base from Settings, one mailbox per recipient.
           </p>
         </div>
 
         <!-- forward -->
         <template v-if="form.action === 'forward'">
-          <div class="grid grid-cols-2 gap-3">
-            <div class="space-y-1.5">
-              <Label for="ir-fwd-host">Smarthost</Label>
-              <Input id="ir-fwd-host" v-model="form.forward_host" placeholder="mail.internal" />
-            </div>
-            <div class="space-y-1.5">
-              <Label for="ir-fwd-port">Port</Label>
-              <Input id="ir-fwd-port" v-model="form.forward_port" type="number" min="1" placeholder="25" />
-            </div>
-          </div>
-          <div class="space-y-1.5">
+          <v-row dense>
+            <v-col cols="6">
+              <div class="d-flex flex-column ga-1">
+                <Label for="ir-fwd-host">Smarthost</Label>
+                <Input id="ir-fwd-host" v-model="form.forward_host" placeholder="mail.internal" />
+              </div>
+            </v-col>
+            <v-col cols="6">
+              <div class="d-flex flex-column ga-1">
+                <Label for="ir-fwd-port">Port</Label>
+                <Input id="ir-fwd-port" v-model="form.forward_port" type="number" min="1" placeholder="25" />
+              </div>
+            </v-col>
+          </v-row>
+          <div class="d-flex flex-column ga-1">
             <Label for="ir-fwd-tls">TLS</Label>
-            <Select id="ir-fwd-tls" v-model="form.forward_tls">
-              <option v-for="t in FORWARD_TLS" :key="t" :value="t">{{ t }}</option>
-            </Select>
+            <v-select
+              id="ir-fwd-tls"
+              v-model="form.forward_tls"
+              :items="forwardTlsItems"
+              variant="outlined"
+              density="compact"
+              hide-details
+            />
           </div>
         </template>
 
         <!-- webhook -->
         <template v-if="form.action === 'webhook'">
-          <div class="space-y-1.5">
+          <div class="d-flex flex-column ga-1">
             <Label for="ir-url">Destination URL (https)</Label>
             <Input id="ir-url" v-model="form.destination_url" placeholder="https://hooks.example.com/iris" />
           </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div class="space-y-1.5">
-              <Label for="ir-secret">Secret Reference</Label>
-              <Input id="ir-secret" v-model="form.secret_ref" placeholder="secret://webhooks/inbound" />
-              <p v-if="isEdit" class="text-xs text-muted-foreground">Leave blank to keep the existing secret.</p>
-            </div>
-            <div class="space-y-1.5">
-              <Label for="ir-timeout">Timeout (seconds)</Label>
-              <Input id="ir-timeout" v-model="form.timeout_seconds" type="number" min="1" placeholder="10" />
-            </div>
-          </div>
+          <v-row dense>
+            <v-col cols="6">
+              <div class="d-flex flex-column ga-1">
+                <Label for="ir-secret">Secret Reference</Label>
+                <Input id="ir-secret" v-model="form.secret_ref" placeholder="secret://webhooks/inbound" />
+                <p v-if="isEdit" class="text-caption text-medium-emphasis">Leave blank to keep the existing secret.</p>
+              </div>
+            </v-col>
+            <v-col cols="6">
+              <div class="d-flex flex-column ga-1">
+                <Label for="ir-timeout">Timeout (seconds)</Label>
+                <Input id="ir-timeout" v-model="form.timeout_seconds" type="number" min="1" placeholder="10" />
+              </div>
+            </v-col>
+          </v-row>
         </template>
 
-        <div v-if="isEdit" class="space-y-1.5">
+        <div v-if="isEdit" class="d-flex flex-column ga-1">
           <Label for="ir-status">Status</Label>
-          <Select id="ir-status" v-model="form.status">
-            <option v-for="s in STATUSES" :key="s" :value="s">{{ s }}</option>
-          </Select>
+          <v-select
+            id="ir-status"
+            v-model="form.status"
+            :items="statusItems"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
         </div>
 
         <DialogFooter>

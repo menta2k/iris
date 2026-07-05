@@ -84,30 +84,30 @@ function msg(err: unknown) {
           Enroll a TOTP authenticator (Google Authenticator, 1Password, etc.) for your account.
         </CardDescription>
       </CardHeader>
-      <CardContent class="space-y-4">
-        <div v-if="enrolled" class="flex items-center gap-3">
+      <CardContent class="d-flex flex-column ga-4">
+        <div v-if="enrolled" class="d-flex align-center ga-3">
           <Badge variant="secondary">Enabled</Badge>
           <Button variant="outline" size="sm" :disabled="busy" @click="disable">Disable MFA</Button>
         </div>
 
         <template v-else-if="enrollment">
-          <p class="text-sm text-muted-foreground">
+          <p class="text-body-2 text-medium-emphasis">
             Add this account to your authenticator app, then enter the 6-digit code to confirm.
           </p>
-          <div class="space-y-1.5">
+          <div class="d-flex flex-column ga-1">
             <Label>Secret</Label>
-            <div class="font-mono text-sm break-all rounded-md border bg-muted px-3 py-2">
+            <div class="font-mono text-body-2 text-break rounded border bg-surface-light px-3 py-2">
               {{ enrollment.secret }}
             </div>
           </div>
-          <div class="space-y-1.5">
+          <div class="d-flex flex-column ga-1">
             <Label>otpauth URI</Label>
-            <div class="font-mono text-xs break-all text-muted-foreground">{{ enrollment.otpauthUri }}</div>
+            <div class="font-mono text-caption text-break text-medium-emphasis">{{ enrollment.otpauthUri }}</div>
           </div>
-          <div class="flex items-end gap-2">
-            <div class="space-y-1.5">
+          <div class="d-flex align-end ga-2">
+            <div class="d-flex flex-column ga-1">
               <Label for="mfa-code">Code</Label>
-              <Input id="mfa-code" v-model="code" inputmode="numeric" maxlength="6" placeholder="123456" class="w-32" />
+              <Input id="mfa-code" v-model="code" inputmode="numeric" maxlength="6" placeholder="123456" style="width: 128px" />
             </div>
             <Button :disabled="busy || code.length !== 6" @click="confirmEnroll">Confirm</Button>
           </div>
@@ -121,21 +121,23 @@ function msg(err: unknown) {
       </CardContent>
     </Card>
 
-    <div class="grid gap-4 md:grid-cols-3">
-      <Card v-for="r in rolePermissions" :key="r.role">
-        <CardHeader class="pb-2">
-          <CardTitle class="flex items-center gap-2 text-base">
-            <Badge variant="secondary">{{ r.role }}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul class="space-y-1 text-sm text-muted-foreground">
-            <li v-for="p in r.perms" :key="p" class="flex gap-2">
-              <span class="text-primary">•</span>{{ p }}
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
-    </div>
+    <v-row dense>
+      <v-col v-for="r in rolePermissions" :key="r.role" cols="12" md="4">
+        <Card>
+          <CardHeader class="pb-2">
+            <CardTitle class="d-flex align-center ga-2 text-subtitle-1">
+              <Badge variant="secondary">{{ r.role }}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul class="d-flex flex-column ga-1 text-body-2 text-medium-emphasis">
+              <li v-for="p in r.perms" :key="p" class="d-flex ga-2">
+                <span class="text-primary">•</span>{{ p }}
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+      </v-col>
+    </v-row>
   </div>
 </template>

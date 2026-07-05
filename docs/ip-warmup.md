@@ -290,7 +290,16 @@ ceiling. Unset = static shaping only. Both modes are kumod-verified.
 
 Operating it additionally requires **running a `tsa-daemon`** (separate process)
 and pointing `IRIS_TSA_URL` at it; the daemon's automation rules decide the
-back-off. The iris policy side is complete and TSA-ready.
+back-off.
+
+**Operator-authored rules.** You can define your own back-off rules in iris
+(Outbound → **Shaping Automation**): a regex on the SMTP response, an action
+(`suspend` / `suspend tenant` / `set config` to tighten a limit), an optional
+trigger threshold, and a duration. iris renders the active rules into
+`iris-automation.toml`, which the TSA daemon loads (add it to the daemon's
+`tsa_load_shaping_data`). This is how TSA enforces *your* thresholds rather than
+only the community defaults; the resulting back-off still layers under the warmup
+ceiling.
 
 ## Custom curves (M2)
 

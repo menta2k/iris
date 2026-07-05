@@ -10,10 +10,10 @@ const formatted = computed(() => Number(props.queued ?? 0).toLocaleString())
 <template>
   <Card data-testid="queue-health-widget">
     <CardHeader class="pb-2">
-      <CardTitle class="text-sm text-muted-foreground">Queued Messages</CardTitle>
+      <CardTitle class="text-body-2 text-medium-emphasis">Queued Messages</CardTitle>
     </CardHeader>
     <CardContent>
-      <span class="text-2xl font-semibold tabular-nums">{{ formatted }}</span>
+      <span class="text-h5 font-weight-bold tabular-nums">{{ formatted }}</span>
     </CardContent>
   </Card>
 </template>

@@ -53,6 +53,13 @@ type FeedbackPolicyProvider interface {
 	FeedbackPolicyNow(ctx context.Context) biz.FeedbackPolicy
 }
 
+// ClassifyPolicyProvider reports the current subject-classification policy. When
+// enabled, the log worker enqueues each Reception's subject for the async
+// classification worker. Optional (nil disables enqueueing).
+type ClassifyPolicyProvider interface {
+	ClassifyPolicyNow(ctx context.Context) biz.ClassifyPolicy
+}
+
 // LogStreamWorker consumes KumoMTA structured log records from the Redis stream
 // (produced by the generated policy's log_hook) and persists them into the
 // mail_records / bounce_records hypertables. This is how the Logs UI is
@@ -64,8 +71,16 @@ type LogStreamWorker struct {
 	policy      BouncePolicyProvider
 	dkimKeys    DKIMKeyResolver
 	feedbackPol FeedbackPolicyProvider
+	classifyPol ClassifyPolicyProvider
 	stream      string
 	log         *slog.Logger
+}
+
+// WithClassification enables enqueueing Reception subjects to the classification
+// worker when the feature is on. Returns the worker for chaining.
+func (w *LogStreamWorker) WithClassification(policy ClassifyPolicyProvider) *LogStreamWorker {
+	w.classifyPol = policy
+	return w
 }
 
 // WithFeedbackVerification enables FBL provenance verification: complaints are
@@ -232,6 +247,21 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 	metrics.RecordMailEvent(mr.Status, mr.Mailclass, mr.RecipientDomain)
 	metrics.RecordVMTAEvent(rec.EgressSource, mr.Status)
 
+	// Queue latency: on a successful Delivery, observe how long the message sat
+	// in the queue (Reception → Delivery) into the histogram, by mail class.
+	if rec.Type == biz.KumoDelivery {
+		if d, ok := rec.QueueLatency(now); ok {
+			metrics.RecordQueueTime(mr.Mailclass, d.Seconds())
+		}
+	}
+
+	// Optional subject classification: the Subject header is only on Reception.
+	// When the feature is on, hand {message_id, subject} to the async worker via
+	// a transient stream — the subject is never persisted on mail_records.
+	if rec.Type == biz.KumoReception {
+		w.enqueueClassification(ctx, rec, mr.EventTime)
+	}
+
 	if rec.Type == biz.KumoBounce {
 		smtp := ""
 		if rec.Response.Code > 0 {
@@ -255,6 +285,30 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 		}
 		metrics.RecordBounce(bounceType, bounce.Mailclass)
 		w.applyBouncePolicy(ctx, bounce)
+	}
+}
+
+// enqueueClassification hands a received message's subject to the async
+// classification worker via a transient Redis stream, but only when the feature
+// is enabled and a subject is present. Best-effort: a failure is logged, never
+// fatal to log ingestion.
+func (w *LogStreamWorker) enqueueClassification(ctx context.Context, rec *biz.KumoLogRecord, eventTime time.Time) {
+	if w.classifyPol == nil {
+		return
+	}
+	subject := rec.SubjectHeader()
+	if subject == "" {
+		return
+	}
+	if !w.classifyPol.ClassifyPolicyNow(ctx).Enabled {
+		return
+	}
+	if _, err := w.streams.Publish(ctx, data.StreamClassifyPending, map[string]any{
+		"message_id": rec.ID,
+		"event_time": eventTime.Format(time.RFC3339Nano),
+		"subject":    subject,
+	}); err != nil {
+		w.log.Error("enqueue classification", "message_id", rec.ID, "error", err.Error())
 	}
 }
 

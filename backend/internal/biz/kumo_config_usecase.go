@@ -101,8 +101,12 @@ type ServiceControlStore interface {
 	// GetAppliedChecksum returns the full + init-block checksums of the last
 	// successfully applied policy (empty if never applied) and when it was applied.
 	GetAppliedChecksum(ctx context.Context) (checksum, initChecksum string, appliedAt *time.Time, err error)
-	// SetAppliedChecksum records a successful apply.
-	SetAppliedChecksum(ctx context.Context, checksum, initChecksum, by string) error
+	// SetAppliedChecksum records a successful apply, storing the policy content
+	// alongside its checksums so the UI can diff pending vs running.
+	SetAppliedChecksum(ctx context.Context, checksum, initChecksum, content, by string) error
+	// GetAppliedContent returns the full policy content last applied, its
+	// checksum, and when (empty content when never applied).
+	GetAppliedContent(ctx context.Context) (content, checksum string, appliedAt *time.Time, err error)
 }
 
 // NewKumoConfigUsecase constructs the use case. settings supplies the effective
@@ -262,9 +266,9 @@ func (uc *KumoConfigUsecase) doApply(ctx context.Context, requestedBy, confirmat
 	if applyErr != nil {
 		return nil, applyErr
 	}
-	// Record the applied checksums so the UI can detect later config drift and
-	// whether the next change needs a restart.
-	if err := uc.scStore.SetAppliedChecksum(ctx, rendered.Checksum, rendered.InitChecksum, requestedBy); err != nil {
+	// Record the applied checksums + content so the UI can detect later config
+	// drift, diff pending vs running, and whether the next change needs a restart.
+	if err := uc.scStore.SetAppliedChecksum(ctx, rendered.Checksum, rendered.InitChecksum, rendered.Content, requestedBy); err != nil {
 		LoggerFrom(ctx).Error("record applied checksum", "error", err.Error())
 	}
 	return &ApplyResult{
@@ -312,6 +316,33 @@ func (uc *KumoConfigUsecase) Status(ctx context.Context) (*ConfigStatus, error) 
 		// A restart is needed when there's drift and the init block differs (or
 		// nothing has been applied yet).
 		RestartRequired: drift && (never || appliedInit != rendered.InitChecksum),
+	}, nil
+}
+
+// AppliedConfig is the policy currently running on KumoMTA (the last one Iris
+// successfully applied), used to diff against a freshly generated policy.
+type AppliedConfig struct {
+	Content      string
+	Checksum     string
+	AppliedAt    *time.Time
+	NeverApplied bool
+}
+
+// Applied returns the last successfully applied KumoMTA policy content so the UI
+// can diff it against the pending (regenerated) policy.
+func (uc *KumoConfigUsecase) Applied(ctx context.Context) (*AppliedConfig, error) {
+	if _, err := RequirePermission(ctx, PermVMTARead); err != nil {
+		return nil, err
+	}
+	content, checksum, appliedAt, err := uc.scStore.GetAppliedContent(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &AppliedConfig{
+		Content:      content,
+		Checksum:     checksum,
+		AppliedAt:    appliedAt,
+		NeverApplied: checksum == "",
 	}, nil
 }
 

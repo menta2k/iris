@@ -48,3 +48,6 @@ tmp/
 
 # Local Claude Code agent files
 .claude/
+
+# Local ZAI / claude-code environment setup script (personal, not project code)
+claude_code_zai_env.sh

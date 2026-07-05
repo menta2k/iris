@@ -14,7 +14,7 @@ func (s *Service) GetDmarcStats(ctx context.Context, req *adminv1.GetDmarcStatsR
 	}
 	from := parseRFC3339(req.GetFrom())
 	to := parseRFC3339(req.GetTo())
-	st, err := s.dmarc.Stats(ctx, req.GetDomain(), from, to)
+	st, err := s.dmarc.Stats(ctx, req.GetDomain(), req.GetReporter(), from, to)
 	if err != nil {
 		return nil, s.fail(ctx, "GetDmarcStats", err)
 	}
@@ -40,6 +40,11 @@ func (s *Service) GetDmarcStats(ctx context.Context, req *adminv1.GetDmarcStatsR
 	for _, d := range st.Series {
 		out.Series = append(out.Series, &adminv1.DmarcDay{
 			Date: d.Date, Messages: int32(d.Messages), Pass: int32(d.Pass),
+		})
+	}
+	for _, rp := range st.Reporters {
+		out.Reporters = append(out.Reporters, &adminv1.DmarcReporterStat{
+			Reporter: rp.Reporter, Messages: int32(rp.Messages), Pass: int32(rp.Pass),
 		})
 	}
 	return out, nil

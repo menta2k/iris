@@ -68,23 +68,25 @@ async function confirm() {
   <div>
     <PageHeader title="Service Control" description="Reload or restart the KumoMTA service." />
 
-    <div class="grid gap-4 md:grid-cols-2">
-      <Card v-for="o in operations" :key="o.op">
-        <CardHeader>
-          <CardTitle>{{ o.label }}</CardTitle>
-          <CardDescription>{{ o.description }}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            :variant="o.destructive ? 'destructive' : 'default'"
-            :data-testid="`svc-${o.op.toLowerCase()}`"
-            @click="request(o.op)"
-          >
-            {{ o.label }}
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
+    <v-row dense>
+      <v-col v-for="o in operations" :key="o.op" cols="12" md="6">
+        <Card>
+          <CardHeader>
+            <CardTitle>{{ o.label }}</CardTitle>
+            <CardDescription>{{ o.description }}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              :variant="o.destructive ? 'destructive' : 'default'"
+              :data-testid="`svc-${o.op.toLowerCase()}`"
+              @click="request(o.op)"
+            >
+              {{ o.label }}
+            </Button>
+          </CardContent>
+        </Card>
+      </v-col>
+    </v-row>
 
     <ConfirmDialog
       v-model:open="confirmOpen"

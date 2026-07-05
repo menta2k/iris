@@ -14,7 +14,6 @@ import { StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { useToast } from '@/composables/useToast'
 import { acmeService } from '@/services/acme'
 import { ApiError } from '@/services/http'
@@ -31,6 +30,10 @@ const savingDns = ref(false)
 
 const selectedInfo = computed(() =>
   dnsProviders.value.find((p) => p.name === selectedProvider.value),
+)
+
+const providerItems = computed(() =>
+  dnsProviders.value.map((p) => ({ title: `${p.name} — ${p.description}`, value: p.name })),
 )
 
 // Heuristic: render credential-ish fields as password inputs.
@@ -53,6 +56,8 @@ const DIRECTORIES = [
   { label: "Let's Encrypt (production)", url: 'https://acme-v02.api.letsencrypt.org/directory' },
   { label: "Let's Encrypt (staging)", url: 'https://acme-staging-v02.api.letsencrypt.org/directory' },
 ]
+
+const directoryItems = DIRECTORIES.map((d) => ({ title: d.label, value: d.url }))
 
 const account = ref<AcmeAccount | null>(null)
 const certs = ref<AcmeCertificate[]>([])
@@ -170,7 +175,7 @@ onMounted(load)
       description="Issue and auto-renew Let's Encrypt certificates for listener TLS. DNS-01 is used when a provider is configured below; otherwise HTTP-01."
     />
 
-    <Card class="mb-4 max-w-2xl">
+    <Card class="mb-4" style="max-width: 672px">
       <CardHeader>
         <CardTitle>ACME Account</CardTitle>
         <CardDescription>
@@ -179,30 +184,35 @@ onMounted(load)
           <code>IRIS_ACME_HTTP_BIND</code>.
         </CardDescription>
       </CardHeader>
-      <CardContent class="space-y-4">
-        <div class="space-y-1.5">
+      <CardContent class="d-flex flex-column ga-4">
+        <div class="d-flex flex-column ga-1">
           <Label for="acme-email">Account email</Label>
           <Input id="acme-email" v-model="form.email" placeholder="ops@example.com" />
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="acme-dir">ACME directory</Label>
-          <Select id="acme-dir" v-model="form.server_url">
-            <option v-for="d in DIRECTORIES" :key="d.url" :value="d.url">{{ d.label }}</option>
-          </Select>
-          <p class="text-xs text-muted-foreground">
+          <v-select
+            id="acme-dir"
+            v-model="form.server_url"
+            :items="directoryItems"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
+          <p class="text-caption text-medium-emphasis">
             Use staging to validate the pipeline without burning the production rate limit.
           </p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="d-flex align-center ga-3">
           <Button :disabled="savingAccount || !form.email" @click="saveAccount">
             {{ savingAccount ? 'Saving…' : 'Save account' }}
           </Button>
-          <span v-if="account?.registered" class="text-xs text-muted-foreground">Registered with the directory</span>
+          <span v-if="account?.registered" class="text-caption text-medium-emphasis">Registered with the directory</span>
         </div>
       </CardContent>
     </Card>
 
-    <Card class="mb-4 max-w-2xl">
+    <Card class="mb-4" style="max-width: 672px">
       <CardHeader>
         <CardTitle>DNS-01 challenge provider</CardTitle>
         <CardDescription>
@@ -211,10 +221,10 @@ onMounted(load)
           issue/renew uses DNS-01.
         </CardDescription>
       </CardHeader>
-      <CardContent class="space-y-4">
+      <CardContent class="d-flex flex-column ga-4">
         <div
-          class="flex items-center gap-2 text-sm"
-          :class="currentDnsProvider ? 'text-foreground' : 'text-muted-foreground'"
+          class="d-flex align-center ga-2 text-body-2"
+          :class="currentDnsProvider ? '' : 'text-medium-emphasis'"
         >
           <StatusBadge :status="currentDnsProvider ? 'active' : 'unknown'" />
           <span v-if="currentDnsProvider">
@@ -223,18 +233,22 @@ onMounted(load)
           <span v-else>No DNS provider configured — issuance uses HTTP-01.</span>
         </div>
 
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="dns-provider">Provider</Label>
-          <Select id="dns-provider" v-model="selectedProvider" @change="onProviderChange">
-            <option v-for="p in dnsProviders" :key="p.name" :value="p.name">
-              {{ p.name }} — {{ p.description }}
-            </option>
-          </Select>
+          <v-select
+            id="dns-provider"
+            v-model="selectedProvider"
+            :items="providerItems"
+            variant="outlined"
+            density="compact"
+            hide-details
+            @update:model-value="onProviderChange"
+          />
         </div>
 
-        <div v-if="selectedInfo" class="space-y-3">
-          <div v-for="f in selectedInfo.requiredFields ?? []" :key="f" class="space-y-1.5">
-            <Label :for="`dns-${f}`">{{ f }} <span class="text-destructive">*</span></Label>
+        <div v-if="selectedInfo" class="d-flex flex-column ga-3">
+          <div v-for="f in selectedInfo.requiredFields ?? []" :key="f" class="d-flex flex-column ga-1">
+            <Label :for="`dns-${f}`">{{ f }} <span class="text-error">*</span></Label>
             <Input
               :id="`dns-${f}`"
               v-model="dnsConfig[f]"
@@ -242,10 +256,10 @@ onMounted(load)
               :placeholder="currentDnsProvider === selectedProvider ? '(stored — re-enter to change)' : ''"
             />
           </div>
-          <details v-if="(selectedInfo.optionalFields ?? []).length" class="rounded-md border p-3">
-            <summary class="cursor-pointer text-sm text-muted-foreground">Optional settings</summary>
-            <div class="mt-3 space-y-3">
-              <div v-for="f in selectedInfo.optionalFields ?? []" :key="f" class="space-y-1.5">
+          <details v-if="(selectedInfo.optionalFields ?? []).length" class="rounded border pa-3">
+            <summary class="text-body-2 text-medium-emphasis" style="cursor: pointer">Optional settings</summary>
+            <div class="mt-3 d-flex flex-column ga-3">
+              <div v-for="f in selectedInfo.optionalFields ?? []" :key="f" class="d-flex flex-column ga-1">
                 <Label :for="`dns-${f}`">{{ f }}</Label>
                 <Input
                   :id="`dns-${f}`"
@@ -257,7 +271,7 @@ onMounted(load)
           </details>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="d-flex align-center ga-3">
           <Button :disabled="savingDns || !selectedProvider" @click="saveDns">
             {{ savingDns ? 'Saving…' : 'Save DNS provider' }}
           </Button>
@@ -273,7 +287,7 @@ onMounted(load)
       </CardContent>
     </Card>
 
-    <Card class="mb-4 max-w-2xl">
+    <Card class="mb-4" style="max-width: 672px">
       <CardHeader>
         <CardTitle>Request a certificate</CardTitle>
         <CardDescription>
@@ -281,19 +295,19 @@ onMounted(load)
           the PEMs to disk for KumoMTA.
         </CardDescription>
       </CardHeader>
-      <CardContent class="space-y-4">
-        <div class="space-y-1.5">
+      <CardContent class="d-flex flex-column ga-4">
+        <div class="d-flex flex-column ga-1">
           <Label for="acme-domain">Domain</Label>
           <Input id="acme-domain" v-model="newDomain" placeholder="mail.example.com" />
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="acme-sans">Additional names (comma-separated)</Label>
           <Input id="acme-sans" v-model="newAltNames" placeholder="smtp.example.com, mx.example.com" />
         </div>
         <Button :disabled="requesting || !newDomain || !account?.configured" @click="requestCert">
           {{ requesting ? 'Requesting…' : 'Request certificate' }}
         </Button>
-        <p v-if="!account?.configured" class="text-xs text-muted-foreground">Save the account first.</p>
+        <p v-if="!account?.configured" class="text-caption text-medium-emphasis">Save the account first.</p>
       </CardContent>
     </Card>
 
@@ -301,7 +315,7 @@ onMounted(load)
       <CardHeader>
         <CardTitle>Certificates</CardTitle>
       </CardHeader>
-      <CardContent class="p-0">
+      <CardContent class="pa-0">
         <Table>
           <TableHeader>
             <TableRow>
@@ -314,23 +328,23 @@ onMounted(load)
           </TableHeader>
           <TableBody>
             <TableRow v-if="certs.length === 0">
-              <TableCell colspan="5" class="text-center text-sm text-muted-foreground">
+              <TableCell colspan="5" class="text-center text-body-2 text-medium-emphasis">
                 No certificates yet.
               </TableCell>
             </TableRow>
             <TableRow v-for="c in certs" :key="c.id">
-              <TableCell class="font-medium">
+              <TableCell class="font-weight-medium">
                 {{ c.domain }}
-                <span v-if="c.altNames?.length" class="text-xs text-muted-foreground">
+                <span v-if="c.altNames?.length" class="text-caption text-medium-emphasis">
                   (+{{ c.altNames.length }})
                 </span>
               </TableCell>
               <TableCell>
                 <StatusBadge :status="c.status" />
-                <span v-if="c.lastError" class="block text-xs text-destructive">{{ c.lastError }}</span>
+                <span v-if="c.lastError" class="d-block text-caption text-error">{{ c.lastError }}</span>
               </TableCell>
-              <TableCell class="whitespace-nowrap text-muted-foreground">{{ c.expiresAt || '—' }}</TableCell>
-              <TableCell class="font-mono text-xs text-muted-foreground">{{ c.certPath || '—' }}</TableCell>
+              <TableCell class="text-no-wrap text-medium-emphasis">{{ c.expiresAt || '—' }}</TableCell>
+              <TableCell class="font-mono text-caption text-medium-emphasis">{{ c.certPath || '—' }}</TableCell>
               <TableCell class="text-right">
                 <Button variant="outline" size="sm" @click="removeCert(c)">Remove</Button>
               </TableCell>

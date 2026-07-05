@@ -36,24 +36,32 @@ watch(() => route.fullPath, check)
 </script>
 
 <template>
-  <div
+  <v-alert
     v-if="drift"
-    class="flex items-center justify-between gap-3 border-b border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200"
+    type="warning"
+    variant="tonal"
+    density="compact"
+    rounded="0"
     data-testid="config-drift-banner"
   >
-    <span>
-      <span class="font-medium">Configuration changes are pending.</span>
-      <template v-if="restartRequired">
-        These changes affect KumoMTA's init block (listeners / spool / log hook) and
-        require a <span class="font-medium">restart</span>, not just a reload.
-      </template>
-      <template v-else> Regenerate and apply the KumoMTA config to activate them. </template>
-    </span>
-    <RouterLink
-      :to="{ name: 'kumomta-config' }"
-      class="shrink-0 rounded-md border border-amber-400 px-3 py-1 text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900"
-    >
-      Review &amp; apply
-    </RouterLink>
-  </div>
+    <div class="d-flex flex-wrap align-center justify-space-between ga-3">
+      <span class="text-body-2">
+        <span class="font-weight-medium">Configuration changes are pending.</span>
+        <template v-if="restartRequired">
+          These changes affect KumoMTA's init block (listeners / spool / log hook) and
+          require a <span class="font-weight-medium">restart</span>, not just a reload.
+        </template>
+        <template v-else> Regenerate and apply the KumoMTA config to activate them. </template>
+      </span>
+      <v-btn
+        :to="{ name: 'kumomta-config' }"
+        size="small"
+        variant="outlined"
+        color="warning"
+        class="flex-shrink-0"
+      >
+        Review &amp; apply
+      </v-btn>
+    </div>
+  </v-alert>
 </template>

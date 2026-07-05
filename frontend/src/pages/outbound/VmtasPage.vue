@@ -15,7 +15,6 @@ import { StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
@@ -29,6 +28,7 @@ const { items, loading, error, notImplemented, load } = useAsyncList<VMTA>({
 const { toast } = useToast()
 
 const VMTA_STATUSES = ['active', 'disabled', 'draining']
+const vmtaStatusItems = VMTA_STATUSES.map((s) => ({ title: s, value: s }))
 
 // Listeners a VMTA can attach to, loaded when the dialog opens so the Listener
 // field is a dropdown (and IP/EHLO can be previewed in the form).
@@ -56,6 +56,12 @@ const listenerOptions = computed(() =>
     label: `${l.name} (${l.ipAddress}:${l.port})`,
   })),
 )
+
+// v-select items for the optional listener association ('' = none).
+const listenerItems = computed(() => [
+  { title: '— None —', value: '' },
+  ...listenerOptions.value.map((o) => ({ title: o.label, value: o.id })),
+])
 
 // The listener currently selected in the form, used to preview its resolved
 // IP/EHLO read-only fields.
@@ -187,7 +193,7 @@ async function submit() {
               <TableRow v-for="v in items" :key="v.id">
                 <TableCell class="font-medium">{{ v.name }}</TableCell>
                 <TableCell>{{ v.listenerName || '—' }}</TableCell>
-                <TableCell class="font-mono text-xs">{{ v.ipAddress }}</TableCell>
+                <TableCell class="font-mono text-caption">{{ v.ipAddress }}</TableCell>
                 <TableCell>{{ v.ehloName }}</TableCell>
                 <TableCell class="tabular-nums">
                   {{ v.maxConnections === 0 ? 'unlimited' : v.maxConnections }}
@@ -214,38 +220,44 @@ async function submit() {
       <DialogHeader>
         <DialogTitle>{{ isEdit ? 'Edit VMTA' : 'Create VMTA' }}</DialogTitle>
       </DialogHeader>
-      <form class="space-y-4" @submit.prevent="submit">
-        <div class="space-y-1.5">
+      <form class="d-flex flex-column ga-4" @submit.prevent="submit">
+        <div class="d-flex flex-column ga-1">
           <Label for="vmta-name">Name</Label>
           <Input id="vmta-name" v-model="form.name" placeholder="vmta-east-1" />
         </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
+        <v-row dense>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="vmta-ip">IP Address</Label>
             <Input id="vmta-ip" v-model="form.ip_address" placeholder="203.0.113.10" />
-          </div>
-          <div class="space-y-1.5">
+          </v-col>
+          <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="vmta-ehlo">EHLO Name</Label>
             <Input id="vmta-ehlo" v-model="form.ehlo_name" placeholder="mta1.example.com" />
-          </div>
-        </div>
-        <div class="space-y-1.5">
+          </v-col>
+        </v-row>
+        <div class="d-flex flex-column ga-1">
           <Label for="vmta-listener">Listener (optional)</Label>
-          <Select
+          <v-select
             id="vmta-listener"
-            v-model="form.listener_id"
             data-testid="vmta-listener"
-            @change="fillFromListener"
-          >
-            <option value="">— None —</option>
-            <option v-for="o in listenerOptions" :key="o.id" :value="o.id">{{ o.label }}</option>
-          </Select>
-          <p class="text-xs text-muted-foreground">
+            :model-value="form.listener_id"
+            :items="listenerItems"
+            variant="outlined"
+            density="compact"
+            hide-details
+            @update:model-value="
+              (v: string) => {
+                form.listener_id = v
+                fillFromListener()
+              }
+            "
+          />
+          <p class="text-caption text-medium-emphasis">
             Optional association (e.g. the listener that receives this IP's bounces). Selecting one
             pre-fills the IP/EHLO above if they're empty — the VMTA owns those values.
           </p>
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="vmta-max-conn">Max Connections</Label>
           <Input
             id="vmta-max-conn"
@@ -253,16 +265,21 @@ async function submit() {
             type="number"
             placeholder="0"
           />
-          <p class="text-xs text-muted-foreground">0 = unlimited.</p>
+          <p class="text-caption text-medium-emphasis">0 = unlimited.</p>
         </div>
         <template v-if="isEdit">
-          <div class="space-y-1.5">
+          <div class="d-flex flex-column ga-1">
             <Label for="vmta-status">Status</Label>
-            <Select id="vmta-status" v-model="form.status">
-              <option v-for="s in VMTA_STATUSES" :key="s" :value="s">{{ s }}</option>
-            </Select>
+            <v-select
+              id="vmta-status"
+              v-model="form.status"
+              :items="vmtaStatusItems"
+              variant="outlined"
+              density="compact"
+              hide-details
+            />
           </div>
-          <div class="space-y-1.5">
+          <div class="d-flex flex-column ga-1">
             <Label for="vmta-notes">Notes</Label>
             <Input id="vmta-notes" v-model="form.notes" placeholder="Optional operator notes" />
           </div>

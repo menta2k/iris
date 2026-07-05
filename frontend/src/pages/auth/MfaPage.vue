@@ -70,8 +70,8 @@ async function onSubmit() {
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-background px-4">
-    <Card class="w-full max-w-sm">
+  <div class="d-flex align-center justify-center bg-background px-4" style="min-height: 100vh">
+    <Card class="w-100" style="max-width: 384px">
       <CardHeader>
         <CardTitle>Two-factor authentication</CardTitle>
         <CardDescription>
@@ -83,25 +83,25 @@ async function onSubmit() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div v-if="enrolling && secret" class="mb-4 space-y-2 rounded-md border bg-muted/40 p-3">
-          <p class="text-xs text-muted-foreground">
+        <div v-if="enrolling && secret" class="mb-4 d-flex flex-column ga-2 rounded border bg-surface-light pa-3">
+          <p class="text-caption text-medium-emphasis">
             Add this account to your authenticator app (Google Authenticator, 1Password,
             Authy…) using the setup key below, then enter the generated code.
           </p>
-          <div class="space-y-1">
-            <Label class="text-xs">Setup key</Label>
-            <code class="block break-all rounded bg-background px-2 py-1 text-xs">{{ secret }}</code>
+          <div class="d-flex flex-column ga-1">
+            <Label class="text-caption">Setup key</Label>
+            <code class="d-block text-break rounded bg-background px-2 py-1 text-caption">{{ secret }}</code>
           </div>
           <a
             :href="otpauthUri"
-            class="text-xs text-primary underline-offset-4 hover:underline"
+            class="text-caption text-primary"
           >
             Open in authenticator app
           </a>
         </div>
 
-        <form class="space-y-4" @submit.prevent="onSubmit">
-          <div class="space-y-1.5">
+        <form class="d-flex flex-column ga-4" @submit.prevent="onSubmit">
+          <div class="d-flex flex-column ga-1">
             <Label for="code">Authentication code</Label>
             <Input
               id="code"
@@ -113,13 +113,13 @@ async function onSubmit() {
               :disabled="submitting"
             />
           </div>
-          <p v-if="error" class="text-sm text-destructive" role="alert">{{ error }}</p>
-          <Button type="submit" class="w-full" :disabled="submitting || code.length < 6">
+          <p v-if="error" class="text-body-2 text-error" role="alert">{{ error }}</p>
+          <Button type="submit" class="w-100" :disabled="submitting || code.length < 6">
             {{ submitting ? 'Verifying…' : enrolling ? 'Confirm & continue' : 'Verify' }}
           </Button>
           <RouterLink
             :to="{ name: 'login' }"
-            class="block text-center text-xs text-muted-foreground underline-offset-4 hover:underline"
+            class="d-block text-center text-caption text-medium-emphasis"
           >
             Back to sign in
           </RouterLink>

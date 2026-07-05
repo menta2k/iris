@@ -1,54 +1,55 @@
 <script setup lang="ts">
-import { useToast } from '@/composables/useToast'
-import { cn } from '@/lib/utils'
+import { useToast, type ToastVariant } from '@/composables/useToast'
 
 const { toasts, dismiss } = useToast()
 
-const variantClasses: Record<string, string> = {
-  default: 'border-border bg-card',
-  success: 'border-success/40 bg-card',
-  destructive: 'border-destructive/40 bg-card',
-  warning: 'border-warning/40 bg-card',
+// Map legacy variants onto v-alert types; 'default' renders an untyped
+// elevated surface.
+const ALERT_TYPES: Partial<Record<ToastVariant, 'success' | 'error' | 'warning'>> = {
+  success: 'success',
+  destructive: 'error',
+  warning: 'warning',
 }
 </script>
 
 <template>
   <Teleport to="body">
-    <div class="fixed bottom-0 right-0 z-[100] flex w-full max-w-sm flex-col gap-2 p-4">
+    <div class="toaster d-flex flex-column ga-2 pa-4">
       <TransitionGroup name="toast">
-        <div
+        <v-alert
           v-for="t in toasts"
           :key="t.id"
-          :class="
-            cn(
-              'pointer-events-auto rounded-md border p-4 shadow-lg',
-              variantClasses[t.variant] ?? variantClasses.default,
-            )
-          "
+          :type="ALERT_TYPES[t.variant]"
+          variant="elevated"
+          density="comfortable"
+          closable
+          class="toast-item"
           role="status"
+          @click:close="dismiss(t.id)"
         >
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <p class="text-sm font-semibold">{{ t.title }}</p>
-              <p v-if="t.description" class="mt-1 text-sm text-muted-foreground">
-                {{ t.description }}
-              </p>
-            </div>
-            <button
-              class="text-muted-foreground hover:text-foreground"
-              aria-label="Dismiss"
-              @click="dismiss(t.id)"
-            >
-              &times;
-            </button>
-          </div>
-        </div>
+          <p class="text-body-2 font-weight-bold">{{ t.title }}</p>
+          <p v-if="t.description" class="mt-1 text-body-2">
+            {{ t.description }}
+          </p>
+        </v-alert>
       </TransitionGroup>
     </div>
   </Teleport>
 </template>
 
 <style scoped>
+.toaster {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  z-index: 3000;
+  width: 100%;
+  max-width: 400px;
+  pointer-events: none;
+}
+.toast-item {
+  pointer-events: auto;
+}
 .toast-enter-active,
 .toast-leave-active {
   transition: all 0.2s ease;

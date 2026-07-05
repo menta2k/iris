@@ -15,7 +15,6 @@ import { StatusBadge, Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
@@ -30,6 +29,7 @@ const { toast } = useToast()
 
 const BUILTIN_ROLES = ['owner', 'operator', 'security_admin', 'viewer'] as const
 const USER_STATUSES = ['invited', 'active', 'disabled', 'locked']
+const userStatusItems = USER_STATUSES.map((s) => ({ title: s, value: s }))
 
 const dialogOpen = ref(false)
 const saving = ref(false)
@@ -181,7 +181,7 @@ async function submitReset() {
       empty-message="No users found."
     >
       <Card>
-        <CardContent class="p-0">
+        <CardContent class="pa-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -195,10 +195,10 @@ async function submitReset() {
             </TableHeader>
             <TableBody>
               <TableRow v-for="u in items" :key="u.id">
-                <TableCell class="font-medium">{{ u.displayName }}</TableCell>
+                <TableCell class="font-weight-medium">{{ u.displayName }}</TableCell>
                 <TableCell>{{ u.email }}</TableCell>
                 <TableCell>
-                  <div class="flex flex-wrap gap-1">
+                  <div class="d-flex flex-wrap ga-1">
                     <Badge v-for="r in u.roles" :key="r" variant="secondary">{{ r }}</Badge>
                   </div>
                 </TableCell>
@@ -209,7 +209,7 @@ async function submitReset() {
                 </TableCell>
                 <TableCell><StatusBadge :status="u.status" /></TableCell>
                 <TableCell class="text-right">
-                  <div class="flex justify-end gap-2">
+                  <div class="d-flex justify-end ga-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -239,8 +239,8 @@ async function submitReset() {
       <DialogHeader>
         <DialogTitle>{{ isEdit ? 'Edit User' : 'Create User' }}</DialogTitle>
       </DialogHeader>
-      <form class="space-y-4" @submit.prevent="submit">
-        <div class="space-y-1.5">
+      <form class="d-flex flex-column ga-4" @submit.prevent="submit">
+        <div class="d-flex flex-column ga-1">
           <Label for="user-email">Email</Label>
           <Input
             id="user-email"
@@ -249,22 +249,27 @@ async function submitReset() {
             placeholder="ops@example.com"
             :disabled="isEdit"
           />
-          <p v-if="isEdit" class="text-xs text-muted-foreground">Email is immutable.</p>
+          <p v-if="isEdit" class="text-caption text-medium-emphasis">Email is immutable.</p>
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="user-name">Display Name</Label>
           <Input id="user-name" v-model="form.display_name" placeholder="Ops Team" />
         </div>
-        <div v-if="isEdit" class="space-y-1.5">
+        <div v-if="isEdit" class="d-flex flex-column ga-1">
           <Label for="user-status">Status</Label>
-          <Select id="user-status" v-model="form.status">
-            <option v-for="s in USER_STATUSES" :key="s" :value="s">{{ s }}</option>
-          </Select>
+          <v-select
+            id="user-status"
+            v-model="form.status"
+            :items="userStatusItems"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label>Roles</Label>
-          <div class="flex flex-wrap gap-3">
-            <label v-for="r in BUILTIN_ROLES" :key="r" class="flex items-center gap-1.5 text-sm">
+          <div class="d-flex flex-wrap ga-3">
+            <label v-for="r in BUILTIN_ROLES" :key="r" class="d-flex align-center ga-1 text-body-2">
               <input
                 type="checkbox"
                 :value="r"
@@ -275,7 +280,7 @@ async function submitReset() {
             </label>
           </div>
         </div>
-        <label class="flex items-center gap-2 text-sm">
+        <label class="d-flex align-center ga-2 text-body-2">
           <input type="checkbox" v-model="form.mfa_required" />
           Require MFA
         </label>
@@ -292,18 +297,19 @@ async function submitReset() {
       <DialogHeader>
         <DialogTitle>Reset password</DialogTitle>
       </DialogHeader>
-      <form class="space-y-4" @submit.prevent="submitReset">
-        <p class="text-sm text-muted-foreground">
+      <form class="d-flex flex-column ga-4" @submit.prevent="submitReset">
+        <p class="text-body-2 text-medium-emphasis">
           Set a new password for
-          <span class="font-medium text-foreground">{{ resetEmail }}</span>. They can use it to
+          <span class="font-weight-medium">{{ resetEmail }}</span>. They can use it to
           sign in immediately.
         </p>
-        <div class="space-y-1.5">
-          <div class="flex items-center justify-between">
+        <div class="d-flex flex-column ga-1">
+          <div class="d-flex align-center justify-space-between">
             <Label for="reset-pw">New password</Label>
             <button
               type="button"
-              class="text-xs text-primary hover:underline"
+              class="text-caption text-primary"
+              style="cursor: pointer"
               @click="generatePassword"
             >
               Generate
@@ -317,7 +323,7 @@ async function submitReset() {
             placeholder="At least 12 characters"
           />
         </div>
-        <div class="space-y-1.5">
+        <div class="d-flex flex-column ga-1">
           <Label for="reset-confirm">Confirm password</Label>
           <Input
             id="reset-confirm"
@@ -325,10 +331,10 @@ async function submitReset() {
             type="password"
             autocomplete="new-password"
           />
-          <p v-if="resetConfirm && resetConfirm !== resetPw" class="text-xs text-destructive">
+          <p v-if="resetConfirm && resetConfirm !== resetPw" class="text-caption text-error">
             Passwords do not match.
           </p>
-          <p v-else-if="resetPw.length > 0 && resetPw.length < MIN_PASSWORD_LENGTH" class="text-xs text-muted-foreground">
+          <p v-else-if="resetPw.length > 0 && resetPw.length < MIN_PASSWORD_LENGTH" class="text-caption text-medium-emphasis">
             At least {{ MIN_PASSWORD_LENGTH }} characters.
           </p>
         </div>
