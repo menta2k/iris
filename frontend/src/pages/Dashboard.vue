@@ -4,6 +4,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
 import ServiceStatusWidget from '@/components/dashboard/ServiceStatusWidget.vue'
 import QueueHealthWidget from '@/components/dashboard/QueueHealthWidget.vue'
+import DeferredQueueWidget from '@/components/dashboard/DeferredQueueWidget.vue'
 import RecentMailActivity from '@/components/dashboard/RecentMailActivity.vue'
 import RecentAuditActivity from '@/components/dashboard/RecentAuditActivity.vue'
 import MailFlowPanel from '@/components/dashboard/MailFlowPanel.vue'
@@ -89,6 +90,9 @@ onMounted(load)
           </v-col>
           <v-col cols="12" sm="6" lg="4">
             <QueueHealthWidget :queued="summary?.queuedMessages" />
+          </v-col>
+          <v-col cols="12" sm="6" lg="4">
+            <DeferredQueueWidget :deferred="summary?.deferredInQueue" />
           </v-col>
         </v-row>
         <MailFlowPanel />

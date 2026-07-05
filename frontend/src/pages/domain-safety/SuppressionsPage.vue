@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
+import PaginationControls from '@/components/common/PaginationControls.vue'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
@@ -16,14 +17,27 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { useAsyncList } from '@/composables/useAsyncList'
+import { usePagedList } from '@/composables/usePagedList'
 import { useToast } from '@/composables/useToast'
 import { domainSafetyService } from '@/services'
 import { ApiError } from '@/services/http'
 import type { Suppression } from '@/types'
 
-const { items, loading, error, notImplemented, load } = useAsyncList<Suppression>({
-  loader: () => domainSafetyService.listSuppressions(),
+const {
+  items,
+  loading,
+  error,
+  notImplemented,
+  pageSize,
+  pageNumber,
+  hasPrev,
+  hasNext,
+  reload,
+  nextPage,
+  prevPage,
+  setPageSize,
+} = usePagedList<Suppression>({
+  loader: (page) => domainSafetyService.listSuppressions(page),
 })
 const { toast } = useToast()
 
@@ -90,7 +104,7 @@ async function submit() {
       toast({ title: 'Suppression added', description: form.value.value, variant: 'success' })
     }
     dialogOpen.value = false
-    await load()
+    reload()
   } catch (err) {
     const msg = err instanceof ApiError ? err.message : 'Failed to save suppression.'
     toast({ title: isEdit.value ? 'Update failed' : 'Create failed', description: msg, variant: 'destructive' })
@@ -150,6 +164,18 @@ async function submit() {
         </CardContent>
       </Card>
     </DataState>
+
+    <PaginationControls
+      v-if="!notImplemented && (items.length > 0 || hasPrev)"
+      :page-number="pageNumber"
+      :has-prev="hasPrev"
+      :has-next="hasNext"
+      :loading="loading"
+      :page-size="pageSize"
+      @prev="prevPage"
+      @next="nextPage"
+      @page-size-change="setPageSize"
+    />
 
     <Dialog v-model:open="dialogOpen">
       <DialogHeader>

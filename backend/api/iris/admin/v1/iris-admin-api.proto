@@ -1393,6 +1393,10 @@ message DashboardSummary {
   int64 queued_messages = 2;
   int64 recent_mail_events = 3;
   int64 recent_audit_events = 4;
+  // deferred_in_queue counts messages currently deferred in the queue: they
+  // logged a transient failure but no terminal delivery/bounce since — still
+  // retrying, not yet bounced.
+  int64 deferred_in_queue = 5;
 }
 
 // GetMetricsTimeseries selects the lookback window: "1h" | "6h" | "24h" | "7d"

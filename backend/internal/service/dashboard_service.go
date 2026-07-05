@@ -20,6 +20,7 @@ func (s *Service) GetDashboardSummary(ctx context.Context, req *adminv1.GetDashb
 		QueuedMessages:    summary.QueuedMessages,
 		RecentMailEvents:  summary.RecentMailEvents,
 		RecentAuditEvents: summary.RecentAuditEvents,
+		DeferredInQueue:   summary.DeferredInQueue,
 	}, nil
 }
 

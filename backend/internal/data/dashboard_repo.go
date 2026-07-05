@@ -34,6 +34,21 @@ func (r *DashboardRepo) Summary(ctx context.Context) (*biz.DashboardSummary, err
 		Scan(&s.RecentMailEvents); err != nil {
 		return nil, fmt.Errorf("recent mail events: %w", err)
 	}
+	// Messages deferred and still in the queue: a transient failure was logged
+	// but no terminal outcome (delivery or bounce) since — so kumod is still
+	// retrying them. Bounded to a recent window to keep the scan cheap.
+	if err := r.db.Pool.QueryRow(ctx, `
+		SELECT count(*) FROM (
+			SELECT message_id
+			FROM mail_records
+			WHERE event_time >= now() - interval '7 days'
+			GROUP BY message_id
+			HAVING count(*) FILTER (WHERE status = $1) > 0
+			   AND count(*) FILTER (WHERE status IN ($2, $3)) = 0
+		) q`,
+		biz.MailDeferred, biz.MailSent, biz.MailBounced).Scan(&s.DeferredInQueue); err != nil {
+		return nil, fmt.Errorf("deferred in queue: %w", err)
+	}
 	// Audit events in the last hour.
 	if err := r.db.Pool.QueryRow(ctx,
 		`SELECT count(*) FROM audit_entries WHERE occurred_at >= now() - interval '1 hour'`).

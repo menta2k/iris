@@ -923,6 +923,8 @@ export interface DashboardSummary {
   queuedMessages: string
   recentMailEvents: string
   recentAuditEvents: string
+  // Messages deferred and still in the queue (retrying, not yet bounced).
+  deferredInQueue: string
 }
 
 // Per-VMTA, per-recipient-domain delivery/bounce breakdown for IP-warmup health.

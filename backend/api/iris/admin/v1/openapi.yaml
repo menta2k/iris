@@ -2491,6 +2491,12 @@ components:
                     type: string
                 recent_audit_events:
                     type: string
+                deferred_in_queue:
+                    type: string
+                    description: |-
+                        deferred_in_queue counts messages currently deferred in the queue: they
+                         logged a transient failure but no terminal delivery/bounce since — still
+                         retrying, not yet bounced.
         DeleteAcmeCertificateReply:
             type: object
             properties: {}

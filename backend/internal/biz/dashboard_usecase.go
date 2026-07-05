@@ -12,6 +12,9 @@ type DashboardSummary struct {
 	QueuedMessages    int64
 	RecentMailEvents  int64
 	RecentAuditEvents int64
+	// DeferredInQueue counts messages currently deferred in the queue (a
+	// transient failure logged, no terminal delivery/bounce since).
+	DeferredInQueue int64
 }
 
 // WarmupDeliveryStat is one (VMTA, recipient-domain) delivery/bounce breakdown

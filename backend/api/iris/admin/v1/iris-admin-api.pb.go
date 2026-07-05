@@ -11581,8 +11581,12 @@ type DashboardSummary struct {
 	QueuedMessages    int64                  `protobuf:"varint,2,opt,name=queued_messages,json=queuedMessages,proto3" json:"queued_messages,omitempty"`
 	RecentMailEvents  int64                  `protobuf:"varint,3,opt,name=recent_mail_events,json=recentMailEvents,proto3" json:"recent_mail_events,omitempty"`
 	RecentAuditEvents int64                  `protobuf:"varint,4,opt,name=recent_audit_events,json=recentAuditEvents,proto3" json:"recent_audit_events,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// deferred_in_queue counts messages currently deferred in the queue: they
+	// logged a transient failure but no terminal delivery/bounce since — still
+	// retrying, not yet bounced.
+	DeferredInQueue int64 `protobuf:"varint,5,opt,name=deferred_in_queue,json=deferredInQueue,proto3" json:"deferred_in_queue,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *DashboardSummary) Reset() {
@@ -11639,6 +11643,13 @@ func (x *DashboardSummary) GetRecentMailEvents() int64 {
 func (x *DashboardSummary) GetRecentAuditEvents() int64 {
 	if x != nil {
 		return x.RecentAuditEvents
+	}
+	return 0
+}
+
+func (x *DashboardSummary) GetDeferredInQueue() int64 {
+	if x != nil {
+		return x.DeferredInQueue
 	}
 	return 0
 }
@@ -14580,12 +14591,13 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"table_name\x18\x01 \x01(\tR\ttableName\"#\n" +
 	"\x11RunRetentionReply\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\"\x1c\n" +
-	"\x1aGetDashboardSummaryRequest\"\xbe\x01\n" +
+	"\x1aGetDashboardSummaryRequest\"\xea\x01\n" +
 	"\x10DashboardSummary\x12#\n" +
 	"\rservice_state\x18\x01 \x01(\tR\fserviceState\x12'\n" +
 	"\x0fqueued_messages\x18\x02 \x01(\x03R\x0equeuedMessages\x12,\n" +
 	"\x12recent_mail_events\x18\x03 \x01(\x03R\x10recentMailEvents\x12.\n" +
-	"\x13recent_audit_events\x18\x04 \x01(\x03R\x11recentAuditEvents\"3\n" +
+	"\x13recent_audit_events\x18\x04 \x01(\x03R\x11recentAuditEvents\x12*\n" +
+	"\x11deferred_in_queue\x18\x05 \x01(\x03R\x0fdeferredInQueue\"3\n" +
 	"\x1bGetMetricsTimeseriesRequest\x12\x14\n" +
 	"\x05range\x18\x01 \x01(\tR\x05range\"A\n" +
 	"\vMetricPoint\x12\x1c\n" +

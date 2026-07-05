@@ -22,6 +22,7 @@ export const dashboardSummary: DashboardSummary = {
   queuedMessages: '2114',
   recentMailEvents: '56',
   recentAuditEvents: '40',
+  deferredInQueue: '318',
 }
 
 interface RangeSpec {

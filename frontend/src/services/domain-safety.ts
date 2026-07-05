@@ -1,4 +1,5 @@
 import { http } from './http'
+import { pageQuery, type PageParams } from './pagination'
 import type {
   CreateDkimDomainRequest,
   CreateSuppressionRequest,
@@ -26,8 +27,8 @@ export const domainSafetyService = {
   generateDkimKey(body: GenerateDkimKeyRequest) {
     return http.post<GenerateDkimKeyReply>('/dkim-domains:generate-key', body)
   },
-  listSuppressions() {
-    return http.get<ListResponse<Suppression>>('/suppressions')
+  listSuppressions(page?: PageParams) {
+    return http.get<ListResponse<Suppression>>('/suppressions', { query: pageQuery(page) })
   },
   createSuppression(body: CreateSuppressionRequest) {
     return http.post<Suppression>('/suppressions', body)

@@ -2,7 +2,7 @@
 // Require-TLS outbound policies.
 
 import type { DkimDomain, Suppression, TLSPolicy } from '../../types'
-import { randomString } from './util'
+import { pick, randomString } from './util'
 
 export const dkimDomains: DkimDomain[] = [
   { id: 'dkim_main', domain: 'example.net', selector: 'iris', publicKeyFingerprint: '8F:2A:1C:9B:44:AE:07:E3', status: 'active' },
@@ -11,7 +11,7 @@ export const dkimDomains: DkimDomain[] = [
   { id: 'dkim_alt', domain: 'example.com', selector: 'iris2026', publicKeyFingerprint: 'BB:AA:99:88:77:66:55:44', status: 'disabled' },
 ]
 
-export const suppressions: Suppression[] = [
+const baseSuppressions: Suppression[] = [
   { id: 'sup_1', type: 'email', value: 'hard.bounce@example.com', reason: '550 User unknown', source: 'bounce', status: 'active' },
   { id: 'sup_2', type: 'email', value: 'complainer@example.com', reason: 'FBL complaint', source: 'feedback', status: 'active' },
   { id: 'sup_3', type: 'domain', value: 'badmail.org', reason: 'Blocklisted provider', source: 'manual', status: 'active' },
@@ -23,6 +23,27 @@ export const suppressions: Suppression[] = [
   { id: 'sup_9', type: 'email', value: 'left.company@yahoo.com', reason: '550 5.1.1', source: 'bounce', status: 'active' },
   { id: 'sup_10', type: 'domain', value: 'deadmx.net', reason: 'Persistent delivery failure', source: 'manual', status: 'active' },
 ]
+
+// Suppression lists grow large (hard bounces accumulate); generate a realistic
+// backlog so the list demonstrates pagination.
+const SUPP_REASONS = ['550 User unknown', '550 5.1.1 Mailbox unavailable', 'FBL complaint', 'Repeated soft bounces', 'Spamtrap hit', 'Blocklisted provider', 'Manual removal requested']
+const SUPP_SOURCES = ['bounce', 'bounce', 'bounce', 'feedback', 'manual']
+const SUPP_STATUSES = ['active', 'active', 'active', 'active', 'inactive', 'expired']
+const SUPP_EMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'outlook.com', 'icloud.com', 'example.com', 'example.net']
+
+const generatedSuppressions: Suppression[] = Array.from({ length: 54 }, (_, i) => {
+  const isDomain = i % 9 === 0
+  return {
+    id: `sup_gen_${i}`,
+    type: isDomain ? 'domain' : 'email',
+    value: isDomain ? `${randomString(6)}.example` : `${randomString(7)}@${pick(SUPP_EMAIL_DOMAINS)}`,
+    reason: pick(SUPP_REASONS),
+    source: pick(SUPP_SOURCES),
+    status: pick(SUPP_STATUSES),
+  }
+})
+
+export const suppressions: Suppression[] = [...baseSuppressions, ...generatedSuppressions]
 
 export const tlsPolicies: TLSPolicy[] = [
   { id: 'tls_gmail', domain: 'gmail.com', mode: 'required', status: 'active' },
