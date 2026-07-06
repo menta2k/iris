@@ -40,6 +40,7 @@ export const navItems: NavItem[] = [
     children: [
       { label: 'Mail Logs', to: '/operations/mail-logs', permission: 'operations:read' },
       { label: 'Bounces', to: '/operations/bounces', permission: 'operations:read' },
+      { label: 'Bounce Actions', to: '/operations/bounce-actions', permission: 'operations:read' },
       { label: 'Feedback', to: '/operations/feedback', permission: 'operations:read' },
       { label: 'DMARC Reports', to: '/operations/dmarc', permission: 'operations:read' },
       { label: 'Queues', to: '/operations/queues', permission: 'operations:read' },

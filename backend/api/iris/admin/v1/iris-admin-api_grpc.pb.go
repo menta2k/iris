@@ -42,6 +42,12 @@ const (
 	IrisAdminService_CreateAutomationRule_FullMethodName        = "/iris.admin.v1.IrisAdminService/CreateAutomationRule"
 	IrisAdminService_UpdateAutomationRule_FullMethodName        = "/iris.admin.v1.IrisAdminService/UpdateAutomationRule"
 	IrisAdminService_SetAutomationRuleStatus_FullMethodName     = "/iris.admin.v1.IrisAdminService/SetAutomationRuleStatus"
+	IrisAdminService_ListBounceRules_FullMethodName             = "/iris.admin.v1.IrisAdminService/ListBounceRules"
+	IrisAdminService_CreateBounceRule_FullMethodName            = "/iris.admin.v1.IrisAdminService/CreateBounceRule"
+	IrisAdminService_UpdateBounceRule_FullMethodName            = "/iris.admin.v1.IrisAdminService/UpdateBounceRule"
+	IrisAdminService_DeleteBounceRule_FullMethodName            = "/iris.admin.v1.IrisAdminService/DeleteBounceRule"
+	IrisAdminService_ResetBounceRules_FullMethodName            = "/iris.admin.v1.IrisAdminService/ResetBounceRules"
+	IrisAdminService_TestBounceDiagnostic_FullMethodName        = "/iris.admin.v1.IrisAdminService/TestBounceDiagnostic"
 	IrisAdminService_ListRoutingRules_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListRoutingRules"
 	IrisAdminService_CreateRoutingRule_FullMethodName           = "/iris.admin.v1.IrisAdminService/CreateRoutingRule"
 	IrisAdminService_UpdateRoutingRule_FullMethodName           = "/iris.admin.v1.IrisAdminService/UpdateRoutingRule"
@@ -152,6 +158,12 @@ type IrisAdminServiceClient interface {
 	CreateAutomationRule(ctx context.Context, in *CreateAutomationRuleRequest, opts ...grpc.CallOption) (*AutomationRule, error)
 	UpdateAutomationRule(ctx context.Context, in *UpdateAutomationRuleRequest, opts ...grpc.CallOption) (*AutomationRule, error)
 	SetAutomationRuleStatus(ctx context.Context, in *SetAutomationRuleStatusRequest, opts ...grpc.CallOption) (*AutomationRule, error)
+	ListBounceRules(ctx context.Context, in *ListBounceRulesRequest, opts ...grpc.CallOption) (*ListBounceRulesReply, error)
+	CreateBounceRule(ctx context.Context, in *CreateBounceRuleRequest, opts ...grpc.CallOption) (*BounceRule, error)
+	UpdateBounceRule(ctx context.Context, in *UpdateBounceRuleRequest, opts ...grpc.CallOption) (*BounceRule, error)
+	DeleteBounceRule(ctx context.Context, in *DeleteBounceRuleRequest, opts ...grpc.CallOption) (*DeleteBounceRuleReply, error)
+	ResetBounceRules(ctx context.Context, in *ResetBounceRulesRequest, opts ...grpc.CallOption) (*ListBounceRulesReply, error)
+	TestBounceDiagnostic(ctx context.Context, in *TestBounceDiagnosticRequest, opts ...grpc.CallOption) (*TestBounceDiagnosticReply, error)
 	ListRoutingRules(ctx context.Context, in *ListRoutingRulesRequest, opts ...grpc.CallOption) (*ListRoutingRulesReply, error)
 	CreateRoutingRule(ctx context.Context, in *CreateRoutingRuleRequest, opts ...grpc.CallOption) (*RoutingRule, error)
 	UpdateRoutingRule(ctx context.Context, in *UpdateRoutingRuleRequest, opts ...grpc.CallOption) (*RoutingRule, error)
@@ -528,6 +540,66 @@ func (c *irisAdminServiceClient) SetAutomationRuleStatus(ctx context.Context, in
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AutomationRule)
 	err := c.cc.Invoke(ctx, IrisAdminService_SetAutomationRuleStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ListBounceRules(ctx context.Context, in *ListBounceRulesRequest, opts ...grpc.CallOption) (*ListBounceRulesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListBounceRulesReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListBounceRules_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) CreateBounceRule(ctx context.Context, in *CreateBounceRuleRequest, opts ...grpc.CallOption) (*BounceRule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BounceRule)
+	err := c.cc.Invoke(ctx, IrisAdminService_CreateBounceRule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) UpdateBounceRule(ctx context.Context, in *UpdateBounceRuleRequest, opts ...grpc.CallOption) (*BounceRule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BounceRule)
+	err := c.cc.Invoke(ctx, IrisAdminService_UpdateBounceRule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) DeleteBounceRule(ctx context.Context, in *DeleteBounceRuleRequest, opts ...grpc.CallOption) (*DeleteBounceRuleReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteBounceRuleReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_DeleteBounceRule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ResetBounceRules(ctx context.Context, in *ResetBounceRulesRequest, opts ...grpc.CallOption) (*ListBounceRulesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListBounceRulesReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ResetBounceRules_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) TestBounceDiagnostic(ctx context.Context, in *TestBounceDiagnosticRequest, opts ...grpc.CallOption) (*TestBounceDiagnosticReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TestBounceDiagnosticReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_TestBounceDiagnostic_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1326,6 +1398,12 @@ type IrisAdminServiceServer interface {
 	CreateAutomationRule(context.Context, *CreateAutomationRuleRequest) (*AutomationRule, error)
 	UpdateAutomationRule(context.Context, *UpdateAutomationRuleRequest) (*AutomationRule, error)
 	SetAutomationRuleStatus(context.Context, *SetAutomationRuleStatusRequest) (*AutomationRule, error)
+	ListBounceRules(context.Context, *ListBounceRulesRequest) (*ListBounceRulesReply, error)
+	CreateBounceRule(context.Context, *CreateBounceRuleRequest) (*BounceRule, error)
+	UpdateBounceRule(context.Context, *UpdateBounceRuleRequest) (*BounceRule, error)
+	DeleteBounceRule(context.Context, *DeleteBounceRuleRequest) (*DeleteBounceRuleReply, error)
+	ResetBounceRules(context.Context, *ResetBounceRulesRequest) (*ListBounceRulesReply, error)
+	TestBounceDiagnostic(context.Context, *TestBounceDiagnosticRequest) (*TestBounceDiagnosticReply, error)
 	ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesReply, error)
 	CreateRoutingRule(context.Context, *CreateRoutingRuleRequest) (*RoutingRule, error)
 	UpdateRoutingRule(context.Context, *UpdateRoutingRuleRequest) (*RoutingRule, error)
@@ -1546,6 +1624,24 @@ func (UnimplementedIrisAdminServiceServer) UpdateAutomationRule(context.Context,
 }
 func (UnimplementedIrisAdminServiceServer) SetAutomationRuleStatus(context.Context, *SetAutomationRuleStatusRequest) (*AutomationRule, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetAutomationRuleStatus not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListBounceRules(context.Context, *ListBounceRulesRequest) (*ListBounceRulesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListBounceRules not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) CreateBounceRule(context.Context, *CreateBounceRuleRequest) (*BounceRule, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateBounceRule not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) UpdateBounceRule(context.Context, *UpdateBounceRuleRequest) (*BounceRule, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateBounceRule not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) DeleteBounceRule(context.Context, *DeleteBounceRuleRequest) (*DeleteBounceRuleReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteBounceRule not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ResetBounceRules(context.Context, *ResetBounceRulesRequest) (*ListBounceRulesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResetBounceRules not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) TestBounceDiagnostic(context.Context, *TestBounceDiagnosticRequest) (*TestBounceDiagnosticReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method TestBounceDiagnostic not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRoutingRules not implemented")
@@ -2206,6 +2302,114 @@ func _IrisAdminService_SetAutomationRuleStatus_Handler(srv interface{}, ctx cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IrisAdminServiceServer).SetAutomationRuleStatus(ctx, req.(*SetAutomationRuleStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListBounceRules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListBounceRulesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListBounceRules(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListBounceRules_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListBounceRules(ctx, req.(*ListBounceRulesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_CreateBounceRule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateBounceRuleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).CreateBounceRule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_CreateBounceRule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).CreateBounceRule(ctx, req.(*CreateBounceRuleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_UpdateBounceRule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateBounceRuleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).UpdateBounceRule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_UpdateBounceRule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).UpdateBounceRule(ctx, req.(*UpdateBounceRuleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_DeleteBounceRule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteBounceRuleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).DeleteBounceRule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_DeleteBounceRule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).DeleteBounceRule(ctx, req.(*DeleteBounceRuleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ResetBounceRules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResetBounceRulesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ResetBounceRules(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ResetBounceRules_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ResetBounceRules(ctx, req.(*ResetBounceRulesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_TestBounceDiagnostic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TestBounceDiagnosticRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).TestBounceDiagnostic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_TestBounceDiagnostic_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).TestBounceDiagnostic(ctx, req.(*TestBounceDiagnosticRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -3676,6 +3880,30 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetAutomationRuleStatus",
 			Handler:    _IrisAdminService_SetAutomationRuleStatus_Handler,
+		},
+		{
+			MethodName: "ListBounceRules",
+			Handler:    _IrisAdminService_ListBounceRules_Handler,
+		},
+		{
+			MethodName: "CreateBounceRule",
+			Handler:    _IrisAdminService_CreateBounceRule_Handler,
+		},
+		{
+			MethodName: "UpdateBounceRule",
+			Handler:    _IrisAdminService_UpdateBounceRule_Handler,
+		},
+		{
+			MethodName: "DeleteBounceRule",
+			Handler:    _IrisAdminService_DeleteBounceRule_Handler,
+		},
+		{
+			MethodName: "ResetBounceRules",
+			Handler:    _IrisAdminService_ResetBounceRules_Handler,
+		},
+		{
+			MethodName: "TestBounceDiagnostic",
+			Handler:    _IrisAdminService_TestBounceDiagnostic_Handler,
 		},
 		{
 			MethodName: "ListRoutingRules",

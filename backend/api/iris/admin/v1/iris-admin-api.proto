@@ -83,6 +83,24 @@ service IrisAdminService {
   rpc SetAutomationRuleStatus(SetAutomationRuleStatusRequest) returns (AutomationRule) {
     option (google.api.http) = { post: "/v1/automation-rules/{id}:status" body: "*" };
   }
+  rpc ListBounceRules(ListBounceRulesRequest) returns (ListBounceRulesReply) {
+    option (google.api.http) = { get: "/v1/bounce-rules" };
+  }
+  rpc CreateBounceRule(CreateBounceRuleRequest) returns (BounceRule) {
+    option (google.api.http) = { post: "/v1/bounce-rules" body: "*" };
+  }
+  rpc UpdateBounceRule(UpdateBounceRuleRequest) returns (BounceRule) {
+    option (google.api.http) = { put: "/v1/bounce-rules/{id}" body: "*" };
+  }
+  rpc DeleteBounceRule(DeleteBounceRuleRequest) returns (DeleteBounceRuleReply) {
+    option (google.api.http) = { delete: "/v1/bounce-rules/{id}" };
+  }
+  rpc ResetBounceRules(ResetBounceRulesRequest) returns (ListBounceRulesReply) {
+    option (google.api.http) = { post: "/v1/bounce-rules:reset" body: "*" };
+  }
+  rpc TestBounceDiagnostic(TestBounceDiagnosticRequest) returns (TestBounceDiagnosticReply) {
+    option (google.api.http) = { post: "/v1/bounce-rules:test" body: "*" };
+  }
   rpc ListRoutingRules(ListRoutingRulesRequest) returns (ListRoutingRulesReply) {
     option (google.api.http) = { get: "/v1/routing-rules" };
   }
@@ -633,6 +651,75 @@ message UpdateAutomationRuleRequest {
 message SetAutomationRuleStatusRequest {
   string id = 1;
   string status = 2;
+}
+
+// ---- Bounce-based actions (classification & response rules) ----
+message BounceRule {
+  string id = 1;
+  string smtp_code = 2;         // "421", "550", or "" (any)
+  string enhanced_code = 3;     // "4.7.0", "5.1.1", or "" (any)
+  string provider = 4;          // gmail | yahoo | microsoft | ... or "" (all)
+  string pattern = 5;           // case-insensitive substring of the diagnostic
+  string class = 6;             // soft | hard
+  string category = 7;          // e.g. "Rate Limited"
+  string action = 8;            // retry | throttle | suspend_domain | suppress
+  string action_config = 9;     // throttle rate / suspend duration
+  string suggested_action = 10; // operator guidance
+  int32 priority = 11;
+  string source = 12;           // default | overlay
+  string status = 13;           // active | disabled
+  string created_at = 14;
+  string updated_at = 15;
+}
+message ListBounceRulesRequest {}
+message ListBounceRulesReply {
+  repeated BounceRule items = 1;
+}
+message CreateBounceRuleRequest {
+  string smtp_code = 1;
+  string enhanced_code = 2;
+  string provider = 3;
+  string pattern = 4;
+  string class = 5;
+  string category = 6;
+  string action = 7;
+  string action_config = 8;
+  string suggested_action = 9;
+  int32 priority = 10;
+}
+message UpdateBounceRuleRequest {
+  string id = 1;
+  string smtp_code = 2;
+  string enhanced_code = 3;
+  string provider = 4;
+  string pattern = 5;
+  string class = 6;
+  string category = 7;
+  string action = 8;
+  string action_config = 9;
+  string suggested_action = 10;
+  int32 priority = 11;
+  string status = 12;
+}
+message DeleteBounceRuleRequest {
+  string id = 1;
+}
+message DeleteBounceRuleReply {}
+message ResetBounceRulesRequest {}
+// Test a bounce diagnostic against the current active ruleset.
+message TestBounceDiagnosticRequest {
+  string smtp_code = 1;
+  string domain = 2;      // recipient domain (derives provider when blank)
+  string diagnostic = 3;  // full SMTP response text
+}
+message TestBounceDiagnosticReply {
+  // The normalized signature the matcher evaluated.
+  string smtp_code = 1;
+  string enhanced_code = 2;
+  string provider = 3;
+  bool matched = 4;
+  BounceRule rule = 5;      // the matched rule (unset when matched=false)
+  string effective_action = 6; // matched action, or "retry" when nothing matched
 }
 
 message ListVMTAsRequest {

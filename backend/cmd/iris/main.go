@@ -229,6 +229,8 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	blueprintUC := biz.NewBlueprintUsecase(blueprintRepo, auditor)
 	automationRepo := data.NewAutomationRepo(db)
 	automationUC := biz.NewAutomationUsecase(automationRepo, auditor)
+	bounceRuleRepo := data.NewBounceRuleRepo(db)
+	bounceRuleUC := biz.NewBounceRuleUsecase(bounceRuleRepo, auditor)
 
 	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo, inboundRouteRepo, fblRepo, warmupRepo, blueprintRepo, automationRepo)
 	kumoConfigUC := biz.NewKumoConfigUsecase(kumoSnapshotRepo, kumo, mailOpsRepo, auditor, settingsUC)
@@ -317,6 +319,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		Warmup:          warmupUC,
 		Blueprints:      blueprintUC,
 		Automation:      automationUC,
+		BounceRules:     bounceRuleUC,
 		Classifications: subjectClassAdminUC,
 	}
 
@@ -345,7 +348,8 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// which forwards the raw message — there is no webhook fan-out worker.
 	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, wlog("log-stream")).
 		WithFeedbackVerification(domainSafetyRepo, settingsUC).
-		WithClassification(settingsUC).Run)
+		WithClassification(settingsUC).
+		WithBounceRules(bounceRuleUC).Run)
 	// Optional subject classification: consumes the transient classify-pending
 	// stream, resolves labels (trigram → LLM), and backfills mail_records. Idles
 	// when the feature is off (nothing is enqueued).

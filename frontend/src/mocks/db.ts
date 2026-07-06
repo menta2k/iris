@@ -6,6 +6,7 @@ import type {
   AcmeCertificate,
   AuditEntry,
   AutomationRule,
+  BounceRule,
   Bounce,
   DeliveryBlueprint,
   DkimDomain,
@@ -40,6 +41,7 @@ export interface MockData {
   warmupSchedules: WarmupSchedule[]
   blueprints: DeliveryBlueprint[]
   automationRules: AutomationRule[]
+  bounceRules: BounceRule[]
   mailRecords: MailRecord[]
   bounces: Bounce[]
   feedbackReports: FeedbackReport[]

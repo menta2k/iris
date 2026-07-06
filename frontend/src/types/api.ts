@@ -223,6 +223,61 @@ export interface UpdateAutomationRuleRequest extends CreateAutomationRuleRequest
   status: string
 }
 
+// ---- Bounce-based actions ----
+
+export type BounceAction = 'retry' | 'throttle' | 'suspend_domain' | 'suppress'
+export type BounceClass = 'soft' | 'hard'
+
+export interface BounceRule {
+  id: string
+  smtpCode: string
+  enhancedCode: string
+  provider: string
+  pattern: string
+  class: BounceClass
+  category: string
+  action: BounceAction
+  actionConfig: string
+  suggestedAction: string
+  priority: number
+  source: 'default' | 'overlay'
+  status: 'active' | 'disabled'
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CreateBounceRuleRequest {
+  smtp_code: string
+  enhanced_code: string
+  provider: string
+  pattern: string
+  class: string
+  category: string
+  action: string
+  action_config: string
+  suggested_action: string
+  priority: number
+}
+
+export interface UpdateBounceRuleRequest extends CreateBounceRuleRequest {
+  status: string
+}
+
+export interface TestBounceDiagnosticRequest {
+  smtp_code: string
+  domain: string
+  diagnostic: string
+}
+
+export interface TestBounceDiagnosticResult {
+  smtpCode: string
+  enhancedCode: string
+  provider: string
+  matched: boolean
+  rule?: BounceRule
+  effectiveAction: BounceAction
+}
+
 // Response member shape (camelCase).
 export interface VMTAGroupMember {
   vmtaId: string

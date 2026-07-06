@@ -339,6 +339,112 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/AutomationRule'
+    /v1/bounce-rules:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListBounceRules
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListBounceRulesReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateBounceRule
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateBounceRuleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BounceRule'
+    /v1/bounce-rules/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateBounceRule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateBounceRuleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BounceRule'
+        delete:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_DeleteBounceRule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteBounceRuleReply'
+    /v1/bounce-rules:reset:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ResetBounceRules
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ResetBounceRulesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListBounceRulesReply'
+    /v1/bounce-rules:test:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_TestBounceDiagnostic
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/TestBounceDiagnosticRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TestBounceDiagnosticReply'
     /v1/bounces:
         get:
             tags:
@@ -2216,6 +2322,41 @@ components:
                     description: |-
                         classification is KumoMTA's bounce-classifier category (InvalidRecipient,
                          SpamBlock, …); empty when the classifier is disabled or no rule matched.
+        BounceRule:
+            type: object
+            properties:
+                id:
+                    type: string
+                smtp_code:
+                    type: string
+                enhanced_code:
+                    type: string
+                provider:
+                    type: string
+                pattern:
+                    type: string
+                class:
+                    type: string
+                category:
+                    type: string
+                action:
+                    type: string
+                action_config:
+                    type: string
+                suggested_action:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                source:
+                    type: string
+                status:
+                    type: string
+                created_at:
+                    type: string
+                updated_at:
+                    type: string
+            description: '---- Bounce-based actions (classification & response rules) ----'
         ChangePasswordReply:
             type: object
             properties: {}
@@ -2258,6 +2399,30 @@ components:
                     type: string
                 duration:
                     type: string
+        CreateBounceRuleRequest:
+            type: object
+            properties:
+                smtp_code:
+                    type: string
+                enhanced_code:
+                    type: string
+                provider:
+                    type: string
+                pattern:
+                    type: string
+                class:
+                    type: string
+                category:
+                    type: string
+                action:
+                    type: string
+                action_config:
+                    type: string
+                suggested_action:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
         CreateDKIMDomainRequest:
             type: object
             properties:
@@ -2498,6 +2663,9 @@ components:
                          logged a transient failure but no terminal delivery/bounce since — still
                          retrying, not yet bounced.
         DeleteAcmeCertificateReply:
+            type: object
+            properties: {}
+        DeleteBounceRuleReply:
             type: object
             properties: {}
         DeleteFeedbackLoopReply:
@@ -3010,6 +3178,13 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/AutomationRule'
+        ListBounceRulesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/BounceRule'
         ListBouncesReply:
             type: object
             properties:
@@ -3543,6 +3718,9 @@ components:
                 confirmation_id:
                     type: string
             description: KumoMTA service & configuration -------------------------------------------
+        ResetBounceRulesRequest:
+            type: object
+            properties: {}
         ResetUserPasswordReply:
             type: object
             properties: {}
@@ -3813,6 +3991,32 @@ components:
                 TLSPolicy requires TLS on outbound delivery to a destination domain. mode is
                  "required" (STARTTLS + valid cert) or "required_insecure" (STARTTLS, skip
                  cert validation).
+        TestBounceDiagnosticReply:
+            type: object
+            properties:
+                smtp_code:
+                    type: string
+                    description: The normalized signature the matcher evaluated.
+                enhanced_code:
+                    type: string
+                provider:
+                    type: string
+                matched:
+                    type: boolean
+                rule:
+                    $ref: '#/components/schemas/BounceRule'
+                effective_action:
+                    type: string
+        TestBounceDiagnosticRequest:
+            type: object
+            properties:
+                smtp_code:
+                    type: string
+                domain:
+                    type: string
+                diagnostic:
+                    type: string
+            description: Test a bounce diagnostic against the current active ruleset.
         UpdateAutomationRuleRequest:
             type: object
             properties:
@@ -3832,6 +4036,34 @@ components:
                     type: string
                 duration:
                     type: string
+                status:
+                    type: string
+        UpdateBounceRuleRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                smtp_code:
+                    type: string
+                enhanced_code:
+                    type: string
+                provider:
+                    type: string
+                pattern:
+                    type: string
+                class:
+                    type: string
+                category:
+                    type: string
+                action:
+                    type: string
+                action_config:
+                    type: string
+                suggested_action:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
                 status:
                     type: string
         UpdateDKIMDomainRequest:

@@ -42,6 +42,7 @@ type Service struct {
 	warmup          *biz.WarmupUsecase
 	blueprints      *biz.BlueprintUsecase
 	automation      *biz.AutomationUsecase
+	bounceRules     *biz.BounceRuleUsecase
 	classifications *biz.SubjectClassificationUsecase
 }
 
@@ -72,6 +73,7 @@ type Deps struct {
 	Warmup          *biz.WarmupUsecase
 	Blueprints      *biz.BlueprintUsecase
 	Automation      *biz.AutomationUsecase
+	BounceRules     *biz.BounceRuleUsecase
 	Classifications *biz.SubjectClassificationUsecase
 }
 
@@ -106,6 +108,7 @@ func NewService(d Deps) *Service {
 		warmup:          d.Warmup,
 		blueprints:      d.Blueprints,
 		automation:      d.Automation,
+		bounceRules:     d.BounceRules,
 		classifications: d.Classifications,
 	}
 }

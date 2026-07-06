@@ -25,6 +25,7 @@ const OperationIrisAdminServiceCheckDomainBounceSetup = "/iris.admin.v1.IrisAdmi
 const OperationIrisAdminServiceClearAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/ClearAcmeDnsProvider"
 const OperationIrisAdminServiceConfirmMFA = "/iris.admin.v1.IrisAdminService/ConfirmMFA"
 const OperationIrisAdminServiceCreateAutomationRule = "/iris.admin.v1.IrisAdminService/CreateAutomationRule"
+const OperationIrisAdminServiceCreateBounceRule = "/iris.admin.v1.IrisAdminService/CreateBounceRule"
 const OperationIrisAdminServiceCreateDKIMDomain = "/iris.admin.v1.IrisAdminService/CreateDKIMDomain"
 const OperationIrisAdminServiceCreateDeliveryBlueprint = "/iris.admin.v1.IrisAdminService/CreateDeliveryBlueprint"
 const OperationIrisAdminServiceCreateFeedbackLoop = "/iris.admin.v1.IrisAdminService/CreateFeedbackLoop"
@@ -40,6 +41,7 @@ const OperationIrisAdminServiceCreateVMTAGroups = "/iris.admin.v1.IrisAdminServi
 const OperationIrisAdminServiceCreateWarmupSchedule = "/iris.admin.v1.IrisAdminService/CreateWarmupSchedule"
 const OperationIrisAdminServiceCurrentUser = "/iris.admin.v1.IrisAdminService/CurrentUser"
 const OperationIrisAdminServiceDeleteAcmeCertificate = "/iris.admin.v1.IrisAdminService/DeleteAcmeCertificate"
+const OperationIrisAdminServiceDeleteBounceRule = "/iris.admin.v1.IrisAdminService/DeleteBounceRule"
 const OperationIrisAdminServiceDeleteFeedbackLoop = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
 const OperationIrisAdminServiceDeleteInboundRoute = "/iris.admin.v1.IrisAdminService/DeleteInboundRoute"
 const OperationIrisAdminServiceDeleteSubjectClassification = "/iris.admin.v1.IrisAdminService/DeleteSubjectClassification"
@@ -65,6 +67,7 @@ const OperationIrisAdminServiceListAcmeCertificates = "/iris.admin.v1.IrisAdminS
 const OperationIrisAdminServiceListAcmeDnsProviders = "/iris.admin.v1.IrisAdminService/ListAcmeDnsProviders"
 const OperationIrisAdminServiceListAuditEntries = "/iris.admin.v1.IrisAdminService/ListAuditEntries"
 const OperationIrisAdminServiceListAutomationRules = "/iris.admin.v1.IrisAdminService/ListAutomationRules"
+const OperationIrisAdminServiceListBounceRules = "/iris.admin.v1.IrisAdminService/ListBounceRules"
 const OperationIrisAdminServiceListBounces = "/iris.admin.v1.IrisAdminService/ListBounces"
 const OperationIrisAdminServiceListDKIMDomains = "/iris.admin.v1.IrisAdminService/ListDKIMDomains"
 const OperationIrisAdminServiceListDeliveryBlueprints = "/iris.admin.v1.IrisAdminService/ListDeliveryBlueprints"
@@ -94,6 +97,7 @@ const OperationIrisAdminServiceRblCheck = "/iris.admin.v1.IrisAdminService/RblCh
 const OperationIrisAdminServiceRequestAcmeCertificate = "/iris.admin.v1.IrisAdminService/RequestAcmeCertificate"
 const OperationIrisAdminServiceRequestQueueAction = "/iris.admin.v1.IrisAdminService/RequestQueueAction"
 const OperationIrisAdminServiceRequestServiceControl = "/iris.admin.v1.IrisAdminService/RequestServiceControl"
+const OperationIrisAdminServiceResetBounceRules = "/iris.admin.v1.IrisAdminService/ResetBounceRules"
 const OperationIrisAdminServiceResetUserPassword = "/iris.admin.v1.IrisAdminService/ResetUserPassword"
 const OperationIrisAdminServiceResumeWarmupSchedule = "/iris.admin.v1.IrisAdminService/ResumeWarmupSchedule"
 const OperationIrisAdminServiceRunRetention = "/iris.admin.v1.IrisAdminService/RunRetention"
@@ -102,7 +106,9 @@ const OperationIrisAdminServiceSeedDeliveryBlueprints = "/iris.admin.v1.IrisAdmi
 const OperationIrisAdminServiceSetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
 const OperationIrisAdminServiceSetAutomationRuleStatus = "/iris.admin.v1.IrisAdminService/SetAutomationRuleStatus"
 const OperationIrisAdminServiceSetDeliveryBlueprintStatus = "/iris.admin.v1.IrisAdminService/SetDeliveryBlueprintStatus"
+const OperationIrisAdminServiceTestBounceDiagnostic = "/iris.admin.v1.IrisAdminService/TestBounceDiagnostic"
 const OperationIrisAdminServiceUpdateAutomationRule = "/iris.admin.v1.IrisAdminService/UpdateAutomationRule"
+const OperationIrisAdminServiceUpdateBounceRule = "/iris.admin.v1.IrisAdminService/UpdateBounceRule"
 const OperationIrisAdminServiceUpdateDKIMDomain = "/iris.admin.v1.IrisAdminService/UpdateDKIMDomain"
 const OperationIrisAdminServiceUpdateDeliveryBlueprint = "/iris.admin.v1.IrisAdminService/UpdateDeliveryBlueprint"
 const OperationIrisAdminServiceUpdateFeedbackLoop = "/iris.admin.v1.IrisAdminService/UpdateFeedbackLoop"
@@ -131,6 +137,7 @@ type IrisAdminServiceHTTPServer interface {
 	ClearAcmeDnsProvider(context.Context, *ClearAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	ConfirmMFA(context.Context, *ConfirmMFARequest) (*ConfirmMFAReply, error)
 	CreateAutomationRule(context.Context, *CreateAutomationRuleRequest) (*AutomationRule, error)
+	CreateBounceRule(context.Context, *CreateBounceRuleRequest) (*BounceRule, error)
 	CreateDKIMDomain(context.Context, *CreateDKIMDomainRequest) (*DKIMDomain, error)
 	CreateDeliveryBlueprint(context.Context, *CreateDeliveryBlueprintRequest) (*DeliveryBlueprint, error)
 	CreateFeedbackLoop(context.Context, *CreateFeedbackLoopRequest) (*FeedbackLoop, error)
@@ -148,6 +155,7 @@ type IrisAdminServiceHTTPServer interface {
 	// the SPA calls it on load to restore a session from a stored token.
 	CurrentUser(context.Context, *CurrentUserRequest) (*CurrentUserReply, error)
 	DeleteAcmeCertificate(context.Context, *DeleteAcmeCertificateRequest) (*DeleteAcmeCertificateReply, error)
+	DeleteBounceRule(context.Context, *DeleteBounceRuleRequest) (*DeleteBounceRuleReply, error)
 	DeleteFeedbackLoop(context.Context, *DeleteFeedbackLoopRequest) (*DeleteFeedbackLoopReply, error)
 	DeleteInboundRoute(context.Context, *DeleteInboundRouteRequest) (*DeleteInboundRouteReply, error)
 	DeleteSubjectClassification(context.Context, *DeleteSubjectClassificationRequest) (*DeleteSubjectClassificationReply, error)
@@ -201,6 +209,7 @@ type IrisAdminServiceHTTPServer interface {
 	ListAuditEntries(context.Context, *ListAuditEntriesRequest) (*ListAuditEntriesReply, error)
 	// ListAutomationRules TSA automation rules (operator-authored reactive back-off).
 	ListAutomationRules(context.Context, *ListAutomationRulesRequest) (*ListAutomationRulesReply, error)
+	ListBounceRules(context.Context, *ListBounceRulesRequest) (*ListBounceRulesReply, error)
 	ListBounces(context.Context, *ListBouncesRequest) (*ListBouncesReply, error)
 	// ListDKIMDomains Domain & recipient safety ------------------------------------------------
 	ListDKIMDomains(context.Context, *ListDKIMDomainsRequest) (*ListDKIMDomainsReply, error)
@@ -262,6 +271,7 @@ type IrisAdminServiceHTTPServer interface {
 	RequestQueueAction(context.Context, *RequestQueueActionRequest) (*QueueActionReply, error)
 	// RequestServiceControl KumoMTA service & configuration ------------------------------------------
 	RequestServiceControl(context.Context, *RequestServiceControlRequest) (*ServiceControlRequest, error)
+	ResetBounceRules(context.Context, *ResetBounceRulesRequest) (*ListBounceRulesReply, error)
 	// ResetUserPassword ResetUserPassword sets a new password for a user (admin reset). Requires
 	// user:write; the new password is strength-validated and bcrypt-hashed.
 	ResetUserPassword(context.Context, *ResetUserPasswordRequest) (*ResetUserPasswordReply, error)
@@ -272,7 +282,9 @@ type IrisAdminServiceHTTPServer interface {
 	SetAcmeDnsProvider(context.Context, *SetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	SetAutomationRuleStatus(context.Context, *SetAutomationRuleStatusRequest) (*AutomationRule, error)
 	SetDeliveryBlueprintStatus(context.Context, *SetDeliveryBlueprintStatusRequest) (*DeliveryBlueprint, error)
+	TestBounceDiagnostic(context.Context, *TestBounceDiagnosticRequest) (*TestBounceDiagnosticReply, error)
 	UpdateAutomationRule(context.Context, *UpdateAutomationRuleRequest) (*AutomationRule, error)
+	UpdateBounceRule(context.Context, *UpdateBounceRuleRequest) (*BounceRule, error)
 	UpdateDKIMDomain(context.Context, *UpdateDKIMDomainRequest) (*DKIMDomain, error)
 	UpdateDeliveryBlueprint(context.Context, *UpdateDeliveryBlueprintRequest) (*DeliveryBlueprint, error)
 	UpdateFeedbackLoop(context.Context, *UpdateFeedbackLoopRequest) (*FeedbackLoop, error)
@@ -317,6 +329,12 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.POST("/v1/automation-rules", _IrisAdminService_CreateAutomationRule0_HTTP_Handler(srv))
 	r.PUT("/v1/automation-rules/{id}", _IrisAdminService_UpdateAutomationRule0_HTTP_Handler(srv))
 	r.POST("/v1/automation-rules/{id}:status", _IrisAdminService_SetAutomationRuleStatus0_HTTP_Handler(srv))
+	r.GET("/v1/bounce-rules", _IrisAdminService_ListBounceRules0_HTTP_Handler(srv))
+	r.POST("/v1/bounce-rules", _IrisAdminService_CreateBounceRule0_HTTP_Handler(srv))
+	r.PUT("/v1/bounce-rules/{id}", _IrisAdminService_UpdateBounceRule0_HTTP_Handler(srv))
+	r.DELETE("/v1/bounce-rules/{id}", _IrisAdminService_DeleteBounceRule0_HTTP_Handler(srv))
+	r.POST("/v1/bounce-rules:reset", _IrisAdminService_ResetBounceRules0_HTTP_Handler(srv))
+	r.POST("/v1/bounce-rules:test", _IrisAdminService_TestBounceDiagnostic0_HTTP_Handler(srv))
 	r.GET("/v1/routing-rules", _IrisAdminService_ListRoutingRules0_HTTP_Handler(srv))
 	r.POST("/v1/routing-rules", _IrisAdminService_CreateRoutingRule0_HTTP_Handler(srv))
 	r.PUT("/v1/routing-rules/{id}", _IrisAdminService_UpdateRoutingRule0_HTTP_Handler(srv))
@@ -909,6 +927,138 @@ func _IrisAdminService_SetAutomationRuleStatus0_HTTP_Handler(srv IrisAdminServic
 			return err
 		}
 		reply := out.(*AutomationRule)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ListBounceRules0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListBounceRulesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListBounceRules)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListBounceRules(ctx, req.(*ListBounceRulesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListBounceRulesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CreateBounceRule0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateBounceRuleRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCreateBounceRule)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateBounceRule(ctx, req.(*CreateBounceRuleRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*BounceRule)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateBounceRule0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateBounceRuleRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateBounceRule)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateBounceRule(ctx, req.(*UpdateBounceRuleRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*BounceRule)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_DeleteBounceRule0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteBounceRuleRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceDeleteBounceRule)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteBounceRule(ctx, req.(*DeleteBounceRuleRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteBounceRuleReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ResetBounceRules0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ResetBounceRulesRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceResetBounceRules)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ResetBounceRules(ctx, req.(*ResetBounceRulesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListBounceRulesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_TestBounceDiagnostic0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in TestBounceDiagnosticRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceTestBounceDiagnostic)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.TestBounceDiagnostic(ctx, req.(*TestBounceDiagnosticRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*TestBounceDiagnosticReply)
 		return ctx.Result(200, reply)
 	}
 }
@@ -2519,6 +2669,7 @@ type IrisAdminServiceHTTPClient interface {
 	ClearAcmeDnsProvider(ctx context.Context, req *ClearAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	ConfirmMFA(ctx context.Context, req *ConfirmMFARequest, opts ...http.CallOption) (rsp *ConfirmMFAReply, err error)
 	CreateAutomationRule(ctx context.Context, req *CreateAutomationRuleRequest, opts ...http.CallOption) (rsp *AutomationRule, err error)
+	CreateBounceRule(ctx context.Context, req *CreateBounceRuleRequest, opts ...http.CallOption) (rsp *BounceRule, err error)
 	CreateDKIMDomain(ctx context.Context, req *CreateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
 	CreateDeliveryBlueprint(ctx context.Context, req *CreateDeliveryBlueprintRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
 	CreateFeedbackLoop(ctx context.Context, req *CreateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
@@ -2536,6 +2687,7 @@ type IrisAdminServiceHTTPClient interface {
 	// the SPA calls it on load to restore a session from a stored token.
 	CurrentUser(ctx context.Context, req *CurrentUserRequest, opts ...http.CallOption) (rsp *CurrentUserReply, err error)
 	DeleteAcmeCertificate(ctx context.Context, req *DeleteAcmeCertificateRequest, opts ...http.CallOption) (rsp *DeleteAcmeCertificateReply, err error)
+	DeleteBounceRule(ctx context.Context, req *DeleteBounceRuleRequest, opts ...http.CallOption) (rsp *DeleteBounceRuleReply, err error)
 	DeleteFeedbackLoop(ctx context.Context, req *DeleteFeedbackLoopRequest, opts ...http.CallOption) (rsp *DeleteFeedbackLoopReply, err error)
 	DeleteInboundRoute(ctx context.Context, req *DeleteInboundRouteRequest, opts ...http.CallOption) (rsp *DeleteInboundRouteReply, err error)
 	DeleteSubjectClassification(ctx context.Context, req *DeleteSubjectClassificationRequest, opts ...http.CallOption) (rsp *DeleteSubjectClassificationReply, err error)
@@ -2589,6 +2741,7 @@ type IrisAdminServiceHTTPClient interface {
 	ListAuditEntries(ctx context.Context, req *ListAuditEntriesRequest, opts ...http.CallOption) (rsp *ListAuditEntriesReply, err error)
 	// ListAutomationRules TSA automation rules (operator-authored reactive back-off).
 	ListAutomationRules(ctx context.Context, req *ListAutomationRulesRequest, opts ...http.CallOption) (rsp *ListAutomationRulesReply, err error)
+	ListBounceRules(ctx context.Context, req *ListBounceRulesRequest, opts ...http.CallOption) (rsp *ListBounceRulesReply, err error)
 	ListBounces(ctx context.Context, req *ListBouncesRequest, opts ...http.CallOption) (rsp *ListBouncesReply, err error)
 	// ListDKIMDomains Domain & recipient safety ------------------------------------------------
 	ListDKIMDomains(ctx context.Context, req *ListDKIMDomainsRequest, opts ...http.CallOption) (rsp *ListDKIMDomainsReply, err error)
@@ -2650,6 +2803,7 @@ type IrisAdminServiceHTTPClient interface {
 	RequestQueueAction(ctx context.Context, req *RequestQueueActionRequest, opts ...http.CallOption) (rsp *QueueActionReply, err error)
 	// RequestServiceControl KumoMTA service & configuration ------------------------------------------
 	RequestServiceControl(ctx context.Context, req *RequestServiceControlRequest, opts ...http.CallOption) (rsp *ServiceControlRequest, err error)
+	ResetBounceRules(ctx context.Context, req *ResetBounceRulesRequest, opts ...http.CallOption) (rsp *ListBounceRulesReply, err error)
 	// ResetUserPassword ResetUserPassword sets a new password for a user (admin reset). Requires
 	// user:write; the new password is strength-validated and bcrypt-hashed.
 	ResetUserPassword(ctx context.Context, req *ResetUserPasswordRequest, opts ...http.CallOption) (rsp *ResetUserPasswordReply, err error)
@@ -2660,7 +2814,9 @@ type IrisAdminServiceHTTPClient interface {
 	SetAcmeDnsProvider(ctx context.Context, req *SetAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	SetAutomationRuleStatus(ctx context.Context, req *SetAutomationRuleStatusRequest, opts ...http.CallOption) (rsp *AutomationRule, err error)
 	SetDeliveryBlueprintStatus(ctx context.Context, req *SetDeliveryBlueprintStatusRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
+	TestBounceDiagnostic(ctx context.Context, req *TestBounceDiagnosticRequest, opts ...http.CallOption) (rsp *TestBounceDiagnosticReply, err error)
 	UpdateAutomationRule(ctx context.Context, req *UpdateAutomationRuleRequest, opts ...http.CallOption) (rsp *AutomationRule, err error)
+	UpdateBounceRule(ctx context.Context, req *UpdateBounceRuleRequest, opts ...http.CallOption) (rsp *BounceRule, err error)
 	UpdateDKIMDomain(ctx context.Context, req *UpdateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
 	UpdateDeliveryBlueprint(ctx context.Context, req *UpdateDeliveryBlueprintRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
 	UpdateFeedbackLoop(ctx context.Context, req *UpdateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
@@ -2763,6 +2919,19 @@ func (c *IrisAdminServiceHTTPClientImpl) CreateAutomationRule(ctx context.Contex
 	pattern := "/v1/automation-rules"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateAutomationRule))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) CreateBounceRule(ctx context.Context, in *CreateBounceRuleRequest, opts ...http.CallOption) (*BounceRule, error) {
+	var out BounceRule
+	pattern := "/v1/bounce-rules"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateBounceRule))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -2960,6 +3129,19 @@ func (c *IrisAdminServiceHTTPClientImpl) DeleteAcmeCertificate(ctx context.Conte
 	pattern := "/v1/acme/certificates/{id}"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteAcmeCertificate))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) DeleteBounceRule(ctx context.Context, in *DeleteBounceRuleRequest, opts ...http.CallOption) (*DeleteBounceRuleReply, error) {
+	var out DeleteBounceRuleReply
+	pattern := "/v1/bounce-rules/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteBounceRule))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {
@@ -3313,6 +3495,19 @@ func (c *IrisAdminServiceHTTPClientImpl) ListAutomationRules(ctx context.Context
 	pattern := "/v1/automation-rules"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListAutomationRules))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) ListBounceRules(ctx context.Context, in *ListBounceRulesRequest, opts ...http.CallOption) (*ListBounceRulesReply, error) {
+	var out ListBounceRulesReply
+	pattern := "/v1/bounce-rules"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListBounceRules))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -3730,6 +3925,19 @@ func (c *IrisAdminServiceHTTPClientImpl) RequestServiceControl(ctx context.Conte
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) ResetBounceRules(ctx context.Context, in *ResetBounceRulesRequest, opts ...http.CallOption) (*ListBounceRulesReply, error) {
+	var out ListBounceRulesReply
+	pattern := "/v1/bounce-rules:reset"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceResetBounceRules))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // ResetUserPassword ResetUserPassword sets a new password for a user (admin reset). Requires
 // user:write; the new password is strength-validated and bcrypt-hashed.
 func (c *IrisAdminServiceHTTPClientImpl) ResetUserPassword(ctx context.Context, in *ResetUserPasswordRequest, opts ...http.CallOption) (*ResetUserPasswordReply, error) {
@@ -3836,11 +4044,37 @@ func (c *IrisAdminServiceHTTPClientImpl) SetDeliveryBlueprintStatus(ctx context.
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) TestBounceDiagnostic(ctx context.Context, in *TestBounceDiagnosticRequest, opts ...http.CallOption) (*TestBounceDiagnosticReply, error) {
+	var out TestBounceDiagnosticReply
+	pattern := "/v1/bounce-rules:test"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceTestBounceDiagnostic))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) UpdateAutomationRule(ctx context.Context, in *UpdateAutomationRuleRequest, opts ...http.CallOption) (*AutomationRule, error) {
 	var out AutomationRule
 	pattern := "/v1/automation-rules/{id}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateAutomationRule))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) UpdateBounceRule(ctx context.Context, in *UpdateBounceRuleRequest, opts ...http.CallOption) (*BounceRule, error) {
+	var out BounceRule
+	pattern := "/v1/bounce-rules/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateBounceRule))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {

@@ -78,6 +78,12 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/outbound/AutomationRulesPage.vue'),
         meta: { permission: 'outbound:read', title: 'Shaping Automation' },
       },
+      {
+        path: 'operations/bounce-actions',
+        name: 'bounce-actions',
+        component: () => import('@/pages/operations/BounceActionsPage.vue'),
+        meta: { permission: 'operations:read', title: 'Bounce Actions' },
+      },
 
       // Operations
       {

@@ -75,6 +75,47 @@ func TestApplyBouncePolicyHardBounce(t *testing.T) {
 	}
 }
 
+// fakeBounceRules serves a fixed active ruleset to the worker.
+type fakeBounceRules struct{ rules []*biz.BounceActionRule }
+
+func (f fakeBounceRules) ActiveRules(context.Context) ([]*biz.BounceActionRule, error) {
+	return f.rules, nil
+}
+
+func TestApplyBouncePolicyRuleEngine(t *testing.T) {
+	ctx := context.Background()
+	rules := []*biz.BounceActionRule{
+		{EnhancedCode: "5.1.1", Action: biz.BounceActionSuppress, Category: "Invalid Recipient", Priority: 100, Status: "active"},
+		{SMTPCode: "550", Pattern: "spam", Action: biz.BounceActionSuspendDomain, Priority: 100, Status: "active"},
+	}
+
+	// A 5.1.1 user-unknown bounce → suppressed by the suppress rule, even with
+	// the legacy auto-suppress switch OFF (the rule is authoritative).
+	store := newFakeBounceStore()
+	w := newWorker(store, store, fakePolicy{biz.BouncePolicy{AutoSuppressHardBounces: false}}).WithBounceRules(fakeBounceRules{rules})
+	w.applyBouncePolicy(ctx, &biz.BounceRecord{Recipient: "ghost@dest.example", SMTPStatus: "550", Diagnostic: "550 5.1.1 user unknown"})
+	if store.suppressed["ghost@dest.example"] != "bounce" {
+		t.Fatalf("suppress rule should suppress, got %+v", store.suppressed)
+	}
+
+	// A 5xx spam-block bounce → suspend_domain rule matches → NOT suppressed
+	// (shaping handles it), even though legacy auto-suppress is ON.
+	store = newFakeBounceStore()
+	w = newWorker(store, store, fakePolicy{biz.BouncePolicy{AutoSuppressHardBounces: true}}).WithBounceRules(fakeBounceRules{rules})
+	w.applyBouncePolicy(ctx, &biz.BounceRecord{Recipient: "ok@dest.example", SMTPStatus: "550", Diagnostic: "550 5.7.1 message flagged as spam"})
+	if len(store.suppressed) != 0 {
+		t.Fatalf("suspend_domain rule must not suppress, got %+v", store.suppressed)
+	}
+
+	// An unmatched hard bounce falls through to the legacy net (auto-suppress on).
+	store = newFakeBounceStore()
+	w = newWorker(store, store, fakePolicy{biz.BouncePolicy{AutoSuppressHardBounces: true}}).WithBounceRules(fakeBounceRules{rules})
+	w.applyBouncePolicy(ctx, &biz.BounceRecord{Recipient: "gone@dest.example", SMTPStatus: "550", Diagnostic: "550 mailbox unavailable"})
+	if store.suppressed["gone@dest.example"] != "bounce" {
+		t.Fatalf("unmatched hard bounce should use legacy suppression, got %+v", store.suppressed)
+	}
+}
+
 func TestApplyBouncePolicySoftThreshold(t *testing.T) {
 	ctx := context.Background()
 	store := newFakeBounceStore()

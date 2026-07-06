@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/menta2k/iris/backend/internal/biz"
@@ -60,6 +61,12 @@ type ClassifyPolicyProvider interface {
 	ClassifyPolicyNow(ctx context.Context) biz.ClassifyPolicy
 }
 
+// BounceRuleSource supplies the active bounce-action ruleset used to classify a
+// bounce into a system action. Optional (nil = legacy hard/soft policy only).
+type BounceRuleSource interface {
+	ActiveRules(ctx context.Context) ([]*biz.BounceActionRule, error)
+}
+
 // LogStreamWorker consumes KumoMTA structured log records from the Redis stream
 // (produced by the generated policy's log_hook) and persists them into the
 // mail_records / bounce_records hypertables. This is how the Logs UI is
@@ -74,6 +81,23 @@ type LogStreamWorker struct {
 	classifyPol ClassifyPolicyProvider
 	stream      string
 	log         *slog.Logger
+
+	// Bounce-action rules, cached briefly to avoid a DB hit per bounce.
+	bounceRules   BounceRuleSource
+	bounceMu      sync.Mutex
+	bounceCache   []*biz.BounceActionRule
+	bounceCacheAt time.Time
+}
+
+// bounceRuleCacheTTL bounds how stale the worker's cached ruleset may be.
+const bounceRuleCacheTTL = 30 * time.Second
+
+// WithBounceRules makes the worker classify each bounce against the operator
+// ruleset: a matching rule is authoritative (suppress only when it says so).
+// Returns the worker for chaining.
+func (w *LogStreamWorker) WithBounceRules(src BounceRuleSource) *LogStreamWorker {
+	w.bounceRules = src
+	return w
 }
 
 // WithClassification enables enqueueing Reception subjects to the classification
@@ -312,6 +336,36 @@ func (w *LogStreamWorker) enqueueClassification(ctx context.Context, rec *biz.Ku
 	}
 }
 
+// activeBounceRules returns the operator ruleset, cached for bounceRuleCacheTTL
+// to avoid a database round-trip on every bounce. On a load error it serves the
+// last-known set (possibly empty), never blocking bounce processing.
+func (w *LogStreamWorker) activeBounceRules(ctx context.Context) []*biz.BounceActionRule {
+	if w.bounceRules == nil {
+		return nil
+	}
+	w.bounceMu.Lock()
+	defer w.bounceMu.Unlock()
+	if !w.bounceCacheAt.IsZero() && time.Since(w.bounceCacheAt) < bounceRuleCacheTTL {
+		return w.bounceCache
+	}
+	rules, err := w.bounceRules.ActiveRules(ctx)
+	if err != nil {
+		w.log.Error("load bounce rules", "error", err.Error())
+		return w.bounceCache // serve stale on error
+	}
+	w.bounceCache = rules
+	w.bounceCacheAt = time.Now()
+	return rules
+}
+
+// recipientDomain returns the domain part of an email address, or "".
+func recipientDomain(email string) string {
+	if i := strings.LastIndex(email, "@"); i >= 0 {
+		return email[i+1:]
+	}
+	return ""
+}
+
 // applyBouncePolicy auto-suppresses the recipient on a hard bounce (5xx) or once
 // soft bounces reach the configured threshold.
 func (w *LogStreamWorker) applyBouncePolicy(ctx context.Context, b *biz.BounceRecord) {
@@ -322,6 +376,33 @@ func (w *LogStreamWorker) applyBouncePolicy(ctx context.Context, b *biz.BounceRe
 	if recipient == "" {
 		return
 	}
+
+	// Rule engine (additive to the legacy net, never weakening it): a matched
+	// suppress rule suppresses the recipient; a matched throttle/suspend rule
+	// leaves the recipient in place (enforced via traffic shaping, not here).
+	// retry rules and unmatched bounces fall through to the legacy policy below,
+	// which preserves the existing hard-bounce and soft-threshold behavior.
+	if rules := w.activeBounceRules(ctx); len(rules) > 0 {
+		sig := biz.BounceSignature{SMTPCode: b.SMTPStatus, Domain: recipientDomain(recipient), Diagnostic: b.Diagnostic}
+		if rule := biz.MatchBounceRule(rules, sig); rule != nil {
+			switch rule.Action {
+			case biz.BounceActionSuppress:
+				reason := "bounce rule: " + rule.Category
+				if b.SMTPStatus != "" {
+					reason += " " + b.SMTPStatus
+				}
+				if err := w.suppressor.SuppressRecipient(ctx, recipient, "bounce", reason); err != nil {
+					w.log.Error("suppress by bounce rule", "recipient", recipient, "error", err.Error())
+				}
+				return
+			case biz.BounceActionThrottle, biz.BounceActionSuspendDomain:
+				// Traffic shaping handles the back-off; do not suppress the address.
+				return
+			}
+			// retry: fall through to the legacy policy.
+		}
+	}
+
 	policy := w.bouncePolicy(ctx)
 
 	if b.IsHardBounce() {
