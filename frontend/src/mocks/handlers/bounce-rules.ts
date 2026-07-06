@@ -31,8 +31,9 @@ function specificity(r: BounceRule): number {
   return [r.smtpCode, r.enhancedCode, r.provider, r.pattern].filter(Boolean).length
 }
 
-function matches(r: BounceRule, sig: { smtpCode: string; enhancedCode: string; provider: string; diagnostic: string }): boolean {
+function matches(r: BounceRule, sig: { smtpCode: string; enhancedCode: string; provider: string; diagnostic: string; attempts: number }): boolean {
   if (r.status !== 'active') return false
+  if (r.minAttempts > 0 && sig.attempts < r.minAttempts) return false
   if (r.smtpCode && r.smtpCode !== sig.smtpCode) return false
   if (r.enhancedCode && r.enhancedCode !== sig.enhancedCode) return false
   if (r.provider && r.provider !== sig.provider) return false
@@ -52,6 +53,8 @@ function toUpdate(body: Record<string, unknown>): Partial<BounceRule> {
     actionConfig: String(body.action_config ?? ''),
     suggestedAction: String(body.suggested_action ?? ''),
     priority: Number(body.priority ?? 0),
+    minAttempts: Number(body.min_attempts ?? 0),
+    suppressTtl: String(body.suppress_ttl ?? ''),
   }
 }
 
@@ -103,6 +106,7 @@ export const bounceRulesRoutes: Route[] = [
         enhancedCode: parseEnhanced(String(body.diagnostic ?? '')),
         provider: providerForDomain(String(body.domain ?? '')),
         diagnostic: String(body.diagnostic ?? ''),
+        attempts: Number(body.attempts ?? 0),
       }
       let best: BounceRule | undefined
       for (const r of all('bounceRules')) {

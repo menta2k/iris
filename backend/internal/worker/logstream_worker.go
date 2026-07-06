@@ -32,6 +32,9 @@ type MailEventStore interface {
 // the bounce pipeline. Optional (nil disables it).
 type Suppressor interface {
 	SuppressRecipient(ctx context.Context, email, source, reason string) error
+	// SuppressRecipientFor suppresses with an explicit TTL override (ttl <= 0 uses
+	// the global default), for per-rule bounce suppression lifetimes.
+	SuppressRecipientFor(ctx context.Context, email, source, reason string, ttl time.Duration) error
 }
 
 // BouncePolicyProvider supplies the current bounce-handling policy (auto-suppress
@@ -310,6 +313,58 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 		metrics.RecordBounce(bounceType, bounce.Mailclass)
 		w.applyBouncePolicy(ctx, bounce)
 	}
+
+	// Deferrals (transient failures) are also matched against the bounce rules so
+	// a suppress rule can fire during the retry window — e.g. suppress a
+	// persistently-full mailbox after N attempts — without waiting for expiry.
+	if rec.Type == biz.KumoTransientFailure {
+		w.applyDeferralRules(ctx, rec, now)
+	}
+}
+
+// applyDeferralRules matches a transient failure against the bounce ruleset and,
+// when a suppress rule applies at the message's current attempt count, suppresses
+// the recipient. throttle/suspend rules are enforced via traffic shaping, not
+// here; retry / no-match leave the message to keep retrying.
+func (w *LogStreamWorker) applyDeferralRules(ctx context.Context, rec *biz.KumoLogRecord, now time.Time) {
+	if w.suppressor == nil || w.bounceRules == nil {
+		return
+	}
+	recipient := strings.ToLower(strings.TrimSpace(rec.Recipient))
+	if recipient == "" {
+		return
+	}
+	rules := w.activeBounceRules(ctx)
+	if len(rules) == 0 {
+		return
+	}
+	smtp := ""
+	if rec.Response.Code > 0 {
+		smtp = strconv.Itoa(int(rec.Response.Code))
+	}
+	rule := biz.MatchBounceRule(rules, biz.BounceSignature{
+		SMTPCode:   smtp,
+		Domain:     recipientDomain(recipient),
+		Diagnostic: rec.Response.Content,
+		Attempts:   rec.NumAttempts,
+	})
+	if rule == nil || rule.Action != biz.BounceActionSuppress {
+		return
+	}
+	reason := "bounce rule: " + rule.Category + " (attempt " + strconv.Itoa(rec.NumAttempts) + ")"
+	if err := w.suppressor.SuppressRecipientFor(ctx, recipient, "bounce", reason, bounceRuleTTL(rule)); err != nil {
+		w.log.Error("suppress by deferral rule", "recipient", recipient, "error", err.Error())
+	}
+}
+
+// bounceRuleTTL resolves a suppress rule's per-rule TTL override (0 = use the
+// global suppression TTL).
+func bounceRuleTTL(rule *biz.BounceActionRule) time.Duration {
+	if rule == nil || rule.SuppressTTL == "" {
+		return 0
+	}
+	d, _ := biz.ParseFlexDuration(rule.SuppressTTL)
+	return d
 }
 
 // enqueueClassification hands a received message's subject to the async

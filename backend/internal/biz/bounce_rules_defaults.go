@@ -12,6 +12,15 @@ func DefaultBounceRules() []*BounceActionRule {
 			SuggestedAction: suggested, Priority: prio, Source: BounceRuleSourceDefault, Status: "active",
 		}
 	}
+	// suppressAfter builds a hard suppress rule that only applies once a message
+	// has been tried minAttempts times (used for persistent transient failures).
+	suppressAfter := func(code, pattern, category, suggested string, prio, minAttempts int, ttl string) *BounceActionRule {
+		return &BounceActionRule{
+			SMTPCode: code, Pattern: pattern, Class: BounceClassHard, Category: category,
+			Action: BounceActionSuppress, SuggestedAction: suggested, Priority: prio,
+			MinAttempts: minAttempts, SuppressTTL: ttl, Source: BounceRuleSourceDefault, Status: "active",
+		}
+	}
 	return []*BounceActionRule{
 		// --- Transient / connection (retry) ---
 		r("421", "", "", "", "soft", "Connection Issue", BounceActionRetry, "",
@@ -45,11 +54,16 @@ func DefaultBounceRules() []*BounceActionRule {
 		r("", "", "", "unauthenticated", "hard", "Authentication Failed", BounceActionSuspendDomain, "1h",
 			"Fix SPF/DKIM authentication for this domain.", 90),
 
-		// --- Mailbox full (transient; retry) ---
+		// --- Mailbox full (transient; retry, then suppress if persistent) ---
 		r("", "4.2.2", "", "", "soft", "Mailbox Full", BounceActionRetry, "",
 			"Mailbox over quota; retry — it often clears.", 80),
 		r("452", "", "", "storage", "soft", "Mailbox Full", BounceActionRetry, "",
 			"Recipient inbox out of storage; retry.", 80),
+		// After many attempts an over-quota inbox is almost certainly abandoned;
+		// suppress the address so future campaigns skip it (higher priority + a
+		// MinAttempts gate, so it only wins once the retry rule has run its course).
+		suppressAfter("452", "out of storage", "Mailbox Full (persistent)",
+			"Inbox full for many attempts; suppress the address (30d).", 110, 7, "30d"),
 
 		// --- Invalid recipient (hard; suppress) ---
 		r("550", "5.1.1", "", "", "hard", "Invalid Recipient", BounceActionSuppress, "",

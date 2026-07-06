@@ -2374,6 +2374,11 @@ components:
                     type: string
                 updated_at:
                     type: string
+                min_attempts:
+                    type: integer
+                    format: int32
+                suppress_ttl:
+                    type: string
             description: '---- Bounce-based actions (classification & response rules) ----'
         ChangePasswordReply:
             type: object
@@ -2441,6 +2446,11 @@ components:
                 priority:
                     type: integer
                     format: int32
+                min_attempts:
+                    type: integer
+                    format: int32
+                suppress_ttl:
+                    type: string
         CreateDKIMDomainRequest:
             type: object
             properties:
@@ -4060,6 +4070,9 @@ components:
                     type: string
                 diagnostic:
                     type: string
+                attempts:
+                    type: integer
+                    format: int32
             description: Test a bounce diagnostic against the current active ruleset.
         UpdateAutomationRuleRequest:
             type: object
@@ -4109,6 +4122,11 @@ components:
                     type: integer
                     format: int32
                 status:
+                    type: string
+                min_attempts:
+                    type: integer
+                    format: int32
+                suppress_ttl:
                     type: string
         UpdateDKIMDomainRequest:
             type: object

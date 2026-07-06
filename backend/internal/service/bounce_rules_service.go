@@ -29,6 +29,7 @@ func (s *Service) CreateBounceRule(ctx context.Context, req *adminv1.CreateBounc
 		SMTPCode: req.GetSmtpCode(), EnhancedCode: req.GetEnhancedCode(), Provider: req.GetProvider(),
 		Pattern: req.GetPattern(), Class: req.GetClass(), Category: req.GetCategory(), Action: req.GetAction(),
 		ActionConfig: req.GetActionConfig(), SuggestedAction: req.GetSuggestedAction(), Priority: int(req.GetPriority()),
+		MinAttempts: int(req.GetMinAttempts()), SuppressTTL: req.GetSuppressTtl(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "CreateBounceRule", err)
@@ -45,6 +46,7 @@ func (s *Service) UpdateBounceRule(ctx context.Context, req *adminv1.UpdateBounc
 		SMTPCode: req.GetSmtpCode(), EnhancedCode: req.GetEnhancedCode(), Provider: req.GetProvider(),
 		Pattern: req.GetPattern(), Class: req.GetClass(), Category: req.GetCategory(), Action: req.GetAction(),
 		ActionConfig: req.GetActionConfig(), SuggestedAction: req.GetSuggestedAction(), Priority: int(req.GetPriority()),
+		MinAttempts: int(req.GetMinAttempts()), SuppressTTL: req.GetSuppressTtl(),
 		Status: req.GetStatus(),
 	})
 	if err != nil {
@@ -83,6 +85,7 @@ func (s *Service) TestBounceDiagnostic(ctx context.Context, req *adminv1.TestBou
 	}
 	res, err := s.bounceRules.TestDiagnostic(ctx, biz.BounceSignature{
 		SMTPCode: req.GetSmtpCode(), Domain: req.GetDomain(), Diagnostic: req.GetDiagnostic(),
+		Attempts: int(req.GetAttempts()),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "TestBounceDiagnostic", err)
@@ -122,6 +125,8 @@ func bounceRuleToProto(r *biz.BounceActionRule) *adminv1.BounceRule {
 		ActionConfig:    r.ActionConfig,
 		SuggestedAction: r.SuggestedAction,
 		Priority:        int32(r.Priority),
+		MinAttempts:     int32(r.MinAttempts),
+		SuppressTtl:     r.SuppressTTL,
 		Source:          r.Source,
 		Status:          r.Status,
 	}

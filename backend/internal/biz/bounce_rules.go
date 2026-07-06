@@ -53,10 +53,20 @@ type BounceActionRule struct {
 	ActionConfig    string
 	SuggestedAction string // operator-facing guidance shown in the console
 	Priority        int    // higher wins
-	Source          string // default | overlay
-	Status          string // active | disabled
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	// MinAttempts gates the rule on the message's delivery-attempt count: the rule
+	// only applies once the message has been tried at least this many times. 0
+	// means it applies on the first matching event. Used to suppress a recipient
+	// only after repeated transient failures (e.g. a persistently-full mailbox).
+	MinAttempts int
+	// SuppressTTL, for a suppress action, is how long the recipient stays
+	// suppressed (KumoMTA duration form, e.g. "30d"). Empty uses the global
+	// suppression TTL. Lets, e.g., invalid-recipient suppress permanently while a
+	// full-mailbox suppress lapses after a while so the address can be retried.
+	SuppressTTL string
+	Source      string // default | overlay
+	Status      string // active | disabled
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 // enhancedCodeRe extracts an RFC 3463 enhanced status code (x.y.z) from a
@@ -114,6 +124,7 @@ type BounceSignature struct {
 	Provider     string // normalized provider (empty ok; derived from Domain)
 	Domain       string // recipient domain (used to derive Provider when blank)
 	Diagnostic   string // full server response text
+	Attempts     int    // delivery attempts so far (gates rules' MinAttempts)
 }
 
 // normalize fills in EnhancedCode/Provider from the diagnostic/domain when blank
@@ -132,6 +143,9 @@ func (s BounceSignature) normalize() BounceSignature {
 // fields are wildcards; Pattern is a case-insensitive substring of the diagnostic.
 func (r *BounceActionRule) matches(sig BounceSignature) bool {
 	if r.Status != "" && r.Status != "active" {
+		return false
+	}
+	if r.MinAttempts > 0 && sig.Attempts < r.MinAttempts {
 		return false
 	}
 	if r.SMTPCode != "" && r.SMTPCode != sig.SMTPCode {
@@ -210,6 +224,15 @@ func ValidateBounceRule(r *BounceActionRule) error {
 	}
 	if r.SMTPCode == "" && r.EnhancedCode == "" && r.Provider == "" && r.Pattern == "" {
 		return Invalid("BOUNCE_RULE_EMPTY", "a rule must constrain at least one of code, enhanced, provider, pattern")
+	}
+	if r.MinAttempts < 0 {
+		return Invalid("BOUNCE_RULE_MIN_ATTEMPTS_INVALID", "min_attempts must be >= 0")
+	}
+	r.SuppressTTL = strings.TrimSpace(r.SuppressTTL)
+	if r.SuppressTTL != "" {
+		if _, ok := ParseFlexDuration(r.SuppressTTL); !ok {
+			return Invalid("BOUNCE_RULE_SUPPRESS_TTL_INVALID", "suppress_ttl %q is not a valid duration (e.g. 30d, 12h)", r.SuppressTTL)
+		}
 	}
 	if r.Status == "" {
 		r.Status = "active"

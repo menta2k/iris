@@ -281,11 +281,22 @@ func (r *DomainSafetyRepo) DeleteTLSPolicy(ctx context.Context, id string) error
 // by the feedback-loop ingest to auto-suppress complainants. Idempotent on
 // (type, value): an existing entry is reactivated and its reason/source updated.
 func (r *DomainSafetyRepo) SuppressRecipient(ctx context.Context, email, source, reason string) error {
+	return r.SuppressRecipientFor(ctx, email, source, reason, 0)
+}
+
+// SuppressRecipientFor suppresses with an explicit TTL override: ttl > 0 sets the
+// suppression to expire after that duration; ttl <= 0 uses the global suppression
+// TTL. Used by bounce rules that carry a per-rule suppression lifetime.
+func (r *DomainSafetyRepo) SuppressRecipientFor(ctx context.Context, email, source, reason string, ttl time.Duration) error {
 	value := biz.NormalizeSuppressionValue(biz.SuppressEmail, email)
 	if value == "" {
 		return nil
 	}
-	expiresAt, ttl := r.suppressionExpiry(ctx)
+	expiresAt, effTTL := r.suppressionExpiry(ctx)
+	if ttl > 0 {
+		exp := time.Now().UTC().Add(ttl)
+		expiresAt, effTTL = &exp, ttl
+	}
 	_, err := r.db.Pool.Exec(ctx, `
 		INSERT INTO suppression_entries (type, value, reason, source, status, expires_at)
 		VALUES ('email', $1, $2, $3, 'active', $4)
@@ -296,7 +307,7 @@ func (r *DomainSafetyRepo) SuppressRecipient(ctx context.Context, email, source,
 	if err != nil {
 		return fmt.Errorf("auto-suppress recipient: %w", err)
 	}
-	if err := r.cache.Put(ctx, biz.SuppressEmail, value, ttl); err != nil {
+	if err := r.cache.Put(ctx, biz.SuppressEmail, value, effTTL); err != nil {
 		return err
 	}
 	return nil

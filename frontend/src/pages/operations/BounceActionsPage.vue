@@ -47,6 +47,8 @@ const emptyForm = () => ({
   action_config: '',
   suggested_action: '',
   priority: 50,
+  min_attempts: 0,
+  suppress_ttl: '',
   status: 'active',
 })
 const form = ref(emptyForm())
@@ -138,6 +140,8 @@ function openEdit(r: BounceRule) {
     action_config: r.actionConfig,
     suggested_action: r.suggestedAction,
     priority: r.priority,
+    min_attempts: r.minAttempts,
+    suppress_ttl: r.suppressTtl,
     status: r.status,
   }
   dialogOpen.value = true
@@ -157,6 +161,8 @@ async function submit() {
       action_config: form.value.action_config,
       suggested_action: form.value.suggested_action,
       priority: Number(form.value.priority) || 0,
+      min_attempts: Number(form.value.min_attempts) || 0,
+      suppress_ttl: form.value.suppress_ttl,
     }
     if (isEdit.value && editId.value) {
       await bounceRulesService.update(editId.value, { ...body, status: form.value.status })
@@ -198,7 +204,7 @@ async function resetDefaults() {
 }
 
 // --- Test diagnostic ---
-const test = ref({ smtp_code: '', domain: '', diagnostic: '' })
+const test = ref({ smtp_code: '', domain: '', diagnostic: '', attempts: 0 })
 const testResult = ref<TestBounceDiagnosticResult | null>(null)
 const testing = ref(false)
 
@@ -210,6 +216,7 @@ async function runTest() {
       smtp_code: test.value.smtp_code,
       domain: test.value.domain,
       diagnostic: test.value.diagnostic,
+      attempts: Number(test.value.attempts) || 0,
     })
   } catch (err) {
     const msg = err instanceof ApiError ? err.message : 'Test failed.'
@@ -286,11 +293,15 @@ load()
             <Label for="t-domain">Recipient domain</Label>
             <Input id="t-domain" v-model="test.domain" placeholder="gmail.com" />
           </v-col>
-          <v-col cols="12" md="5" class="d-flex flex-column ga-1">
+          <v-col cols="12" md="4" class="d-flex flex-column ga-1">
             <Label for="t-diag">Diagnostic (SMTP response)</Label>
             <Input id="t-diag" v-model="test.diagnostic" placeholder="550 5.1.1 The email account does not exist" />
           </v-col>
-          <v-col cols="12" md="2">
+          <v-col cols="6" md="1" class="d-flex flex-column ga-1">
+            <Label for="t-attempts">Attempts</Label>
+            <Input id="t-attempts" v-model.number="test.attempts" type="number" placeholder="0" />
+          </v-col>
+          <v-col cols="6" md="2">
             <Button :disabled="testing" class="w-100" @click="runTest">
               {{ testing ? 'Testing…' : 'Test' }}
             </Button>
@@ -369,6 +380,8 @@ load()
                   <div class="d-flex flex-column ga-1">
                     <Badge :variant="ACTION_VARIANT[r.action]">{{ ACTION_LABEL[r.action] }}</Badge>
                     <span v-if="r.actionConfig" class="text-caption text-medium-emphasis font-mono">{{ r.actionConfig }}</span>
+                    <span v-if="r.minAttempts > 0" class="text-caption text-medium-emphasis">after {{ r.minAttempts }} tries</span>
+                    <span v-if="r.action === 'suppress' && r.suppressTtl" class="text-caption text-medium-emphasis">TTL {{ r.suppressTtl }}</span>
                   </div>
                 </TableCell>
                 <TableCell class="text-right">
@@ -430,6 +443,16 @@ load()
           <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="b-cfg">Action config (throttle: name=value · suspend: duration)</Label>
             <Input id="b-cfg" v-model="form.action_config" placeholder="max_message_rate=100/h or 2h" />
+          </v-col>
+        </v-row>
+        <v-row dense>
+          <v-col cols="6" class="d-flex flex-column ga-1">
+            <Label for="b-min">Min attempts (apply only after N tries)</Label>
+            <Input id="b-min" v-model.number="form.min_attempts" type="number" placeholder="0" />
+          </v-col>
+          <v-col cols="6" class="d-flex flex-column ga-1">
+            <Label for="b-ttl">Suppress TTL (blank = global default)</Label>
+            <Input id="b-ttl" v-model="form.suppress_ttl" placeholder="30d" :disabled="form.action !== 'suppress'" />
           </v-col>
         </v-row>
         <div class="d-flex flex-column ga-1">

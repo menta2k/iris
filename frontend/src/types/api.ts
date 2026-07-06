@@ -240,6 +240,8 @@ export interface BounceRule {
   actionConfig: string
   suggestedAction: string
   priority: number
+  minAttempts: number
+  suppressTtl: string
   source: 'default' | 'overlay'
   status: 'active' | 'disabled'
   createdAt?: string
@@ -257,6 +259,8 @@ export interface CreateBounceRuleRequest {
   action_config: string
   suggested_action: string
   priority: number
+  min_attempts: number
+  suppress_ttl: string
 }
 
 export interface UpdateBounceRuleRequest extends CreateBounceRuleRequest {
@@ -280,6 +284,7 @@ export interface TestBounceDiagnosticRequest {
   smtp_code: string
   domain: string
   diagnostic: string
+  attempts: number
 }
 
 export interface TestBounceDiagnosticResult {

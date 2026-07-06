@@ -18,13 +18,13 @@ func NewBounceRuleRepo(db *DB) *BounceRuleRepo { return &BounceRuleRepo{db: db} 
 var _ biz.BounceRuleRepo = (*BounceRuleRepo)(nil)
 
 const bounceRuleCols = `id, smtp_code, enhanced_code, provider, pattern, class,
-	category, action, action_config, suggested_action, priority, source, status,
+	category, action, action_config, suggested_action, priority, min_attempts, suppress_ttl, source, status,
 	created_at, updated_at`
 
 func scanBounceRule(row interface{ Scan(...any) error }) (*biz.BounceActionRule, error) {
 	r := &biz.BounceActionRule{}
 	if err := row.Scan(&r.ID, &r.SMTPCode, &r.EnhancedCode, &r.Provider, &r.Pattern, &r.Class,
-		&r.Category, &r.Action, &r.ActionConfig, &r.SuggestedAction, &r.Priority, &r.Source, &r.Status,
+		&r.Category, &r.Action, &r.ActionConfig, &r.SuggestedAction, &r.Priority, &r.MinAttempts, &r.SuppressTTL, &r.Source, &r.Status,
 		&r.CreatedAt, &r.UpdatedAt); err != nil {
 		return nil, err
 	}
@@ -35,11 +35,11 @@ func scanBounceRule(row interface{ Scan(...any) error }) (*biz.BounceActionRule,
 func (r *BounceRuleRepo) CreateBounceRule(ctx context.Context, a *biz.BounceActionRule) (*biz.BounceActionRule, error) {
 	out, err := scanBounceRule(r.db.Pool.QueryRow(ctx, `
 		INSERT INTO bounce_action_rules
-			(smtp_code, enhanced_code, provider, pattern, class, category, action, action_config, suggested_action, priority, source, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			(smtp_code, enhanced_code, provider, pattern, class, category, action, action_config, suggested_action, priority, min_attempts, suppress_ttl, source, status)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		RETURNING `+bounceRuleCols,
 		a.SMTPCode, a.EnhancedCode, a.Provider, a.Pattern, a.Class, a.Category, a.Action,
-		a.ActionConfig, a.SuggestedAction, a.Priority, sourceOrOverlay(a.Source), a.Status))
+		a.ActionConfig, a.SuggestedAction, a.Priority, a.MinAttempts, a.SuppressTTL, sourceOrOverlay(a.Source), a.Status))
 	if err != nil {
 		return nil, mapConstraint(err, "bounce_action_rule")
 	}
@@ -52,11 +52,11 @@ func (r *BounceRuleRepo) UpdateBounceRule(ctx context.Context, id string, a *biz
 		UPDATE bounce_action_rules
 		SET smtp_code = $2, enhanced_code = $3, provider = $4, pattern = $5, class = $6,
 		    category = $7, action = $8, action_config = $9, suggested_action = $10,
-		    priority = $11, status = $12, updated_at = now()
+		    priority = $11, min_attempts = $12, suppress_ttl = $13, status = $14, updated_at = now()
 		WHERE id = $1
 		RETURNING `+bounceRuleCols,
 		id, a.SMTPCode, a.EnhancedCode, a.Provider, a.Pattern, a.Class, a.Category, a.Action,
-		a.ActionConfig, a.SuggestedAction, a.Priority, a.Status))
+		a.ActionConfig, a.SuggestedAction, a.Priority, a.MinAttempts, a.SuppressTTL, a.Status))
 	if err != nil {
 		return nil, mapConstraint(err, "bounce_action_rule")
 	}
@@ -105,10 +105,10 @@ func (r *BounceRuleRepo) ReplaceDefaultBounceRules(ctx context.Context, rules []
 	for _, a := range rules {
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO bounce_action_rules
-				(smtp_code, enhanced_code, provider, pattern, class, category, action, action_config, suggested_action, priority, source, status)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'default', $11)`,
+				(smtp_code, enhanced_code, provider, pattern, class, category, action, action_config, suggested_action, priority, min_attempts, suppress_ttl, source, status)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'default', $13)`,
 			a.SMTPCode, a.EnhancedCode, a.Provider, a.Pattern, a.Class, a.Category, a.Action,
-			a.ActionConfig, a.SuggestedAction, a.Priority, a.Status); err != nil {
+			a.ActionConfig, a.SuggestedAction, a.Priority, a.MinAttempts, a.SuppressTTL, a.Status); err != nil {
 			return fmt.Errorf("insert default bounce rule: %w", err)
 		}
 	}

@@ -3,7 +3,10 @@
 
 import type { BounceRule } from '../../types'
 
-type Seed = Omit<BounceRule, 'id' | 'source' | 'status' | 'createdAt' | 'updatedAt'>
+type Seed = Omit<
+  BounceRule,
+  'id' | 'source' | 'status' | 'createdAt' | 'updatedAt' | 'minAttempts' | 'suppressTtl'
+> & { minAttempts?: number; suppressTtl?: string }
 
 const seeds: Seed[] = [
   { smtpCode: '421', enhancedCode: '', provider: '', pattern: '', class: 'soft', category: 'Connection Issue', action: 'retry', actionConfig: '', suggestedAction: 'Retry normally; monitor if frequent.', priority: 50 },
@@ -20,6 +23,7 @@ const seeds: Seed[] = [
   { smtpCode: '', enhancedCode: '', provider: '', pattern: 'unauthenticated', class: 'hard', category: 'Authentication Failed', action: 'suspend_domain', actionConfig: '1h', suggestedAction: 'Fix SPF/DKIM authentication for this domain.', priority: 90 },
   { smtpCode: '', enhancedCode: '4.2.2', provider: '', pattern: '', class: 'soft', category: 'Mailbox Full', action: 'retry', actionConfig: '', suggestedAction: 'Mailbox over quota; retry — it often clears.', priority: 80 },
   { smtpCode: '452', enhancedCode: '', provider: '', pattern: 'storage', class: 'soft', category: 'Mailbox Full', action: 'retry', actionConfig: '', suggestedAction: 'Recipient inbox out of storage; retry.', priority: 80 },
+  { smtpCode: '452', enhancedCode: '', provider: '', pattern: 'out of storage', class: 'hard', category: 'Mailbox Full (persistent)', action: 'suppress', actionConfig: '', suggestedAction: 'Inbox full for many attempts; suppress the address (30d).', priority: 110, minAttempts: 7, suppressTtl: '30d' },
   { smtpCode: '550', enhancedCode: '5.1.1', provider: '', pattern: '', class: 'hard', category: 'Invalid Recipient', action: 'suppress', actionConfig: '', suggestedAction: 'Recipient does not exist; suppress the address.', priority: 100 },
   { smtpCode: '', enhancedCode: '5.1.1', provider: '', pattern: 'user unknown', class: 'hard', category: 'Invalid Recipient', action: 'suppress', actionConfig: '', suggestedAction: 'User unknown; suppress the address.', priority: 100 },
   { smtpCode: '', enhancedCode: '5.1.10', provider: '', pattern: '', class: 'hard', category: 'Invalid Recipient', action: 'suppress', actionConfig: '', suggestedAction: 'Address does not exist (NULL MX); suppress.', priority: 100 },
@@ -28,6 +32,8 @@ const seeds: Seed[] = [
 export const bounceRules: BounceRule[] = seeds.map((s, i) => ({
   ...s,
   id: `br_${i}`,
+  minAttempts: s.minAttempts ?? 0,
+  suppressTtl: s.suppressTtl ?? '',
   source: 'default',
   status: 'active',
 }))

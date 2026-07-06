@@ -2542,6 +2542,8 @@ type BounceRule struct {
 	Status          string                 `protobuf:"bytes,13,opt,name=status,proto3" json:"status,omitempty"` // active | disabled
 	CreatedAt       string                 `protobuf:"bytes,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt       string                 `protobuf:"bytes,15,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	MinAttempts     int32                  `protobuf:"varint,16,opt,name=min_attempts,json=minAttempts,proto3" json:"min_attempts,omitempty"` // apply only after this many delivery attempts
+	SuppressTtl     string                 `protobuf:"bytes,17,opt,name=suppress_ttl,json=suppressTtl,proto3" json:"suppress_ttl,omitempty"`  // per-rule suppression lifetime (e.g. "30d")
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -2681,6 +2683,20 @@ func (x *BounceRule) GetUpdatedAt() string {
 	return ""
 }
 
+func (x *BounceRule) GetMinAttempts() int32 {
+	if x != nil {
+		return x.MinAttempts
+	}
+	return 0
+}
+
+func (x *BounceRule) GetSuppressTtl() string {
+	if x != nil {
+		return x.SuppressTtl
+	}
+	return ""
+}
+
 type ListBounceRulesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -2773,6 +2789,8 @@ type CreateBounceRuleRequest struct {
 	ActionConfig    string                 `protobuf:"bytes,8,opt,name=action_config,json=actionConfig,proto3" json:"action_config,omitempty"`
 	SuggestedAction string                 `protobuf:"bytes,9,opt,name=suggested_action,json=suggestedAction,proto3" json:"suggested_action,omitempty"`
 	Priority        int32                  `protobuf:"varint,10,opt,name=priority,proto3" json:"priority,omitempty"`
+	MinAttempts     int32                  `protobuf:"varint,11,opt,name=min_attempts,json=minAttempts,proto3" json:"min_attempts,omitempty"`
+	SuppressTtl     string                 `protobuf:"bytes,12,opt,name=suppress_ttl,json=suppressTtl,proto3" json:"suppress_ttl,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -2877,6 +2895,20 @@ func (x *CreateBounceRuleRequest) GetPriority() int32 {
 	return 0
 }
 
+func (x *CreateBounceRuleRequest) GetMinAttempts() int32 {
+	if x != nil {
+		return x.MinAttempts
+	}
+	return 0
+}
+
+func (x *CreateBounceRuleRequest) GetSuppressTtl() string {
+	if x != nil {
+		return x.SuppressTtl
+	}
+	return ""
+}
+
 type UpdateBounceRuleRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -2891,6 +2923,8 @@ type UpdateBounceRuleRequest struct {
 	SuggestedAction string                 `protobuf:"bytes,10,opt,name=suggested_action,json=suggestedAction,proto3" json:"suggested_action,omitempty"`
 	Priority        int32                  `protobuf:"varint,11,opt,name=priority,proto3" json:"priority,omitempty"`
 	Status          string                 `protobuf:"bytes,12,opt,name=status,proto3" json:"status,omitempty"`
+	MinAttempts     int32                  `protobuf:"varint,13,opt,name=min_attempts,json=minAttempts,proto3" json:"min_attempts,omitempty"`
+	SuppressTtl     string                 `protobuf:"bytes,14,opt,name=suppress_ttl,json=suppressTtl,proto3" json:"suppress_ttl,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -3005,6 +3039,20 @@ func (x *UpdateBounceRuleRequest) GetPriority() int32 {
 func (x *UpdateBounceRuleRequest) GetStatus() string {
 	if x != nil {
 		return x.Status
+	}
+	return ""
+}
+
+func (x *UpdateBounceRuleRequest) GetMinAttempts() int32 {
+	if x != nil {
+		return x.MinAttempts
+	}
+	return 0
+}
+
+func (x *UpdateBounceRuleRequest) GetSuppressTtl() string {
+	if x != nil {
+		return x.SuppressTtl
 	}
 	return ""
 }
@@ -3131,6 +3179,7 @@ type TestBounceDiagnosticRequest struct {
 	SmtpCode      string                 `protobuf:"bytes,1,opt,name=smtp_code,json=smtpCode,proto3" json:"smtp_code,omitempty"`
 	Domain        string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`         // recipient domain (derives provider when blank)
 	Diagnostic    string                 `protobuf:"bytes,3,opt,name=diagnostic,proto3" json:"diagnostic,omitempty"` // full SMTP response text
+	Attempts      int32                  `protobuf:"varint,4,opt,name=attempts,proto3" json:"attempts,omitempty"`    // delivery attempts so far (gates min_attempts rules)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3184,6 +3233,13 @@ func (x *TestBounceDiagnosticRequest) GetDiagnostic() string {
 		return x.Diagnostic
 	}
 	return ""
+}
+
+func (x *TestBounceDiagnosticRequest) GetAttempts() int32 {
+	if x != nil {
+		return x.Attempts
+	}
+	return 0
 }
 
 type TestBounceDiagnosticReply struct {
@@ -14853,7 +14909,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06status\x18\t \x01(\tR\x06status\"H\n" +
 	"\x1eSetAutomationRuleStatusRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\"\xb8\x03\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\"\xfe\x03\n" +
 	"\n" +
 	"BounceRule\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
@@ -14873,10 +14929,12 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x0e \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x0f \x01(\tR\tupdatedAt\"\x18\n" +
+	"updated_at\x18\x0f \x01(\tR\tupdatedAt\x12!\n" +
+	"\fmin_attempts\x18\x10 \x01(\x05R\vminAttempts\x12!\n" +
+	"\fsuppress_ttl\x18\x11 \x01(\tR\vsuppressTtl\"\x18\n" +
 	"\x16ListBounceRulesRequest\"G\n" +
 	"\x14ListBounceRulesReply\x12/\n" +
-	"\x05items\x18\x01 \x03(\v2\x19.iris.admin.v1.BounceRuleR\x05items\"\xc7\x02\n" +
+	"\x05items\x18\x01 \x03(\v2\x19.iris.admin.v1.BounceRuleR\x05items\"\x8d\x03\n" +
 	"\x17CreateBounceRuleRequest\x12\x1b\n" +
 	"\tsmtp_code\x18\x01 \x01(\tR\bsmtpCode\x12#\n" +
 	"\renhanced_code\x18\x02 \x01(\tR\fenhancedCode\x12\x1a\n" +
@@ -14888,7 +14946,9 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\raction_config\x18\b \x01(\tR\factionConfig\x12)\n" +
 	"\x10suggested_action\x18\t \x01(\tR\x0fsuggestedAction\x12\x1a\n" +
 	"\bpriority\x18\n" +
-	" \x01(\x05R\bpriority\"\xef\x02\n" +
+	" \x01(\x05R\bpriority\x12!\n" +
+	"\fmin_attempts\x18\v \x01(\x05R\vminAttempts\x12!\n" +
+	"\fsuppress_ttl\x18\f \x01(\tR\vsuppressTtl\"\xb5\x03\n" +
 	"\x17UpdateBounceRuleRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\tsmtp_code\x18\x02 \x01(\tR\bsmtpCode\x12#\n" +
@@ -14902,17 +14962,20 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x10suggested_action\x18\n" +
 	" \x01(\tR\x0fsuggestedAction\x12\x1a\n" +
 	"\bpriority\x18\v \x01(\x05R\bpriority\x12\x16\n" +
-	"\x06status\x18\f \x01(\tR\x06status\")\n" +
+	"\x06status\x18\f \x01(\tR\x06status\x12!\n" +
+	"\fmin_attempts\x18\r \x01(\x05R\vminAttempts\x12!\n" +
+	"\fsuppress_ttl\x18\x0e \x01(\tR\vsuppressTtl\")\n" +
 	"\x17DeleteBounceRuleRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x17\n" +
 	"\x15DeleteBounceRuleReply\"\x19\n" +
-	"\x17ResetBounceRulesRequest\"r\n" +
+	"\x17ResetBounceRulesRequest\"\x8e\x01\n" +
 	"\x1bTestBounceDiagnosticRequest\x12\x1b\n" +
 	"\tsmtp_code\x18\x01 \x01(\tR\bsmtpCode\x12\x16\n" +
 	"\x06domain\x18\x02 \x01(\tR\x06domain\x12\x1e\n" +
 	"\n" +
 	"diagnostic\x18\x03 \x01(\tR\n" +
-	"diagnostic\"\xed\x01\n" +
+	"diagnostic\x12\x1a\n" +
+	"\battempts\x18\x04 \x01(\x05R\battempts\"\xed\x01\n" +
 	"\x19TestBounceDiagnosticReply\x12\x1b\n" +
 	"\tsmtp_code\x18\x01 \x01(\tR\bsmtpCode\x12#\n" +
 	"\renhanced_code\x18\x02 \x01(\tR\fenhancedCode\x12\x1a\n" +

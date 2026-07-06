@@ -673,6 +673,8 @@ message BounceRule {
   string status = 13;           // active | disabled
   string created_at = 14;
   string updated_at = 15;
+  int32 min_attempts = 16;      // apply only after this many delivery attempts
+  string suppress_ttl = 17;     // per-rule suppression lifetime (e.g. "30d")
 }
 message ListBounceRulesRequest {}
 message ListBounceRulesReply {
@@ -689,6 +691,8 @@ message CreateBounceRuleRequest {
   string action_config = 8;
   string suggested_action = 9;
   int32 priority = 10;
+  int32 min_attempts = 11;
+  string suppress_ttl = 12;
 }
 message UpdateBounceRuleRequest {
   string id = 1;
@@ -703,6 +707,8 @@ message UpdateBounceRuleRequest {
   string suggested_action = 10;
   int32 priority = 11;
   string status = 12;
+  int32 min_attempts = 13;
+  string suppress_ttl = 14;
 }
 message DeleteBounceRuleRequest {
   string id = 1;
@@ -714,6 +720,7 @@ message TestBounceDiagnosticRequest {
   string smtp_code = 1;
   string domain = 2;      // recipient domain (derives provider when blank)
   string diagnostic = 3;  // full SMTP response text
+  int32 attempts = 4;     // delivery attempts so far (gates min_attempts rules)
 }
 message TestBounceDiagnosticReply {
   // The normalized signature the matcher evaluated.

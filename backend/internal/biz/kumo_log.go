@@ -31,6 +31,10 @@ type KumoLogRecord struct {
 		Code    int32  `json:"code"`
 		Content string `json:"content"`
 	} `json:"response"`
+	// NumAttempts is KumoMTA's delivery-attempt counter for the message, present
+	// on Delivery/TransientFailure/Bounce records. Used to gate bounce rules on a
+	// minimum number of retries (e.g. suppress only after N transient failures).
+	NumAttempts int `json:"num_attempts"`
 	// BounceClassification is the category KumoMTA's bounce classifier assigns
 	// (InvalidRecipient, SpamBlock, QuotaIssue, …); present on Bounce records
 	// when configure_bounce_classifier is loaded.

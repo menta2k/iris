@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/menta2k/iris/backend/internal/biz"
 	"github.com/menta2k/iris/backend/internal/data"
@@ -12,13 +13,14 @@ import (
 type fakeBounceStore struct {
 	soft             map[string]int
 	suppressed       map[string]string // recipient -> source
+	suppressTTL      map[string]time.Duration
 	recipientByMsgID map[string]string
 	suppressErr      error
 	mailEvents       []*biz.MailRecord
 }
 
 func newFakeBounceStore() *fakeBounceStore {
-	return &fakeBounceStore{soft: map[string]int{}, suppressed: map[string]string{}, recipientByMsgID: map[string]string{}}
+	return &fakeBounceStore{soft: map[string]int{}, suppressed: map[string]string{}, suppressTTL: map[string]time.Duration{}, recipientByMsgID: map[string]string{}}
 }
 
 func (f *fakeBounceStore) InsertMailEvent(_ context.Context, m *biz.MailRecord) error {
@@ -44,6 +46,13 @@ func (f *fakeBounceStore) SuppressRecipient(_ context.Context, email, source, _ 
 	}
 	f.suppressed[email] = source
 	return nil
+}
+
+func (f *fakeBounceStore) SuppressRecipientFor(ctx context.Context, email, source, reason string, ttl time.Duration) error {
+	if ttl > 0 {
+		f.suppressTTL[email] = ttl
+	}
+	return f.SuppressRecipient(ctx, email, source, reason)
 }
 
 // fakePolicy returns a fixed bounce policy.
@@ -113,6 +122,40 @@ func TestApplyBouncePolicyRuleEngine(t *testing.T) {
 	w.applyBouncePolicy(ctx, &biz.BounceRecord{Recipient: "gone@dest.example", SMTPStatus: "550", Diagnostic: "550 mailbox unavailable"})
 	if store.suppressed["gone@dest.example"] != "bounce" {
 		t.Fatalf("unmatched hard bounce should use legacy suppression, got %+v", store.suppressed)
+	}
+}
+
+func TestApplyDeferralRulesThresholdAndTTL(t *testing.T) {
+	ctx := context.Background()
+	rules := []*biz.BounceActionRule{
+		{SMTPCode: "452", Pattern: "out of storage", Action: biz.BounceActionSuppress,
+			Category: "Mailbox Full (persistent)", MinAttempts: 7, SuppressTTL: "30d", Priority: 110, Status: "active"},
+		{SMTPCode: "452", Pattern: "storage", Action: biz.BounceActionRetry, Priority: 80, Status: "active"},
+	}
+	defer452 := func(attempts int) *biz.KumoLogRecord {
+		r := &biz.KumoLogRecord{Type: biz.KumoTransientFailure, Recipient: "full@dest.example", NumAttempts: attempts}
+		r.Response.Code = 452
+		r.Response.Content = "452 the recipient's inbox is out of storage space"
+		return r
+	}
+
+	// Below the threshold → the retry rule wins → no suppression.
+	store := newFakeBounceStore()
+	w := newWorker(store, store, fakePolicy{}).WithBounceRules(fakeBounceRules{rules})
+	w.applyDeferralRules(ctx, defer452(3), time.Time{})
+	if len(store.suppressed) != 0 {
+		t.Fatalf("attempt 3 must not suppress (below MinAttempts), got %+v", store.suppressed)
+	}
+
+	// At/above the threshold → suppress with the per-rule 30d TTL.
+	store = newFakeBounceStore()
+	w = newWorker(store, store, fakePolicy{}).WithBounceRules(fakeBounceRules{rules})
+	w.applyDeferralRules(ctx, defer452(7), time.Time{})
+	if store.suppressed["full@dest.example"] != "bounce" {
+		t.Fatalf("attempt 7 should suppress, got %+v", store.suppressed)
+	}
+	if store.suppressTTL["full@dest.example"] != 30*24*time.Hour {
+		t.Fatalf("expected 30d TTL, got %v", store.suppressTTL["full@dest.example"])
 	}
 }
 
