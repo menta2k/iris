@@ -200,12 +200,12 @@ func TestRenderEgressPinning(t *testing.T) {
 	if err != nil || !off.Valid {
 		t.Fatalf("render off: err=%v valid=%v", err, off.Valid)
 	}
-	if strings.Contains(off.Content, "iris_pin_egress_pool") || strings.Contains(off.Content, "@source") {
+	if strings.Contains(off.Content, "iris_pin_egress_pool") || strings.Contains(off.Content, "-pin-") {
 		t.Fatalf("pinning must not appear when disabled:\n%s", off.Content)
 	}
 
 	// On: still valid Lua, with the helper, the reception-hook call, and the
-	// "<pool>@<source>" resolution in get_egress_pool.
+	// "<pool>-pin-<source>" resolution in get_egress_pool.
 	on := base
 	on.PinEgressPerMessage = true
 	r, err := RenderKumoConfig(on)
@@ -215,11 +215,19 @@ func TestRenderEgressPinning(t *testing.T) {
 	for _, want := range []string{
 		"local function iris_pin_egress_pool(pool, msg)",
 		"pool = iris_pin_egress_pool(pool, msg)",
-		`local src = string.match(name, '@([^@]+)$')`,
+		`string.match(name, '.*%-pin%-(.+)$')`,
+		`return pool .. '-pin-' .. e.name`,
 	} {
 		if !strings.Contains(r.Content, want) {
 			t.Fatalf("pinning-on policy must contain %q:\n%s", want, r.Content)
 		}
+	}
+
+	// The pinned pool name must NOT contain '@' or ':' — those are KumoMTA
+	// queue-name delimiters (tenant@domain), and an '@' here corrupted the queue
+	// name in v5.5.0 (regular-mails@vmta-04@domain → "Malformed label").
+	if strings.Contains(r.Content, `.. '@' ..`) || strings.Contains(r.Content, `.. '@'..`) {
+		t.Fatalf("pinned pool name must not join with '@' (collides with tenant@domain):\n%s", r.Content)
 	}
 }
 

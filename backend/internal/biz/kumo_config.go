@@ -436,8 +436,10 @@ kumo.on('get_egress_pool', function(name)
   if not cfg or not cfg.entries or #cfg.entries == 0 then
 `)
 	if pin {
-		b.WriteString(`    -- Pinned single-source pool "<pool>@<source>": resolve to that one source.
-    local src = string.match(name, '@([^@]+)$')
+		b.WriteString(`    -- Pinned single-source pool "<pool>-pin-<source>": resolve to that one source.
+    -- The separator must avoid '@' / ':' / '!', which are KumoMTA queue-name
+    -- delimiters (tenant@domain) — '-pin-' uses only tenant-safe characters.
+    local src = string.match(name, '.*%-pin%-(.+)$')
     if src then
       return kumo.make_egress_pool { name = name, entries = { { name = src } } }
     end
@@ -476,7 +478,10 @@ local function iris_pin_egress_pool(pool, msg)
   for _, e in ipairs(cfg.entries) do
     acc = acc + (e.weight or 1)
     if pick < acc then
-      return pool .. '@' .. e.name
+      -- '-pin-' separator, not '@': the pinned name becomes the message tenant,
+      -- and KumoMTA's scheduled-queue name is "tenant@domain" — an '@' here would
+      -- corrupt the queue name (e.g. regular-mails@vmta-04@nra.bg → malformed).
+      return pool .. '-pin-' .. e.name
     end
   end
   return pool
