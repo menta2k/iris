@@ -109,6 +109,7 @@ func (uc *GlobalSettingsUsecase) Effective(ctx context.Context) (KumoConfigSetti
 	if row.InboundMaildirBasePath != "" {
 		s.InboundMaildirBase = row.InboundMaildirBasePath
 	}
+	s.PinEgressPerMessage = row.PinEgressPerMessage
 	return s, nil
 }
 

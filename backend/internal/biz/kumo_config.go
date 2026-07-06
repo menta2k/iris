@@ -35,6 +35,11 @@ type ConfigSnapshot struct {
 	// the standard policy dir.
 	ShapingDir string
 
+	// PinEgressPerMessage keeps a message on one egress source across retries by
+	// deterministically mapping it (hash of message id) to a single source in its
+	// pool at reception, instead of KumoMTA's per-attempt weighted round-robin.
+	PinEgressPerMessage bool
+
 	// TSAUrl, when set, is the KumoMTA Traffic Shaping Automation daemon URL the
 	// policy publishes log events to and subscribes to for adaptive (hourly)
 	// back-off. Empty disables TSA (static shaping only).
@@ -307,7 +312,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	// Egress sources (one per active VMTA).
 	rendered := writeEgressSources(&b, snap.VMTAs, snap.EgressEHLODefault)
 	// Egress pools: a singleton pool per VMTA + one per active group.
-	pools := writeEgressPools(&b, snap.VMTAs, snap.Groups, vmtaName)
+	pools := writeEgressPools(&b, snap.VMTAs, snap.Groups, vmtaName, snap.PinEgressPerMessage)
 	// Per-VMTA connection limits (max_connections) via the egress path config.
 	fwdTLS, _ := forwardTargets(snap)
 	writeEgressPaths(&b, snap.VMTAs, snap.TLSPolicies, fwdTLS, snap.ShapingDir, snap.TSAUrl)
@@ -322,7 +327,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	// Suppression lookup (redis-backed; the list is no longer rendered inline).
 	writeSuppression(&b, snap)
 	// Routing table (priority-ordered) and reception hook (which signs DKIM).
-	routes := writeRouting(&b, snap.Routes, vmtaName, groupName, snap.rspamdEnabled(), bounceEnabled(snap), inboundRoutesEnabled(snap), verpEnabled(snap), fblForwardEnabled(snap), dmarcEnabled(snap))
+	routes := writeRouting(&b, snap.Routes, vmtaName, groupName, snap.rspamdEnabled(), bounceEnabled(snap), inboundRoutesEnabled(snap), verpEnabled(snap), fblForwardEnabled(snap), dmarcEnabled(snap), snap.PinEgressPerMessage)
 	// get_queue_config maps tenant → egress pool (and the log-stream tracker).
 	writeQueueConfig(&b, snap)
 
@@ -381,7 +386,7 @@ end)
 	return n
 }
 
-func writeEgressPools(b *strings.Builder, vmtas []*VMTA, groups []*VMTAGroup, vmtaName map[string]string) int {
+func writeEgressPools(b *strings.Builder, vmtas []*VMTA, groups []*VMTAGroup, vmtaName map[string]string, pin bool) int {
 	b.WriteString("-- ===== egress pools (one per VMTA + one per group) =====\n")
 	b.WriteString("local POOLS = {}\n")
 	for _, v := range sortedVMTAs(vmtas) {
@@ -424,12 +429,56 @@ func writeEgressPools(b *strings.Builder, vmtas []*VMTA, groups []*VMTAGroup, vm
 kumo.on('get_egress_pool', function(name)
   local cfg = POOLS[name]
   if not cfg or not cfg.entries or #cfg.entries == 0 then
-    return kumo.make_egress_pool { name = name, entries = { { name = name } } }
+`)
+	if pin {
+		b.WriteString(`    -- Pinned single-source pool "<pool>@<source>": resolve to that one source.
+    local src = string.match(name, '@([^@]+)$')
+    if src then
+      return kumo.make_egress_pool { name = name, entries = { { name = src } } }
+    end
+`)
+	}
+	b.WriteString(`    return kumo.make_egress_pool { name = name, entries = { { name = name } } }
   end
   return kumo.make_egress_pool { name = name, entries = cfg.entries }
 end)
 
 `)
+	if pin {
+		// Deterministic per-message egress pinning helper (references POOLS above,
+		// used by the reception hook below). Lua 5.1-safe (no bitwise ops).
+		b.WriteString(`-- Map a message to ONE source in its pool, chosen by a stable hash of the
+-- message id (weighted by the pool weights), so it stays on that IP across
+-- retries instead of KumoMTA re-picking a source per attempt (WRR). Single-source
+-- or unknown pools are returned unchanged.
+local function iris_pin_egress_pool(pool, msg)
+  local cfg = POOLS[pool]
+  if not cfg or not cfg.entries or #cfg.entries <= 1 then
+    return pool
+  end
+  local id = tostring(msg:id() or '')
+  local h = 0
+  for i = 1, #id do
+    h = (h * 31 + string.byte(id, i)) % 2147483647
+  end
+  local total = 0
+  for _, e in ipairs(cfg.entries) do
+    total = total + (e.weight or 1)
+  end
+  if total <= 0 then return pool end
+  local pick = h % total
+  local acc = 0
+  for _, e in ipairs(cfg.entries) do
+    acc = acc + (e.weight or 1)
+    if pick < acc then
+      return pool .. '@' .. e.name
+    end
+  end
+  return pool
+end
+
+`)
+	}
 	return n
 }
 
@@ -498,7 +547,7 @@ local is_suppressed = kumo.memoize(_supp_lookup, {
 `)
 }
 
-func writeRouting(b *strings.Builder, routes []*RoutingRule, vmtaName, groupName map[string]string, rspamd, bounce, inboundRoutes, verp, fblForward, dmarc bool) int {
+func writeRouting(b *strings.Builder, routes []*RoutingRule, vmtaName, groupName map[string]string, rspamd, bounce, inboundRoutes, verp, fblForward, dmarc, pin bool) int {
 	b.WriteString("-- ===== routing rules (descending priority: higher priority wins) =====\n")
 	b.WriteString("-- A mailclass match is a header (name + value) pair; recipient matches use\n")
 	b.WriteString("-- the address/domain. The first matching rule (highest priority) wins.\n")
@@ -776,7 +825,13 @@ kumo.on('smtp_server_message_received', function(msg)
   end
   local pool = select_pool(msg, recipient, class)
   if pool then
-    msg:set_meta('tenant', pool)
+`)
+	if pin {
+		// Pin the message to one egress source in its pool so retries stay on the
+		// same IP (deterministic hash of the message id, weighted).
+		b.WriteString("    pool = iris_pin_egress_pool(pool, msg)\n")
+	}
+	b.WriteString(`    msg:set_meta('tenant', pool)
   end
 end)
 

@@ -2874,6 +2874,11 @@ components:
                     format: double
                 classify_api_base:
                     type: string
+                pin_egress_per_message:
+                    type: boolean
+                    description: |-
+                        Pin a message to one egress IP across retries (deterministic per-message
+                         source selection) instead of KumoMTA's per-attempt weighted round-robin.
             description: Global settings — deployment-level policy knobs an operator edits in the UI.
         InboundRoute:
             type: object
@@ -3939,6 +3944,9 @@ components:
                     format: double
                 classify_api_base:
                     type: string
+                pin_egress_per_message:
+                    type: boolean
+                    description: Pin egress IP per message across retries (see GlobalSettings).
         UpdateInboundRouteRequest:
             type: object
             properties:

@@ -733,6 +733,7 @@ export interface GlobalSettings {
   egressRetryInterval: string
   egressMaxRetryInterval: string
   egressMaxAge: string
+  pinEgressPerMessage: boolean
   bounceDomain: string
   bounceDomainTemplate: string
   autoSuppressHardBounces: boolean
@@ -765,6 +766,7 @@ export interface UpdateGlobalSettingsRequest {
   egress_retry_interval: string
   egress_max_retry_interval: string
   egress_max_age: string
+  pin_egress_per_message: boolean
   bounce_domain: string
   auto_suppress_hard_bounces: boolean
   soft_bounce_threshold: number

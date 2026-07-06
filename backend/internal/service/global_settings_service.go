@@ -53,6 +53,7 @@ func (s *Service) UpdateGlobalSettings(ctx context.Context, req *adminv1.UpdateG
 		ClassifyModel:           req.GetClassifyModel(),
 		ClassifyThreshold:       req.GetClassifyThreshold(),
 		ClassifyAPIBase:         req.GetClassifyApiBase(),
+		PinEgressPerMessage:     req.GetPinEgressPerMessage(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "UpdateGlobalSettings", err)
@@ -93,6 +94,7 @@ func settingsToProto(g *biz.GlobalSettings) *adminv1.GlobalSettings {
 		ClassifyModel:           g.ClassifyModel,
 		ClassifyThreshold:       g.ClassifyThreshold,
 		ClassifyApiBase:         g.ClassifyAPIBase,
+		PinEgressPerMessage:     g.PinEgressPerMessage,
 		UpdatedAt:               updatedAt,
 		UpdatedBy:               g.UpdatedBy,
 	}

@@ -18,6 +18,7 @@ export const globalSettings: GlobalSettings = {
   egressRetryInterval: '5m',
   egressMaxRetryInterval: '1h',
   egressMaxAge: '72h',
+  pinEgressPerMessage: false,
   bounceDomain: 'bounces.example.net',
   bounceDomainTemplate: 'b-{mailclass}.example.net',
   autoSuppressHardBounces: true,

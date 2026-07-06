@@ -1576,6 +1576,9 @@ message GlobalSettings {
   string classify_model = 28;
   double classify_threshold = 29;
   string classify_api_base = 30;
+  // Pin a message to one egress IP across retries (deterministic per-message
+  // source selection) instead of KumoMTA's per-attempt weighted round-robin.
+  bool pin_egress_per_message = 31;
 }
 message GetGlobalSettingsRequest {}
 message UpdateGlobalSettingsRequest {
@@ -1609,6 +1612,8 @@ message UpdateGlobalSettingsRequest {
   string classify_model = 26;
   double classify_threshold = 27;
   string classify_api_base = 28;
+  // Pin egress IP per message across retries (see GlobalSettings).
+  bool pin_egress_per_message = 29;
 }
 
 // A subject → label classification rule. source is "manual" (operator-authored)

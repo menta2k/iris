@@ -48,6 +48,7 @@ const form = ref({
   egress_retry_interval: '',
   egress_max_retry_interval: '',
   egress_max_age: '',
+  pin_egress_per_message: false,
   bounce_domain: '',
   bounce_domain_template: '',
   auto_suppress_hard_bounces: true,
@@ -79,6 +80,7 @@ function apply(s: GlobalSettings) {
     egress_retry_interval: s.egressRetryInterval || '',
     egress_max_retry_interval: s.egressMaxRetryInterval || '',
     egress_max_age: s.egressMaxAge || '',
+    pin_egress_per_message: s.pinEgressPerMessage ?? false,
     bounce_domain: s.bounceDomain || '',
     bounce_domain_template: s.bounceDomainTemplate || '',
     auto_suppress_hard_bounces: s.autoSuppressHardBounces ?? true,
@@ -139,6 +141,7 @@ async function save() {
         egress_retry_interval: form.value.egress_retry_interval,
         egress_max_retry_interval: form.value.egress_max_retry_interval,
         egress_max_age: form.value.egress_max_age,
+        pin_egress_per_message: form.value.pin_egress_per_message,
         bounce_domain: form.value.bounce_domain,
         bounce_domain_template: form.value.bounce_domain_template,
         auto_suppress_hard_bounces: form.value.auto_suppress_hard_bounces,
@@ -262,6 +265,26 @@ onMounted(load)
               <p class="text-caption text-medium-emphasis">
                 A message bounces if still undeliverable after this age.
               </p>
+            </div>
+            <div class="d-flex align-start ga-2">
+              <input
+                id="pin-egress"
+                v-model="form.pin_egress_per_message"
+                type="checkbox"
+                class="mt-1"
+                data-testid="pin-egress"
+              />
+              <div>
+                <Label for="pin-egress" class="font-weight-regular">
+                  Pin egress IP per message across retries
+                </Label>
+                <p class="text-caption text-medium-emphasis">
+                  Keep each message on a single sending IP for its whole lifecycle (the source is
+                  chosen deterministically by a hash of the message id, weighted by the pool). Off =
+                  KumoMTA's default weighted round-robin, which may retry the same message from
+                  different IPs. Only affects multi-IP pools.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>

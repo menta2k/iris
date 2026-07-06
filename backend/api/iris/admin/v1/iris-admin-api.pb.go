@@ -12781,8 +12781,11 @@ type GlobalSettings struct {
 	ClassifyModel     string  `protobuf:"bytes,28,opt,name=classify_model,json=classifyModel,proto3" json:"classify_model,omitempty"`
 	ClassifyThreshold float64 `protobuf:"fixed64,29,opt,name=classify_threshold,json=classifyThreshold,proto3" json:"classify_threshold,omitempty"`
 	ClassifyApiBase   string  `protobuf:"bytes,30,opt,name=classify_api_base,json=classifyApiBase,proto3" json:"classify_api_base,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Pin a message to one egress IP across retries (deterministic per-message
+	// source selection) instead of KumoMTA's per-attempt weighted round-robin.
+	PinEgressPerMessage bool `protobuf:"varint,31,opt,name=pin_egress_per_message,json=pinEgressPerMessage,proto3" json:"pin_egress_per_message,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *GlobalSettings) Reset() {
@@ -13018,6 +13021,13 @@ func (x *GlobalSettings) GetClassifyApiBase() string {
 	return ""
 }
 
+func (x *GlobalSettings) GetPinEgressPerMessage() bool {
+	if x != nil {
+		return x.PinEgressPerMessage
+	}
+	return false
+}
+
 type GetGlobalSettingsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -13085,8 +13095,10 @@ type UpdateGlobalSettingsRequest struct {
 	ClassifyModel     string  `protobuf:"bytes,26,opt,name=classify_model,json=classifyModel,proto3" json:"classify_model,omitempty"`
 	ClassifyThreshold float64 `protobuf:"fixed64,27,opt,name=classify_threshold,json=classifyThreshold,proto3" json:"classify_threshold,omitempty"`
 	ClassifyApiBase   string  `protobuf:"bytes,28,opt,name=classify_api_base,json=classifyApiBase,proto3" json:"classify_api_base,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Pin egress IP per message across retries (see GlobalSettings).
+	PinEgressPerMessage bool `protobuf:"varint,29,opt,name=pin_egress_per_message,json=pinEgressPerMessage,proto3" json:"pin_egress_per_message,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *UpdateGlobalSettingsRequest) Reset() {
@@ -13306,6 +13318,13 @@ func (x *UpdateGlobalSettingsRequest) GetClassifyApiBase() string {
 		return x.ClassifyApiBase
 	}
 	return ""
+}
+
+func (x *UpdateGlobalSettingsRequest) GetPinEgressPerMessage() bool {
+	if x != nil {
+		return x.PinEgressPerMessage
+	}
+	return false
 }
 
 // A subject → label classification rule. source is "manual" (operator-authored)
@@ -14736,7 +14755,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\vtotal_count\x18\x03 \x01(\x03R\n" +
 	"totalCount\x12\x14\n" +
 	"\x05range\x18\x04 \x01(\tR\x05range\x121\n" +
-	"\x14prometheus_available\x18\x05 \x01(\bR\x13prometheusAvailable\"\x9d\n" +
+	"\x14prometheus_available\x18\x05 \x01(\bR\x13prometheusAvailable\"\xd2\n" +
 	"\n" +
 	"\x0eGlobalSettings\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
@@ -14773,8 +14792,10 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x11classify_subjects\x18\x1b \x01(\bR\x10classifySubjects\x12%\n" +
 	"\x0eclassify_model\x18\x1c \x01(\tR\rclassifyModel\x12-\n" +
 	"\x12classify_threshold\x18\x1d \x01(\x01R\x11classifyThreshold\x12*\n" +
-	"\x11classify_api_base\x18\x1e \x01(\tR\x0fclassifyApiBaseJ\x04\b\r\x10\x0e\"\x1a\n" +
-	"\x18GetGlobalSettingsRequest\"\xec\t\n" +
+	"\x11classify_api_base\x18\x1e \x01(\tR\x0fclassifyApiBase\x123\n" +
+	"\x16pin_egress_per_message\x18\x1f \x01(\bR\x13pinEgressPerMessageJ\x04\b\r\x10\x0e\"\x1a\n" +
+	"\x18GetGlobalSettingsRequest\"\xa1\n" +
+	"\n" +
 	"\x1bUpdateGlobalSettingsRequest\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -14806,7 +14827,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x11classify_subjects\x18\x19 \x01(\bR\x10classifySubjects\x12%\n" +
 	"\x0eclassify_model\x18\x1a \x01(\tR\rclassifyModel\x12-\n" +
 	"\x12classify_threshold\x18\x1b \x01(\x01R\x11classifyThreshold\x12*\n" +
-	"\x11classify_api_base\x18\x1c \x01(\tR\x0fclassifyApiBaseJ\x04\b\r\x10\x0e\"\xf9\x01\n" +
+	"\x11classify_api_base\x18\x1c \x01(\tR\x0fclassifyApiBase\x123\n" +
+	"\x16pin_egress_per_message\x18\x1d \x01(\bR\x13pinEgressPerMessageJ\x04\b\r\x10\x0e\"\xf9\x01\n" +
 	"\x15SubjectClassification\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12-\n" +

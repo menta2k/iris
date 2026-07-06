@@ -179,6 +179,50 @@ func TestRenderDefinesSpoolsAndLocalLogs(t *testing.T) {
 	}
 }
 
+func TestRenderEgressPinning(t *testing.T) {
+	base := ConfigSnapshot{
+		VMTAs: []*VMTA{
+			{ID: "v1", Name: "vmta-a", ListenerID: "l1", IPAddress: "203.0.113.10", EHLOName: "a.example.com", Status: VMTAStatusActive},
+			{ID: "v2", Name: "vmta-b", ListenerID: "l1", IPAddress: "203.0.113.11", EHLOName: "b.example.com", Status: VMTAStatusActive},
+		},
+		Groups: []*VMTAGroup{
+			{ID: "g1", Name: "bulk-pool", Status: VMTAGroupStatusActive, Members: []VMTAGroupMember{
+				{VMTAID: "v1", Weight: 1}, {VMTAID: "v2", Weight: 1},
+			}},
+		},
+		Routes: []*RoutingRule{
+			{ID: "r1", Name: "bulk", MatchType: MatchMailclass, MatchValue: "bulk", Priority: 100, TargetType: TargetVMTAGroup, TargetID: "g1", Status: RoutingStatusActive},
+		},
+	}
+
+	// Off (default): byte-for-byte free of any pinning artifacts.
+	off, err := RenderKumoConfig(base)
+	if err != nil || !off.Valid {
+		t.Fatalf("render off: err=%v valid=%v", err, off.Valid)
+	}
+	if strings.Contains(off.Content, "iris_pin_egress_pool") || strings.Contains(off.Content, "@source") {
+		t.Fatalf("pinning must not appear when disabled:\n%s", off.Content)
+	}
+
+	// On: still valid Lua, with the helper, the reception-hook call, and the
+	// "<pool>@<source>" resolution in get_egress_pool.
+	on := base
+	on.PinEgressPerMessage = true
+	r, err := RenderKumoConfig(on)
+	if err != nil || !r.Valid {
+		t.Fatalf("render on: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	for _, want := range []string{
+		"local function iris_pin_egress_pool(pool, msg)",
+		"pool = iris_pin_egress_pool(pool, msg)",
+		`local src = string.match(name, '@([^@]+)$')`,
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Fatalf("pinning-on policy must contain %q:\n%s", want, r.Content)
+		}
+	}
+}
+
 func TestRenderChecksumIgnoresGeneratedBy(t *testing.T) {
 	// The generated_by comment records who rendered the policy; it must NOT change
 	// the checksum, or drift detection nags "changes pending" whenever a different

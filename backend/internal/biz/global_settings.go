@@ -34,6 +34,11 @@ type GlobalSettings struct {
 	EgressMaxRetryInterval string
 	EgressMaxAge           string
 
+	// PinEgressPerMessage keeps a message on one egress IP across retries
+	// (deterministic per-message source selection, hashed by message id) instead
+	// of KumoMTA's per-attempt weighted round-robin. Default false = round-robin.
+	PinEgressPerMessage bool
+
 	// Bounce / DSN pipeline.
 	BounceDomain            string
 	AutoSuppressHardBounces bool
