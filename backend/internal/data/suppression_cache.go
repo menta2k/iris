@@ -64,6 +64,35 @@ func (c *SuppressionCache) Del(ctx context.Context, typ, value string) error {
 	return nil
 }
 
+// Clear removes every live suppression key (supp:e:* and supp:d:*) via SCAN so it
+// never blocks Redis on a large keyspace, and never touches non-suppression keys
+// (the log stream shares this Redis). Returns the number of keys removed.
+func (c *SuppressionCache) Clear(ctx context.Context) (int, error) {
+	if c == nil || c.rdb == nil {
+		return 0, nil
+	}
+	removed := 0
+	for _, pattern := range []string{"supp:e:*", "supp:d:*"} {
+		var cursor uint64
+		for {
+			keys, next, err := c.rdb.Scan(ctx, cursor, pattern, 500).Result()
+			if err != nil {
+				return removed, fmt.Errorf("suppression cache scan: %w", err)
+			}
+			if len(keys) > 0 {
+				if err := c.rdb.Del(ctx, keys...).Err(); err != nil {
+					return removed, fmt.Errorf("suppression cache clear: %w", err)
+				}
+				removed += len(keys)
+			}
+			if cursor = next; cursor == 0 {
+				break
+			}
+		}
+	}
+	return removed, nil
+}
+
 // Backfill repopulates Redis from the active DB entries (e.g. at startup, or
 // after a Redis flush). Entries already past their expiry are skipped; entries
 // with a nil ExpiresAt are written without a TTL (permanent). Returns the number

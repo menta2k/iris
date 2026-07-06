@@ -63,6 +63,11 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	// Admin subcommands run a one-shot task and exit before the server starts.
+	if args := flag.Args(); len(args) > 0 {
+		os.Exit(runCommand(ctx, cfg, log, args))
+	}
+
 	app, cleanup, err := buildApp(ctx, cfg, log)
 	if err != nil {
 		log.Error("startup failed", "error", err.Error())

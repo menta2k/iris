@@ -171,6 +171,22 @@ func (r *DomainSafetyRepo) UpdateSuppression(ctx context.Context, id string, s *
 	return out, nil
 }
 
+// ClearAllSuppressions deletes every suppression entry from Postgres and flushes
+// the Redis live-suppression cache. Returns the number of DB rows removed. The
+// KumoMTA policy's memoized lookup (60s TTL) picks up the empty list within a
+// minute, so no restart is required.
+func (r *DomainSafetyRepo) ClearAllSuppressions(ctx context.Context) (int64, error) {
+	tag, err := r.db.Pool.Exec(ctx, `DELETE FROM suppression_entries`)
+	if err != nil {
+		return 0, fmt.Errorf("clear suppressions: %w", err)
+	}
+	if _, err := r.cache.Clear(ctx); err != nil {
+		// DB is already cleared; report the cache error but keep the DB count.
+		return tag.RowsAffected(), err
+	}
+	return tag.RowsAffected(), nil
+}
+
 // ListSuppressions returns suppression entries.
 func (r *DomainSafetyRepo) ListSuppressions(ctx context.Context, page biz.Page) ([]*biz.SuppressionEntry, error) {
 	rows, err := r.db.Pool.Query(ctx, `
