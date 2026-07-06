@@ -10,6 +10,7 @@ import (
 // MailOpsRepo is the persistence boundary for mail operations.
 type MailOpsRepo interface {
 	ListMailRecords(ctx context.Context, f MailFilter, page Page) ([]*MailRecord, error)
+	ListRecordsByMessageID(ctx context.Context, messageID string) ([]*MailRecord, error)
 	ListBounces(ctx context.Context, page Page) ([]*BounceRecord, error)
 	ListFeedbackReports(ctx context.Context, page Page) ([]*FeedbackReport, error)
 	CreateServiceControlRequest(ctx context.Context, rec *ServiceControlRecord) (*ServiceControlRecord, error)
@@ -62,6 +63,26 @@ func (uc *MailOpsUsecase) ListMailRecords(ctx context.Context, f MailFilter, pag
 		return nil, err
 	}
 	return uc.repo.ListMailRecords(ctx, nf, page)
+}
+
+// NextDeliveryAttempt estimates a deferred message's retry schedule — next
+// attempt, remaining attempts, and expiry — from its full recorded lifecycle and
+// the effective retry schedule. Read-only; returns Deferred=false when the
+// message already reached a terminal outcome.
+func (uc *MailOpsUsecase) NextDeliveryAttempt(ctx context.Context, messageID string, sched RetrySchedule) (*NextAttemptEstimate, error) {
+	if _, err := RequirePermission(ctx, PermMailRead); err != nil {
+		return nil, err
+	}
+	messageID = strings.TrimSpace(messageID)
+	if messageID == "" {
+		return nil, Invalid("MESSAGE_ID_REQUIRED", "message_id is required")
+	}
+	events, err := uc.repo.ListRecordsByMessageID(ctx, messageID)
+	if err != nil {
+		return nil, err
+	}
+	est := EstimateNextAttempt(events, sched)
+	return &est, nil
 }
 
 // ListBounces returns bounce records.

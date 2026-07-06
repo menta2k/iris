@@ -40,12 +40,69 @@ function domainCheck(domain: string) {
   }
 }
 
+const RETRY_INTERVAL_MS = 20 * 60 * 1000 // KumoMTA default retry_interval (20m)
+const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000 // default max_age (7d)
+
+// nextDeliveryAttempt mirrors the backend estimator over the mock records that
+// share a message id: exponential backoff (20m, doubling) up to a 7d max age.
+function nextDeliveryAttempt(messageId: string) {
+  const events = all('mailRecords').filter((r) => r.messageId === messageId)
+  let created = Infinity
+  let lastDeferral = -Infinity
+  let attempts = 0
+  let terminal = false
+  for (const e of events) {
+    const t = new Date(e.eventTime).getTime()
+    const rt = (e.recordType || '').toLowerCase()
+    const st = (e.status || '').toLowerCase()
+    if (rt === 'reception' || st === 'received') created = Math.min(created, t)
+    else if (rt === 'transientfailure' || st === 'deferred') { attempts++; lastDeferral = Math.max(lastDeferral, t) }
+    else if (['delivery', 'bounce', 'expiration'].includes(rt) || ['sent', 'delivered', 'bounced'].includes(st)) terminal = true
+  }
+  if (terminal || attempts === 0 || lastDeferral < 0) {
+    return { deferred: false, attempts, remainingAttempts: 0, willExpire: false }
+  }
+  let interval = RETRY_INTERVAL_MS * 2 ** (attempts - 1)
+  const nextAttempt = lastDeferral + interval
+  const expiresAt = Number.isFinite(created) ? created + MAX_AGE_MS : NaN
+  let remaining = 0
+  let final = 0
+  if (Number.isFinite(expiresAt)) {
+    let at = lastDeferral
+    let iv = interval
+    while (remaining < 100000) {
+      at += iv
+      if (at > expiresAt) break
+      remaining++
+      final = at
+      iv = Math.min(iv * 2, MAX_AGE_MS)
+    }
+  }
+  const isoOrUndef = (ms: number) => (Number.isFinite(ms) && ms > 0 ? new Date(ms).toISOString() : undefined)
+  return {
+    deferred: true,
+    attempts,
+    lastAttempt: isoOrUndef(lastDeferral),
+    nextAttempt: isoOrUndef(nextAttempt),
+    remainingAttempts: remaining,
+    finalAttempt: isoOrUndef(final),
+    willExpire: Number.isFinite(expiresAt) && nextAttempt > expiresAt,
+    expiresAt: isoOrUndef(expiresAt),
+    interval: `${Math.round(interval / 60000)}m`,
+  }
+}
+
 export const operationsRoutes: Route[] = [
   // ---- Mail records ----
   {
     method: 'GET',
     pattern: '/mail-records',
     handler: (ctx) => ok(paged(all('mailRecords'), ctx.query, { filter: mailRecordFilter(ctx.query), defaultSize: 25 })),
+  },
+  {
+    method: 'GET',
+    pattern: '/mail-records/:messageId/next-attempt',
+    handler: (ctx) => ok(nextDeliveryAttempt(decodeURIComponent(ctx.params.messageId))),
   },
 
   // ---- Bounces ----

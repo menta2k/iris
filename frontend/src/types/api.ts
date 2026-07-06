@@ -263,6 +263,19 @@ export interface UpdateBounceRuleRequest extends CreateBounceRuleRequest {
   status: string
 }
 
+// Estimated retry schedule for a deferred message (RFC3339 UTC timestamps).
+export interface NextDeliveryAttempt {
+  deferred: boolean
+  attempts: number
+  lastAttempt?: string
+  nextAttempt?: string
+  remainingAttempts: number
+  finalAttempt?: string
+  willExpire: boolean
+  expiresAt?: string
+  interval?: string
+}
+
 export interface TestBounceDiagnosticRequest {
   smtp_code: string
   domain: string

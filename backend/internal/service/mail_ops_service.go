@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -46,6 +47,43 @@ func (s *Service) ListMailRecords(ctx context.Context, req *adminv1.ListMailReco
 			FromHeader: m.FromHeader, SmtpStatus: m.SMTPStatus, Diagnostic: m.Diagnostic,
 			Classification: m.Classification,
 		})
+	}
+	return out, nil
+}
+
+// GetNextDeliveryAttempt estimates a deferred message's retry schedule.
+func (s *Service) GetNextDeliveryAttempt(ctx context.Context, req *adminv1.GetNextDeliveryAttemptRequest) (*adminv1.NextDeliveryAttempt, error) {
+	if s.mailOps == nil {
+		return nil, notImplemented("GetNextDeliveryAttempt")
+	}
+	var sched biz.RetrySchedule
+	if s.settings != nil {
+		sched = s.settings.RetryScheduleNow(ctx)
+	}
+	est, err := s.mailOps.NextDeliveryAttempt(ctx, req.GetMessageId(), sched)
+	if err != nil {
+		return nil, s.fail(ctx, "GetNextDeliveryAttempt", err)
+	}
+	out := &adminv1.NextDeliveryAttempt{
+		Deferred:          est.Deferred,
+		Attempts:          int32(est.Attempts),
+		RemainingAttempts: int32(est.RemainingAttempts),
+		WillExpire:        est.WillExpire,
+	}
+	if est.Interval > 0 {
+		out.Interval = est.Interval.String()
+	}
+	if !est.LastAttempt.IsZero() {
+		out.LastAttempt = est.LastAttempt.UTC().Format(time.RFC3339)
+	}
+	if !est.NextAttempt.IsZero() {
+		out.NextAttempt = est.NextAttempt.UTC().Format(time.RFC3339)
+	}
+	if !est.FinalAttempt.IsZero() {
+		out.FinalAttempt = est.FinalAttempt.UTC().Format(time.RFC3339)
+	}
+	if !est.ExpiresAt.IsZero() {
+		out.ExpiresAt = est.ExpiresAt.UTC().Format(time.RFC3339)
 	}
 	return out, nil
 }

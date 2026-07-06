@@ -49,6 +49,9 @@ type fakeMailOpsRepo struct {
 func (f *fakeMailOpsRepo) ListMailRecords(context.Context, MailFilter, Page) ([]*MailRecord, error) {
 	return nil, nil
 }
+func (f *fakeMailOpsRepo) ListRecordsByMessageID(context.Context, string) ([]*MailRecord, error) {
+	return nil, nil
+}
 func (f *fakeMailOpsRepo) ListBounces(context.Context, Page) ([]*BounceRecord, error) {
 	return nil, nil
 }

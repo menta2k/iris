@@ -93,6 +93,29 @@ export const mailRecords: MailRecord[] = MESSAGE_IDS.flatMap((mid, mi) => {
   })
 })
 
+// A message still stuck in the retry queue (reception + three deferrals, no
+// terminal event) so the detail view's estimated retry schedule is demonstrable.
+const STUCK_MID = messageId()
+mailRecords.push(
+  ...[350, 190, 95, 5].map((minAgo, k) => ({
+    id: `mr_stuck_${k}`,
+    messageId: STUCK_MID,
+    eventTime: iso(minAgo * MIN_MS),
+    mailclass: 'newsletter',
+    sender: 'bounce@mail.example.net',
+    fromHeader: '"Example" <news@example.net>',
+    recipient: 'stuck.user@rate-limited.example',
+    recipientDomain: 'rate-limited.example',
+    vmtaId: 'vmta3',
+    egressSource: 'vmta3',
+    status: k === 0 ? 'received' : 'deferred',
+    recordType: k === 0 ? 'Reception' : 'TransientFailure',
+    smtpStatus: k === 0 ? '' : '421 4.7.0 Try again later',
+    diagnostic: k === 0 ? '' : 'host said: 421 4.7.0 Delayed due to rate limiting',
+    classification: 'Newsletter',
+  }) satisfies MailRecord),
+)
+
 export const bounces: Bounce[] = Array.from({ length: 24 }, (_, i) => {
   const hard = i % 3 !== 0
   return {

@@ -59,6 +59,7 @@ const OperationIrisAdminServiceGetDmarcStats = "/iris.admin.v1.IrisAdminService/
 const OperationIrisAdminServiceGetGlobalSettings = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
 const OperationIrisAdminServiceGetMailClassStats = "/iris.admin.v1.IrisAdminService/GetMailClassStats"
 const OperationIrisAdminServiceGetMetricsTimeseries = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
+const OperationIrisAdminServiceGetNextDeliveryAttempt = "/iris.admin.v1.IrisAdminService/GetNextDeliveryAttempt"
 const OperationIrisAdminServiceGetQueueTimeHistogram = "/iris.admin.v1.IrisAdminService/GetQueueTimeHistogram"
 const OperationIrisAdminServiceGetRecipientDomainStats = "/iris.admin.v1.IrisAdminService/GetRecipientDomainStats"
 const OperationIrisAdminServiceGetWarmupDeliveryStats = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
@@ -190,6 +191,7 @@ type IrisAdminServiceHTTPServer interface {
 	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(context.Context, *GetMetricsTimeseriesRequest) (*MetricsTimeseries, error)
+	GetNextDeliveryAttempt(context.Context, *GetNextDeliveryAttemptRequest) (*NextDeliveryAttempt, error)
 	// GetQueueTimeHistogram GetQueueTimeHistogram returns the delivery queue-time distribution (from the
 	// iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
 	// to one mail class.
@@ -339,6 +341,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.POST("/v1/routing-rules", _IrisAdminService_CreateRoutingRule0_HTTP_Handler(srv))
 	r.PUT("/v1/routing-rules/{id}", _IrisAdminService_UpdateRoutingRule0_HTTP_Handler(srv))
 	r.GET("/v1/mail-records", _IrisAdminService_ListMailRecords0_HTTP_Handler(srv))
+	r.GET("/v1/mail-records/{message_id}/next-attempt", _IrisAdminService_GetNextDeliveryAttempt0_HTTP_Handler(srv))
 	r.GET("/v1/bounces", _IrisAdminService_ListBounces0_HTTP_Handler(srv))
 	r.GET("/v1/feedback-reports", _IrisAdminService_ListFeedbackReports0_HTTP_Handler(srv))
 	r.GET("/v1/queues", _IrisAdminService_ListQueues0_HTTP_Handler(srv))
@@ -1144,6 +1147,28 @@ func _IrisAdminService_ListMailRecords0_HTTP_Handler(srv IrisAdminServiceHTTPSer
 			return err
 		}
 		reply := out.(*ListMailRecordsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_GetNextDeliveryAttempt0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetNextDeliveryAttemptRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetNextDeliveryAttempt)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetNextDeliveryAttempt(ctx, req.(*GetNextDeliveryAttemptRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*NextDeliveryAttempt)
 		return ctx.Result(200, reply)
 	}
 }
@@ -2722,6 +2747,7 @@ type IrisAdminServiceHTTPClient interface {
 	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(ctx context.Context, req *GetMetricsTimeseriesRequest, opts ...http.CallOption) (rsp *MetricsTimeseries, err error)
+	GetNextDeliveryAttempt(ctx context.Context, req *GetNextDeliveryAttemptRequest, opts ...http.CallOption) (rsp *NextDeliveryAttempt, err error)
 	// GetQueueTimeHistogram GetQueueTimeHistogram returns the delivery queue-time distribution (from the
 	// iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
 	// to one mail class.
@@ -3380,6 +3406,19 @@ func (c *IrisAdminServiceHTTPClientImpl) GetMetricsTimeseries(ctx context.Contex
 	pattern := "/v1/dashboard/metrics"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceGetMetricsTimeseries))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) GetNextDeliveryAttempt(ctx context.Context, in *GetNextDeliveryAttemptRequest, opts ...http.CallOption) (*NextDeliveryAttempt, error) {
+	var out NextDeliveryAttempt
+	pattern := "/v1/mail-records/{message_id}/next-attempt"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetNextDeliveryAttempt))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

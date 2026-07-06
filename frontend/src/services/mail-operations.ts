@@ -6,6 +6,7 @@ import type {
   ListResponse,
   MailRecord,
   MailRecordFilters,
+  NextDeliveryAttempt,
   Queue,
   QueueActionRequest,
   QueueActionResponse,
@@ -18,6 +19,9 @@ export const mailOperationsService = {
     return http.get<ListResponse<MailRecord>>('/mail-records', {
       query: pageQuery(page, { ...filters }),
     })
+  },
+  nextDeliveryAttempt(messageId: string) {
+    return http.get<NextDeliveryAttempt>(`/mail-records/${encodeURIComponent(messageId)}/next-attempt`)
   },
   listBounces(page?: PageParams) {
     return http.get<ListResponse<Bounce>>('/bounces', { query: pageQuery(page) })

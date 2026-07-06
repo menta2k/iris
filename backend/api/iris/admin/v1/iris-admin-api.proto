@@ -115,6 +115,9 @@ service IrisAdminService {
   rpc ListMailRecords(ListMailRecordsRequest) returns (ListMailRecordsReply) {
     option (google.api.http) = { get: "/v1/mail-records" };
   }
+  rpc GetNextDeliveryAttempt(GetNextDeliveryAttemptRequest) returns (NextDeliveryAttempt) {
+    option (google.api.http) = { get: "/v1/mail-records/{message_id}/next-attempt" };
+  }
   rpc ListBounces(ListBouncesRequest) returns (ListBouncesReply) {
     option (google.api.http) = { get: "/v1/bounces" };
   }
@@ -875,6 +878,22 @@ message ListMailRecordsRequest {
 message ListMailRecordsReply {
   repeated MailRecord items = 1;
   PageReply page = 2;
+}
+message GetNextDeliveryAttemptRequest {
+  string message_id = 1;
+}
+// Estimated retry schedule for a deferred message (empty/deferred=false when the
+// message already reached a terminal outcome). Times are RFC3339 UTC.
+message NextDeliveryAttempt {
+  bool deferred = 1;
+  int32 attempts = 2;             // transient failures so far
+  string last_attempt = 3;        // time of the most recent deferral
+  string next_attempt = 4;        // estimated next delivery attempt
+  int32 remaining_attempts = 5;   // future attempts before expiry (incl. next)
+  string final_attempt = 6;       // last attempt that fits before expiry
+  bool will_expire = 7;           // next attempt would exceed max_age
+  string expires_at = 8;          // creation time + max_age
+  string interval = 9;            // delay until the next attempt (e.g. "1h20m")
 }
 message ListBouncesRequest { PageRequest page = 1; }
 message ListBouncesReply {

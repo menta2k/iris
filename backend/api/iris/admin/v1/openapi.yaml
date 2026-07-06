@@ -1258,6 +1258,24 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ListMailRecordsReply'
+    /v1/mail-records/{message_id}/next-attempt:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_GetNextDeliveryAttempt
+            parameters:
+                - name: message_id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NextDeliveryAttempt'
     /v1/mfa:confirm:
         post:
             tags:
@@ -3560,6 +3578,32 @@ components:
                     type: string
                 prometheus_available:
                     type: boolean
+        NextDeliveryAttempt:
+            type: object
+            properties:
+                deferred:
+                    type: boolean
+                attempts:
+                    type: integer
+                    format: int32
+                last_attempt:
+                    type: string
+                next_attempt:
+                    type: string
+                remaining_attempts:
+                    type: integer
+                    format: int32
+                final_attempt:
+                    type: string
+                will_expire:
+                    type: boolean
+                expires_at:
+                    type: string
+                interval:
+                    type: string
+            description: |-
+                Estimated retry schedule for a deferred message (empty/deferred=false when the
+                 message already reached a terminal outcome). Times are RFC3339 UTC.
         PageReply:
             type: object
             properties:

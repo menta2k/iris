@@ -56,6 +56,34 @@ func (r *MailOpsRepo) ListMailRecords(ctx context.Context, f biz.MailFilter, pag
 	return out, rows.Err()
 }
 
+// ListRecordsByMessageID returns every event for one message, oldest first, so
+// the retry-schedule estimator can reconstruct the full lifecycle (reception →
+// deferrals → outcome) regardless of table pagination. Bounded for safety.
+func (r *MailOpsRepo) ListRecordsByMessageID(ctx context.Context, messageID string) ([]*biz.MailRecord, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT id, message_id, event_time, mailclass, sender, from_header, recipient,
+		       recipient_domain, coalesce(vmta_id::text,''), egress_source, status, record_type, smtp_status, diagnostic, classification
+		FROM mail_records
+		WHERE message_id = $1
+		ORDER BY event_time
+		LIMIT 1000`, messageID)
+	if err != nil {
+		return nil, fmt.Errorf("query mail records by message id: %w", err)
+	}
+	defer rows.Close()
+	var out []*biz.MailRecord
+	for rows.Next() {
+		m := &biz.MailRecord{}
+		if err := rows.Scan(&m.ID, &m.MessageID, &m.EventTime, &m.Mailclass, &m.Sender,
+			&m.FromHeader, &m.Recipient, &m.RecipientDomain, &m.VMTAID, &m.EgressSource, &m.Status,
+			&m.RecordType, &m.SMTPStatus, &m.Diagnostic, &m.Classification); err != nil {
+			return nil, fmt.Errorf("scan mail record: %w", err)
+		}
+		out = append(out, m)
+	}
+	return out, rows.Err()
+}
+
 // ListBounces returns bounce records newest first.
 func (r *MailOpsRepo) ListBounces(ctx context.Context, page biz.Page) ([]*biz.BounceRecord, error) {
 	rows, err := r.db.Pool.Query(ctx, `
