@@ -232,7 +232,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	bounceRuleRepo := data.NewBounceRuleRepo(db)
 	bounceRuleUC := biz.NewBounceRuleUsecase(bounceRuleRepo, auditor)
 
-	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo, inboundRouteRepo, fblRepo, warmupRepo, blueprintRepo, automationRepo)
+	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo, inboundRouteRepo, fblRepo, warmupRepo, blueprintRepo, automationRepo, bounceRuleRepo)
 	kumoConfigUC := biz.NewKumoConfigUsecase(kumoSnapshotRepo, kumo, mailOpsRepo, auditor, settingsUC)
 	// Domain bounce-readiness checker (MX/SPF/DKIM via live DNS).
 	domainCheckUC := biz.NewDomainCheckUsecase(kumoSnapshotRepo, nil)

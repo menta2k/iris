@@ -428,8 +428,8 @@ load()
             <v-select id="b-action" v-model="form.action" :items="actionItems" variant="outlined" density="compact" hide-details />
           </v-col>
           <v-col cols="6" class="d-flex flex-column ga-1">
-            <Label for="b-cfg">Action config (throttle rate / suspend duration)</Label>
-            <Input id="b-cfg" v-model="form.action_config" placeholder="receiving/60m or 2h" />
+            <Label for="b-cfg">Action config (throttle: name=value · suspend: duration)</Label>
+            <Input id="b-cfg" v-model="form.action_config" placeholder="max_message_rate=100/h or 2h" />
           </v-col>
         </v-row>
         <div class="d-flex flex-column ga-1">

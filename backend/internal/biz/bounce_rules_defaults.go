@@ -22,13 +22,13 @@ func DefaultBounceRules() []*BounceActionRule {
 			"Connection dropped; retry.", 50),
 
 		// --- Rate limiting (throttle) ---
-		r("421", "4.7.0", "gmail", "rate", "soft", "Rate Limited (Too Many Requests)", BounceActionThrottle, "receiving/60m",
+		r("421", "4.7.0", "gmail", "rate", "soft", "Rate Limited (Too Many Requests)", BounceActionThrottle, "max_message_rate=100/h",
 			"Reduce connection rate and sending speed to Gmail.", 100),
-		r("421", "", "yahoo", "rate", "soft", "Rate Limited (Too Many Requests)", BounceActionThrottle, "receiving/60m",
+		r("421", "", "yahoo", "rate", "soft", "Rate Limited (Too Many Requests)", BounceActionThrottle, "max_message_rate=100/h",
 			"Back off; Yahoo is rate-limiting this IP.", 100),
-		r("", "4.7.0", "microsoft", "throttl", "soft", "Rate Limited (Too Many Requests)", BounceActionThrottle, "receiving/60m",
+		r("", "4.7.0", "microsoft", "throttl", "soft", "Rate Limited (Too Many Requests)", BounceActionThrottle, "max_message_rate=100/h",
 			"Reduce rate; Outlook/Microsoft throttling.", 100),
-		r("", "", "", "too many", "soft", "Rate Limited (Too Many Requests)", BounceActionThrottle, "receiving/30m",
+		r("", "", "", "too many", "soft", "Rate Limited (Too Many Requests)", BounceActionThrottle, "max_message_rate=50/h",
 			"Slow down sending to this destination.", 90),
 
 		// --- Policy / spam block (suspend the domain, do NOT suppress the user) ---

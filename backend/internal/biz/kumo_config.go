@@ -30,6 +30,11 @@ type ConfigSnapshot struct {
 	// rendered into iris-automation.toml (loaded by the TSA daemon).
 	AutomationRules []*AutomationRule
 
+	// BounceRules are the active bounce-action rules. throttle/suspend_domain
+	// rules are compiled into additional TSA automation blocks (retry/suppress
+	// rules are enforced elsewhere and produce no shaping).
+	BounceRules []*BounceActionRule
+
 	// ShapingDir is the directory the policy loads iris-base.toml + iris-warmup.toml
 	// from (written next to the policy by the apply adapter). Empty falls back to
 	// the standard policy dir.
@@ -355,7 +360,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 		// when ShapingDir is set; the policy loads them via kumo.shaping.load).
 		ShapingBase:       RenderBaseShaping(snap.Blueprints),
 		ShapingWarmup:     RenderWarmupShaping(snap.WarmupRates),
-		ShapingAutomation: RenderAutomation(snap.AutomationRules),
+		ShapingAutomation: RenderAutomation(mergeAutomation(snap.AutomationRules, BounceRulesToAutomation(snap.BounceRules))),
 	}, nil
 }
 
