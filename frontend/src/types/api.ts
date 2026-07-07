@@ -1215,3 +1215,58 @@ export interface RblCheckReply {
   checkedAt?: string
   skipped?: string[]
 }
+
+// ---- System self-monitoring ----
+
+export interface DiskUsage {
+  path: string
+  usedPercent: number
+  usedBytes: string // uint64 → JSON string
+  totalBytes: string
+}
+
+export interface SystemSnapshot {
+  collectedAt: string
+  cpuPercent: number
+  memPercent: number
+  memUsedBytes: string
+  memTotalBytes: string
+  disks?: DiskUsage[]
+  available: boolean
+}
+
+export interface MonitorSettings {
+  enabled: boolean
+  cpuThreshold: number
+  memThreshold: number
+  diskThreshold: number
+  diskPaths?: string[]
+  notifyEmails?: string[]
+  fromEmail: string
+  smtpHost: string
+  cooldownMinutes: number
+  sampleSeconds: number
+}
+
+export interface MonitorAlert {
+  id: string
+  resource: string
+  detail: string
+  level: string
+  value: number
+  threshold: number
+  message: string
+  notified: boolean
+  createdAt: string
+}
+
+export interface SystemMonitor {
+  snapshot?: SystemSnapshot
+  settings?: MonitorSettings
+  recentAlerts?: MonitorAlert[]
+}
+
+export interface TestMonitorNotificationResult {
+  ok: boolean
+  error?: string
+}

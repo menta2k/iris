@@ -1821,6 +1821,55 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ListSuppressionDsnMessagesReply'
+    /v1/system-monitor:
+        get:
+            tags:
+                - IrisAdminService
+            description: 'System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.'
+            operationId: IrisAdminService_GetSystemMonitor
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SystemMonitor'
+    /v1/system-monitor/settings:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateMonitorSettings
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateMonitorSettingsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MonitorSettings'
+    /v1/system-monitor:test:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_TestMonitorNotification
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/TestMonitorNotificationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TestMonitorNotificationReply'
     /v1/tls-policies:
         get:
             tags:
@@ -2931,6 +2980,19 @@ components:
         DisableMFARequest:
             type: object
             properties: {}
+        DiskUsage:
+            type: object
+            properties:
+                path:
+                    type: string
+                used_percent:
+                    type: number
+                    format: double
+                used_bytes:
+                    type: string
+                total_bytes:
+                    type: string
+            description: '---- System self-monitoring ----'
         DmarcCount:
             type: object
             properties:
@@ -3819,6 +3881,61 @@ components:
                     type: string
                 prometheus_available:
                     type: boolean
+        MonitorAlert:
+            type: object
+            properties:
+                id:
+                    type: string
+                resource:
+                    type: string
+                detail:
+                    type: string
+                level:
+                    type: string
+                value:
+                    type: number
+                    format: double
+                threshold:
+                    type: integer
+                    format: int32
+                message:
+                    type: string
+                notified:
+                    type: boolean
+                created_at:
+                    type: string
+        MonitorSettings:
+            type: object
+            properties:
+                enabled:
+                    type: boolean
+                cpu_threshold:
+                    type: integer
+                    format: int32
+                mem_threshold:
+                    type: integer
+                    format: int32
+                disk_threshold:
+                    type: integer
+                    format: int32
+                disk_paths:
+                    type: array
+                    items:
+                        type: string
+                notify_emails:
+                    type: array
+                    items:
+                        type: string
+                from_email:
+                    type: string
+                smtp_host:
+                    type: string
+                cooldown_minutes:
+                    type: integer
+                    format: int32
+                sample_seconds:
+                    type: integer
+                    format: int32
         NextDeliveryAttempt:
             type: object
             properties:
@@ -4267,6 +4384,38 @@ components:
                     type: string
                 expires_at:
                     type: string
+        SystemMonitor:
+            type: object
+            properties:
+                snapshot:
+                    $ref: '#/components/schemas/SystemSnapshot'
+                settings:
+                    $ref: '#/components/schemas/MonitorSettings'
+                recent_alerts:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/MonitorAlert'
+        SystemSnapshot:
+            type: object
+            properties:
+                collected_at:
+                    type: string
+                cpu_percent:
+                    type: number
+                    format: double
+                mem_percent:
+                    type: number
+                    format: double
+                mem_used_bytes:
+                    type: string
+                mem_total_bytes:
+                    type: string
+                disks:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DiskUsage'
+                available:
+                    type: boolean
         TLSPolicy:
             type: object
             properties:
@@ -4345,6 +4494,18 @@ components:
                 batch_max_wait:
                     type: string
             description: Send a synthetic event through the (possibly unsaved) processor's driver.
+        TestMonitorNotificationReply:
+            type: object
+            properties:
+                ok:
+                    type: boolean
+                error:
+                    type: string
+        TestMonitorNotificationRequest:
+            type: object
+            properties:
+                settings:
+                    $ref: '#/components/schemas/MonitorSettings'
         UpdateAutomationRuleRequest:
             type: object
             properties:
@@ -4610,6 +4771,11 @@ components:
                     type: string
                 role:
                     type: string
+        UpdateMonitorSettingsRequest:
+            type: object
+            properties:
+                settings:
+                    $ref: '#/components/schemas/MonitorSettings'
         UpdateRetentionPolicyRequest:
             type: object
             properties:

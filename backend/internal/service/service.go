@@ -45,6 +45,7 @@ type Service struct {
 	bounceRules     *biz.BounceRuleUsecase
 	eventProcessors *biz.EventProcessorUsecase
 	classifications *biz.SubjectClassificationUsecase
+	sysMon          *biz.SysMonUsecase
 }
 
 // Deps bundles the use cases the service delegates to. Fields may be nil for
@@ -77,6 +78,7 @@ type Deps struct {
 	BounceRules     *biz.BounceRuleUsecase
 	EventProcessors *biz.EventProcessorUsecase
 	Classifications *biz.SubjectClassificationUsecase
+	SysMon          *biz.SysMonUsecase
 }
 
 // NewService constructs the admin API service.
@@ -113,6 +115,7 @@ func NewService(d Deps) *Service {
 		bounceRules:     d.BounceRules,
 		eventProcessors: d.EventProcessors,
 		classifications: d.Classifications,
+		sysMon:          d.SysMon,
 	}
 }
 

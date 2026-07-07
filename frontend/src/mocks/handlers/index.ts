@@ -13,6 +13,7 @@ import { operationsRoutes } from './operations'
 import { outboundRoutes } from './outbound'
 import { securityRoutes } from './security'
 import { settingsRoutes } from './settings'
+import { systemMonitorRoutes } from './system-monitor'
 import { toolsRoutes } from './tools'
 
 export const routes: Route[] = [
@@ -26,5 +27,6 @@ export const routes: Route[] = [
   ...inboundHandlers,
   ...securityRoutes,
   ...settingsRoutes,
+  ...systemMonitorRoutes,
   ...toolsRoutes,
 ]

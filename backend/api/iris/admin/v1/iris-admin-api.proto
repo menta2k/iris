@@ -440,6 +440,17 @@ service IrisAdminService {
   rpc DeleteSubjectClassification(DeleteSubjectClassificationRequest) returns (DeleteSubjectClassificationReply) {
     option (google.api.http) = { delete: "/v1/subject-classifications/{id}" };
   }
+
+  // System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
+  rpc GetSystemMonitor(GetSystemMonitorRequest) returns (SystemMonitor) {
+    option (google.api.http) = { get: "/v1/system-monitor" };
+  }
+  rpc UpdateMonitorSettings(UpdateMonitorSettingsRequest) returns (MonitorSettings) {
+    option (google.api.http) = { put: "/v1/system-monitor/settings" body: "*" };
+  }
+  rpc TestMonitorNotification(TestMonitorNotificationRequest) returns (TestMonitorNotificationReply) {
+    option (google.api.http) = { post: "/v1/system-monitor:test" body: "*" };
+  }
 }
 
 // Pagination ----------------------------------------------------------------
@@ -1863,4 +1874,60 @@ message DeleteSubjectClassificationRequest {
 }
 message DeleteSubjectClassificationReply {
   bool ok = 1;
+}
+
+// ---- System self-monitoring ----
+message DiskUsage {
+  string path = 1;
+  double used_percent = 2;
+  uint64 used_bytes = 3;
+  uint64 total_bytes = 4;
+}
+message SystemSnapshot {
+  string collected_at = 1; // RFC3339, empty before the first sample
+  double cpu_percent = 2;
+  double mem_percent = 3;
+  uint64 mem_used_bytes = 4;
+  uint64 mem_total_bytes = 5;
+  repeated DiskUsage disks = 6;
+  bool available = 7;
+}
+message MonitorSettings {
+  bool enabled = 1;
+  int32 cpu_threshold = 2;  // percent; 0 disables the check
+  int32 mem_threshold = 3;
+  int32 disk_threshold = 4;
+  repeated string disk_paths = 5;
+  repeated string notify_emails = 6;
+  string from_email = 7;
+  string smtp_host = 8;      // host:port (default localhost:25)
+  int32 cooldown_minutes = 9;
+  int32 sample_seconds = 10;
+}
+message MonitorAlert {
+  string id = 1;
+  string resource = 2; // cpu | memory | disk
+  string detail = 3;   // disk path (empty for cpu/memory)
+  string level = 4;    // breached | recovered
+  double value = 5;
+  int32 threshold = 6;
+  string message = 7;
+  bool notified = 8;
+  string created_at = 9;
+}
+message SystemMonitor {
+  SystemSnapshot snapshot = 1;
+  MonitorSettings settings = 2;
+  repeated MonitorAlert recent_alerts = 3;
+}
+message GetSystemMonitorRequest {}
+message UpdateMonitorSettingsRequest {
+  MonitorSettings settings = 1;
+}
+message TestMonitorNotificationRequest {
+  MonitorSettings settings = 1;
+}
+message TestMonitorNotificationReply {
+  bool ok = 1;
+  string error = 2;
 }

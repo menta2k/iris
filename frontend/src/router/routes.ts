@@ -153,6 +153,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { permission: 'service:control', title: 'Event Processors' },
       },
       {
+        path: 'settings/system-monitor',
+        name: 'system-monitor',
+        component: () => import('@/pages/settings/SystemMonitorPage.vue'),
+        meta: { permission: 'service:control', title: 'System Monitor' },
+      },
+      {
         path: 'settings/feedback-loops',
         name: 'feedback-loops',
         component: () => import('@/pages/settings/FeedbackLoopsPage.vue'),

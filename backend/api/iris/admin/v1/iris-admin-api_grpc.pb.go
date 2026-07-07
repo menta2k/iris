@@ -132,6 +132,9 @@ const (
 	IrisAdminService_CreateSubjectClassification_FullMethodName = "/iris.admin.v1.IrisAdminService/CreateSubjectClassification"
 	IrisAdminService_UpdateSubjectClassification_FullMethodName = "/iris.admin.v1.IrisAdminService/UpdateSubjectClassification"
 	IrisAdminService_DeleteSubjectClassification_FullMethodName = "/iris.admin.v1.IrisAdminService/DeleteSubjectClassification"
+	IrisAdminService_GetSystemMonitor_FullMethodName            = "/iris.admin.v1.IrisAdminService/GetSystemMonitor"
+	IrisAdminService_UpdateMonitorSettings_FullMethodName       = "/iris.admin.v1.IrisAdminService/UpdateMonitorSettings"
+	IrisAdminService_TestMonitorNotification_FullMethodName     = "/iris.admin.v1.IrisAdminService/TestMonitorNotification"
 )
 
 // IrisAdminServiceClient is the client API for IrisAdminService service.
@@ -327,6 +330,10 @@ type IrisAdminServiceClient interface {
 	CreateSubjectClassification(ctx context.Context, in *CreateSubjectClassificationRequest, opts ...grpc.CallOption) (*SubjectClassification, error)
 	UpdateSubjectClassification(ctx context.Context, in *UpdateSubjectClassificationRequest, opts ...grpc.CallOption) (*SubjectClassification, error)
 	DeleteSubjectClassification(ctx context.Context, in *DeleteSubjectClassificationRequest, opts ...grpc.CallOption) (*DeleteSubjectClassificationReply, error)
+	// System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
+	GetSystemMonitor(ctx context.Context, in *GetSystemMonitorRequest, opts ...grpc.CallOption) (*SystemMonitor, error)
+	UpdateMonitorSettings(ctx context.Context, in *UpdateMonitorSettingsRequest, opts ...grpc.CallOption) (*MonitorSettings, error)
+	TestMonitorNotification(ctx context.Context, in *TestMonitorNotificationRequest, opts ...grpc.CallOption) (*TestMonitorNotificationReply, error)
 }
 
 type irisAdminServiceClient struct {
@@ -1467,6 +1474,36 @@ func (c *irisAdminServiceClient) DeleteSubjectClassification(ctx context.Context
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) GetSystemMonitor(ctx context.Context, in *GetSystemMonitorRequest, opts ...grpc.CallOption) (*SystemMonitor, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SystemMonitor)
+	err := c.cc.Invoke(ctx, IrisAdminService_GetSystemMonitor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) UpdateMonitorSettings(ctx context.Context, in *UpdateMonitorSettingsRequest, opts ...grpc.CallOption) (*MonitorSettings, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MonitorSettings)
+	err := c.cc.Invoke(ctx, IrisAdminService_UpdateMonitorSettings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) TestMonitorNotification(ctx context.Context, in *TestMonitorNotificationRequest, opts ...grpc.CallOption) (*TestMonitorNotificationReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TestMonitorNotificationReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_TestMonitorNotification_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IrisAdminServiceServer is the server API for IrisAdminService service.
 // All implementations must embed UnimplementedIrisAdminServiceServer
 // for forward compatibility.
@@ -1660,6 +1697,10 @@ type IrisAdminServiceServer interface {
 	CreateSubjectClassification(context.Context, *CreateSubjectClassificationRequest) (*SubjectClassification, error)
 	UpdateSubjectClassification(context.Context, *UpdateSubjectClassificationRequest) (*SubjectClassification, error)
 	DeleteSubjectClassification(context.Context, *DeleteSubjectClassificationRequest) (*DeleteSubjectClassificationReply, error)
+	// System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
+	GetSystemMonitor(context.Context, *GetSystemMonitorRequest) (*SystemMonitor, error)
+	UpdateMonitorSettings(context.Context, *UpdateMonitorSettingsRequest) (*MonitorSettings, error)
+	TestMonitorNotification(context.Context, *TestMonitorNotificationRequest) (*TestMonitorNotificationReply, error)
 	mustEmbedUnimplementedIrisAdminServiceServer()
 }
 
@@ -2008,6 +2049,15 @@ func (UnimplementedIrisAdminServiceServer) UpdateSubjectClassification(context.C
 }
 func (UnimplementedIrisAdminServiceServer) DeleteSubjectClassification(context.Context, *DeleteSubjectClassificationRequest) (*DeleteSubjectClassificationReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteSubjectClassification not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) GetSystemMonitor(context.Context, *GetSystemMonitorRequest) (*SystemMonitor, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSystemMonitor not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) UpdateMonitorSettings(context.Context, *UpdateMonitorSettingsRequest) (*MonitorSettings, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateMonitorSettings not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) TestMonitorNotification(context.Context, *TestMonitorNotificationRequest) (*TestMonitorNotificationReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method TestMonitorNotification not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) mustEmbedUnimplementedIrisAdminServiceServer() {}
 func (UnimplementedIrisAdminServiceServer) testEmbeddedByValue()                          {}
@@ -4064,6 +4114,60 @@ func _IrisAdminService_DeleteSubjectClassification_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_GetSystemMonitor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSystemMonitorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).GetSystemMonitor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_GetSystemMonitor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).GetSystemMonitor(ctx, req.(*GetSystemMonitorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_UpdateMonitorSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateMonitorSettingsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).UpdateMonitorSettings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_UpdateMonitorSettings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).UpdateMonitorSettings(ctx, req.(*UpdateMonitorSettingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_TestMonitorNotification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TestMonitorNotificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).TestMonitorNotification(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_TestMonitorNotification_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).TestMonitorNotification(ctx, req.(*TestMonitorNotificationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IrisAdminService_ServiceDesc is the grpc.ServiceDesc for IrisAdminService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -4522,6 +4626,18 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteSubjectClassification",
 			Handler:    _IrisAdminService_DeleteSubjectClassification_Handler,
+		},
+		{
+			MethodName: "GetSystemMonitor",
+			Handler:    _IrisAdminService_GetSystemMonitor_Handler,
+		},
+		{
+			MethodName: "UpdateMonitorSettings",
+			Handler:    _IrisAdminService_UpdateMonitorSettings_Handler,
+		},
+		{
+			MethodName: "TestMonitorNotification",
+			Handler:    _IrisAdminService_TestMonitorNotification_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

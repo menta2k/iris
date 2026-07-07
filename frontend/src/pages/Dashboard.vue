@@ -9,6 +9,7 @@ import RecentMailActivity from '@/components/dashboard/RecentMailActivity.vue'
 import RecentAuditActivity from '@/components/dashboard/RecentAuditActivity.vue'
 import MailFlowPanel from '@/components/dashboard/MailFlowPanel.vue'
 import WarmupStatsPanel from '@/components/dashboard/WarmupStatsPanel.vue'
+import SystemStatsPanel from '@/components/dashboard/SystemStatsPanel.vue'
 import MailVolumePanel, { type VolumeRow } from '@/components/dashboard/MailVolumePanel.vue'
 import QueueTimeHistogramPanel from '@/components/dashboard/QueueTimeHistogramPanel.vue'
 import { dashboardService, mailOperationsService, identityAuditService } from '@/services'
@@ -116,12 +117,13 @@ onMounted(load)
         <WarmupStatsPanel />
         <v-row dense>
           <v-col cols="12" lg="6">
-            <RecentMailActivity :events="recentMail" :count="summary?.recentMailEvents" />
+            <SystemStatsPanel />
           </v-col>
           <v-col cols="12" lg="6">
-            <RecentAuditActivity :events="recentAudit" :count="summary?.recentAuditEvents" />
+            <RecentMailActivity :events="recentMail" :count="summary?.recentMailEvents" />
           </v-col>
         </v-row>
+        <RecentAuditActivity :events="recentAudit" :count="summary?.recentAuditEvents" />
       </div>
     </DataState>
   </div>

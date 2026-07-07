@@ -64,6 +64,7 @@ const OperationIrisAdminServiceGetMetricsTimeseries = "/iris.admin.v1.IrisAdminS
 const OperationIrisAdminServiceGetNextDeliveryAttempt = "/iris.admin.v1.IrisAdminService/GetNextDeliveryAttempt"
 const OperationIrisAdminServiceGetQueueTimeHistogram = "/iris.admin.v1.IrisAdminService/GetQueueTimeHistogram"
 const OperationIrisAdminServiceGetRecipientDomainStats = "/iris.admin.v1.IrisAdminService/GetRecipientDomainStats"
+const OperationIrisAdminServiceGetSystemMonitor = "/iris.admin.v1.IrisAdminService/GetSystemMonitor"
 const OperationIrisAdminServiceGetWarmupDeliveryStats = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
 const OperationIrisAdminServiceKumoConfigStatus = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
 const OperationIrisAdminServiceListAcmeCertificates = "/iris.admin.v1.IrisAdminService/ListAcmeCertificates"
@@ -114,6 +115,7 @@ const OperationIrisAdminServiceSetAutomationRuleStatus = "/iris.admin.v1.IrisAdm
 const OperationIrisAdminServiceSetDeliveryBlueprintStatus = "/iris.admin.v1.IrisAdminService/SetDeliveryBlueprintStatus"
 const OperationIrisAdminServiceTestBounceDiagnostic = "/iris.admin.v1.IrisAdminService/TestBounceDiagnostic"
 const OperationIrisAdminServiceTestEventProcessor = "/iris.admin.v1.IrisAdminService/TestEventProcessor"
+const OperationIrisAdminServiceTestMonitorNotification = "/iris.admin.v1.IrisAdminService/TestMonitorNotification"
 const OperationIrisAdminServiceUpdateAutomationRule = "/iris.admin.v1.IrisAdminService/UpdateAutomationRule"
 const OperationIrisAdminServiceUpdateBounceRule = "/iris.admin.v1.IrisAdminService/UpdateBounceRule"
 const OperationIrisAdminServiceUpdateDKIMDomain = "/iris.admin.v1.IrisAdminService/UpdateDKIMDomain"
@@ -123,6 +125,7 @@ const OperationIrisAdminServiceUpdateFeedbackLoop = "/iris.admin.v1.IrisAdminSer
 const OperationIrisAdminServiceUpdateGlobalSettings = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
 const OperationIrisAdminServiceUpdateInboundRoute = "/iris.admin.v1.IrisAdminService/UpdateInboundRoute"
 const OperationIrisAdminServiceUpdateListener = "/iris.admin.v1.IrisAdminService/UpdateListener"
+const OperationIrisAdminServiceUpdateMonitorSettings = "/iris.admin.v1.IrisAdminService/UpdateMonitorSettings"
 const OperationIrisAdminServiceUpdateRetentionPolicy = "/iris.admin.v1.IrisAdminService/UpdateRetentionPolicy"
 const OperationIrisAdminServiceUpdateRoutingRule = "/iris.admin.v1.IrisAdminService/UpdateRoutingRule"
 const OperationIrisAdminServiceUpdateSubjectClassification = "/iris.admin.v1.IrisAdminService/UpdateSubjectClassification"
@@ -208,6 +211,8 @@ type IrisAdminServiceHTTPServer interface {
 	// GetRecipientDomainStats GetRecipientDomainStats returns the busiest recipient domains by mail volume
 	// over a lookback window — powers the dashboard "top recipient domains" panel.
 	GetRecipientDomainStats(context.Context, *GetRecipientDomainStatsRequest) (*RecipientDomainStats, error)
+	// GetSystemMonitor System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
+	GetSystemMonitor(context.Context, *GetSystemMonitorRequest) (*SystemMonitor, error)
 	// GetWarmupDeliveryStats GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
 	// bounce rates over a lookback window — used to watch IP-warmup health.
 	GetWarmupDeliveryStats(context.Context, *GetWarmupDeliveryStatsRequest) (*WarmupDeliveryStats, error)
@@ -303,6 +308,7 @@ type IrisAdminServiceHTTPServer interface {
 	SetDeliveryBlueprintStatus(context.Context, *SetDeliveryBlueprintStatusRequest) (*DeliveryBlueprint, error)
 	TestBounceDiagnostic(context.Context, *TestBounceDiagnosticRequest) (*TestBounceDiagnosticReply, error)
 	TestEventProcessor(context.Context, *TestEventProcessorRequest) (*TestEventProcessorReply, error)
+	TestMonitorNotification(context.Context, *TestMonitorNotificationRequest) (*TestMonitorNotificationReply, error)
 	UpdateAutomationRule(context.Context, *UpdateAutomationRuleRequest) (*AutomationRule, error)
 	UpdateBounceRule(context.Context, *UpdateBounceRuleRequest) (*BounceRule, error)
 	UpdateDKIMDomain(context.Context, *UpdateDKIMDomainRequest) (*DKIMDomain, error)
@@ -312,6 +318,7 @@ type IrisAdminServiceHTTPServer interface {
 	UpdateGlobalSettings(context.Context, *UpdateGlobalSettingsRequest) (*GlobalSettings, error)
 	UpdateInboundRoute(context.Context, *UpdateInboundRouteRequest) (*InboundRoute, error)
 	UpdateListener(context.Context, *UpdateListenerRequest) (*Listener, error)
+	UpdateMonitorSettings(context.Context, *UpdateMonitorSettingsRequest) (*MonitorSettings, error)
 	UpdateRetentionPolicy(context.Context, *UpdateRetentionPolicyRequest) (*RetentionPolicy, error)
 	UpdateRoutingRule(context.Context, *UpdateRoutingRuleRequest) (*RoutingRule, error)
 	UpdateSubjectClassification(context.Context, *UpdateSubjectClassificationRequest) (*SubjectClassification, error)
@@ -440,6 +447,9 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.POST("/v1/subject-classifications", _IrisAdminService_CreateSubjectClassification0_HTTP_Handler(srv))
 	r.PUT("/v1/subject-classifications/{id}", _IrisAdminService_UpdateSubjectClassification0_HTTP_Handler(srv))
 	r.DELETE("/v1/subject-classifications/{id}", _IrisAdminService_DeleteSubjectClassification0_HTTP_Handler(srv))
+	r.GET("/v1/system-monitor", _IrisAdminService_GetSystemMonitor0_HTTP_Handler(srv))
+	r.PUT("/v1/system-monitor/settings", _IrisAdminService_UpdateMonitorSettings0_HTTP_Handler(srv))
+	r.POST("/v1/system-monitor:test", _IrisAdminService_TestMonitorNotification0_HTTP_Handler(srv))
 }
 
 func _IrisAdminService_ListListeners0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
@@ -2859,6 +2869,69 @@ func _IrisAdminService_DeleteSubjectClassification0_HTTP_Handler(srv IrisAdminSe
 	}
 }
 
+func _IrisAdminService_GetSystemMonitor0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetSystemMonitorRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetSystemMonitor)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetSystemMonitor(ctx, req.(*GetSystemMonitorRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*SystemMonitor)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateMonitorSettings0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateMonitorSettingsRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateMonitorSettings)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateMonitorSettings(ctx, req.(*UpdateMonitorSettingsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*MonitorSettings)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_TestMonitorNotification0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in TestMonitorNotificationRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceTestMonitorNotification)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.TestMonitorNotification(ctx, req.(*TestMonitorNotificationRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*TestMonitorNotificationReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type IrisAdminServiceHTTPClient interface {
 	// ApplyKumoConfig ApplyKumoConfig renders the configuration, writes it to KumoMTA, and
 	// reloads the service. High-risk: requires confirmation and is audited.
@@ -2934,6 +3007,8 @@ type IrisAdminServiceHTTPClient interface {
 	// GetRecipientDomainStats GetRecipientDomainStats returns the busiest recipient domains by mail volume
 	// over a lookback window — powers the dashboard "top recipient domains" panel.
 	GetRecipientDomainStats(ctx context.Context, req *GetRecipientDomainStatsRequest, opts ...http.CallOption) (rsp *RecipientDomainStats, err error)
+	// GetSystemMonitor System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
+	GetSystemMonitor(ctx context.Context, req *GetSystemMonitorRequest, opts ...http.CallOption) (rsp *SystemMonitor, err error)
 	// GetWarmupDeliveryStats GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
 	// bounce rates over a lookback window — used to watch IP-warmup health.
 	GetWarmupDeliveryStats(ctx context.Context, req *GetWarmupDeliveryStatsRequest, opts ...http.CallOption) (rsp *WarmupDeliveryStats, err error)
@@ -3029,6 +3104,7 @@ type IrisAdminServiceHTTPClient interface {
 	SetDeliveryBlueprintStatus(ctx context.Context, req *SetDeliveryBlueprintStatusRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
 	TestBounceDiagnostic(ctx context.Context, req *TestBounceDiagnosticRequest, opts ...http.CallOption) (rsp *TestBounceDiagnosticReply, err error)
 	TestEventProcessor(ctx context.Context, req *TestEventProcessorRequest, opts ...http.CallOption) (rsp *TestEventProcessorReply, err error)
+	TestMonitorNotification(ctx context.Context, req *TestMonitorNotificationRequest, opts ...http.CallOption) (rsp *TestMonitorNotificationReply, err error)
 	UpdateAutomationRule(ctx context.Context, req *UpdateAutomationRuleRequest, opts ...http.CallOption) (rsp *AutomationRule, err error)
 	UpdateBounceRule(ctx context.Context, req *UpdateBounceRuleRequest, opts ...http.CallOption) (rsp *BounceRule, err error)
 	UpdateDKIMDomain(ctx context.Context, req *UpdateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
@@ -3038,6 +3114,7 @@ type IrisAdminServiceHTTPClient interface {
 	UpdateGlobalSettings(ctx context.Context, req *UpdateGlobalSettingsRequest, opts ...http.CallOption) (rsp *GlobalSettings, err error)
 	UpdateInboundRoute(ctx context.Context, req *UpdateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
 	UpdateListener(ctx context.Context, req *UpdateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
+	UpdateMonitorSettings(ctx context.Context, req *UpdateMonitorSettingsRequest, opts ...http.CallOption) (rsp *MonitorSettings, err error)
 	UpdateRetentionPolicy(ctx context.Context, req *UpdateRetentionPolicyRequest, opts ...http.CallOption) (rsp *RetentionPolicy, err error)
 	UpdateRoutingRule(ctx context.Context, req *UpdateRoutingRuleRequest, opts ...http.CallOption) (rsp *RoutingRule, err error)
 	UpdateSubjectClassification(ctx context.Context, req *UpdateSubjectClassificationRequest, opts ...http.CallOption) (rsp *SubjectClassification, err error)
@@ -3665,6 +3742,20 @@ func (c *IrisAdminServiceHTTPClientImpl) GetRecipientDomainStats(ctx context.Con
 	pattern := "/v1/dashboard/recipient-domain-stats"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceGetRecipientDomainStats))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetSystemMonitor System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
+func (c *IrisAdminServiceHTTPClientImpl) GetSystemMonitor(ctx context.Context, in *GetSystemMonitorRequest, opts ...http.CallOption) (*SystemMonitor, error) {
+	var out SystemMonitor
+	pattern := "/v1/system-monitor"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetSystemMonitor))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -4368,6 +4459,19 @@ func (c *IrisAdminServiceHTTPClientImpl) TestEventProcessor(ctx context.Context,
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) TestMonitorNotification(ctx context.Context, in *TestMonitorNotificationRequest, opts ...http.CallOption) (*TestMonitorNotificationReply, error) {
+	var out TestMonitorNotificationReply
+	pattern := "/v1/system-monitor:test"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceTestMonitorNotification))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) UpdateAutomationRule(ctx context.Context, in *UpdateAutomationRuleRequest, opts ...http.CallOption) (*AutomationRule, error) {
 	var out AutomationRule
 	pattern := "/v1/automation-rules/{id}"
@@ -4477,6 +4581,19 @@ func (c *IrisAdminServiceHTTPClientImpl) UpdateListener(ctx context.Context, in 
 	pattern := "/v1/listeners/{id}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateListener))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) UpdateMonitorSettings(ctx context.Context, in *UpdateMonitorSettingsRequest, opts ...http.CallOption) (*MonitorSettings, error) {
+	var out MonitorSettings
+	pattern := "/v1/system-monitor/settings"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateMonitorSettings))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {

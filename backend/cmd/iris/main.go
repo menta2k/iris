@@ -261,6 +261,12 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	domainSafetyRepo.WithEventEmitter(eventDispatcher)
 	dmarcUC.WithEventEmitter(eventDispatcher)
 
+	// Self-monitoring: sample host CPU/memory/disk, publish to the use case for
+	// the dashboard/API, and email alerts on threshold breaches.
+	monitorRepo := data.NewMonitorRepo(db)
+	sysMonUC := biz.NewSysMonUsecase(monitorRepo, data.NewSMTPNotifier(), auditor)
+	sysMonWorker := worker.NewSysMonWorker(data.NewHostSampler(), monitorRepo, data.NewSMTPNotifier(), sysMonUC.SetSnapshot, log.With("component", "system-monitor"))
+
 	// Generic worker error log: the repo is both the read API source and the
 	// sink behind the errlog slog handler that captures worker Warn/Error events.
 	workerErrorRepo := data.NewWorkerErrorRepo(db)
@@ -340,6 +346,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		BounceRules:     bounceRuleUC,
 		EventProcessors: eventProcessorUC,
 		Classifications: subjectClassAdminUC,
+		SysMon:          sysMonUC,
 	}
 
 	svc := service.NewService(deps)
@@ -361,6 +368,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	startWorker(ctx, log, "errlog-flush", errHandler.Run)
 	// Event Processor dispatch loop (delivers matched events to external services).
 	startWorker(ctx, log, "event-processor", eventDispatcher.Run)
+	startWorker(ctx, log, "system-monitor", sysMonWorker.Run)
 	startWorker(ctx, log, "service-control", worker.NewServiceControlWorker(streams, mailOpsRepo, kumo, wlog("service-control")).Run)
 	startWorker(ctx, log, "rspamd-ingest", worker.NewRspamdWorker(streams, inboundUC, wlog("rspamd-ingest")).Run)
 	// Ingest KumoMTA's structured logs (streamed by the generated policy's

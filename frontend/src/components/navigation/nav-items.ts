@@ -60,6 +60,7 @@ export const navItems: NavItem[] = [
       },
       { label: 'Feedback Loops', to: '/settings/feedback-loops', permission: 'service:control' },
       { label: 'Event Processors', to: '/settings/event-processors', permission: 'service:control' },
+      { label: 'System Monitor', to: '/settings/system-monitor', permission: 'service:control' },
       { label: 'Retention', to: '/operations/retention', permission: 'service:control' },
       {
         label: 'Service Control',
