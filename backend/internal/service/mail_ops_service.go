@@ -109,6 +109,28 @@ func (s *Service) ListBounces(ctx context.Context, req *adminv1.ListBouncesReque
 	return out, nil
 }
 
+// ListDsnMessages returns the raw DSN notifications archived for a recipient,
+// so the operator can read the full asynchronous bounce behind a dsn-type bounce.
+func (s *Service) ListDsnMessages(ctx context.Context, req *adminv1.ListDsnMessagesRequest) (*adminv1.ListDsnMessagesReply, error) {
+	if s.mailOps == nil {
+		return nil, notImplemented("ListDsnMessages")
+	}
+	msgs, err := s.mailOps.DSNMessagesForRecipient(ctx, req.GetRecipient())
+	if err != nil {
+		return nil, s.fail(ctx, "ListDsnMessages", err)
+	}
+	out := &adminv1.ListDsnMessagesReply{}
+	for _, m := range msgs {
+		out.Items = append(out.Items, &adminv1.DsnMessage{
+			Id:         m.ID,
+			MessageId:  m.MessageID,
+			RawMessage: m.RawMessage,
+			ReceivedAt: m.ReceivedAt.UTC().Format(time.RFC3339),
+		})
+	}
+	return out, nil
+}
+
 // ListFeedbackReports returns feedback reports (US2).
 func (s *Service) ListFeedbackReports(ctx context.Context, req *adminv1.ListFeedbackReportsRequest) (*adminv1.ListFeedbackReportsReply, error) {
 	if s.mailOps == nil {

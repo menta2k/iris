@@ -107,6 +107,48 @@ export const operationsRoutes: Route[] = [
 
   // ---- Bounces ----
   { method: 'GET', pattern: '/bounces', handler: (ctx) => ok(paged(all('bounces'), ctx.query)) },
+  {
+    method: 'GET',
+    pattern: '/dsn-messages',
+    handler: (ctx) => {
+      const recipient = (ctx.query.recipient || '').toString().toLowerCase()
+      const match = all('bounces').some(
+        (b) => (b as { recipient: string; bounceType: string }).recipient.toLowerCase() === recipient
+          && (b as { bounceType: string }).bounceType === 'dsn',
+      )
+      if (!recipient || !match) return ok({ items: [] })
+      return ok({
+        items: [
+          {
+            id: `dsn_${recipient}`,
+            messageId: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+            receivedAt: new Date().toISOString(),
+            rawMessage: [
+              'Return-Path: <>',
+              'From: Mail Delivery System <MAILER-DAEMON@mx.example.com>',
+              `To: <${recipient}>`,
+              'Subject: Undelivered Mail Returned to Sender',
+              'Content-Type: multipart/report; report-type=delivery-status;',
+              '',
+              'This is the mail system at host mx.example.com.',
+              '',
+              "I'm sorry to have to inform you that your message could not",
+              'be delivered to one or more recipients.',
+              '',
+              '--- The following addresses had permanent fatal errors ---',
+              `<${recipient}>`,
+              '    (reason: 550 5.1.1 <user> User unknown; rejecting)',
+              '',
+              '--- Delivery report ---',
+              'Action: failed',
+              'Status: 5.1.1',
+              'Diagnostic-Code: smtp; 550 5.1.1 recipient rejected',
+            ].join('\n'),
+          },
+        ],
+      })
+    },
+  },
 
   // ---- Feedback reports ----
   { method: 'GET', pattern: '/feedback-reports', handler: (ctx) => ok(paged(all('feedbackReports'), ctx.query)) },

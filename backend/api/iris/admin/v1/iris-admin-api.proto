@@ -133,6 +133,11 @@ service IrisAdminService {
   rpc GetNextDeliveryAttempt(GetNextDeliveryAttemptRequest) returns (NextDeliveryAttempt) {
     option (google.api.http) = { get: "/v1/mail-records/{message_id}/next-attempt" };
   }
+  // ListDsnMessages returns the raw DSN notifications archived for a recipient,
+  // so the operator can read the full asynchronous bounce behind a dsn-type bounce.
+  rpc ListDsnMessages(ListDsnMessagesRequest) returns (ListDsnMessagesReply) {
+    option (google.api.http) = { get: "/v1/dsn-messages" };
+  }
   rpc ListBounces(ListBouncesRequest) returns (ListBouncesReply) {
     option (google.api.http) = { get: "/v1/bounces" };
   }
@@ -987,6 +992,8 @@ message ListBouncesReply {
   repeated Bounce items = 1;
   PageReply page = 2;
 }
+message ListDsnMessagesRequest { string recipient = 1; }
+message ListDsnMessagesReply { repeated DsnMessage items = 1; }
 message ListFeedbackReportsRequest { PageRequest page = 1; }
 message ListFeedbackReportsReply {
   repeated FeedbackReport items = 1;

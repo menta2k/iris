@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -104,6 +105,32 @@ func (r *MailOpsRepo) ListBounces(ctx context.Context, page biz.Page) ([]*biz.Bo
 			return nil, fmt.Errorf("scan bounce: %w", err)
 		}
 		out = append(out, b)
+	}
+	return out, rows.Err()
+}
+
+// ListDSNMessages returns the raw DSN messages archived for a recipient, newest
+// first, bounded by limit. Reads the same dsn_messages table the DSN worker
+// writes; scoped by recipient (the resolved original address).
+func (r *MailOpsRepo) ListDSNMessages(ctx context.Context, recipient string, limit int) ([]*biz.DSNMessage, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT id, recipient, message_id, raw_message, received_at
+		FROM dsn_messages WHERE recipient = $1 ORDER BY received_at DESC LIMIT $2`,
+		strings.ToLower(strings.TrimSpace(recipient)), limit)
+	if err != nil {
+		return nil, fmt.Errorf("query dsn messages: %w", err)
+	}
+	defer rows.Close()
+	var out []*biz.DSNMessage
+	for rows.Next() {
+		m := &biz.DSNMessage{}
+		if err := rows.Scan(&m.ID, &m.Recipient, &m.MessageID, &m.RawMessage, &m.ReceivedAt); err != nil {
+			return nil, fmt.Errorf("scan dsn message: %w", err)
+		}
+		out = append(out, m)
 	}
 	return out, rows.Err()
 }

@@ -854,6 +854,26 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/DomainBounceCheck'
+    /v1/dsn-messages:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                ListDsnMessages returns the raw DSN notifications archived for a recipient,
+                 so the operator can read the full asynchronous bounce behind a dsn-type bounce.
+            operationId: IrisAdminService_ListDsnMessages
+            parameters:
+                - name: recipient
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListDsnMessagesReply'
     /v1/event-processors:
         get:
             tags:
@@ -3440,6 +3460,13 @@ components:
                         $ref: '#/components/schemas/DmarcReport'
                 page:
                     $ref: '#/components/schemas/PageReply'
+        ListDsnMessagesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DsnMessage'
         ListEventProcessorsReply:
             type: object
             properties:

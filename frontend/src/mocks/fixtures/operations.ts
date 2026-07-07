@@ -116,20 +116,35 @@ mailRecords.push(
   }) satisfies MailRecord),
 )
 
-export const bounces: Bounce[] = Array.from({ length: 24 }, (_, i) => {
-  const hard = i % 3 !== 0
-  return {
-    id: `bnc_${i}`,
-    eventTime: hoursAgo(i),
-    recipient: recipient(),
-    mailclass: pick(MAILCLASSES),
-    smtpStatus: hard ? '550 5.1.1' : '421 4.7.0',
-    bounceType: hard ? 'hard' : 'soft',
-    diagnostic: hard ? 'User unknown' : 'Try again later (rate limited)',
-    processingState: pick(['new', 'processing', 'suppressed', 'retried']),
-    classification: pick(CLASSIFICATIONS),
-  } satisfies Bounce
-})
+const dsnBounce: Bounce = {
+  id: 'bnc_dsn',
+  eventTime: hoursAgo(1),
+  recipient: 'async.bounce@example.com',
+  mailclass: pick(MAILCLASSES),
+  smtpStatus: '550',
+  bounceType: 'dsn',
+  diagnostic: 'asynchronous DSN at bounce domain',
+  processingState: 'processed',
+  classification: '',
+}
+
+export const bounces: Bounce[] = [
+  dsnBounce,
+  ...Array.from({ length: 24 }, (_, i) => {
+    const hard = i % 3 !== 0
+    return {
+      id: `bnc_${i}`,
+      eventTime: hoursAgo(i),
+      recipient: recipient(),
+      mailclass: pick(MAILCLASSES),
+      smtpStatus: hard ? '550 5.1.1' : '421 4.7.0',
+      bounceType: hard ? 'hard' : 'soft',
+      diagnostic: hard ? 'User unknown' : 'Try again later (rate limited)',
+      processingState: pick(['new', 'processing', 'suppressed', 'retried']),
+      classification: pick(CLASSIFICATIONS),
+    } satisfies Bounce
+  }),
+]
 
 export const feedbackReports: FeedbackReport[] = Array.from({ length: 9 }, (_, i) => ({
   id: `fbl_${i}`,

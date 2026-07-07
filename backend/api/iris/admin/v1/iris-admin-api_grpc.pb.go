@@ -58,6 +58,7 @@ const (
 	IrisAdminService_UpdateRoutingRule_FullMethodName           = "/iris.admin.v1.IrisAdminService/UpdateRoutingRule"
 	IrisAdminService_ListMailRecords_FullMethodName             = "/iris.admin.v1.IrisAdminService/ListMailRecords"
 	IrisAdminService_GetNextDeliveryAttempt_FullMethodName      = "/iris.admin.v1.IrisAdminService/GetNextDeliveryAttempt"
+	IrisAdminService_ListDsnMessages_FullMethodName             = "/iris.admin.v1.IrisAdminService/ListDsnMessages"
 	IrisAdminService_ListBounces_FullMethodName                 = "/iris.admin.v1.IrisAdminService/ListBounces"
 	IrisAdminService_ListFeedbackReports_FullMethodName         = "/iris.admin.v1.IrisAdminService/ListFeedbackReports"
 	IrisAdminService_ListQueues_FullMethodName                  = "/iris.admin.v1.IrisAdminService/ListQueues"
@@ -182,6 +183,9 @@ type IrisAdminServiceClient interface {
 	// Mail operations ----------------------------------------------------------
 	ListMailRecords(ctx context.Context, in *ListMailRecordsRequest, opts ...grpc.CallOption) (*ListMailRecordsReply, error)
 	GetNextDeliveryAttempt(ctx context.Context, in *GetNextDeliveryAttemptRequest, opts ...grpc.CallOption) (*NextDeliveryAttempt, error)
+	// ListDsnMessages returns the raw DSN notifications archived for a recipient,
+	// so the operator can read the full asynchronous bounce behind a dsn-type bounce.
+	ListDsnMessages(ctx context.Context, in *ListDsnMessagesRequest, opts ...grpc.CallOption) (*ListDsnMessagesReply, error)
 	ListBounces(ctx context.Context, in *ListBouncesRequest, opts ...grpc.CallOption) (*ListBouncesReply, error)
 	ListFeedbackReports(ctx context.Context, in *ListFeedbackReportsRequest, opts ...grpc.CallOption) (*ListFeedbackReportsReply, error)
 	ListQueues(ctx context.Context, in *ListQueuesRequest, opts ...grpc.CallOption) (*ListQueuesReply, error)
@@ -717,6 +721,16 @@ func (c *irisAdminServiceClient) GetNextDeliveryAttempt(ctx context.Context, in 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(NextDeliveryAttempt)
 	err := c.cc.Invoke(ctx, IrisAdminService_GetNextDeliveryAttempt_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ListDsnMessages(ctx context.Context, in *ListDsnMessagesRequest, opts ...grpc.CallOption) (*ListDsnMessagesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDsnMessagesReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListDsnMessages_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1502,6 +1516,9 @@ type IrisAdminServiceServer interface {
 	// Mail operations ----------------------------------------------------------
 	ListMailRecords(context.Context, *ListMailRecordsRequest) (*ListMailRecordsReply, error)
 	GetNextDeliveryAttempt(context.Context, *GetNextDeliveryAttemptRequest) (*NextDeliveryAttempt, error)
+	// ListDsnMessages returns the raw DSN notifications archived for a recipient,
+	// so the operator can read the full asynchronous bounce behind a dsn-type bounce.
+	ListDsnMessages(context.Context, *ListDsnMessagesRequest) (*ListDsnMessagesReply, error)
 	ListBounces(context.Context, *ListBouncesRequest) (*ListBouncesReply, error)
 	ListFeedbackReports(context.Context, *ListFeedbackReportsRequest) (*ListFeedbackReportsReply, error)
 	ListQueues(context.Context, *ListQueuesRequest) (*ListQueuesReply, error)
@@ -1769,6 +1786,9 @@ func (UnimplementedIrisAdminServiceServer) ListMailRecords(context.Context, *Lis
 }
 func (UnimplementedIrisAdminServiceServer) GetNextDeliveryAttempt(context.Context, *GetNextDeliveryAttemptRequest) (*NextDeliveryAttempt, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetNextDeliveryAttempt not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListDsnMessages(context.Context, *ListDsnMessagesRequest) (*ListDsnMessagesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDsnMessages not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) ListBounces(context.Context, *ListBouncesRequest) (*ListBouncesReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListBounces not implemented")
@@ -2708,6 +2728,24 @@ func _IrisAdminService_GetNextDeliveryAttempt_Handler(srv interface{}, ctx conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IrisAdminServiceServer).GetNextDeliveryAttempt(ctx, req.(*GetNextDeliveryAttemptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListDsnMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDsnMessagesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListDsnMessages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListDsnMessages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListDsnMessages(ctx, req.(*ListDsnMessagesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -4188,6 +4226,10 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetNextDeliveryAttempt",
 			Handler:    _IrisAdminService_GetNextDeliveryAttempt_Handler,
+		},
+		{
+			MethodName: "ListDsnMessages",
+			Handler:    _IrisAdminService_ListDsnMessages_Handler,
 		},
 		{
 			MethodName: "ListBounces",

@@ -13,6 +13,10 @@ type MailOpsRepo interface {
 	ListRecordsByMessageID(ctx context.Context, messageID string) ([]*MailRecord, error)
 	ListBounces(ctx context.Context, page Page) ([]*BounceRecord, error)
 	ListFeedbackReports(ctx context.Context, page Page) ([]*FeedbackReport, error)
+	// ListDSNMessages returns the raw DSN messages archived for a recipient,
+	// newest first, bounded by limit. Used to show the notification behind a
+	// dsn-type bounce.
+	ListDSNMessages(ctx context.Context, recipient string, limit int) ([]*DSNMessage, error)
 	CreateServiceControlRequest(ctx context.Context, rec *ServiceControlRecord) (*ServiceControlRecord, error)
 	ActiveServiceControlExists(ctx context.Context) (bool, error)
 	UpdateServiceControlStatus(ctx context.Context, id, status, resultSummary string) error
@@ -91,6 +95,20 @@ func (uc *MailOpsUsecase) ListBounces(ctx context.Context, page Page) ([]*Bounce
 		return nil, err
 	}
 	return uc.repo.ListBounces(ctx, page)
+}
+
+// DSNMessagesForRecipient returns the raw DSN notifications archived for a
+// recipient, so the operator can read the full asynchronous bounce behind a
+// dsn-type bounce row. Empty when nothing was archived for that recipient.
+func (uc *MailOpsUsecase) DSNMessagesForRecipient(ctx context.Context, recipient string) ([]*DSNMessage, error) {
+	if _, err := RequirePermission(ctx, PermMailRead); err != nil {
+		return nil, err
+	}
+	recipient = strings.ToLower(strings.TrimSpace(recipient))
+	if recipient == "" {
+		return nil, nil
+	}
+	return uc.repo.ListDSNMessages(ctx, recipient, 20)
 }
 
 // ListFeedbackReports returns feedback reports.

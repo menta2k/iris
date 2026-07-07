@@ -2,6 +2,7 @@ import { http } from './http'
 import { pageQuery, type PageParams } from './pagination'
 import type {
   Bounce,
+  DsnMessage,
   FeedbackReport,
   ListResponse,
   MailRecord,
@@ -25,6 +26,10 @@ export const mailOperationsService = {
   },
   listBounces(page?: PageParams) {
     return http.get<ListResponse<Bounce>>('/bounces', { query: pageQuery(page) })
+  },
+  // Raw DSN notifications archived for a recipient (behind a dsn-type bounce).
+  listDsnMessages(recipient: string) {
+    return http.get<ListResponse<DsnMessage>>('/dsn-messages', { query: { recipient } })
   },
   listFeedbackReports(page?: PageParams) {
     return http.get<ListResponse<FeedbackReport>>('/feedback-reports', { query: pageQuery(page) })

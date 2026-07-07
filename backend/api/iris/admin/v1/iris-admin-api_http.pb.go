@@ -76,6 +76,7 @@ const OperationIrisAdminServiceListDKIMDomains = "/iris.admin.v1.IrisAdminServic
 const OperationIrisAdminServiceListDeliveryBlueprints = "/iris.admin.v1.IrisAdminService/ListDeliveryBlueprints"
 const OperationIrisAdminServiceListDmarcDomains = "/iris.admin.v1.IrisAdminService/ListDmarcDomains"
 const OperationIrisAdminServiceListDmarcReports = "/iris.admin.v1.IrisAdminService/ListDmarcReports"
+const OperationIrisAdminServiceListDsnMessages = "/iris.admin.v1.IrisAdminService/ListDsnMessages"
 const OperationIrisAdminServiceListEventProcessors = "/iris.admin.v1.IrisAdminService/ListEventProcessors"
 const OperationIrisAdminServiceListFeedbackLoops = "/iris.admin.v1.IrisAdminService/ListFeedbackLoops"
 const OperationIrisAdminServiceListFeedbackReports = "/iris.admin.v1.IrisAdminService/ListFeedbackReports"
@@ -227,6 +228,9 @@ type IrisAdminServiceHTTPServer interface {
 	ListDeliveryBlueprints(context.Context, *ListDeliveryBlueprintsRequest) (*ListDeliveryBlueprintsReply, error)
 	ListDmarcDomains(context.Context, *ListDmarcDomainsRequest) (*ListDmarcDomainsReply, error)
 	ListDmarcReports(context.Context, *ListDmarcReportsRequest) (*ListDmarcReportsReply, error)
+	// ListDsnMessages ListDsnMessages returns the raw DSN notifications archived for a recipient,
+	// so the operator can read the full asynchronous bounce behind a dsn-type bounce.
+	ListDsnMessages(context.Context, *ListDsnMessagesRequest) (*ListDsnMessagesReply, error)
 	ListEventProcessors(context.Context, *ListEventProcessorsRequest) (*ListEventProcessorsReply, error)
 	// ListFeedbackLoops Feedback loops -----------------------------------------------------------
 	// Per-domain FBL enrollments: while awaiting approval, inbound feedback mail
@@ -362,6 +366,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.PUT("/v1/routing-rules/{id}", _IrisAdminService_UpdateRoutingRule0_HTTP_Handler(srv))
 	r.GET("/v1/mail-records", _IrisAdminService_ListMailRecords0_HTTP_Handler(srv))
 	r.GET("/v1/mail-records/{message_id}/next-attempt", _IrisAdminService_GetNextDeliveryAttempt0_HTTP_Handler(srv))
+	r.GET("/v1/dsn-messages", _IrisAdminService_ListDsnMessages0_HTTP_Handler(srv))
 	r.GET("/v1/bounces", _IrisAdminService_ListBounces0_HTTP_Handler(srv))
 	r.GET("/v1/feedback-reports", _IrisAdminService_ListFeedbackReports0_HTTP_Handler(srv))
 	r.GET("/v1/queues", _IrisAdminService_ListQueues0_HTTP_Handler(srv))
@@ -1300,6 +1305,25 @@ func _IrisAdminService_GetNextDeliveryAttempt0_HTTP_Handler(srv IrisAdminService
 			return err
 		}
 		reply := out.(*NextDeliveryAttempt)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ListDsnMessages0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListDsnMessagesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListDsnMessages)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListDsnMessages(ctx, req.(*ListDsnMessagesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListDsnMessagesReply)
 		return ctx.Result(200, reply)
 	}
 }
@@ -2930,6 +2954,9 @@ type IrisAdminServiceHTTPClient interface {
 	ListDeliveryBlueprints(ctx context.Context, req *ListDeliveryBlueprintsRequest, opts ...http.CallOption) (rsp *ListDeliveryBlueprintsReply, err error)
 	ListDmarcDomains(ctx context.Context, req *ListDmarcDomainsRequest, opts ...http.CallOption) (rsp *ListDmarcDomainsReply, err error)
 	ListDmarcReports(ctx context.Context, req *ListDmarcReportsRequest, opts ...http.CallOption) (rsp *ListDmarcReportsReply, err error)
+	// ListDsnMessages ListDsnMessages returns the raw DSN notifications archived for a recipient,
+	// so the operator can read the full asynchronous bounce behind a dsn-type bounce.
+	ListDsnMessages(ctx context.Context, req *ListDsnMessagesRequest, opts ...http.CallOption) (rsp *ListDsnMessagesReply, err error)
 	ListEventProcessors(ctx context.Context, req *ListEventProcessorsRequest, opts ...http.CallOption) (rsp *ListEventProcessorsReply, err error)
 	// ListFeedbackLoops Feedback loops -----------------------------------------------------------
 	// Per-domain FBL enrollments: while awaiting approval, inbound feedback mail
@@ -3802,6 +3829,21 @@ func (c *IrisAdminServiceHTTPClientImpl) ListDmarcReports(ctx context.Context, i
 	pattern := "/v1/dmarc/reports"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListDmarcReports))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListDsnMessages ListDsnMessages returns the raw DSN notifications archived for a recipient,
+// so the operator can read the full asynchronous bounce behind a dsn-type bounce.
+func (c *IrisAdminServiceHTTPClientImpl) ListDsnMessages(ctx context.Context, in *ListDsnMessagesRequest, opts ...http.CallOption) (*ListDsnMessagesReply, error) {
+	var out ListDsnMessagesReply
+	pattern := "/v1/dsn-messages"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListDsnMessages))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

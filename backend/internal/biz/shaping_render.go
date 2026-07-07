@@ -259,7 +259,11 @@ func automationActionExpr(r *AutomationRule) string {
 func providerMXPatterns(bucket string) []string {
 	switch bucket {
 	case MBPGmail:
-		return []string{"google.com", "googlemail.com"}
+		// gmail.com is the domain the overwhelming majority of Gmail recipients
+		// use; google.com/googlemail.com are corporate/legacy. With mx_rollup=false
+		// the block matches the literal recipient domain, so gmail.com MUST be here
+		// or real Gmail traffic escapes the warmup ceiling entirely.
+		return []string{"gmail.com", "google.com", "googlemail.com"}
 	case MBPMicrosoft:
 		return []string{"outlook.com", "hotmail.com", "live.com", "office365.com", "msn.com"}
 	case MBPYahoo:

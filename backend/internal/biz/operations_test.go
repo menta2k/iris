@@ -58,6 +58,9 @@ func (f *fakeMailOpsRepo) ListBounces(context.Context, Page) ([]*BounceRecord, e
 func (f *fakeMailOpsRepo) ListFeedbackReports(context.Context, Page) ([]*FeedbackReport, error) {
 	return nil, nil
 }
+func (f *fakeMailOpsRepo) ListDSNMessages(context.Context, string, int) ([]*DSNMessage, error) {
+	return nil, nil
+}
 func (f *fakeMailOpsRepo) ListQueues(context.Context, Page) ([]*MailclassQueue, error) {
 	return nil, nil
 }
