@@ -11,6 +11,9 @@ import (
 // measure, so implementations are stateful across calls.
 type HostSampler interface {
 	Sample(ctx context.Context, diskPaths []string) (SystemSnapshot, error)
+	// Mounts lists the host's real filesystems so the operator can pick which to
+	// monitor (the KumoMTA spool may live on a separate mount from "/").
+	Mounts(ctx context.Context) ([]Mount, error)
 }
 
 // MonitorRepo persists the singleton monitor settings and the alert history.
@@ -32,16 +35,29 @@ type AlertNotifier interface {
 type SysMonUsecase struct {
 	repo     MonitorRepo
 	notifier AlertNotifier
+	sampler  HostSampler
 	auditor  *Auditor
 
 	mu   sync.RWMutex
 	snap SystemSnapshot
 }
 
-// NewSysMonUsecase constructs the use case. notifier may be nil (Test then
-// reports unavailable).
-func NewSysMonUsecase(repo MonitorRepo, notifier AlertNotifier, auditor *Auditor) *SysMonUsecase {
-	return &SysMonUsecase{repo: repo, notifier: notifier, auditor: auditor}
+// NewSysMonUsecase constructs the use case. notifier/sampler may be nil (Test
+// and Mounts then report unavailable).
+func NewSysMonUsecase(repo MonitorRepo, notifier AlertNotifier, sampler HostSampler, auditor *Auditor) *SysMonUsecase {
+	return &SysMonUsecase{repo: repo, notifier: notifier, sampler: sampler, auditor: auditor}
+}
+
+// Mounts lists the host's real filesystems so the operator can choose which
+// disks to monitor (e.g. the KumoMTA spool if it's on its own mount).
+func (uc *SysMonUsecase) Mounts(ctx context.Context) ([]Mount, error) {
+	if _, err := RequirePermission(ctx, PermSettingsRead); err != nil {
+		return nil, err
+	}
+	if uc.sampler == nil {
+		return nil, nil
+	}
+	return uc.sampler.Mounts(ctx)
 }
 
 // SetSnapshot publishes the worker's latest sample. Not permission-checked: it

@@ -26,12 +26,48 @@ func (s *Service) GetSystemMonitor(ctx context.Context, _ *adminv1.GetSystemMoni
 	if err != nil {
 		return nil, s.fail(ctx, "GetSystemMonitor", err)
 	}
+	mounts, err := s.sysMon.Mounts(ctx)
+	if err != nil {
+		return nil, s.fail(ctx, "GetSystemMonitor", err)
+	}
 	out := &adminv1.SystemMonitor{
-		Snapshot: snapshotToProto(snap),
-		Settings: monitorSettingsToProto(settings),
+		Snapshot:  snapshotToProto(snap),
+		Settings:  monitorSettingsToProto(settings),
+		SpoolPath: biz.KumoSpoolPath,
 	}
 	for _, a := range alerts {
 		out.RecentAlerts = append(out.RecentAlerts, monitorAlertToProto(a))
+	}
+	for _, m := range mounts {
+		out.Mounts = append(out.Mounts, &adminv1.Mount{
+			Path: m.Path, Device: m.Device, Fstype: m.FSType,
+			UsedPercent: m.UsedPercent, UsedBytes: m.UsedBytes, TotalBytes: m.TotalBytes,
+		})
+	}
+	return out, nil
+}
+
+// GetSystemMetrics returns host CPU / memory / per-disk usage over time from the
+// iris_system_* Prometheus gauges.
+func (s *Service) GetSystemMetrics(ctx context.Context, req *adminv1.GetSystemMetricsRequest) (*adminv1.MetricsTimeseries, error) {
+	if s.metrics == nil {
+		return nil, notImplemented("GetSystemMetrics")
+	}
+	ts, err := s.metrics.SystemTimeseries(ctx, req.GetRange())
+	if err != nil {
+		return nil, s.fail(ctx, "GetSystemMetrics", err)
+	}
+	out := &adminv1.MetricsTimeseries{
+		Range:               ts.Range,
+		StepSeconds:         ts.StepSeconds,
+		PrometheusAvailable: ts.PrometheusAvailable,
+	}
+	for _, ser := range ts.Series {
+		ps := &adminv1.MetricsSeries{Key: ser.Key, Label: ser.Label}
+		for _, p := range ser.Points {
+			ps.Points = append(ps.Points, &adminv1.MetricPoint{Timestamp: p.Timestamp, Value: p.Value})
+		}
+		out.Series = append(out.Series, ps)
 	}
 	return out, nil
 }

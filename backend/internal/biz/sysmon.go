@@ -36,6 +36,22 @@ const (
 	maxCooldownMinute = 24 * 60
 )
 
+// KumoSpoolPath is the KumoMTA spool root iris configures. Its filesystem is
+// the one most likely to fill under load and may be a separate mount from "/",
+// so it's a default monitored path and a suggested pick in the UI.
+const KumoSpoolPath = "/var/spool/kumomta"
+
+// Mount is a real filesystem detected on the host, offered so the operator can
+// pick which disks to monitor instead of guessing paths.
+type Mount struct {
+	Path        string  `json:"path"`
+	Device      string  `json:"device"`
+	FSType      string  `json:"fstype"`
+	UsedPercent float64 `json:"used_percent"`
+	UsedBytes   uint64  `json:"used_bytes"`
+	TotalBytes  uint64  `json:"total_bytes"`
+}
+
 // DiskUsage is one monitored filesystem path.
 type DiskUsage struct {
 	Path        string  `json:"path"`
@@ -112,7 +128,7 @@ func NormalizeMonitorSettings(s *MonitorSettings) error {
 
 	s.DiskPaths = cleanList(s.DiskPaths)
 	if len(s.DiskPaths) == 0 {
-		s.DiskPaths = []string{defaultDiskPath}
+		s.DiskPaths = []string{defaultDiskPath, KumoSpoolPath}
 	}
 	s.NotifyEmails = cleanList(s.NotifyEmails)
 	s.FromEmail = strings.TrimSpace(s.FromEmail)

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/menta2k/iris/backend/internal/biz"
+	"github.com/menta2k/iris/backend/internal/metrics"
 )
 
 // SysMonWorker samples the host on an interval, publishes the snapshot to the
@@ -71,6 +72,7 @@ func (w *SysMonWorker) tick(ctx context.Context) time.Duration {
 		return settings.SampleInterval()
 	}
 	w.sink(snap)
+	publishMetrics(snap)
 	if settings.Enabled {
 		w.evaluate(ctx, snap, settings)
 	}
@@ -144,6 +146,22 @@ func (w *SysMonWorker) fire(ctx context.Context, settings *biz.MonitorSettings, 
 	if err := w.repo.InsertMonitorAlert(ctx, &alert); err != nil {
 		w.log.Error("record monitor alert", "error", err.Error())
 	}
+}
+
+// publishMetrics mirrors the snapshot into the Prometheus system gauges so the
+// metrics can be scraped and charted over time.
+func publishMetrics(snap biz.SystemSnapshot) {
+	if !snap.Available {
+		return
+	}
+	disks := make([]metrics.SystemDiskSample, 0, len(snap.Disks))
+	for _, d := range snap.Disks {
+		disks = append(disks, metrics.SystemDiskSample{
+			Path: d.Path, UsedPercent: d.UsedPercent,
+			UsedBytes: float64(d.UsedBytes), TotalBytes: float64(d.TotalBytes),
+		})
+	}
+	metrics.RecordSystem(snap.CPUPercent, snap.MemPercent, float64(snap.MemUsedBytes), disks)
 }
 
 // currentValues maps each monitored key to its measured percent in the snapshot,

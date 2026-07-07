@@ -1260,10 +1260,21 @@ export interface MonitorAlert {
   createdAt: string
 }
 
+export interface Mount {
+  path: string
+  device: string
+  fstype: string
+  usedPercent: number
+  usedBytes: string
+  totalBytes: string
+}
+
 export interface SystemMonitor {
   snapshot?: SystemSnapshot
   settings?: MonitorSettings
   recentAlerts?: MonitorAlert[]
+  mounts?: Mount[]
+  spoolPath?: string
 }
 
 export interface TestMonitorNotificationResult {

@@ -55,10 +55,64 @@ var (
 		Help:    "Time a message spent queued from Reception to successful Delivery, in seconds, by mail class.",
 		Buckets: []float64{0.1, 0.5, 1, 2, 5, 10, 30, 60, 120, 300, 600, 1800, 3600},
 	}, []string{"mailclass"})
+
+	// Self-monitoring gauges: current host resource usage, refreshed by the
+	// monitor worker each sample so Prometheus can scrape and chart them over
+	// time (CPU/memory as %, disk per mount path).
+	SystemCPUPercent = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "iris_system_cpu_percent",
+		Help: "Host CPU usage percent (0-100).",
+	})
+	SystemMemoryPercent = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "iris_system_memory_percent",
+		Help: "Host memory usage percent (0-100).",
+	})
+	SystemMemoryUsedBytes = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "iris_system_memory_used_bytes",
+		Help: "Host memory used in bytes.",
+	})
+	SystemDiskUsedPercent = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "iris_system_disk_used_percent",
+		Help: "Host filesystem usage percent (0-100) by mount path.",
+	}, []string{"path"})
+	SystemDiskUsedBytes = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "iris_system_disk_used_bytes",
+		Help: "Host filesystem used bytes by mount path.",
+	}, []string{"path"})
+	SystemDiskTotalBytes = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "iris_system_disk_total_bytes",
+		Help: "Host filesystem total bytes by mount path.",
+	}, []string{"path"})
 )
 
 func init() {
-	prometheus.MustRegister(MailEvents, VMTAEvents, Bounces, WebhookExecutions, MailQueueTime)
+	prometheus.MustRegister(MailEvents, VMTAEvents, Bounces, WebhookExecutions, MailQueueTime,
+		SystemCPUPercent, SystemMemoryPercent, SystemMemoryUsedBytes,
+		SystemDiskUsedPercent, SystemDiskUsedBytes, SystemDiskTotalBytes)
+}
+
+// SystemDiskSample is one filesystem's usage passed to RecordSystem.
+type SystemDiskSample struct {
+	Path        string
+	UsedPercent float64
+	UsedBytes   float64
+	TotalBytes  float64
+}
+
+// RecordSystem publishes the latest host snapshot to the system gauges. The disk
+// gauge vectors are reset first so a path dropped from monitoring stops emitting.
+func RecordSystem(cpuPercent, memPercent, memUsedBytes float64, disks []SystemDiskSample) {
+	SystemCPUPercent.Set(cpuPercent)
+	SystemMemoryPercent.Set(memPercent)
+	SystemMemoryUsedBytes.Set(memUsedBytes)
+	SystemDiskUsedPercent.Reset()
+	SystemDiskUsedBytes.Reset()
+	SystemDiskTotalBytes.Reset()
+	for _, d := range disks {
+		SystemDiskUsedPercent.WithLabelValues(d.Path).Set(d.UsedPercent)
+		SystemDiskUsedBytes.WithLabelValues(d.Path).Set(d.UsedBytes)
+		SystemDiskTotalBytes.WithLabelValues(d.Path).Set(d.TotalBytes)
+	}
 }
 
 // RecordMailEvent records a single mail event (Reception/Delivery/Bounce).

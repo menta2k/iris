@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS monitor_settings (
     cpu_threshold    INT NOT NULL DEFAULT 90,
     mem_threshold    INT NOT NULL DEFAULT 90,
     disk_threshold   INT NOT NULL DEFAULT 85,
-    disk_paths       TEXT[] NOT NULL DEFAULT ARRAY['/'],
+    disk_paths       TEXT[] NOT NULL DEFAULT ARRAY['/', '/var/spool/kumomta'],
     notify_emails    TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
     from_email       TEXT NOT NULL DEFAULT '',
     smtp_host        TEXT NOT NULL DEFAULT 'localhost:25',

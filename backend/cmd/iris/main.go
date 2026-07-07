@@ -264,8 +264,9 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// Self-monitoring: sample host CPU/memory/disk, publish to the use case for
 	// the dashboard/API, and email alerts on threshold breaches.
 	monitorRepo := data.NewMonitorRepo(db)
-	sysMonUC := biz.NewSysMonUsecase(monitorRepo, data.NewSMTPNotifier(), auditor)
-	sysMonWorker := worker.NewSysMonWorker(data.NewHostSampler(), monitorRepo, data.NewSMTPNotifier(), sysMonUC.SetSnapshot, log.With("component", "system-monitor"))
+	hostSampler := data.NewHostSampler()
+	sysMonUC := biz.NewSysMonUsecase(monitorRepo, data.NewSMTPNotifier(), hostSampler, auditor)
+	sysMonWorker := worker.NewSysMonWorker(hostSampler, monitorRepo, data.NewSMTPNotifier(), sysMonUC.SetSnapshot, log.With("component", "system-monitor"))
 
 	// Generic worker error log: the repo is both the read API source and the
 	// sink behind the errlog slog handler that captures worker Warn/Error events.

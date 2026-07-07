@@ -112,6 +112,7 @@ const (
 	IrisAdminService_ClearAcmeDnsProvider_FullMethodName        = "/iris.admin.v1.IrisAdminService/ClearAcmeDnsProvider"
 	IrisAdminService_GetDashboardSummary_FullMethodName         = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
 	IrisAdminService_GetMetricsTimeseries_FullMethodName        = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
+	IrisAdminService_GetSystemMetrics_FullMethodName            = "/iris.admin.v1.IrisAdminService/GetSystemMetrics"
 	IrisAdminService_GetWarmupDeliveryStats_FullMethodName      = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
 	IrisAdminService_GetQueueTimeHistogram_FullMethodName       = "/iris.admin.v1.IrisAdminService/GetQueueTimeHistogram"
 	IrisAdminService_GetMailClassStats_FullMethodName           = "/iris.admin.v1.IrisAdminService/GetMailClassStats"
@@ -286,6 +287,9 @@ type IrisAdminServiceClient interface {
 	// GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(ctx context.Context, in *GetMetricsTimeseriesRequest, opts ...grpc.CallOption) (*MetricsTimeseries, error)
+	// GetSystemMetrics returns host CPU / memory / per-disk usage over time from
+	// the iris_system_* Prometheus gauges.
+	GetSystemMetrics(ctx context.Context, in *GetSystemMetricsRequest, opts ...grpc.CallOption) (*MetricsTimeseries, error)
 	// GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
 	// bounce rates over a lookback window — used to watch IP-warmup health.
 	GetWarmupDeliveryStats(ctx context.Context, in *GetWarmupDeliveryStatsRequest, opts ...grpc.CallOption) (*WarmupDeliveryStats, error)
@@ -1274,6 +1278,16 @@ func (c *irisAdminServiceClient) GetMetricsTimeseries(ctx context.Context, in *G
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) GetSystemMetrics(ctx context.Context, in *GetSystemMetricsRequest, opts ...grpc.CallOption) (*MetricsTimeseries, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MetricsTimeseries)
+	err := c.cc.Invoke(ctx, IrisAdminService_GetSystemMetrics_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) GetWarmupDeliveryStats(ctx context.Context, in *GetWarmupDeliveryStatsRequest, opts ...grpc.CallOption) (*WarmupDeliveryStats, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(WarmupDeliveryStats)
@@ -1653,6 +1667,9 @@ type IrisAdminServiceServer interface {
 	// GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(context.Context, *GetMetricsTimeseriesRequest) (*MetricsTimeseries, error)
+	// GetSystemMetrics returns host CPU / memory / per-disk usage over time from
+	// the iris_system_* Prometheus gauges.
+	GetSystemMetrics(context.Context, *GetSystemMetricsRequest) (*MetricsTimeseries, error)
 	// GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
 	// bounce rates over a lookback window — used to watch IP-warmup health.
 	GetWarmupDeliveryStats(context.Context, *GetWarmupDeliveryStatsRequest) (*WarmupDeliveryStats, error)
@@ -1989,6 +2006,9 @@ func (UnimplementedIrisAdminServiceServer) GetDashboardSummary(context.Context, 
 }
 func (UnimplementedIrisAdminServiceServer) GetMetricsTimeseries(context.Context, *GetMetricsTimeseriesRequest) (*MetricsTimeseries, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetMetricsTimeseries not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) GetSystemMetrics(context.Context, *GetSystemMetricsRequest) (*MetricsTimeseries, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSystemMetrics not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) GetWarmupDeliveryStats(context.Context, *GetWarmupDeliveryStatsRequest) (*WarmupDeliveryStats, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetWarmupDeliveryStats not implemented")
@@ -3754,6 +3774,24 @@ func _IrisAdminService_GetMetricsTimeseries_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_GetSystemMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSystemMetricsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).GetSystemMetrics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_GetSystemMetrics_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).GetSystemMetrics(ctx, req.(*GetSystemMetricsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_GetWarmupDeliveryStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetWarmupDeliveryStatsRequest)
 	if err := dec(in); err != nil {
@@ -4546,6 +4584,10 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetMetricsTimeseries",
 			Handler:    _IrisAdminService_GetMetricsTimeseries_Handler,
+		},
+		{
+			MethodName: "GetSystemMetrics",
+			Handler:    _IrisAdminService_GetSystemMetrics_Handler,
 		},
 		{
 			MethodName: "GetWarmupDeliveryStats",

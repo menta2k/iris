@@ -350,6 +350,11 @@ service IrisAdminService {
   rpc GetMetricsTimeseries(GetMetricsTimeseriesRequest) returns (MetricsTimeseries) {
     option (google.api.http) = { get: "/v1/dashboard/metrics" };
   }
+  // GetSystemMetrics returns host CPU / memory / per-disk usage over time from
+  // the iris_system_* Prometheus gauges.
+  rpc GetSystemMetrics(GetSystemMetricsRequest) returns (MetricsTimeseries) {
+    option (google.api.http) = { get: "/v1/system-monitor/metrics" };
+  }
   // GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
   // bounce rates over a lookback window — used to watch IP-warmup health.
   rpc GetWarmupDeliveryStats(GetWarmupDeliveryStatsRequest) returns (WarmupDeliveryStats) {
@@ -1631,6 +1636,9 @@ message DashboardSummary {
 message GetMetricsTimeseriesRequest {
   string range = 1;
 }
+message GetSystemMetricsRequest {
+  string range = 1;
+}
 message MetricPoint {
   int64 timestamp = 1; // unix seconds
   double value = 2;    // events per minute at that point
@@ -1915,10 +1923,22 @@ message MonitorAlert {
   bool notified = 8;
   string created_at = 9;
 }
+// Mount is a real filesystem detected on the host (for the "which disks to
+// monitor" picker).
+message Mount {
+  string path = 1;
+  string device = 2;
+  string fstype = 3;
+  double used_percent = 4;
+  uint64 used_bytes = 5;
+  uint64 total_bytes = 6;
+}
 message SystemMonitor {
   SystemSnapshot snapshot = 1;
   MonitorSettings settings = 2;
   repeated MonitorAlert recent_alerts = 3;
+  repeated Mount mounts = 4;    // detected filesystems the operator can pick
+  string spool_path = 5;        // KumoMTA spool root (suggested monitor path)
 }
 message GetSystemMonitorRequest {}
 message UpdateMonitorSettingsRequest {

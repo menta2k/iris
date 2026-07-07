@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,11 +16,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import UsageMeter from '@/components/monitor/UsageMeter.vue'
+import SystemMetricsPanel from '@/components/monitor/SystemMetricsPanel.vue'
 import { useToast } from '@/composables/useToast'
 import { formatDateTime } from '@/composables/useTimezone'
 import { systemMonitorService } from '@/services'
 import { ApiError } from '@/services/http'
-import type { MonitorAlert, MonitorSettings, SystemSnapshot } from '@/types'
+import type { MonitorAlert, MonitorSettings, Mount, SystemSnapshot } from '@/types'
 
 const { toast } = useToast()
 
@@ -32,6 +33,31 @@ const testing = ref(false)
 
 const snapshot = ref<SystemSnapshot | null>(null)
 const alerts = ref<MonitorAlert[]>([])
+const mounts = ref<Mount[]>([])
+const spoolPath = ref('')
+
+function bytes(b?: string): string {
+  const n = Number(b || 0)
+  if (n <= 0) return '0'
+  const u = ['B', 'KB', 'MB', 'GB', 'TB']
+  let v = n
+  let i = 0
+  while (v >= 1024 && i < u.length - 1) {
+    v /= 1024
+    i++
+  }
+  return `${v.toFixed(v >= 100 || i === 0 ? 0 : 1)} ${u[i]}`
+}
+
+// Which paths are currently in the monitor set (from the free-text field).
+const monitored = computed(() => new Set(parseList(form.value.disk_paths)))
+
+function toggleMonitor(path: string) {
+  const set = new Set(parseList(form.value.disk_paths))
+  if (set.has(path)) set.delete(path)
+  else set.add(path)
+  form.value.disk_paths = [...set].join(', ')
+}
 
 const emptyForm = () => ({
   enabled: false,
@@ -87,6 +113,8 @@ async function load(withSpinner = true) {
     const res = await systemMonitorService.get()
     snapshot.value = res.snapshot ?? null
     alerts.value = res.recentAlerts ?? []
+    mounts.value = res.mounts ?? []
+    spoolPath.value = res.spoolPath ?? ''
     if (res.settings && withSpinner) applySettings(res.settings)
     error.value = null
     notImplemented.value = false
@@ -163,8 +191,16 @@ onBeforeUnmount(() => clearInterval(timer))
                 :threshold="form.disk_threshold"
               />
             </div>
+            <p class="mt-3 text-caption text-medium-emphasis">
+              These metrics are also exported to Prometheus (<span class="font-mono">iris_system_cpu_percent</span>,
+              <span class="font-mono">iris_system_memory_percent</span>,
+              <span class="font-mono">iris_system_disk_used_percent{'{'}path{'}'}</span>) for charting in Grafana.
+            </p>
           </CardContent>
         </Card>
+
+        <!-- History -->
+        <SystemMetricsPanel />
 
         <!-- Settings -->
         <Card>
@@ -192,9 +228,47 @@ onBeforeUnmount(() => clearInterval(timer))
                   <Input id="m-disk" v-model.number="form.disk_threshold" type="number" placeholder="85" />
                 </v-col>
               </v-row>
-              <div class="d-flex flex-column ga-1">
-                <Label for="m-paths">Disk paths (comma-separated)</Label>
-                <Input id="m-paths" v-model="form.disk_paths" placeholder="/, /var/spool/kumomta" />
+              <div class="d-flex flex-column ga-2">
+                <Label>Disks to monitor</Label>
+                <div v-if="mounts.length" class="rounded border">
+                  <div
+                    v-for="m in mounts"
+                    :key="m.path"
+                    class="d-flex align-center ga-3 px-3 py-2 mount-row"
+                  >
+                    <v-checkbox
+                      :model-value="monitored.has(m.path)"
+                      color="primary"
+                      density="compact"
+                      hide-details
+                      @update:model-value="toggleMonitor(m.path)"
+                    />
+                    <div class="flex-grow-1">
+                      <div class="d-flex align-center ga-2">
+                        <span class="font-mono text-body-2">{{ m.path }}</span>
+                        <span v-if="spoolPath && (m.path === spoolPath || spoolPath.startsWith(m.path === '/' ? '/' : m.path + '/'))" class="text-caption text-primary">· holds KumoMTA spool</span>
+                      </div>
+                      <div class="text-caption text-medium-emphasis">
+                        {{ m.device }} · {{ m.fstype }} · {{ bytes(m.usedBytes) }} / {{ bytes(m.totalBytes) }}
+                      </div>
+                    </div>
+                    <span class="text-body-2 tabular-nums" :class="m.usedPercent >= form.disk_threshold ? 'text-error' : 'text-medium-emphasis'">
+                      {{ m.usedPercent.toFixed(1) }}%
+                    </span>
+                  </div>
+                </div>
+                <p v-else class="text-caption text-medium-emphasis">No filesystems detected yet.</p>
+                <div v-if="spoolPath && !monitored.has(spoolPath)" class="d-flex align-center ga-2">
+                  <span class="text-caption text-medium-emphasis">Spool is at {{ spoolPath }} —</span>
+                  <Button type="button" variant="outline" size="sm" @click="toggleMonitor(spoolPath)">
+                    Monitor spool path
+                  </Button>
+                </div>
+                <Input v-model="form.disk_paths" placeholder="/, /var/spool/kumomta" />
+                <p class="text-caption text-medium-emphasis">
+                  Tick a detected filesystem, or type paths directly (comma-separated). A path that
+                  isn't its own mount is measured on the filesystem that contains it.
+                </p>
               </div>
               <v-row dense>
                 <v-col cols="12" md="6" class="d-flex flex-column ga-1">
@@ -274,3 +348,9 @@ onBeforeUnmount(() => clearInterval(timer))
     </DataState>
   </div>
 </template>
+
+<style scoped>
+.mount-row:not(:last-child) {
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+}
+</style>

@@ -1834,6 +1834,26 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/SystemMonitor'
+    /v1/system-monitor/metrics:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                GetSystemMetrics returns host CPU / memory / per-disk usage over time from
+                 the iris_system_* Prometheus gauges.
+            operationId: IrisAdminService_GetSystemMetrics
+            parameters:
+                - name: range
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MetricsTimeseries'
     /v1/system-monitor/settings:
         put:
             tags:
@@ -3936,6 +3956,25 @@ components:
                 sample_seconds:
                     type: integer
                     format: int32
+        Mount:
+            type: object
+            properties:
+                path:
+                    type: string
+                device:
+                    type: string
+                fstype:
+                    type: string
+                used_percent:
+                    type: number
+                    format: double
+                used_bytes:
+                    type: string
+                total_bytes:
+                    type: string
+            description: |-
+                Mount is a real filesystem detected on the host (for the "which disks to
+                 monitor" picker).
         NextDeliveryAttempt:
             type: object
             properties:
@@ -4395,6 +4434,12 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/MonitorAlert'
+                mounts:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Mount'
+                spool_path:
+                    type: string
         SystemSnapshot:
             type: object
             properties:

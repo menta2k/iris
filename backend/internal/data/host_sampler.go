@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -12,6 +13,15 @@ import (
 
 	"github.com/menta2k/iris/backend/internal/biz"
 )
+
+// pseudoFS are non-disk filesystem types excluded from mount enumeration.
+var pseudoFS = map[string]bool{
+	"proc": true, "sysfs": true, "devtmpfs": true, "devpts": true, "tmpfs": true,
+	"cgroup": true, "cgroup2": true, "mqueue": true, "hugetlbfs": true, "debugfs": true,
+	"tracefs": true, "securityfs": true, "pstore": true, "bpf": true, "configfs": true,
+	"fusectl": true, "autofs": true, "binfmt_misc": true, "rpc_pipefs": true, "nsfs": true,
+	"efivarfs": true, "ramfs": true, "fuse.gvfsd-fuse": true, "squashfs": true,
+}
 
 // HostSampler reads host CPU / memory / disk usage from /proc and statfs (Linux).
 // CPU is measured as an in-call delta over a short window so each sample is an
@@ -159,6 +169,63 @@ func parseMeminfoKB(line string) (uint64, bool) {
 		return 0, false
 	}
 	return n, true
+}
+
+// Mounts enumerates the host's real (non-pseudo) filesystems from /proc/mounts,
+// statfs-ing each, so the operator can pick which disks to monitor. Bind mounts
+// and duplicate mount points are collapsed; pseudo/virtual filesystems are
+// skipped.
+func (h *HostSampler) Mounts(_ context.Context) ([]biz.Mount, error) {
+	f, err := os.Open("/proc/mounts")
+	if err != nil {
+		return nil, fmt.Errorf("open /proc/mounts: %w", err)
+	}
+	defer f.Close()
+	seen := map[string]bool{}
+	var out []biz.Mount
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		fields := strings.Fields(sc.Text())
+		if len(fields) < 3 {
+			continue
+		}
+		device, mount, fstype := fields[0], unescapeMount(fields[1]), fields[2]
+		if pseudoFS[fstype] || seen[mount] {
+			continue
+		}
+		if underSystemDir(mount) {
+			continue
+		}
+		du, ok := sampleDisk(mount)
+		if !ok || du.TotalBytes == 0 {
+			continue
+		}
+		seen[mount] = true
+		out = append(out, biz.Mount{
+			Path: mount, Device: device, FSType: fstype,
+			UsedPercent: du.UsedPercent, UsedBytes: du.UsedBytes, TotalBytes: du.TotalBytes,
+		})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Path < out[j].Path })
+	return out, sc.Err()
+}
+
+// underSystemDir skips mount points under kernel/virtual trees.
+func underSystemDir(mount string) bool {
+	for _, p := range []string{"/proc", "/sys", "/dev", "/run"} {
+		if mount == p || strings.HasPrefix(mount, p+"/") {
+			return true
+		}
+	}
+	return false
+}
+
+// unescapeMount decodes the octal escapes /proc/mounts uses for special chars.
+func unescapeMount(s string) string {
+	if !strings.Contains(s, `\`) {
+		return s
+	}
+	return strings.NewReplacer(`\040`, " ", `\011`, "\t", `\012`, "\n", `\134`, `\`).Replace(s)
 }
 
 // sampleDisk returns usage for a filesystem path via statfs. ok=false when the

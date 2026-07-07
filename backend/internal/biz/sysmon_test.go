@@ -7,8 +7,8 @@ func TestNormalizeMonitorSettingsDefaults(t *testing.T) {
 	if err := NormalizeMonitorSettings(s); err != nil {
 		t.Fatalf("disabled settings should validate: %v", err)
 	}
-	if len(s.DiskPaths) != 1 || s.DiskPaths[0] != "/" {
-		t.Errorf("disk paths default = %v, want [/]", s.DiskPaths)
+	if len(s.DiskPaths) != 2 || s.DiskPaths[0] != "/" || s.DiskPaths[1] != KumoSpoolPath {
+		t.Errorf("disk paths default = %v, want [/ %s]", s.DiskPaths, KumoSpoolPath)
 	}
 	if s.SMTPHost != "localhost:25" || s.CooldownMinutes != 30 || s.SampleSeconds != 30 {
 		t.Errorf("defaults wrong: %+v", s)

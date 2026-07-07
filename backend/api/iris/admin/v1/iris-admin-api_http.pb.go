@@ -64,6 +64,7 @@ const OperationIrisAdminServiceGetMetricsTimeseries = "/iris.admin.v1.IrisAdminS
 const OperationIrisAdminServiceGetNextDeliveryAttempt = "/iris.admin.v1.IrisAdminService/GetNextDeliveryAttempt"
 const OperationIrisAdminServiceGetQueueTimeHistogram = "/iris.admin.v1.IrisAdminService/GetQueueTimeHistogram"
 const OperationIrisAdminServiceGetRecipientDomainStats = "/iris.admin.v1.IrisAdminService/GetRecipientDomainStats"
+const OperationIrisAdminServiceGetSystemMetrics = "/iris.admin.v1.IrisAdminService/GetSystemMetrics"
 const OperationIrisAdminServiceGetSystemMonitor = "/iris.admin.v1.IrisAdminService/GetSystemMonitor"
 const OperationIrisAdminServiceGetWarmupDeliveryStats = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
 const OperationIrisAdminServiceKumoConfigStatus = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
@@ -211,6 +212,9 @@ type IrisAdminServiceHTTPServer interface {
 	// GetRecipientDomainStats GetRecipientDomainStats returns the busiest recipient domains by mail volume
 	// over a lookback window — powers the dashboard "top recipient domains" panel.
 	GetRecipientDomainStats(context.Context, *GetRecipientDomainStatsRequest) (*RecipientDomainStats, error)
+	// GetSystemMetrics GetSystemMetrics returns host CPU / memory / per-disk usage over time from
+	// the iris_system_* Prometheus gauges.
+	GetSystemMetrics(context.Context, *GetSystemMetricsRequest) (*MetricsTimeseries, error)
 	// GetSystemMonitor System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
 	GetSystemMonitor(context.Context, *GetSystemMonitorRequest) (*SystemMonitor, error)
 	// GetWarmupDeliveryStats GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
@@ -427,6 +431,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.DELETE("/v1/acme/dns-provider", _IrisAdminService_ClearAcmeDnsProvider0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/summary", _IrisAdminService_GetDashboardSummary0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/metrics", _IrisAdminService_GetMetricsTimeseries0_HTTP_Handler(srv))
+	r.GET("/v1/system-monitor/metrics", _IrisAdminService_GetSystemMetrics0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/warmup-stats", _IrisAdminService_GetWarmupDeliveryStats0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/queue-time-histogram", _IrisAdminService_GetQueueTimeHistogram0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/mailclass-stats", _IrisAdminService_GetMailClassStats0_HTTP_Handler(srv))
@@ -2456,6 +2461,25 @@ func _IrisAdminService_GetMetricsTimeseries0_HTTP_Handler(srv IrisAdminServiceHT
 	}
 }
 
+func _IrisAdminService_GetSystemMetrics0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetSystemMetricsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetSystemMetrics)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetSystemMetrics(ctx, req.(*GetSystemMetricsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*MetricsTimeseries)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_GetWarmupDeliveryStats0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetWarmupDeliveryStatsRequest
@@ -3007,6 +3031,9 @@ type IrisAdminServiceHTTPClient interface {
 	// GetRecipientDomainStats GetRecipientDomainStats returns the busiest recipient domains by mail volume
 	// over a lookback window — powers the dashboard "top recipient domains" panel.
 	GetRecipientDomainStats(ctx context.Context, req *GetRecipientDomainStatsRequest, opts ...http.CallOption) (rsp *RecipientDomainStats, err error)
+	// GetSystemMetrics GetSystemMetrics returns host CPU / memory / per-disk usage over time from
+	// the iris_system_* Prometheus gauges.
+	GetSystemMetrics(ctx context.Context, req *GetSystemMetricsRequest, opts ...http.CallOption) (rsp *MetricsTimeseries, err error)
 	// GetSystemMonitor System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
 	GetSystemMonitor(ctx context.Context, req *GetSystemMonitorRequest, opts ...http.CallOption) (rsp *SystemMonitor, err error)
 	// GetWarmupDeliveryStats GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
@@ -3742,6 +3769,21 @@ func (c *IrisAdminServiceHTTPClientImpl) GetRecipientDomainStats(ctx context.Con
 	pattern := "/v1/dashboard/recipient-domain-stats"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceGetRecipientDomainStats))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetSystemMetrics GetSystemMetrics returns host CPU / memory / per-disk usage over time from
+// the iris_system_* Prometheus gauges.
+func (c *IrisAdminServiceHTTPClientImpl) GetSystemMetrics(ctx context.Context, in *GetSystemMetricsRequest, opts ...http.CallOption) (*MetricsTimeseries, error) {
+	var out MetricsTimeseries
+	pattern := "/v1/system-monitor/metrics"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetSystemMetrics))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
