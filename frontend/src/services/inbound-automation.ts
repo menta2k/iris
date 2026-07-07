@@ -1,4 +1,5 @@
 import { http } from './http'
+import { pageQuery, type PageParams } from './pagination'
 import type {
   InboundRoute,
   InboundRouteRequest,
@@ -19,7 +20,7 @@ export const inboundAutomationService = {
   deleteInboundRoute(id: string) {
     return http.delete<{ ok: boolean }>(`/inbound-routes/${id}`)
   },
-  listRspamdResults() {
-    return http.get<ListResponse<RspamdResult>>('/rspamd-results')
+  listRspamdResults(page?: PageParams) {
+    return http.get<ListResponse<RspamdResult>>('/rspamd-results', { query: pageQuery(page) })
   },
 }

@@ -87,6 +87,7 @@ const OperationIrisAdminServiceListRetentionPolicies = "/iris.admin.v1.IrisAdmin
 const OperationIrisAdminServiceListRoutingRules = "/iris.admin.v1.IrisAdminService/ListRoutingRules"
 const OperationIrisAdminServiceListRspamdResults = "/iris.admin.v1.IrisAdminService/ListRspamdResults"
 const OperationIrisAdminServiceListSubjectClassifications = "/iris.admin.v1.IrisAdminService/ListSubjectClassifications"
+const OperationIrisAdminServiceListSuppressionDsnMessages = "/iris.admin.v1.IrisAdminService/ListSuppressionDsnMessages"
 const OperationIrisAdminServiceListSuppressions = "/iris.admin.v1.IrisAdminService/ListSuppressions"
 const OperationIrisAdminServiceListTLSPolicies = "/iris.admin.v1.IrisAdminService/ListTLSPolicies"
 const OperationIrisAdminServiceListUsers = "/iris.admin.v1.IrisAdminService/ListUsers"
@@ -249,6 +250,10 @@ type IrisAdminServiceHTTPServer interface {
 	// ListSubjectClassifications Subject classifications (rules for the optional subject-classification
 	// feature; operator-authored plus AI-generated cache).
 	ListSubjectClassifications(context.Context, *ListSubjectClassificationsRequest) (*ListSubjectClassificationsReply, error)
+	// ListSuppressionDsnMessages ListSuppressionDsnMessages returns the raw DSN notifications archived for the
+	// recipient behind a dsn-sourced suppression, so an operator can read the full
+	// asynchronous bounce.
+	ListSuppressionDsnMessages(context.Context, *ListSuppressionDsnMessagesRequest) (*ListSuppressionDsnMessagesReply, error)
 	ListSuppressions(context.Context, *ListSuppressionsRequest) (*ListSuppressionsReply, error)
 	// ListTLSPolicies Require-TLS policies (outbound delivery must use TLS for these domains) ---
 	ListTLSPolicies(context.Context, *ListTLSPoliciesRequest) (*ListTLSPoliciesReply, error)
@@ -368,6 +373,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.GET("/v1/suppressions", _IrisAdminService_ListSuppressions0_HTTP_Handler(srv))
 	r.POST("/v1/suppressions", _IrisAdminService_CreateSuppression0_HTTP_Handler(srv))
 	r.PUT("/v1/suppressions/{id}", _IrisAdminService_UpdateSuppression0_HTTP_Handler(srv))
+	r.GET("/v1/suppressions/{id}/dsn-messages", _IrisAdminService_ListSuppressionDsnMessages0_HTTP_Handler(srv))
 	r.GET("/v1/tls-policies", _IrisAdminService_ListTLSPolicies0_HTTP_Handler(srv))
 	r.POST("/v1/tls-policies", _IrisAdminService_CreateTLSPolicy0_HTTP_Handler(srv))
 	r.DELETE("/v1/tls-policies/{id}", _IrisAdminService_DeleteTLSPolicy0_HTTP_Handler(srv))
@@ -1527,6 +1533,28 @@ func _IrisAdminService_UpdateSuppression0_HTTP_Handler(srv IrisAdminServiceHTTPS
 			return err
 		}
 		reply := out.(*Suppression)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ListSuppressionDsnMessages0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListSuppressionDsnMessagesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListSuppressionDsnMessages)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListSuppressionDsnMessages(ctx, req.(*ListSuppressionDsnMessagesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListSuppressionDsnMessagesReply)
 		return ctx.Result(200, reply)
 	}
 }
@@ -2925,6 +2953,10 @@ type IrisAdminServiceHTTPClient interface {
 	// ListSubjectClassifications Subject classifications (rules for the optional subject-classification
 	// feature; operator-authored plus AI-generated cache).
 	ListSubjectClassifications(ctx context.Context, req *ListSubjectClassificationsRequest, opts ...http.CallOption) (rsp *ListSubjectClassificationsReply, err error)
+	// ListSuppressionDsnMessages ListSuppressionDsnMessages returns the raw DSN notifications archived for the
+	// recipient behind a dsn-sourced suppression, so an operator can read the full
+	// asynchronous bounce.
+	ListSuppressionDsnMessages(ctx context.Context, req *ListSuppressionDsnMessagesRequest, opts ...http.CallOption) (rsp *ListSuppressionDsnMessagesReply, err error)
 	ListSuppressions(ctx context.Context, req *ListSuppressionsRequest, opts ...http.CallOption) (rsp *ListSuppressionsReply, err error)
 	// ListTLSPolicies Require-TLS policies (outbound delivery must use TLS for these domains) ---
 	ListTLSPolicies(ctx context.Context, req *ListTLSPoliciesRequest, opts ...http.CallOption) (rsp *ListTLSPoliciesReply, err error)
@@ -3925,6 +3957,22 @@ func (c *IrisAdminServiceHTTPClientImpl) ListSubjectClassifications(ctx context.
 	pattern := "/v1/subject-classifications"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListSubjectClassifications))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListSuppressionDsnMessages ListSuppressionDsnMessages returns the raw DSN notifications archived for the
+// recipient behind a dsn-sourced suppression, so an operator can read the full
+// asynchronous bounce.
+func (c *IrisAdminServiceHTTPClientImpl) ListSuppressionDsnMessages(ctx context.Context, in *ListSuppressionDsnMessagesRequest, opts ...http.CallOption) (*ListSuppressionDsnMessagesReply, error) {
+	var out ListSuppressionDsnMessagesReply
+	pattern := "/v1/suppressions/{id}/dsn-messages"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListSuppressionDsnMessages))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	adminv1 "github.com/menta2k/iris/backend/api/iris/admin/v1"
 	"github.com/menta2k/iris/backend/internal/biz"
@@ -131,9 +132,39 @@ func dkimToProto(d *biz.DKIMDomain) *adminv1.DKIMDomain {
 	}
 }
 
+// ListSuppressionDsnMessages returns the raw DSN notifications behind a
+// dsn-sourced suppression (US4).
+func (s *Service) ListSuppressionDsnMessages(ctx context.Context, req *adminv1.ListSuppressionDsnMessagesRequest) (*adminv1.ListSuppressionDsnMessagesReply, error) {
+	if s.domainSafety == nil {
+		return nil, notImplemented("ListSuppressionDsnMessages")
+	}
+	msgs, err := s.domainSafety.SuppressionDSNMessages(ctx, req.GetId())
+	if err != nil {
+		return nil, s.fail(ctx, "ListSuppressionDsnMessages", err)
+	}
+	out := &adminv1.ListSuppressionDsnMessagesReply{}
+	for _, m := range msgs {
+		out.Items = append(out.Items, &adminv1.DsnMessage{
+			Id:         m.ID,
+			MessageId:  m.MessageID,
+			RawMessage: m.RawMessage,
+			ReceivedAt: m.ReceivedAt.UTC().Format(time.RFC3339),
+		})
+	}
+	return out, nil
+}
+
 func suppressionToProto(e *biz.SuppressionEntry) *adminv1.Suppression {
+	createdAt := ""
+	if !e.CreatedAt.IsZero() {
+		createdAt = e.CreatedAt.UTC().Format(time.RFC3339)
+	}
+	expiresAt := ""
+	if e.ExpiresAt != nil {
+		expiresAt = e.ExpiresAt.UTC().Format(time.RFC3339)
+	}
 	return &adminv1.Suppression{
 		Id: e.ID, Type: e.Type, Value: e.Value, Reason: e.Reason, Source: e.Source, Status: e.Status,
-		Mailclass: e.Mailclass,
+		Mailclass: e.Mailclass, CreatedAt: createdAt, ExpiresAt: expiresAt,
 	}
 }

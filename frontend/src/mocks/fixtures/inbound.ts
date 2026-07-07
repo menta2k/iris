@@ -16,7 +16,7 @@ export const inboundRoutes: InboundRoute[] = [
   { id: 'ibr_old', name: 'Legacy parser', matchType: 'recipient_domain', matchValue: 'old.example.net', action: 'maildir', priority: 10, status: 'disabled', spamScan: 'off', forwardHost: '', forwardPort: 0, forwardTls: 'none', maildirPath: '/var/mail/legacy', destinationUrl: '', timeoutSeconds: 30 },
 ]
 
-export const rspamdResults: RspamdResult[] = Array.from({ length: 12 }, (_, i) => {
+export const rspamdResults: RspamdResult[] = Array.from({ length: 47 }, (_, i) => {
   const spam = i % 4 === 0
   return {
     id: `rsp_${i}`,

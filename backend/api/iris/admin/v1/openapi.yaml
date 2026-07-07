@@ -1775,6 +1775,28 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Suppression'
+    /v1/suppressions/{id}/dsn-messages:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                ListSuppressionDsnMessages returns the raw DSN notifications archived for the
+                 recipient behind a dsn-sourced suppression, so an operator can read the full
+                 asynchronous bounce.
+            operationId: IrisAdminService_ListSuppressionDsnMessages
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListSuppressionDsnMessagesReply'
     /v1/tls-policies:
         get:
             tags:
@@ -3032,6 +3054,18 @@ components:
                 DomainDeferredStat is the count of DISTINCT messages that deferred to one
                  recipient domain (deduped across VMTAs). Unlike the per-VMTA rows, these
                  numbers are summable — a message that retried across several IPs counts once.
+        DsnMessage:
+            type: object
+            properties:
+                id:
+                    type: string
+                message_id:
+                    type: string
+                raw_message:
+                    type: string
+                received_at:
+                    type: string
+            description: DsnMessage is a raw asynchronous bounce (DSN) archived at the bounce domain.
         EnrollMFAReply:
             type: object
             properties:
@@ -3499,6 +3533,13 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/SubjectClassification'
+        ListSuppressionDsnMessagesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DsnMessage'
         ListSuppressionsReply:
             type: object
             properties:
@@ -4190,6 +4231,10 @@ components:
                 status:
                     type: string
                 mailclass:
+                    type: string
+                created_at:
+                    type: string
+                expires_at:
                     type: string
         TLSPolicy:
             type: object

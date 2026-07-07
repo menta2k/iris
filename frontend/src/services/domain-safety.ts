@@ -5,6 +5,7 @@ import type {
   CreateSuppressionRequest,
   CreateTLSPolicyRequest,
   DkimDomain,
+  DsnMessage,
   GenerateDkimKeyReply,
   GenerateDkimKeyRequest,
   ListResponse,
@@ -35,6 +36,9 @@ export const domainSafetyService = {
   },
   updateSuppression(id: string, body: UpdateSuppressionRequest) {
     return http.put<Suppression>(`/suppressions/${id}`, body)
+  },
+  listSuppressionDsnMessages(id: string) {
+    return http.get<ListResponse<DsnMessage>>(`/suppressions/${id}/dsn-messages`)
   },
   listTLSPolicies() {
     return http.get<ListResponse<TLSPolicy>>('/tls-policies')

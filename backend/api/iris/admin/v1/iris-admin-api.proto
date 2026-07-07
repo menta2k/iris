@@ -170,6 +170,12 @@ service IrisAdminService {
   rpc UpdateSuppression(UpdateSuppressionRequest) returns (Suppression) {
     option (google.api.http) = { put: "/v1/suppressions/{id}" body: "*" };
   }
+  // ListSuppressionDsnMessages returns the raw DSN notifications archived for the
+  // recipient behind a dsn-sourced suppression, so an operator can read the full
+  // asynchronous bounce.
+  rpc ListSuppressionDsnMessages(ListSuppressionDsnMessagesRequest) returns (ListSuppressionDsnMessagesReply) {
+    option (google.api.http) = { get: "/v1/suppressions/{id}/dsn-messages" };
+  }
 
   // Require-TLS policies (outbound delivery must use TLS for these domains) ---
   rpc ListTLSPolicies(ListTLSPoliciesRequest) returns (ListTLSPoliciesReply) {
@@ -1018,6 +1024,8 @@ message Suppression {
   string source = 5;
   string status = 6;
   string mailclass = 7; // class of the event that triggered it (empty if manual)
+  string created_at = 8; // RFC3339 — when the entry was recorded
+  string expires_at = 9; // RFC3339 — when it stops blocking; empty = permanent
 }
 
 message ListDKIMDomainsRequest { PageRequest page = 1; }
@@ -1066,6 +1074,16 @@ message UpdateSuppressionRequest {
   string reason = 2;
   string status = 3;
 }
+
+// DsnMessage is a raw asynchronous bounce (DSN) archived at the bounce domain.
+message DsnMessage {
+  string id = 1;
+  string message_id = 2;
+  string raw_message = 3;
+  string received_at = 4; // RFC3339
+}
+message ListSuppressionDsnMessagesRequest { string id = 1; }
+message ListSuppressionDsnMessagesReply { repeated DsnMessage items = 1; }
 
 // TLSPolicy requires TLS on outbound delivery to a destination domain. mode is
 // "required" (STARTTLS + valid cert) or "required_insecure" (STARTTLS, skip

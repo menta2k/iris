@@ -3,7 +3,10 @@ package data
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/menta2k/iris/backend/internal/biz"
 )
@@ -146,10 +149,10 @@ func (r *DomainSafetyRepo) CreateSuppression(ctx context.Context, s *biz.Suppres
 	row := r.db.Pool.QueryRow(ctx, `
 		INSERT INTO suppression_entries (type, value, reason, source, status, expires_at, mailclass)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id, type, value, reason, source, status, expires_at, mailclass`,
+		RETURNING id, type, value, reason, source, status, expires_at, mailclass, created_at`,
 		s.Type, s.Value, s.Reason, s.Source, s.Status, expiresAt, s.Mailclass)
 	out := &biz.SuppressionEntry{}
-	if err := row.Scan(&out.ID, &out.Type, &out.Value, &out.Reason, &out.Source, &out.Status, &out.ExpiresAt, &out.Mailclass); err != nil {
+	if err := row.Scan(&out.ID, &out.Type, &out.Value, &out.Reason, &out.Source, &out.Status, &out.ExpiresAt, &out.Mailclass, &out.CreatedAt); err != nil {
 		return nil, mapConstraint(err, "suppression")
 	}
 	if out.Status == biz.SuppressActive {
@@ -174,10 +177,10 @@ func (r *DomainSafetyRepo) UpdateSuppression(ctx context.Context, id string, s *
 		    expires_at = CASE WHEN $3 = 'active' THEN $4 ELSE expires_at END,
 		    updated_at = now()
 		WHERE id = $1
-		RETURNING id, type, value, reason, source, status, expires_at, mailclass`,
+		RETURNING id, type, value, reason, source, status, expires_at, mailclass, created_at`,
 		id, s.Reason, s.Status, expiresAt)
 	out := &biz.SuppressionEntry{}
-	if err := row.Scan(&out.ID, &out.Type, &out.Value, &out.Reason, &out.Source, &out.Status, &out.ExpiresAt, &out.Mailclass); err != nil {
+	if err := row.Scan(&out.ID, &out.Type, &out.Value, &out.Reason, &out.Source, &out.Status, &out.ExpiresAt, &out.Mailclass, &out.CreatedAt); err != nil {
 		return nil, mapConstraint(err, "suppression")
 	}
 	if active {
@@ -209,7 +212,7 @@ func (r *DomainSafetyRepo) ClearAllSuppressions(ctx context.Context) (int64, err
 // ListSuppressions returns suppression entries.
 func (r *DomainSafetyRepo) ListSuppressions(ctx context.Context, page biz.Page) ([]*biz.SuppressionEntry, error) {
 	rows, err := r.db.Pool.Query(ctx, `
-		SELECT id, type, value, reason, source, status, expires_at, mailclass
+		SELECT id, type, value, reason, source, status, expires_at, mailclass, created_at
 		FROM suppression_entries ORDER BY value LIMIT $1 OFFSET $2`,
 		page.Size, page.Offset)
 	if err != nil {
@@ -219,10 +222,61 @@ func (r *DomainSafetyRepo) ListSuppressions(ctx context.Context, page biz.Page) 
 	var out []*biz.SuppressionEntry
 	for rows.Next() {
 		s := &biz.SuppressionEntry{}
-		if err := rows.Scan(&s.ID, &s.Type, &s.Value, &s.Reason, &s.Source, &s.Status, &s.ExpiresAt, &s.Mailclass); err != nil {
+		if err := rows.Scan(&s.ID, &s.Type, &s.Value, &s.Reason, &s.Source, &s.Status, &s.ExpiresAt, &s.Mailclass, &s.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan suppression: %w", err)
 		}
 		out = append(out, s)
+	}
+	return out, rows.Err()
+}
+
+// SuppressionValueByID resolves a suppression's value (the recipient) by id.
+// Returns "" (no error) when no such entry exists.
+func (r *DomainSafetyRepo) SuppressionValueByID(ctx context.Context, id string) (string, error) {
+	var value string
+	err := r.db.Pool.QueryRow(ctx, `SELECT value FROM suppression_entries WHERE id = $1`, id).Scan(&value)
+	if err == pgx.ErrNoRows {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("suppression value by id: %w", err)
+	}
+	return value, nil
+}
+
+// InsertDSNMessage archives a raw DSN notification for a recipient.
+func (r *DomainSafetyRepo) InsertDSNMessage(ctx context.Context, m *biz.DSNMessage) error {
+	_, err := r.db.Pool.Exec(ctx, `
+		INSERT INTO dsn_messages (recipient, message_id, raw_message, received_at)
+		VALUES ($1, $2, $3, $4)`,
+		strings.ToLower(strings.TrimSpace(m.Recipient)), m.MessageID, m.RawMessage, m.ReceivedAt)
+	if err != nil {
+		return fmt.Errorf("insert dsn message: %w", err)
+	}
+	return nil
+}
+
+// ListDSNMessages returns the raw DSN messages archived for a recipient, newest
+// first, bounded by limit.
+func (r *DomainSafetyRepo) ListDSNMessages(ctx context.Context, recipient string, limit int) ([]*biz.DSNMessage, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT id, recipient, message_id, raw_message, received_at
+		FROM dsn_messages WHERE recipient = $1 ORDER BY received_at DESC LIMIT $2`,
+		strings.ToLower(strings.TrimSpace(recipient)), limit)
+	if err != nil {
+		return nil, fmt.Errorf("query dsn messages: %w", err)
+	}
+	defer rows.Close()
+	var out []*biz.DSNMessage
+	for rows.Next() {
+		m := &biz.DSNMessage{}
+		if err := rows.Scan(&m.ID, &m.Recipient, &m.MessageID, &m.RawMessage, &m.ReceivedAt); err != nil {
+			return nil, fmt.Errorf("scan dsn message: %w", err)
+		}
+		out = append(out, m)
 	}
 	return out, rows.Err()
 }

@@ -653,6 +653,8 @@ export interface Suppression {
   source: string
   status: string
   mailclass?: string
+  createdAt?: string
+  expiresAt?: string
 }
 
 export interface CreateSuppressionRequest {
@@ -681,6 +683,14 @@ export interface CreateTLSPolicyRequest {
 export interface UpdateSuppressionRequest {
   reason: string
   status: string
+}
+
+// Raw asynchronous bounce (DSN) archived behind a dsn-sourced suppression.
+export interface DsnMessage {
+  id: string
+  messageId: string
+  rawMessage: string
+  receivedAt: string
 }
 
 // ---- Inbound automation ----

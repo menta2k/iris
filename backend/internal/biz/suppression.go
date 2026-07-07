@@ -62,6 +62,8 @@ type SuppressionEntry struct {
 	// policy lookup enforces this via the Redis key TTL; this mirrors it for the
 	// DB list and the DB-side IsSuppressed check.
 	ExpiresAt *time.Time
+	// CreatedAt is when the entry was first recorded (the suppression date).
+	CreatedAt time.Time
 }
 
 // Validate normalizes and checks a suppression entry.

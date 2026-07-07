@@ -69,6 +69,7 @@ const (
 	IrisAdminService_ListSuppressions_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListSuppressions"
 	IrisAdminService_CreateSuppression_FullMethodName           = "/iris.admin.v1.IrisAdminService/CreateSuppression"
 	IrisAdminService_UpdateSuppression_FullMethodName           = "/iris.admin.v1.IrisAdminService/UpdateSuppression"
+	IrisAdminService_ListSuppressionDsnMessages_FullMethodName  = "/iris.admin.v1.IrisAdminService/ListSuppressionDsnMessages"
 	IrisAdminService_ListTLSPolicies_FullMethodName             = "/iris.admin.v1.IrisAdminService/ListTLSPolicies"
 	IrisAdminService_CreateTLSPolicy_FullMethodName             = "/iris.admin.v1.IrisAdminService/CreateTLSPolicy"
 	IrisAdminService_DeleteTLSPolicy_FullMethodName             = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
@@ -195,6 +196,10 @@ type IrisAdminServiceClient interface {
 	ListSuppressions(ctx context.Context, in *ListSuppressionsRequest, opts ...grpc.CallOption) (*ListSuppressionsReply, error)
 	CreateSuppression(ctx context.Context, in *CreateSuppressionRequest, opts ...grpc.CallOption) (*Suppression, error)
 	UpdateSuppression(ctx context.Context, in *UpdateSuppressionRequest, opts ...grpc.CallOption) (*Suppression, error)
+	// ListSuppressionDsnMessages returns the raw DSN notifications archived for the
+	// recipient behind a dsn-sourced suppression, so an operator can read the full
+	// asynchronous bounce.
+	ListSuppressionDsnMessages(ctx context.Context, in *ListSuppressionDsnMessagesRequest, opts ...grpc.CallOption) (*ListSuppressionDsnMessagesReply, error)
 	// Require-TLS policies (outbound delivery must use TLS for these domains) ---
 	ListTLSPolicies(ctx context.Context, in *ListTLSPoliciesRequest, opts ...grpc.CallOption) (*ListTLSPoliciesReply, error)
 	CreateTLSPolicy(ctx context.Context, in *CreateTLSPolicyRequest, opts ...grpc.CallOption) (*TLSPolicy, error)
@@ -822,6 +827,16 @@ func (c *irisAdminServiceClient) UpdateSuppression(ctx context.Context, in *Upda
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Suppression)
 	err := c.cc.Invoke(ctx, IrisAdminService_UpdateSuppression_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ListSuppressionDsnMessages(ctx context.Context, in *ListSuppressionDsnMessagesRequest, opts ...grpc.CallOption) (*ListSuppressionDsnMessagesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSuppressionDsnMessagesReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListSuppressionDsnMessages_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1501,6 +1516,10 @@ type IrisAdminServiceServer interface {
 	ListSuppressions(context.Context, *ListSuppressionsRequest) (*ListSuppressionsReply, error)
 	CreateSuppression(context.Context, *CreateSuppressionRequest) (*Suppression, error)
 	UpdateSuppression(context.Context, *UpdateSuppressionRequest) (*Suppression, error)
+	// ListSuppressionDsnMessages returns the raw DSN notifications archived for the
+	// recipient behind a dsn-sourced suppression, so an operator can read the full
+	// asynchronous bounce.
+	ListSuppressionDsnMessages(context.Context, *ListSuppressionDsnMessagesRequest) (*ListSuppressionDsnMessagesReply, error)
 	// Require-TLS policies (outbound delivery must use TLS for these domains) ---
 	ListTLSPolicies(context.Context, *ListTLSPoliciesRequest) (*ListTLSPoliciesReply, error)
 	CreateTLSPolicy(context.Context, *CreateTLSPolicyRequest) (*TLSPolicy, error)
@@ -1783,6 +1802,9 @@ func (UnimplementedIrisAdminServiceServer) CreateSuppression(context.Context, *C
 }
 func (UnimplementedIrisAdminServiceServer) UpdateSuppression(context.Context, *UpdateSuppressionRequest) (*Suppression, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateSuppression not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListSuppressionDsnMessages(context.Context, *ListSuppressionDsnMessagesRequest) (*ListSuppressionDsnMessagesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListSuppressionDsnMessages not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) ListTLSPolicies(context.Context, *ListTLSPoliciesRequest) (*ListTLSPoliciesReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListTLSPolicies not implemented")
@@ -2884,6 +2906,24 @@ func _IrisAdminService_UpdateSuppression_Handler(srv interface{}, ctx context.Co
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IrisAdminServiceServer).UpdateSuppression(ctx, req.(*UpdateSuppressionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListSuppressionDsnMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSuppressionDsnMessagesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListSuppressionDsnMessages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListSuppressionDsnMessages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListSuppressionDsnMessages(ctx, req.(*ListSuppressionDsnMessagesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -4192,6 +4232,10 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateSuppression",
 			Handler:    _IrisAdminService_UpdateSuppression_Handler,
+		},
+		{
+			MethodName: "ListSuppressionDsnMessages",
+			Handler:    _IrisAdminService_ListSuppressionDsnMessages_Handler,
 		},
 		{
 			MethodName: "ListTLSPolicies",

@@ -21,7 +21,7 @@ import { usePagedList } from '@/composables/usePagedList'
 import { useToast } from '@/composables/useToast'
 import { domainSafetyService } from '@/services'
 import { ApiError } from '@/services/http'
-import type { Suppression } from '@/types'
+import type { DsnMessage, Suppression } from '@/types'
 
 const {
   items,
@@ -65,6 +65,35 @@ const form = ref<{
 })
 
 const isEdit = computed(() => mode.value === 'edit')
+
+function formatDate(iso?: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString()
+}
+
+// DSN message viewer (for dsn-sourced suppressions).
+const dsnDialogOpen = ref(false)
+const dsnLoading = ref(false)
+const dsnError = ref<string | null>(null)
+const dsnValue = ref('')
+const dsnMessages = ref<DsnMessage[]>([])
+
+async function viewDsn(s: Suppression) {
+  dsnValue.value = s.value
+  dsnMessages.value = []
+  dsnError.value = null
+  dsnDialogOpen.value = true
+  dsnLoading.value = true
+  try {
+    const res = await domainSafetyService.listSuppressionDsnMessages(s.id)
+    dsnMessages.value = res.items ?? []
+  } catch (err) {
+    dsnError.value = err instanceof ApiError ? err.message : 'Failed to load DSN message.'
+  } finally {
+    dsnLoading.value = false
+  }
+}
 
 function openCreate() {
   mode.value = 'create'
@@ -138,6 +167,8 @@ async function submit() {
                 <TableHead>Mailclass</TableHead>
                 <TableHead>Reason</TableHead>
                 <TableHead>Source</TableHead>
+                <TableHead>Suppressed</TableHead>
+                <TableHead>Expires</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead class="text-right">Actions</TableHead>
               </TableRow>
@@ -152,16 +183,32 @@ async function submit() {
                 </TableCell>
                 <TableCell><Badge variant="destructive">{{ s.reason }}</Badge></TableCell>
                 <TableCell class="text-medium-emphasis">{{ s.source }}</TableCell>
+                <TableCell class="text-caption text-no-wrap">{{ formatDate(s.createdAt) }}</TableCell>
+                <TableCell class="text-caption text-no-wrap">
+                  <span v-if="s.expiresAt">{{ formatDate(s.expiresAt) }}</span>
+                  <span v-else class="text-medium-emphasis">Never</span>
+                </TableCell>
                 <TableCell><StatusBadge :status="s.status" /></TableCell>
                 <TableCell class="text-right">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    :data-testid="`edit-suppression-${s.id}`"
-                    @click="openEdit(s)"
-                  >
-                    Edit
-                  </Button>
+                  <div class="d-flex justify-end ga-1">
+                    <Button
+                      v-if="s.source === 'dsn'"
+                      variant="outline"
+                      size="sm"
+                      :data-testid="`view-dsn-${s.id}`"
+                      @click="viewDsn(s)"
+                    >
+                      View message
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      :data-testid="`edit-suppression-${s.id}`"
+                      @click="openEdit(s)"
+                    >
+                      Edit
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -232,5 +279,45 @@ async function submit() {
         </DialogFooter>
       </form>
     </Dialog>
+
+    <Dialog v-model:open="dsnDialogOpen">
+      <DialogHeader>
+        <DialogTitle>DSN message — {{ dsnValue }}</DialogTitle>
+      </DialogHeader>
+      <div class="d-flex flex-column ga-3">
+        <div v-if="dsnLoading" class="text-medium-emphasis text-body-2">Loading…</div>
+        <div v-else-if="dsnError" class="text-error text-body-2">{{ dsnError }}</div>
+        <div v-else-if="dsnMessages.length === 0" class="text-medium-emphasis text-body-2">
+          No archived DSN message for this recipient. Only asynchronous bounces captured at the
+          bounce domain after this feature shipped are stored.
+        </div>
+        <div v-for="m in dsnMessages" v-else :key="m.id" class="d-flex flex-column ga-1">
+          <div class="text-caption text-medium-emphasis">
+            Received {{ new Date(m.receivedAt).toLocaleString() }}
+            <span v-if="m.messageId"> · message {{ m.messageId }}</span>
+          </div>
+          <pre class="dsn-raw">{{ m.rawMessage }}</pre>
+        </div>
+      </div>
+      <DialogFooter>
+        <Button type="button" variant="outline" @click="dsnDialogOpen = false">Close</Button>
+      </DialogFooter>
+    </Dialog>
   </div>
 </template>
+
+<style scoped>
+.dsn-raw {
+  max-height: 50vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--v-font-monospace, monospace);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  padding: 0.75rem;
+  border-radius: 6px;
+  background: rgba(var(--v-theme-on-surface), 0.04);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+}
+</style>

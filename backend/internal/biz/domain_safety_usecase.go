@@ -14,6 +14,12 @@ type DomainSafetyRepo interface {
 	UpdateSuppression(ctx context.Context, id string, s *SuppressionEntry) (*SuppressionEntry, error)
 	ListSuppressions(ctx context.Context, page Page) ([]*SuppressionEntry, error)
 	IsSuppressed(ctx context.Context, recipient string) (bool, error)
+	// SuppressionValueByID resolves a suppression's value (the recipient) by id;
+	// "" when no such entry exists.
+	SuppressionValueByID(ctx context.Context, id string) (string, error)
+	// ListDSNMessages returns the raw DSN messages archived for a recipient,
+	// newest first, bounded by limit.
+	ListDSNMessages(ctx context.Context, recipient string, limit int) ([]*DSNMessage, error)
 	CreateTLSPolicy(ctx context.Context, p *TLSPolicy) (*TLSPolicy, error)
 	ListTLSPolicies(ctx context.Context, page Page) ([]*TLSPolicy, error)
 	DeleteTLSPolicy(ctx context.Context, id string) error
@@ -178,6 +184,24 @@ func (uc *DomainSafetyUsecase) ListSuppressions(ctx context.Context, page Page) 
 		return nil, err
 	}
 	return uc.repo.ListSuppressions(ctx, page)
+}
+
+// SuppressionDSNMessages returns the raw DSN notifications archived for the
+// recipient behind a suppression, so an operator can inspect the full
+// asynchronous bounce. Empty when the suppression isn't dsn-sourced or nothing
+// was archived.
+func (uc *DomainSafetyUsecase) SuppressionDSNMessages(ctx context.Context, suppressionID string) ([]*DSNMessage, error) {
+	if _, err := RequirePermission(ctx, PermSuppressionRead); err != nil {
+		return nil, err
+	}
+	value, err := uc.repo.SuppressionValueByID(ctx, suppressionID)
+	if err != nil {
+		return nil, err
+	}
+	if value == "" {
+		return nil, nil
+	}
+	return uc.repo.ListDSNMessages(ctx, value, 20)
 }
 
 // CreateSuppression validates and persists a suppression entry.

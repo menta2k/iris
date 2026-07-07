@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
+import PaginationControls from '@/components/common/PaginationControls.vue'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
@@ -11,13 +12,25 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { useAsyncList } from '@/composables/useAsyncList'
+import { usePagedList } from '@/composables/usePagedList'
 import { inboundAutomationService } from '@/services'
 import { formatDateTime } from '@/composables/useTimezone'
 import type { RspamdResult } from '@/types'
 
-const { items, loading, error, notImplemented } = useAsyncList<RspamdResult>({
-  loader: () => inboundAutomationService.listRspamdResults(),
+const {
+  items,
+  loading,
+  error,
+  notImplemented,
+  pageSize,
+  pageNumber,
+  hasPrev,
+  hasNext,
+  nextPage,
+  prevPage,
+  setPageSize,
+} = usePagedList<RspamdResult>({
+  loader: (page) => inboundAutomationService.listRspamdResults(page),
 })
 
 // Colour-code the rspamd verdict: reject / soft reject → red, header-tagging
@@ -79,5 +92,17 @@ function actionVariant(action: string) {
         </CardContent>
       </Card>
     </DataState>
+
+    <PaginationControls
+      v-if="!notImplemented && (items.length > 0 || hasPrev)"
+      :page-number="pageNumber"
+      :has-prev="hasPrev"
+      :has-next="hasNext"
+      :loading="loading"
+      :page-size="pageSize"
+      @prev="prevPage"
+      @next="nextPage"
+      @page-size-change="setPageSize"
+    />
   </div>
 </template>
