@@ -6619,6 +6619,7 @@ func (x *GenerateDKIMKeyReply) GetPublicKeyFingerprint() string {
 type ListSuppressionsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Page          *PageRequest           `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
+	Search        string                 `protobuf:"bytes,2,opt,name=search,proto3" json:"search,omitempty"` // case-insensitive substring match on the suppressed value
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6658,6 +6659,13 @@ func (x *ListSuppressionsRequest) GetPage() *PageRequest {
 		return x.Page
 	}
 	return nil
+}
+
+func (x *ListSuppressionsRequest) GetSearch() string {
+	if x != nil {
+		return x.Search
+	}
+	return ""
 }
 
 type ListSuppressionsReply struct {
@@ -16214,9 +16222,10 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\vrecord_name\x18\x02 \x01(\tR\n" +
 	"recordName\x12!\n" +
 	"\frecord_value\x18\x03 \x01(\tR\vrecordValue\x124\n" +
-	"\x16public_key_fingerprint\x18\x04 \x01(\tR\x14publicKeyFingerprint\"I\n" +
+	"\x16public_key_fingerprint\x18\x04 \x01(\tR\x14publicKeyFingerprint\"a\n" +
 	"\x17ListSuppressionsRequest\x12.\n" +
-	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\"w\n" +
+	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\x12\x16\n" +
+	"\x06search\x18\x02 \x01(\tR\x06search\"w\n" +
 	"\x15ListSuppressionsReply\x120\n" +
 	"\x05items\x18\x01 \x03(\v2\x1a.iris.admin.v1.SuppressionR\x05items\x12,\n" +
 	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\\\n" +

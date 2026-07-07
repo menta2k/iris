@@ -28,8 +28,11 @@ export const domainSafetyService = {
   generateDkimKey(body: GenerateDkimKeyRequest) {
     return http.post<GenerateDkimKeyReply>('/dkim-domains:generate-key', body)
   },
-  listSuppressions(page?: PageParams) {
-    return http.get<ListResponse<Suppression>>('/suppressions', { query: pageQuery(page) })
+  listSuppressions(page?: PageParams, search?: string) {
+    const s = (search ?? '').trim()
+    return http.get<ListResponse<Suppression>>('/suppressions', {
+      query: pageQuery(page, s ? { search: s } : undefined),
+    })
   },
   createSuppression(body: CreateSuppressionRequest) {
     return http.post<Suppression>('/suppressions', body)

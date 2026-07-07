@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -22,6 +22,51 @@ const error = ref<string | null>(null)
 const notImplemented = ref(false)
 const rows = ref<WarmupDeliveryStat[]>([])
 const deferredByDomain = ref<DomainDeferredStat[]>([])
+
+// Cap the breakdown to the busiest domains so the panel stays readable when a
+// send touches hundreds of recipient domains.
+const TOP_N = 25
+
+function rowVolume(r: WarmupDeliveryStat): number {
+  return Number(r.attempted) || Number(r.sent) + Number(r.bounced)
+}
+
+// Total volume per domain, summed across VMTAs — the ranking key.
+const domainVolume = computed(() => {
+  const m = new Map<string, number>()
+  for (const r of rows.value) {
+    m.set(r.recipientDomain, (m.get(r.recipientDomain) ?? 0) + rowVolume(r))
+  }
+  return m
+})
+
+const topDomains = computed(() =>
+  [...domainVolume.value.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, TOP_N)
+    .map(([d]) => d),
+)
+
+// Rows for the top-N domains only, grouped by domain volume (busiest first).
+const visibleRows = computed(() => {
+  const keep = new Set(topDomains.value)
+  const vol = domainVolume.value
+  return rows.value
+    .filter((r) => keep.has(r.recipientDomain))
+    .sort(
+      (a, b) =>
+        (vol.get(b.recipientDomain) ?? 0) - (vol.get(a.recipientDomain) ?? 0) ||
+        a.vmtaName.localeCompare(b.vmtaName),
+    )
+})
+
+const topDeferred = computed(() =>
+  [...deferredByDomain.value]
+    .sort((a, b) => Number(b.messages) - Number(a.messages))
+    .slice(0, TOP_N),
+)
+
+const hiddenDomains = computed(() => Math.max(0, domainVolume.value.size - TOP_N))
 
 async function load() {
   loading.value = true
@@ -70,6 +115,7 @@ watch(range, load)
     <CardHeader class="d-flex flex-row align-center justify-space-between pb-2">
       <CardTitle class="text-body-2 text-medium-emphasis">
         Warmup delivery &amp; bounce by VMTA / domain
+        <span v-if="hiddenDomains > 0" class="text-caption">· top {{ TOP_N }} domains</span>
       </CardTitle>
       <div class="d-flex ga-1">
         <button
@@ -102,7 +148,7 @@ watch(range, load)
           </div>
           <div class="d-flex flex-wrap ga-2">
             <span
-              v-for="d in deferredByDomain"
+              v-for="d in topDeferred"
               :key="d.recipientDomain"
               class="d-inline-flex align-center ga-1 rounded border px-2 py-1 text-caption"
             >
@@ -127,11 +173,11 @@ watch(range, load)
         </TableHeader>
         <TableBody>
           <TableEmpty
-            v-if="rows.length === 0"
+            v-if="visibleRows.length === 0"
             :colspan="7"
             message="No delivery activity in this range yet."
           />
-          <TableRow v-for="row in rows" :key="`${row.vmtaName}|${row.recipientDomain}`">
+          <TableRow v-for="row in visibleRows" :key="`${row.vmtaName}|${row.recipientDomain}`">
             <TableCell class="text-no-wrap font-weight-medium">{{ row.vmtaName }}</TableCell>
             <TableCell class="text-no-wrap">{{ row.recipientDomain }}</TableCell>
             <TableCell class="text-right tabular-nums">{{ row.sent }}</TableCell>
@@ -150,6 +196,9 @@ watch(range, load)
           </TableRow>
         </TableBody>
         </Table>
+        <p v-if="hiddenDomains > 0" class="mt-2 text-caption text-medium-emphasis">
+          Showing the {{ TOP_N }} busiest domains — {{ hiddenDomains }} more hidden.
+        </p>
       </template>
     </CardContent>
   </Card>

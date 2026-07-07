@@ -209,12 +209,16 @@ func (r *DomainSafetyRepo) ClearAllSuppressions(ctx context.Context) (int64, err
 	return tag.RowsAffected(), nil
 }
 
-// ListSuppressions returns suppression entries.
-func (r *DomainSafetyRepo) ListSuppressions(ctx context.Context, page biz.Page) ([]*biz.SuppressionEntry, error) {
+// ListSuppressions returns suppression entries, optionally filtered by a
+// case-insensitive substring of value (search is expected pre-lowercased; value
+// is stored lowercased, so a plain substring match suffices — no wildcards).
+func (r *DomainSafetyRepo) ListSuppressions(ctx context.Context, search string, page biz.Page) ([]*biz.SuppressionEntry, error) {
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT id, type, value, reason, source, status, expires_at, mailclass, created_at
-		FROM suppression_entries ORDER BY value LIMIT $1 OFFSET $2`,
-		page.Size, page.Offset)
+		FROM suppression_entries
+		WHERE ($3 = '' OR position($3 in value) > 0)
+		ORDER BY value LIMIT $1 OFFSET $2`,
+		page.Size, page.Offset, search)
 	if err != nil {
 		return nil, fmt.Errorf("query suppressions: %w", err)
 	}

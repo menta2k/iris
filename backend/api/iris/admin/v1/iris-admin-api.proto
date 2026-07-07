@@ -1066,7 +1066,10 @@ message GenerateDKIMKeyReply {
   string record_value = 3;
   string public_key_fingerprint = 4;
 }
-message ListSuppressionsRequest { PageRequest page = 1; }
+message ListSuppressionsRequest {
+  PageRequest page = 1;
+  string search = 2; // case-insensitive substring match on the suppressed value
+}
 message ListSuppressionsReply {
   repeated Suppression items = 1;
   PageReply page = 2;

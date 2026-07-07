@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
 import PaginationControls from '@/components/common/PaginationControls.vue'
@@ -37,9 +37,19 @@ const {
   prevPage,
   setPageSize,
 } = usePagedList<Suppression>({
-  loader: (page) => domainSafetyService.listSuppressions(page),
+  loader: (page) => domainSafetyService.listSuppressions(page, search.value),
 })
 const { toast } = useToast()
+
+// Case-insensitive substring search on the suppressed value, debounced so
+// typing doesn't fire a request per keystroke. Resets to the first page.
+const search = ref('')
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+watch(search, () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => reload(), 300)
+})
+onBeforeUnmount(() => clearTimeout(searchTimer))
 
 const SUPPRESSION_STATUSES = ['active', 'disabled', 'expired']
 const SUPPRESSION_STATUS_ITEMS = SUPPRESSION_STATUSES.map((s) => ({ title: s, value: s }))
@@ -147,6 +157,14 @@ async function submit() {
   <div>
     <PageHeader title="Suppressions" description="Recipients and domains suppressed from future delivery.">
       <template #actions>
+        <Input
+          v-model="search"
+          placeholder="Search address or domain…"
+          clearable
+          prepend-inner-icon="mdi-magnify"
+          style="min-width: 260px"
+          data-testid="search-suppression"
+        />
         <Button data-testid="create-suppression" @click="openCreate">Add Suppression</Button>
       </template>
     </PageHeader>

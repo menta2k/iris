@@ -55,7 +55,16 @@ export const domainSafetyRoutes: Route[] = [
   },
 
   // ---- Suppressions ----
-  { method: 'GET', pattern: '/suppressions', handler: (ctx) => ok(paged(all('suppressions'), ctx.query)) },
+  {
+    method: 'GET',
+    pattern: '/suppressions',
+    handler: (ctx) => {
+      const search = (ctx.query.search || '').toString().toLowerCase()
+      let rows = all('suppressions')
+      if (search) rows = rows.filter((s) => (s as { value: string }).value.toLowerCase().includes(search))
+      return ok(paged(rows, ctx.query))
+    },
+  },
   {
     method: 'POST',
     pattern: '/suppressions',

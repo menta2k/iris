@@ -12,7 +12,7 @@ type DomainSafetyRepo interface {
 	ListDKIMDomains(ctx context.Context, page Page) ([]*DKIMDomain, error)
 	CreateSuppression(ctx context.Context, s *SuppressionEntry) (*SuppressionEntry, error)
 	UpdateSuppression(ctx context.Context, id string, s *SuppressionEntry) (*SuppressionEntry, error)
-	ListSuppressions(ctx context.Context, page Page) ([]*SuppressionEntry, error)
+	ListSuppressions(ctx context.Context, search string, page Page) ([]*SuppressionEntry, error)
 	IsSuppressed(ctx context.Context, recipient string) (bool, error)
 	// SuppressionValueByID resolves a suppression's value (the recipient) by id;
 	// "" when no such entry exists.
@@ -178,12 +178,14 @@ func deriveDKIMFingerprint(d *DKIMDomain) error {
 	return nil
 }
 
-// ListSuppressions returns suppression entries.
-func (uc *DomainSafetyUsecase) ListSuppressions(ctx context.Context, page Page) ([]*SuppressionEntry, error) {
+// ListSuppressions returns suppression entries, optionally filtered by a
+// case-insensitive substring of the suppressed value (email/domain).
+func (uc *DomainSafetyUsecase) ListSuppressions(ctx context.Context, search string, page Page) ([]*SuppressionEntry, error) {
 	if _, err := RequirePermission(ctx, PermSuppressionRead); err != nil {
 		return nil, err
 	}
-	return uc.repo.ListSuppressions(ctx, page)
+	search = strings.ToLower(strings.TrimSpace(search))
+	return uc.repo.ListSuppressions(ctx, search, page)
 }
 
 // SuppressionDSNMessages returns the raw DSN notifications archived for the
