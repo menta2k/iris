@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import RangeToggle from './RangeToggle.vue'
 import {
   Table,
   TableBody,
@@ -89,11 +90,6 @@ async function load() {
   }
 }
 
-function selectRange(r: WarmupStatsRange) {
-  if (r === range.value) return
-  range.value = r
-}
-
 // Percentage with one decimal, e.g. 0.9123 -> "91.2%".
 function pct(rate: number): string {
   return `${(rate * 100).toFixed(1)}%`
@@ -112,22 +108,15 @@ watch(range, load)
 
 <template>
   <Card data-testid="warmup-stats-panel">
-    <CardHeader class="d-flex flex-row align-center justify-space-between pb-2">
-      <CardTitle class="text-body-2 text-medium-emphasis">
-        Warmup delivery &amp; bounce by VMTA / domain
-        <span v-if="hiddenDomains > 0" class="text-caption">· top {{ TOP_N }} domains</span>
-      </CardTitle>
-      <div class="d-flex ga-1">
-        <button
-          v-for="r in RANGES"
-          :key="r"
-          type="button"
-          class="rounded px-2 text-caption font-weight-medium"
-          :class="r === range ? 'bg-primary' : 'text-medium-emphasis'"
-          @click="selectRange(r)"
-        >
-          {{ r }}
-        </button>
+    <CardHeader class="pb-2">
+      <div class="d-flex flex-wrap align-center justify-space-between ga-2">
+        <div>
+          <CardTitle>Warmup Delivery &amp; Bounce</CardTitle>
+          <p class="text-caption text-medium-emphasis mb-0">
+            By VMTA / recipient domain<span v-if="hiddenDomains > 0"> · top {{ TOP_N }} domains</span>
+          </p>
+        </div>
+        <RangeToggle v-model="range" :options="RANGES" />
       </div>
     </CardHeader>
     <CardContent>

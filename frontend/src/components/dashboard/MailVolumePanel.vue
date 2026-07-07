@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import RangeToggle from './RangeToggle.vue'
 import { ApiError } from '@/services/http'
 import type { WarmupStatsRange } from '@/services/dashboard'
 
@@ -38,6 +39,13 @@ function barWidth(count: number): string {
   return `${Math.max(2, (count / maxCount.value) * 100)}%`
 }
 
+// Width of one outcome segment within a row's bar. Rows where no record has
+// an outcome yet (all still queued) keep the neutral track only.
+function segmentWidth(part: number, count: number): string {
+  if (count <= 0 || part <= 0) return '0%'
+  return `${(part / count) * 100}%`
+}
+
 function fmt(n: number): string {
   return n.toLocaleString()
 }
@@ -60,30 +68,29 @@ async function load() {
   }
 }
 
-function selectRange(r: WarmupStatsRange) {
-  if (r === range.value) return
-  range.value = r
-}
-
 onMounted(load)
 watch(range, load)
 </script>
 
 <template>
   <Card>
-    <CardHeader class="d-flex flex-row align-center justify-space-between pb-2">
-      <CardTitle class="text-body-2 text-medium-emphasis">{{ title }}</CardTitle>
-      <div class="d-flex ga-1">
-        <button
-          v-for="r in RANGES"
-          :key="r"
-          type="button"
-          class="rounded px-2 text-caption font-weight-medium"
-          :class="r === range ? 'bg-primary' : 'text-medium-emphasis'"
-          @click="selectRange(r)"
-        >
-          {{ r }}
-        </button>
+    <CardHeader class="pb-2">
+      <div class="d-flex flex-wrap align-center justify-space-between ga-2">
+        <div>
+          <CardTitle>{{ title }}</CardTitle>
+          <p class="text-caption text-medium-emphasis mb-0">
+            <span class="d-inline-flex align-center ga-1 mr-3">
+              <span class="legend-dot bg-success" />delivered
+            </span>
+            <span class="d-inline-flex align-center ga-1 mr-3">
+              <span class="legend-dot bg-warning" />deferred
+            </span>
+            <span class="d-inline-flex align-center ga-1">
+              <span class="legend-dot bg-error" />bounced
+            </span>
+          </p>
+        </div>
+        <RangeToggle v-model="range" :options="RANGES" />
       </div>
     </CardHeader>
     <CardContent>
@@ -103,12 +110,15 @@ watch(range, load)
             </span>
             <span class="text-body-2 tabular-nums text-medium-emphasis">{{ fmt(row.count) }}</span>
           </div>
-          <div class="volume-track">
-            <div
-              class="volume-fill"
-              :style="{ width: barWidth(row.count) }"
-              :title="`${fmt(row.delivered)} delivered · ${fmt(row.bounced)} bounced · ${fmt(row.deferred)} deferred`"
-            />
+          <div
+            class="volume-track"
+            :title="`${fmt(row.delivered)} delivered · ${fmt(row.deferred)} deferred · ${fmt(row.bounced)} bounced`"
+          >
+            <div class="volume-bar" :style="{ width: barWidth(row.count) }">
+              <div class="volume-segment bg-success" :style="{ width: segmentWidth(row.delivered, row.count) }" />
+              <div class="volume-segment bg-warning" :style="{ width: segmentWidth(row.deferred, row.count) }" />
+              <div class="volume-segment bg-error" :style="{ width: segmentWidth(row.bounced, row.count) }" />
+            </div>
           </div>
         </div>
       </div>
@@ -123,10 +133,21 @@ watch(range, load)
   background: rgba(var(--v-theme-on-surface), 0.08);
   overflow: hidden;
 }
-.volume-fill {
+.volume-bar {
+  display: flex;
+  gap: 2px;
+  height: 100%;
+  transition: width 0.3s ease;
+}
+.volume-segment {
   height: 100%;
   border-radius: 9999px;
-  background: rgb(var(--v-theme-primary));
   transition: width 0.3s ease;
+}
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  display: inline-block;
 }
 </style>

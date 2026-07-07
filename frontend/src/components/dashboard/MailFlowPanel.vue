@@ -5,6 +5,8 @@ import { LineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import RangeToggle from './RangeToggle.vue'
+import { useChartTheme } from '@/composables/useChartTheme'
 import { metricsService, type MetricsRange } from '@/services/metrics'
 import { ApiError } from '@/services/http'
 import type { MetricsSeries } from '@/types'
@@ -12,13 +14,22 @@ import type { MetricsSeries } from '@/types'
 echarts.use([LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
 
 const RANGES: MetricsRange[] = ['1h', '6h', '24h', '7d']
-// Stable colors per series key so a line keeps its meaning across renders.
-const COLORS: Record<string, string> = {
-  deliveries: '#16a34a', // green
-  receptions: '#2563eb', // blue
-  deferrals: '#d97706', // amber
-  bounces: '#dc2626', // red
-}
+
+const chartTheme = useChartTheme()
+
+// Series keys map onto the app's semantic status colors so a delivery is the
+// same green here as everywhere else in the UI. Both the backend's key names
+// and the mock API's are listed so either data source colors correctly.
+const seriesColor = computed<Record<string, string>>(() => ({
+  deliveries: chartTheme.value.series.success,
+  delivered: chartTheme.value.series.success,
+  receptions: chartTheme.value.series.info,
+  received: chartTheme.value.series.info,
+  deferrals: chartTheme.value.series.warning,
+  deferred: chartTheme.value.series.warning,
+  bounces: chartTheme.value.series.error,
+  bounced: chartTheme.value.series.error,
+}))
 
 const range = ref<MetricsRange>('6h')
 const loading = ref(false)
@@ -34,30 +45,49 @@ const hasData = computed(() => series.value.some((s) => (s.points?.length ?? 0) 
 
 function render() {
   if (!chart.value) return
+  const t = chartTheme.value
   chart.value.setOption(
     {
-      tooltip: { trigger: 'axis' },
-      legend: { top: 0, icon: 'roundRect', textStyle: { color: '#64748b' } },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: t.tooltipBg,
+        borderColor: t.tooltipBorder,
+        textStyle: { color: t.tooltipText },
+      },
+      legend: { top: 0, icon: 'roundRect', textStyle: { color: t.legendText } },
       grid: { left: 48, right: 16, top: 36, bottom: 28 },
       xAxis: {
         type: 'time',
-        axisLabel: { color: '#64748b' },
-        axisLine: { lineStyle: { color: '#e2e8f0' } },
+        axisLabel: { color: t.axisLabel },
+        axisLine: { lineStyle: { color: t.axisLine } },
       },
       yAxis: {
         type: 'value',
         min: 0,
-        axisLabel: { color: '#64748b' },
-        splitLine: { lineStyle: { color: '#f1f5f9' } },
+        axisLabel: { color: t.axisLabel },
+        splitLine: { lineStyle: { color: t.splitLine } },
       },
-      series: series.value.map((s) => ({
-        name: s.label,
-        type: 'line',
-        smooth: true,
-        showSymbol: false,
-        color: COLORS[s.key],
-        data: (s.points ?? []).map((p) => [p.timestamp * 1000, p.value]),
-      })),
+      series: series.value.map((s) => {
+        const color = seriesColor.value[s.key] ?? t.series.primary
+        return {
+          name: s.label,
+          type: 'line',
+          smooth: true,
+          showSymbol: false,
+          color,
+          lineStyle: { width: 2 },
+          // A faint fade under each line gives the panel depth without
+          // obscuring crossings.
+          areaStyle: {
+            opacity: 1,
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: `${color}29` },
+              { offset: 1, color: `${color}00` },
+            ]),
+          },
+          data: (s.points ?? []).map((p) => [p.timestamp * 1000, p.value]),
+        }
+      }),
     },
     true,
   )
@@ -88,11 +118,6 @@ async function load() {
   }
 }
 
-function selectRange(r: MetricsRange) {
-  if (r === range.value) return
-  range.value = r
-}
-
 const onResize = () => chart.value?.resize()
 
 onMounted(() => {
@@ -110,32 +135,26 @@ onBeforeUnmount(() => {
 })
 
 watch(range, load)
-// Re-render whenever data lands and the chart exists.
-watch([series, loading], () => {
+// Re-render whenever data lands, and re-skin when the theme flips.
+watch([series, loading, chartTheme], () => {
   if (hasData.value) render()
 })
 </script>
 
 <template>
   <Card data-testid="mail-flow-panel">
-    <CardHeader class="d-flex flex-row align-center justify-space-between pb-2">
-      <CardTitle class="text-body-2 text-medium-emphasis">Mail flow (events/min)</CardTitle>
-      <div class="d-flex ga-1">
-        <button
-          v-for="r in RANGES"
-          :key="r"
-          type="button"
-          class="rounded px-2 text-caption font-weight-medium"
-          :class="r === range ? 'bg-primary' : 'text-medium-emphasis'"
-          @click="selectRange(r)"
-        >
-          {{ r }}
-        </button>
+    <CardHeader class="pb-2">
+      <div class="d-flex flex-wrap align-center justify-space-between ga-2">
+        <div>
+          <CardTitle>Mail Flow</CardTitle>
+          <p class="text-caption text-medium-emphasis mb-0">Events per minute</p>
+        </div>
+        <RangeToggle v-model="range" :options="RANGES" />
       </div>
     </CardHeader>
     <CardContent>
       <!-- The chart canvas always exists so ECharts can mount; overlays cover it. -->
-      <div class="position-relative w-100" style="height: 256px">
+      <div class="position-relative w-100" style="height: 280px">
         <div ref="el" class="h-100 w-100" />
         <div
           v-if="loading || error || notImplemented || prometheusUnavailable || !hasData"

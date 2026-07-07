@@ -46,9 +46,10 @@ onBeforeUnmount(() => clearInterval(timer))
 </script>
 
 <template>
-  <Card data-testid="system-stats-panel">
+  <Card data-testid="system-stats-panel" class="h-100">
     <CardHeader class="pb-2">
-      <CardTitle class="text-body-2 text-medium-emphasis">System</CardTitle>
+      <CardTitle>System Resources</CardTitle>
+      <p class="text-caption text-medium-emphasis mb-0">Host CPU, memory and disk</p>
     </CardHeader>
     <CardContent>
       <p v-if="notImplemented" class="py-4 text-center text-body-2 text-medium-emphasis">
