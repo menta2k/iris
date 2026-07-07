@@ -7,6 +7,7 @@ import type {
   AuditEntry,
   AutomationRule,
   BounceRule,
+  EventProcessor,
   Bounce,
   DeliveryBlueprint,
   DkimDomain,
@@ -42,6 +43,7 @@ export interface MockData {
   blueprints: DeliveryBlueprint[]
   automationRules: AutomationRule[]
   bounceRules: BounceRule[]
+  eventProcessors: EventProcessor[]
   mailRecords: MailRecord[]
   bounces: Bounce[]
   feedbackReports: FeedbackReport[]

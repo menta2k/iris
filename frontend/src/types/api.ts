@@ -267,6 +267,49 @@ export interface UpdateBounceRuleRequest extends CreateBounceRuleRequest {
   status: string
 }
 
+// ---- Event Processor ----
+
+export type EventProcessorEventType =
+  | 'bounce'
+  | 'suppression_created'
+  | 'feedback_report'
+  | 'dmarc_received'
+
+export interface EventProcessor {
+  id: string
+  name: string
+  eventTypes: string[]
+  mailclasses: string[]
+  driver: string
+  driverConfig: Record<string, string>
+  mode: string
+  batchMaxSize: number
+  batchMaxWait: string
+  status: 'active' | 'disabled'
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CreateEventProcessorRequest {
+  name: string
+  event_types: string[]
+  mailclasses: string[]
+  driver: string
+  driver_config: Record<string, string>
+  mode: string
+  batch_max_size: number
+  batch_max_wait: string
+}
+
+export interface UpdateEventProcessorRequest extends CreateEventProcessorRequest {
+  status: string
+}
+
+export interface TestEventProcessorResult {
+  ok: boolean
+  error?: string
+}
+
 // Estimated retry schedule for a deferred message (RFC3339 UTC timestamps).
 export interface NextDeliveryAttempt {
   deferred: boolean
@@ -609,6 +652,7 @@ export interface Suppression {
   reason: string
   source: string
   status: string
+  mailclass?: string
 }
 
 export interface CreateSuppressionRequest {

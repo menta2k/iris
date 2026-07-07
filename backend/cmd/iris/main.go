@@ -248,6 +248,19 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	dmarcRepo := data.NewDMARCRepo(db)
 	dmarcUC := biz.NewDMARCUsecase(dmarcRepo, auditor)
 
+	// Event Processor: forward internal events to external services via pluggable
+	// drivers. Register the built-in drivers, then dispatch matched events.
+	eventDriverRegistry := biz.NewEventDriverRegistry()
+	eventDriverRegistry.Register(biz.EventDriverWebhook, data.NewWebhookDriverFactory())
+	eventDriverRegistry.Register(biz.EventDriverRedis, data.NewRedisEventDriverFactory(streams.Client))
+	eventDriverRegistry.Register(biz.EventDriverGreenArrow, data.NewGreenArrowDriverFactory())
+	eventProcessorRepo := data.NewEventProcessorRepo(db)
+	eventProcessorUC := biz.NewEventProcessorUsecase(eventProcessorRepo, eventDriverRegistry, auditor)
+	eventDispatcher := biz.NewEventDispatcher(eventProcessorRepo, eventDriverRegistry, nil, log.With("component", "event-processor"))
+	// Wire producers to emit into the dispatcher.
+	domainSafetyRepo.WithEventEmitter(eventDispatcher)
+	dmarcUC.WithEventEmitter(eventDispatcher)
+
 	// Generic worker error log: the repo is both the read API source and the
 	// sink behind the errlog slog handler that captures worker Warn/Error events.
 	workerErrorRepo := data.NewWorkerErrorRepo(db)
@@ -325,6 +338,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		Blueprints:      blueprintUC,
 		Automation:      automationUC,
 		BounceRules:     bounceRuleUC,
+		EventProcessors: eventProcessorUC,
 		Classifications: subjectClassAdminUC,
 	}
 
@@ -345,6 +359,8 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 
 	// Start background workers. Each exits cleanly on context cancellation.
 	startWorker(ctx, log, "errlog-flush", errHandler.Run)
+	// Event Processor dispatch loop (delivers matched events to external services).
+	startWorker(ctx, log, "event-processor", eventDispatcher.Run)
 	startWorker(ctx, log, "service-control", worker.NewServiceControlWorker(streams, mailOpsRepo, kumo, wlog("service-control")).Run)
 	startWorker(ctx, log, "rspamd-ingest", worker.NewRspamdWorker(streams, inboundUC, wlog("rspamd-ingest")).Run)
 	// Ingest KumoMTA's structured logs (streamed by the generated policy's
@@ -354,7 +370,8 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, wlog("log-stream")).
 		WithFeedbackVerification(domainSafetyRepo, settingsUC).
 		WithClassification(settingsUC).
-		WithBounceRules(bounceRuleUC).Run)
+		WithBounceRules(bounceRuleUC).
+		WithEventEmitter(eventDispatcher).Run)
 	// Optional subject classification: consumes the transient classify-pending
 	// stream, resolves labels (trigram → LLM), and backfills mail_records. Idles
 	// when the feature is off (nothing is enqueued).

@@ -13,6 +13,7 @@ import (
 type fakeBounceStore struct {
 	soft             map[string]int
 	suppressed       map[string]string // recipient -> source
+	suppressClass    map[string]string // recipient -> triggering mailclass
 	suppressTTL      map[string]time.Duration
 	recipientByMsgID map[string]string
 	suppressErr      error
@@ -20,7 +21,7 @@ type fakeBounceStore struct {
 }
 
 func newFakeBounceStore() *fakeBounceStore {
-	return &fakeBounceStore{soft: map[string]int{}, suppressed: map[string]string{}, suppressTTL: map[string]time.Duration{}, recipientByMsgID: map[string]string{}}
+	return &fakeBounceStore{soft: map[string]int{}, suppressed: map[string]string{}, suppressClass: map[string]string{}, suppressTTL: map[string]time.Duration{}, recipientByMsgID: map[string]string{}}
 }
 
 func (f *fakeBounceStore) InsertMailEvent(_ context.Context, m *biz.MailRecord) error {
@@ -40,19 +41,22 @@ func (f *fakeBounceStore) RecipientForMessageID(_ context.Context, msgID string)
 	return f.recipientByMsgID[msgID], nil
 }
 
-func (f *fakeBounceStore) SuppressRecipient(_ context.Context, email, source, _ string) error {
+func (f *fakeBounceStore) SuppressRecipient(_ context.Context, email, source, _, mailclass string) error {
 	if f.suppressErr != nil {
 		return f.suppressErr
 	}
 	f.suppressed[email] = source
+	if mailclass != "" {
+		f.suppressClass[email] = mailclass
+	}
 	return nil
 }
 
-func (f *fakeBounceStore) SuppressRecipientFor(ctx context.Context, email, source, reason string, ttl time.Duration) error {
+func (f *fakeBounceStore) SuppressRecipientFor(ctx context.Context, email, source, reason, mailclass string, ttl time.Duration) error {
 	if ttl > 0 {
 		f.suppressTTL[email] = ttl
 	}
-	return f.SuppressRecipient(ctx, email, source, reason)
+	return f.SuppressRecipient(ctx, email, source, reason, mailclass)
 }
 
 // fakePolicy returns a fixed bounce policy.

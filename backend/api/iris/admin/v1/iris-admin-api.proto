@@ -101,6 +101,21 @@ service IrisAdminService {
   rpc TestBounceDiagnostic(TestBounceDiagnosticRequest) returns (TestBounceDiagnosticReply) {
     option (google.api.http) = { post: "/v1/bounce-rules:test" body: "*" };
   }
+  rpc ListEventProcessors(ListEventProcessorsRequest) returns (ListEventProcessorsReply) {
+    option (google.api.http) = { get: "/v1/event-processors" };
+  }
+  rpc CreateEventProcessor(CreateEventProcessorRequest) returns (EventProcessor) {
+    option (google.api.http) = { post: "/v1/event-processors" body: "*" };
+  }
+  rpc UpdateEventProcessor(UpdateEventProcessorRequest) returns (EventProcessor) {
+    option (google.api.http) = { put: "/v1/event-processors/{id}" body: "*" };
+  }
+  rpc DeleteEventProcessor(DeleteEventProcessorRequest) returns (DeleteEventProcessorReply) {
+    option (google.api.http) = { delete: "/v1/event-processors/{id}" };
+  }
+  rpc TestEventProcessor(TestEventProcessorRequest) returns (TestEventProcessorReply) {
+    option (google.api.http) = { post: "/v1/event-processors:test" body: "*" };
+  }
   rpc ListRoutingRules(ListRoutingRulesRequest) returns (ListRoutingRulesReply) {
     option (google.api.http) = { get: "/v1/routing-rules" };
   }
@@ -732,6 +747,65 @@ message TestBounceDiagnosticReply {
   string effective_action = 6; // matched action, or "retry" when nothing matched
 }
 
+// ---- Event Processor (forward events to external services) ----
+message EventProcessor {
+  string id = 1;
+  string name = 2;
+  repeated string event_types = 3;  // bounce | suppression_created | feedback_report | dmarc_received
+  repeated string mailclasses = 4;  // empty = all classes
+  string driver = 5;                // webhook | redis | …
+  map<string, string> driver_config = 6;
+  string mode = 7;                  // single | batch
+  int32 batch_max_size = 8;
+  string batch_max_wait = 9;        // duration, e.g. "5s"
+  string status = 10;               // active | disabled
+  string created_at = 11;
+  string updated_at = 12;
+}
+message ListEventProcessorsRequest {}
+message ListEventProcessorsReply {
+  repeated EventProcessor items = 1;
+}
+message CreateEventProcessorRequest {
+  string name = 1;
+  repeated string event_types = 2;
+  repeated string mailclasses = 3;
+  string driver = 4;
+  map<string, string> driver_config = 5;
+  string mode = 6;
+  int32 batch_max_size = 7;
+  string batch_max_wait = 8;
+}
+message UpdateEventProcessorRequest {
+  string id = 1;
+  string name = 2;
+  repeated string event_types = 3;
+  repeated string mailclasses = 4;
+  string driver = 5;
+  map<string, string> driver_config = 6;
+  string mode = 7;
+  int32 batch_max_size = 8;
+  string batch_max_wait = 9;
+  string status = 10;
+}
+message DeleteEventProcessorRequest { string id = 1; }
+message DeleteEventProcessorReply {}
+// Send a synthetic event through the (possibly unsaved) processor's driver.
+message TestEventProcessorRequest {
+  string name = 1;
+  repeated string event_types = 2;
+  repeated string mailclasses = 3;
+  string driver = 4;
+  map<string, string> driver_config = 5;
+  string mode = 6;
+  int32 batch_max_size = 7;
+  string batch_max_wait = 8;
+}
+message TestEventProcessorReply {
+  bool ok = 1;
+  string error = 2;
+}
+
 message ListVMTAsRequest {
   PageRequest page = 1;
   string status = 2;
@@ -943,6 +1017,7 @@ message Suppression {
   string reason = 4;
   string source = 5;
   string status = 6;
+  string mailclass = 7; // class of the event that triggered it (empty if manual)
 }
 
 message ListDKIMDomainsRequest { PageRequest page = 1; }

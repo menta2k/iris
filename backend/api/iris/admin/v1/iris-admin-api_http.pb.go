@@ -28,6 +28,7 @@ const OperationIrisAdminServiceCreateAutomationRule = "/iris.admin.v1.IrisAdminS
 const OperationIrisAdminServiceCreateBounceRule = "/iris.admin.v1.IrisAdminService/CreateBounceRule"
 const OperationIrisAdminServiceCreateDKIMDomain = "/iris.admin.v1.IrisAdminService/CreateDKIMDomain"
 const OperationIrisAdminServiceCreateDeliveryBlueprint = "/iris.admin.v1.IrisAdminService/CreateDeliveryBlueprint"
+const OperationIrisAdminServiceCreateEventProcessor = "/iris.admin.v1.IrisAdminService/CreateEventProcessor"
 const OperationIrisAdminServiceCreateFeedbackLoop = "/iris.admin.v1.IrisAdminService/CreateFeedbackLoop"
 const OperationIrisAdminServiceCreateInboundRoute = "/iris.admin.v1.IrisAdminService/CreateInboundRoute"
 const OperationIrisAdminServiceCreateListener = "/iris.admin.v1.IrisAdminService/CreateListener"
@@ -42,6 +43,7 @@ const OperationIrisAdminServiceCreateWarmupSchedule = "/iris.admin.v1.IrisAdminS
 const OperationIrisAdminServiceCurrentUser = "/iris.admin.v1.IrisAdminService/CurrentUser"
 const OperationIrisAdminServiceDeleteAcmeCertificate = "/iris.admin.v1.IrisAdminService/DeleteAcmeCertificate"
 const OperationIrisAdminServiceDeleteBounceRule = "/iris.admin.v1.IrisAdminService/DeleteBounceRule"
+const OperationIrisAdminServiceDeleteEventProcessor = "/iris.admin.v1.IrisAdminService/DeleteEventProcessor"
 const OperationIrisAdminServiceDeleteFeedbackLoop = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
 const OperationIrisAdminServiceDeleteInboundRoute = "/iris.admin.v1.IrisAdminService/DeleteInboundRoute"
 const OperationIrisAdminServiceDeleteSubjectClassification = "/iris.admin.v1.IrisAdminService/DeleteSubjectClassification"
@@ -74,6 +76,7 @@ const OperationIrisAdminServiceListDKIMDomains = "/iris.admin.v1.IrisAdminServic
 const OperationIrisAdminServiceListDeliveryBlueprints = "/iris.admin.v1.IrisAdminService/ListDeliveryBlueprints"
 const OperationIrisAdminServiceListDmarcDomains = "/iris.admin.v1.IrisAdminService/ListDmarcDomains"
 const OperationIrisAdminServiceListDmarcReports = "/iris.admin.v1.IrisAdminService/ListDmarcReports"
+const OperationIrisAdminServiceListEventProcessors = "/iris.admin.v1.IrisAdminService/ListEventProcessors"
 const OperationIrisAdminServiceListFeedbackLoops = "/iris.admin.v1.IrisAdminService/ListFeedbackLoops"
 const OperationIrisAdminServiceListFeedbackReports = "/iris.admin.v1.IrisAdminService/ListFeedbackReports"
 const OperationIrisAdminServiceListInboundRoutes = "/iris.admin.v1.IrisAdminService/ListInboundRoutes"
@@ -108,10 +111,12 @@ const OperationIrisAdminServiceSetAcmeDnsProvider = "/iris.admin.v1.IrisAdminSer
 const OperationIrisAdminServiceSetAutomationRuleStatus = "/iris.admin.v1.IrisAdminService/SetAutomationRuleStatus"
 const OperationIrisAdminServiceSetDeliveryBlueprintStatus = "/iris.admin.v1.IrisAdminService/SetDeliveryBlueprintStatus"
 const OperationIrisAdminServiceTestBounceDiagnostic = "/iris.admin.v1.IrisAdminService/TestBounceDiagnostic"
+const OperationIrisAdminServiceTestEventProcessor = "/iris.admin.v1.IrisAdminService/TestEventProcessor"
 const OperationIrisAdminServiceUpdateAutomationRule = "/iris.admin.v1.IrisAdminService/UpdateAutomationRule"
 const OperationIrisAdminServiceUpdateBounceRule = "/iris.admin.v1.IrisAdminService/UpdateBounceRule"
 const OperationIrisAdminServiceUpdateDKIMDomain = "/iris.admin.v1.IrisAdminService/UpdateDKIMDomain"
 const OperationIrisAdminServiceUpdateDeliveryBlueprint = "/iris.admin.v1.IrisAdminService/UpdateDeliveryBlueprint"
+const OperationIrisAdminServiceUpdateEventProcessor = "/iris.admin.v1.IrisAdminService/UpdateEventProcessor"
 const OperationIrisAdminServiceUpdateFeedbackLoop = "/iris.admin.v1.IrisAdminService/UpdateFeedbackLoop"
 const OperationIrisAdminServiceUpdateGlobalSettings = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
 const OperationIrisAdminServiceUpdateInboundRoute = "/iris.admin.v1.IrisAdminService/UpdateInboundRoute"
@@ -141,6 +146,7 @@ type IrisAdminServiceHTTPServer interface {
 	CreateBounceRule(context.Context, *CreateBounceRuleRequest) (*BounceRule, error)
 	CreateDKIMDomain(context.Context, *CreateDKIMDomainRequest) (*DKIMDomain, error)
 	CreateDeliveryBlueprint(context.Context, *CreateDeliveryBlueprintRequest) (*DeliveryBlueprint, error)
+	CreateEventProcessor(context.Context, *CreateEventProcessorRequest) (*EventProcessor, error)
 	CreateFeedbackLoop(context.Context, *CreateFeedbackLoopRequest) (*FeedbackLoop, error)
 	CreateInboundRoute(context.Context, *CreateInboundRouteRequest) (*InboundRoute, error)
 	CreateListener(context.Context, *CreateListenerRequest) (*Listener, error)
@@ -157,6 +163,7 @@ type IrisAdminServiceHTTPServer interface {
 	CurrentUser(context.Context, *CurrentUserRequest) (*CurrentUserReply, error)
 	DeleteAcmeCertificate(context.Context, *DeleteAcmeCertificateRequest) (*DeleteAcmeCertificateReply, error)
 	DeleteBounceRule(context.Context, *DeleteBounceRuleRequest) (*DeleteBounceRuleReply, error)
+	DeleteEventProcessor(context.Context, *DeleteEventProcessorRequest) (*DeleteEventProcessorReply, error)
 	DeleteFeedbackLoop(context.Context, *DeleteFeedbackLoopRequest) (*DeleteFeedbackLoopReply, error)
 	DeleteInboundRoute(context.Context, *DeleteInboundRouteRequest) (*DeleteInboundRouteReply, error)
 	DeleteSubjectClassification(context.Context, *DeleteSubjectClassificationRequest) (*DeleteSubjectClassificationReply, error)
@@ -219,6 +226,7 @@ type IrisAdminServiceHTTPServer interface {
 	ListDeliveryBlueprints(context.Context, *ListDeliveryBlueprintsRequest) (*ListDeliveryBlueprintsReply, error)
 	ListDmarcDomains(context.Context, *ListDmarcDomainsRequest) (*ListDmarcDomainsReply, error)
 	ListDmarcReports(context.Context, *ListDmarcReportsRequest) (*ListDmarcReportsReply, error)
+	ListEventProcessors(context.Context, *ListEventProcessorsRequest) (*ListEventProcessorsReply, error)
 	// ListFeedbackLoops Feedback loops -----------------------------------------------------------
 	// Per-domain FBL enrollments: while awaiting approval, inbound feedback mail
 	// is forwarded to a human; once approved the domain enables the ARF parser.
@@ -285,10 +293,12 @@ type IrisAdminServiceHTTPServer interface {
 	SetAutomationRuleStatus(context.Context, *SetAutomationRuleStatusRequest) (*AutomationRule, error)
 	SetDeliveryBlueprintStatus(context.Context, *SetDeliveryBlueprintStatusRequest) (*DeliveryBlueprint, error)
 	TestBounceDiagnostic(context.Context, *TestBounceDiagnosticRequest) (*TestBounceDiagnosticReply, error)
+	TestEventProcessor(context.Context, *TestEventProcessorRequest) (*TestEventProcessorReply, error)
 	UpdateAutomationRule(context.Context, *UpdateAutomationRuleRequest) (*AutomationRule, error)
 	UpdateBounceRule(context.Context, *UpdateBounceRuleRequest) (*BounceRule, error)
 	UpdateDKIMDomain(context.Context, *UpdateDKIMDomainRequest) (*DKIMDomain, error)
 	UpdateDeliveryBlueprint(context.Context, *UpdateDeliveryBlueprintRequest) (*DeliveryBlueprint, error)
+	UpdateEventProcessor(context.Context, *UpdateEventProcessorRequest) (*EventProcessor, error)
 	UpdateFeedbackLoop(context.Context, *UpdateFeedbackLoopRequest) (*FeedbackLoop, error)
 	UpdateGlobalSettings(context.Context, *UpdateGlobalSettingsRequest) (*GlobalSettings, error)
 	UpdateInboundRoute(context.Context, *UpdateInboundRouteRequest) (*InboundRoute, error)
@@ -337,6 +347,11 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.DELETE("/v1/bounce-rules/{id}", _IrisAdminService_DeleteBounceRule0_HTTP_Handler(srv))
 	r.POST("/v1/bounce-rules:reset", _IrisAdminService_ResetBounceRules0_HTTP_Handler(srv))
 	r.POST("/v1/bounce-rules:test", _IrisAdminService_TestBounceDiagnostic0_HTTP_Handler(srv))
+	r.GET("/v1/event-processors", _IrisAdminService_ListEventProcessors0_HTTP_Handler(srv))
+	r.POST("/v1/event-processors", _IrisAdminService_CreateEventProcessor0_HTTP_Handler(srv))
+	r.PUT("/v1/event-processors/{id}", _IrisAdminService_UpdateEventProcessor0_HTTP_Handler(srv))
+	r.DELETE("/v1/event-processors/{id}", _IrisAdminService_DeleteEventProcessor0_HTTP_Handler(srv))
+	r.POST("/v1/event-processors:test", _IrisAdminService_TestEventProcessor0_HTTP_Handler(srv))
 	r.GET("/v1/routing-rules", _IrisAdminService_ListRoutingRules0_HTTP_Handler(srv))
 	r.POST("/v1/routing-rules", _IrisAdminService_CreateRoutingRule0_HTTP_Handler(srv))
 	r.PUT("/v1/routing-rules/{id}", _IrisAdminService_UpdateRoutingRule0_HTTP_Handler(srv))
@@ -1062,6 +1077,116 @@ func _IrisAdminService_TestBounceDiagnostic0_HTTP_Handler(srv IrisAdminServiceHT
 			return err
 		}
 		reply := out.(*TestBounceDiagnosticReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ListEventProcessors0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListEventProcessorsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListEventProcessors)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListEventProcessors(ctx, req.(*ListEventProcessorsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListEventProcessorsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CreateEventProcessor0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateEventProcessorRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCreateEventProcessor)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateEventProcessor(ctx, req.(*CreateEventProcessorRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*EventProcessor)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateEventProcessor0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateEventProcessorRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateEventProcessor)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateEventProcessor(ctx, req.(*UpdateEventProcessorRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*EventProcessor)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_DeleteEventProcessor0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteEventProcessorRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceDeleteEventProcessor)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteEventProcessor(ctx, req.(*DeleteEventProcessorRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteEventProcessorReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_TestEventProcessor0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in TestEventProcessorRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceTestEventProcessor)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.TestEventProcessor(ctx, req.(*TestEventProcessorRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*TestEventProcessorReply)
 		return ctx.Result(200, reply)
 	}
 }
@@ -2697,6 +2822,7 @@ type IrisAdminServiceHTTPClient interface {
 	CreateBounceRule(ctx context.Context, req *CreateBounceRuleRequest, opts ...http.CallOption) (rsp *BounceRule, err error)
 	CreateDKIMDomain(ctx context.Context, req *CreateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
 	CreateDeliveryBlueprint(ctx context.Context, req *CreateDeliveryBlueprintRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
+	CreateEventProcessor(ctx context.Context, req *CreateEventProcessorRequest, opts ...http.CallOption) (rsp *EventProcessor, err error)
 	CreateFeedbackLoop(ctx context.Context, req *CreateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
 	CreateInboundRoute(ctx context.Context, req *CreateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
 	CreateListener(ctx context.Context, req *CreateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
@@ -2713,6 +2839,7 @@ type IrisAdminServiceHTTPClient interface {
 	CurrentUser(ctx context.Context, req *CurrentUserRequest, opts ...http.CallOption) (rsp *CurrentUserReply, err error)
 	DeleteAcmeCertificate(ctx context.Context, req *DeleteAcmeCertificateRequest, opts ...http.CallOption) (rsp *DeleteAcmeCertificateReply, err error)
 	DeleteBounceRule(ctx context.Context, req *DeleteBounceRuleRequest, opts ...http.CallOption) (rsp *DeleteBounceRuleReply, err error)
+	DeleteEventProcessor(ctx context.Context, req *DeleteEventProcessorRequest, opts ...http.CallOption) (rsp *DeleteEventProcessorReply, err error)
 	DeleteFeedbackLoop(ctx context.Context, req *DeleteFeedbackLoopRequest, opts ...http.CallOption) (rsp *DeleteFeedbackLoopReply, err error)
 	DeleteInboundRoute(ctx context.Context, req *DeleteInboundRouteRequest, opts ...http.CallOption) (rsp *DeleteInboundRouteReply, err error)
 	DeleteSubjectClassification(ctx context.Context, req *DeleteSubjectClassificationRequest, opts ...http.CallOption) (rsp *DeleteSubjectClassificationReply, err error)
@@ -2775,6 +2902,7 @@ type IrisAdminServiceHTTPClient interface {
 	ListDeliveryBlueprints(ctx context.Context, req *ListDeliveryBlueprintsRequest, opts ...http.CallOption) (rsp *ListDeliveryBlueprintsReply, err error)
 	ListDmarcDomains(ctx context.Context, req *ListDmarcDomainsRequest, opts ...http.CallOption) (rsp *ListDmarcDomainsReply, err error)
 	ListDmarcReports(ctx context.Context, req *ListDmarcReportsRequest, opts ...http.CallOption) (rsp *ListDmarcReportsReply, err error)
+	ListEventProcessors(ctx context.Context, req *ListEventProcessorsRequest, opts ...http.CallOption) (rsp *ListEventProcessorsReply, err error)
 	// ListFeedbackLoops Feedback loops -----------------------------------------------------------
 	// Per-domain FBL enrollments: while awaiting approval, inbound feedback mail
 	// is forwarded to a human; once approved the domain enables the ARF parser.
@@ -2841,10 +2969,12 @@ type IrisAdminServiceHTTPClient interface {
 	SetAutomationRuleStatus(ctx context.Context, req *SetAutomationRuleStatusRequest, opts ...http.CallOption) (rsp *AutomationRule, err error)
 	SetDeliveryBlueprintStatus(ctx context.Context, req *SetDeliveryBlueprintStatusRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
 	TestBounceDiagnostic(ctx context.Context, req *TestBounceDiagnosticRequest, opts ...http.CallOption) (rsp *TestBounceDiagnosticReply, err error)
+	TestEventProcessor(ctx context.Context, req *TestEventProcessorRequest, opts ...http.CallOption) (rsp *TestEventProcessorReply, err error)
 	UpdateAutomationRule(ctx context.Context, req *UpdateAutomationRuleRequest, opts ...http.CallOption) (rsp *AutomationRule, err error)
 	UpdateBounceRule(ctx context.Context, req *UpdateBounceRuleRequest, opts ...http.CallOption) (rsp *BounceRule, err error)
 	UpdateDKIMDomain(ctx context.Context, req *UpdateDKIMDomainRequest, opts ...http.CallOption) (rsp *DKIMDomain, err error)
 	UpdateDeliveryBlueprint(ctx context.Context, req *UpdateDeliveryBlueprintRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
+	UpdateEventProcessor(ctx context.Context, req *UpdateEventProcessorRequest, opts ...http.CallOption) (rsp *EventProcessor, err error)
 	UpdateFeedbackLoop(ctx context.Context, req *UpdateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
 	UpdateGlobalSettings(ctx context.Context, req *UpdateGlobalSettingsRequest, opts ...http.CallOption) (rsp *GlobalSettings, err error)
 	UpdateInboundRoute(ctx context.Context, req *UpdateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
@@ -2984,6 +3114,19 @@ func (c *IrisAdminServiceHTTPClientImpl) CreateDeliveryBlueprint(ctx context.Con
 	pattern := "/v1/delivery-blueprints"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateDeliveryBlueprint))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) CreateEventProcessor(ctx context.Context, in *CreateEventProcessorRequest, opts ...http.CallOption) (*EventProcessor, error) {
+	var out EventProcessor
+	pattern := "/v1/event-processors"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateEventProcessor))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -3168,6 +3311,19 @@ func (c *IrisAdminServiceHTTPClientImpl) DeleteBounceRule(ctx context.Context, i
 	pattern := "/v1/bounce-rules/{id}"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteBounceRule))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) DeleteEventProcessor(ctx context.Context, in *DeleteEventProcessorRequest, opts ...http.CallOption) (*DeleteEventProcessorReply, error) {
+	var out DeleteEventProcessorReply
+	pattern := "/v1/event-processors/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteEventProcessor))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {
@@ -3614,6 +3770,19 @@ func (c *IrisAdminServiceHTTPClientImpl) ListDmarcReports(ctx context.Context, i
 	pattern := "/v1/dmarc/reports"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListDmarcReports))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) ListEventProcessors(ctx context.Context, in *ListEventProcessorsRequest, opts ...http.CallOption) (*ListEventProcessorsReply, error) {
+	var out ListEventProcessorsReply
+	pattern := "/v1/event-processors"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListEventProcessors))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -4096,6 +4265,19 @@ func (c *IrisAdminServiceHTTPClientImpl) TestBounceDiagnostic(ctx context.Contex
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) TestEventProcessor(ctx context.Context, in *TestEventProcessorRequest, opts ...http.CallOption) (*TestEventProcessorReply, error) {
+	var out TestEventProcessorReply
+	pattern := "/v1/event-processors:test"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceTestEventProcessor))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) UpdateAutomationRule(ctx context.Context, in *UpdateAutomationRuleRequest, opts ...http.CallOption) (*AutomationRule, error) {
 	var out AutomationRule
 	pattern := "/v1/automation-rules/{id}"
@@ -4140,6 +4322,19 @@ func (c *IrisAdminServiceHTTPClientImpl) UpdateDeliveryBlueprint(ctx context.Con
 	pattern := "/v1/delivery-blueprints/{id}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateDeliveryBlueprint))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) UpdateEventProcessor(ctx context.Context, in *UpdateEventProcessorRequest, opts ...http.CallOption) (*EventProcessor, error) {
+	var out EventProcessor
+	pattern := "/v1/event-processors/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateEventProcessor))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {

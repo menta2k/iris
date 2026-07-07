@@ -135,6 +135,7 @@ async function submit() {
               <TableRow>
                 <TableHead>Type</TableHead>
                 <TableHead>Value</TableHead>
+                <TableHead>Mailclass</TableHead>
                 <TableHead>Reason</TableHead>
                 <TableHead>Source</TableHead>
                 <TableHead>Status</TableHead>
@@ -145,6 +146,10 @@ async function submit() {
               <TableRow v-for="s in items" :key="s.id">
                 <TableCell><Badge variant="outline">{{ s.type }}</Badge></TableCell>
                 <TableCell class="font-weight-medium">{{ s.value }}</TableCell>
+                <TableCell>
+                  <Badge v-if="s.mailclass" variant="secondary">{{ s.mailclass }}</Badge>
+                  <span v-else class="text-medium-emphasis">—</span>
+                </TableCell>
                 <TableCell><Badge variant="destructive">{{ s.reason }}</Badge></TableCell>
                 <TableCell class="text-medium-emphasis">{{ s.source }}</TableCell>
                 <TableCell><StatusBadge :status="s.status" /></TableCell>

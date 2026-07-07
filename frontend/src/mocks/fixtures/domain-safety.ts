@@ -12,13 +12,13 @@ export const dkimDomains: DkimDomain[] = [
 ]
 
 const baseSuppressions: Suppression[] = [
-  { id: 'sup_1', type: 'email', value: 'hard.bounce@example.com', reason: '550 User unknown', source: 'bounce', status: 'active' },
-  { id: 'sup_2', type: 'email', value: 'complainer@example.com', reason: 'FBL complaint', source: 'feedback', status: 'active' },
+  { id: 'sup_1', type: 'email', value: 'hard.bounce@example.com', reason: '550 User unknown', source: 'bounce', status: 'active', mailclass: 'transactional' },
+  { id: 'sup_2', type: 'email', value: 'complainer@example.com', reason: 'FBL complaint', source: 'feedback', status: 'active', mailclass: 'promo' },
   { id: 'sup_3', type: 'domain', value: 'badmail.org', reason: 'Blocklisted provider', source: 'manual', status: 'active' },
   { id: 'sup_4', type: 'email', value: 'invalid@yahoo.com', reason: '550 5.1.1', source: 'bounce', status: 'active' },
   { id: 'sup_5', type: 'email', value: 'expired@outlook.com', reason: '550 5.1.1', source: 'bounce', status: 'active' },
   { id: 'sup_6', type: 'domain', value: 'spamtrap.example', reason: 'Spamtrap hit', source: 'manual', status: 'active' },
-  { id: 'sup_7', type: 'email', value: 'temp.user@gmail.com', reason: 'Repeated soft bounces', source: 'bounce', status: 'active' },
+  { id: 'sup_7', type: 'email', value: 'temp.user@gmail.com', reason: 'bounce rule: Mailbox Full (persistent) 452', source: 'bounce', status: 'active', mailclass: 'acme_s' },
   { id: 'sup_8', type: 'email', value: 'old.contact@example.net', reason: 'Manual removal requested', source: 'manual', status: 'inactive' },
   { id: 'sup_9', type: 'email', value: 'left.company@yahoo.com', reason: '550 5.1.1', source: 'bounce', status: 'active' },
   { id: 'sup_10', type: 'domain', value: 'deadmx.net', reason: 'Persistent delivery failure', source: 'manual', status: 'active' },
@@ -30,16 +30,20 @@ const SUPP_REASONS = ['550 User unknown', '550 5.1.1 Mailbox unavailable', 'FBL 
 const SUPP_SOURCES = ['bounce', 'bounce', 'bounce', 'feedback', 'manual']
 const SUPP_STATUSES = ['active', 'active', 'active', 'active', 'inactive', 'expired']
 const SUPP_EMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'outlook.com', 'icloud.com', 'example.com', 'example.net']
+const SUPP_MAILCLASSES = ['newsletter', 'transactional', 'promo', 'acme_s', 'homesbg_h']
 
 const generatedSuppressions: Suppression[] = Array.from({ length: 54 }, (_, i) => {
   const isDomain = i % 9 === 0
+  const source = pick(SUPP_SOURCES)
   return {
     id: `sup_gen_${i}`,
     type: isDomain ? 'domain' : 'email',
     value: isDomain ? `${randomString(6)}.example` : `${randomString(7)}@${pick(SUPP_EMAIL_DOMAINS)}`,
     reason: pick(SUPP_REASONS),
-    source: pick(SUPP_SOURCES),
+    source,
     status: pick(SUPP_STATUSES),
+    // Event-driven suppressions carry the triggering mailclass; manual ones don't.
+    mailclass: source === 'manual' ? '' : pick(SUPP_MAILCLASSES),
   }
 })
 

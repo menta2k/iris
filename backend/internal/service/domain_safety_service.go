@@ -134,5 +134,6 @@ func dkimToProto(d *biz.DKIMDomain) *adminv1.DKIMDomain {
 func suppressionToProto(e *biz.SuppressionEntry) *adminv1.Suppression {
 	return &adminv1.Suppression{
 		Id: e.ID, Type: e.Type, Value: e.Value, Reason: e.Reason, Source: e.Source, Status: e.Status,
+		Mailclass: e.Mailclass,
 	}
 }

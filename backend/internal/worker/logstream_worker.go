@@ -31,10 +31,10 @@ type MailEventStore interface {
 // Suppressor auto-suppresses a recipient. Used by the feedback-loop ingest and
 // the bounce pipeline. Optional (nil disables it).
 type Suppressor interface {
-	SuppressRecipient(ctx context.Context, email, source, reason string) error
+	SuppressRecipient(ctx context.Context, email, source, reason, mailclass string) error
 	// SuppressRecipientFor suppresses with an explicit TTL override (ttl <= 0 uses
 	// the global default), for per-rule bounce suppression lifetimes.
-	SuppressRecipientFor(ctx context.Context, email, source, reason string, ttl time.Duration) error
+	SuppressRecipientFor(ctx context.Context, email, source, reason, mailclass string, ttl time.Duration) error
 }
 
 // BouncePolicyProvider supplies the current bounce-handling policy (auto-suppress
@@ -90,6 +90,21 @@ type LogStreamWorker struct {
 	bounceMu      sync.Mutex
 	bounceCache   []*biz.BounceActionRule
 	bounceCacheAt time.Time
+
+	// events forwards bounce/feedback events to the Event Processor (nil = off).
+	events biz.EventEmitter
+}
+
+// WithEventEmitter forwards bounce and feedback events to the Event Processor.
+func (w *LogStreamWorker) WithEventEmitter(e biz.EventEmitter) *LogStreamWorker {
+	w.events = e
+	return w
+}
+
+func (w *LogStreamWorker) emit(ev biz.DispatchEvent) {
+	if w.events != nil {
+		w.events.Emit(ev)
+	}
 }
 
 // bounceRuleCacheTTL bounds how stale the worker's cached ruleset may be.
@@ -198,6 +213,14 @@ func (w *LogStreamWorker) handleFeedback(ctx context.Context, rec *biz.KumoLogRe
 		return
 	}
 
+	w.emit(biz.DispatchEvent{
+		Type: biz.EventFeedbackReport, OccurredAt: rec.EventTime(now), Mailclass: rec.Mailclass(),
+		Data: map[string]any{
+			"recipient": recipient, "source": rec.FeedbackSource(),
+			"report_type": rec.FeedbackReportType(), "verified": verified,
+		},
+	})
+
 	// Gate suppression on verification when the policy requires it (default
 	// permissive: suppress every complaint, as before).
 	requireVerification := false
@@ -214,7 +237,7 @@ func (w *LogStreamWorker) handleFeedback(ctx context.Context, rec *biz.KumoLogRe
 		if verified {
 			reason += " [verified:" + method + "]"
 		}
-		if err := w.suppressor.SuppressRecipient(ctx, recipient, "fbl", reason); err != nil {
+		if err := w.suppressor.SuppressRecipient(ctx, recipient, "fbl", reason, rec.Mailclass()); err != nil {
 			w.log.Error("auto-suppress complainant", "recipient", recipient, "error", err.Error())
 		}
 	}
@@ -312,6 +335,17 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 		}
 		metrics.RecordBounce(bounceType, bounce.Mailclass)
 		w.applyBouncePolicy(ctx, bounce)
+		w.emit(biz.DispatchEvent{
+			Type: biz.EventBounce, OccurredAt: bounce.EventTime, Mailclass: bounce.Mailclass,
+			Data: map[string]any{
+				"recipient": bounce.Recipient, "smtp_status": bounce.SMTPStatus,
+				"diagnostic": bounce.Diagnostic, "classification": bounce.Classification,
+				"bounce_type":   bounceType,
+				"message_id":    rec.ID,
+				"egress_source": strings.TrimSpace(rec.EgressSource),
+				"sender":        rec.Sender,
+			},
+		})
 	}
 
 	// Deferrals (transient failures) are also matched against the bounce rules so
@@ -352,7 +386,7 @@ func (w *LogStreamWorker) applyDeferralRules(ctx context.Context, rec *biz.KumoL
 		return
 	}
 	reason := "bounce rule: " + rule.Category + " (attempt " + strconv.Itoa(rec.NumAttempts) + ")"
-	if err := w.suppressor.SuppressRecipientFor(ctx, recipient, "bounce", reason, bounceRuleTTL(rule)); err != nil {
+	if err := w.suppressor.SuppressRecipientFor(ctx, recipient, "bounce", reason, rec.Mailclass(), bounceRuleTTL(rule)); err != nil {
 		w.log.Error("suppress by deferral rule", "recipient", recipient, "error", err.Error())
 	}
 }
@@ -446,7 +480,7 @@ func (w *LogStreamWorker) applyBouncePolicy(ctx context.Context, b *biz.BounceRe
 				if b.SMTPStatus != "" {
 					reason += " " + b.SMTPStatus
 				}
-				if err := w.suppressor.SuppressRecipient(ctx, recipient, "bounce", reason); err != nil {
+				if err := w.suppressor.SuppressRecipient(ctx, recipient, "bounce", reason, b.Mailclass); err != nil {
 					w.log.Error("suppress by bounce rule", "recipient", recipient, "error", err.Error())
 				}
 				return
@@ -468,7 +502,7 @@ func (w *LogStreamWorker) applyBouncePolicy(ctx context.Context, b *biz.BounceRe
 			if b.Classification != "" {
 				reason += " (" + b.Classification + ")"
 			}
-			if err := w.suppressor.SuppressRecipient(ctx, recipient, "bounce", reason); err != nil {
+			if err := w.suppressor.SuppressRecipient(ctx, recipient, "bounce", reason, b.Mailclass); err != nil {
 				w.log.Error("auto-suppress hard bounce", "recipient", recipient, "error", err.Error())
 			}
 		}
@@ -485,7 +519,7 @@ func (w *LogStreamWorker) applyBouncePolicy(ctx context.Context, b *biz.BounceRe
 	}
 	if count >= policy.SoftBounceThreshold {
 		if err := w.suppressor.SuppressRecipient(ctx, recipient, "bounce",
-			"soft bounce threshold reached ("+strconv.Itoa(count)+")"); err != nil {
+			"soft bounce threshold reached ("+strconv.Itoa(count)+")", b.Mailclass); err != nil {
 			w.log.Error("auto-suppress soft bounce", "recipient", recipient, "error", err.Error())
 		}
 	}

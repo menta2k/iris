@@ -5,6 +5,7 @@
 import type { MockData } from '../db'
 import { automationRules, blueprints, listeners, routingRules, vmtaGroups, vmtas, warmupSchedules } from './outbound'
 import { bounceRules } from './bounce-rules'
+import { eventProcessors } from './event-processors'
 import { bounces, dmarcReports, feedbackReports, mailRecords, queues, workerErrors } from './operations'
 import { dkimDomains, suppressions, tlsPolicies } from './domain-safety'
 import { feedbackLoops, inboundRoutes, rspamdResults } from './inbound'
@@ -23,6 +24,7 @@ export const seedData: MockData = {
   blueprints,
   automationRules,
   bounceRules,
+  eventProcessors,
   mailRecords,
   bounces,
   feedbackReports,

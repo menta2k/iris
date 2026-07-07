@@ -43,6 +43,7 @@ type Service struct {
 	blueprints      *biz.BlueprintUsecase
 	automation      *biz.AutomationUsecase
 	bounceRules     *biz.BounceRuleUsecase
+	eventProcessors *biz.EventProcessorUsecase
 	classifications *biz.SubjectClassificationUsecase
 }
 
@@ -74,6 +75,7 @@ type Deps struct {
 	Blueprints      *biz.BlueprintUsecase
 	Automation      *biz.AutomationUsecase
 	BounceRules     *biz.BounceRuleUsecase
+	EventProcessors *biz.EventProcessorUsecase
 	Classifications *biz.SubjectClassificationUsecase
 }
 
@@ -109,6 +111,7 @@ func NewService(d Deps) *Service {
 		blueprints:      d.Blueprints,
 		automation:      d.Automation,
 		bounceRules:     d.BounceRules,
+		eventProcessors: d.EventProcessors,
 		classifications: d.Classifications,
 	}
 }

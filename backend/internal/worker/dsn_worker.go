@@ -107,7 +107,7 @@ func (w *DSNWorker) handle(ctx context.Context, m data.StreamMessage) {
 	// Only auto-suppress when we resolved a real recipient (or VERP was off and
 	// the envelope is the actual recipient). Never suppress a bare VERP address.
 	if w.suppressor != nil && (resolved || w.verpSecret == "") {
-		if err := w.suppressor.SuppressRecipient(ctx, recipient, "dsn", "asynchronous bounce (DSN)"); err != nil {
+		if err := w.suppressor.SuppressRecipient(ctx, recipient, "dsn", "asynchronous bounce (DSN)", ""); err != nil {
 			w.log.Error("auto-suppress dsn recipient", "recipient", recipient, "error", err.Error())
 		}
 	}

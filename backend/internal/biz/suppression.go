@@ -53,6 +53,11 @@ type SuppressionEntry struct {
 	Reason string
 	Source string
 	Status string
+	// Mailclass is the message class of the event that triggered the suppression
+	// (e.g. a bounce/deferral on that class), for operator context. Empty for
+	// manual entries or where the class is unknown. Suppression itself is global
+	// — it blocks the recipient regardless of class.
+	Mailclass string
 	// ExpiresAt is when the entry stops blocking (nil = permanent). The live
 	// policy lookup enforces this via the Redis key TTL; this mirrors it for the
 	// DB list and the DB-side IsSuppressed check.

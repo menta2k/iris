@@ -854,6 +854,94 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/DomainBounceCheck'
+    /v1/event-processors:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListEventProcessors
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListEventProcessorsReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateEventProcessor
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateEventProcessorRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/EventProcessor'
+    /v1/event-processors/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateEventProcessor
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateEventProcessorRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/EventProcessor'
+        delete:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_DeleteEventProcessor
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteEventProcessorReply'
+    /v1/event-processors:test:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_TestEventProcessor
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/TestEventProcessorRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TestEventProcessorReply'
     /v1/feedback-loops:
         get:
             tags:
@@ -2480,6 +2568,32 @@ components:
                 daily_cap:
                     type: integer
                     format: int32
+        CreateEventProcessorRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                event_types:
+                    type: array
+                    items:
+                        type: string
+                mailclasses:
+                    type: array
+                    items:
+                        type: string
+                driver:
+                    type: string
+                driver_config:
+                    type: object
+                    additionalProperties:
+                        type: string
+                mode:
+                    type: string
+                batch_max_size:
+                    type: integer
+                    format: int32
+                batch_max_wait:
+                    type: string
         CreateFeedbackLoopRequest:
             type: object
             properties:
@@ -2694,6 +2808,9 @@ components:
             type: object
             properties: {}
         DeleteBounceRuleReply:
+            type: object
+            properties: {}
+        DeleteEventProcessorReply:
             type: object
             properties: {}
         DeleteFeedbackLoopReply:
@@ -2926,6 +3043,41 @@ components:
         EnrollMFARequest:
             type: object
             properties: {}
+        EventProcessor:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                event_types:
+                    type: array
+                    items:
+                        type: string
+                mailclasses:
+                    type: array
+                    items:
+                        type: string
+                driver:
+                    type: string
+                driver_config:
+                    type: object
+                    additionalProperties:
+                        type: string
+                mode:
+                    type: string
+                batch_max_size:
+                    type: integer
+                    format: int32
+                batch_max_wait:
+                    type: string
+                status:
+                    type: string
+                created_at:
+                    type: string
+                updated_at:
+                    type: string
+            description: '---- Event Processor (forward events to external services) ----'
         FeedbackLoop:
             type: object
             properties:
@@ -3254,6 +3406,13 @@ components:
                         $ref: '#/components/schemas/DmarcReport'
                 page:
                     $ref: '#/components/schemas/PageReply'
+        ListEventProcessorsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/EventProcessor'
         ListFeedbackLoopsReply:
             type: object
             properties:
@@ -4030,6 +4189,8 @@ components:
                     type: string
                 status:
                     type: string
+                mailclass:
+                    type: string
         TLSPolicy:
             type: object
             properties:
@@ -4074,6 +4235,40 @@ components:
                     type: integer
                     format: int32
             description: Test a bounce diagnostic against the current active ruleset.
+        TestEventProcessorReply:
+            type: object
+            properties:
+                ok:
+                    type: boolean
+                error:
+                    type: string
+        TestEventProcessorRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                event_types:
+                    type: array
+                    items:
+                        type: string
+                mailclasses:
+                    type: array
+                    items:
+                        type: string
+                driver:
+                    type: string
+                driver_config:
+                    type: object
+                    additionalProperties:
+                        type: string
+                mode:
+                    type: string
+                batch_max_size:
+                    type: integer
+                    format: int32
+                batch_max_wait:
+                    type: string
+            description: Send a synthetic event through the (possibly unsaved) processor's driver.
         UpdateAutomationRuleRequest:
             type: object
             properties:
@@ -4162,6 +4357,36 @@ components:
                 daily_cap:
                     type: integer
                     format: int32
+                status:
+                    type: string
+        UpdateEventProcessorRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                event_types:
+                    type: array
+                    items:
+                        type: string
+                mailclasses:
+                    type: array
+                    items:
+                        type: string
+                driver:
+                    type: string
+                driver_config:
+                    type: object
+                    additionalProperties:
+                        type: string
+                mode:
+                    type: string
+                batch_max_size:
+                    type: integer
+                    format: int32
+                batch_max_wait:
+                    type: string
                 status:
                     type: string
         UpdateFeedbackLoopRequest:

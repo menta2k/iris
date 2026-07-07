@@ -147,6 +147,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { permission: 'service:control', title: 'Subject Classifications' },
       },
       {
+        path: 'settings/event-processors',
+        name: 'event-processors',
+        component: () => import('@/pages/settings/EventProcessorsPage.vue'),
+        meta: { permission: 'service:control', title: 'Event Processors' },
+      },
+      {
         path: 'settings/feedback-loops',
         name: 'feedback-loops',
         component: () => import('@/pages/settings/FeedbackLoopsPage.vue'),

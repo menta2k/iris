@@ -1,0 +1,40 @@
+import type { EventProcessor } from '../../types'
+
+export const eventProcessors: EventProcessor[] = [
+  {
+    id: 'ep_1',
+    name: 'Billing bounce webhook',
+    eventTypes: ['bounce', 'suppression_created'],
+    mailclasses: ['transactional'],
+    driver: 'webhook',
+    driverConfig: { url: 'https://hooks.example.com/iris/bounces', secret: 's3cr3t', headers: '', timeout: '10s', format: 'greenarrow_bounce_all' },
+    mode: 'single',
+    batchMaxSize: 0,
+    batchMaxWait: '',
+    status: 'active',
+  },
+  {
+    id: 'ep_3',
+    name: 'example.com GreenArrow handler',
+    eventTypes: ['bounce', 'feedback_report'],
+    mailclasses: ['acme_a', 'acme_b'],
+    driver: 'greenarrow',
+    driverConfig: { url: 'https://www.example.com/ga_handler.php', max_batch_size: '20', headers: '', timeout: '10s' },
+    mode: 'batch',
+    batchMaxSize: 20,
+    batchMaxWait: '5s',
+    status: 'active',
+  },
+  {
+    id: 'ep_2',
+    name: 'Analytics stream (all events)',
+    eventTypes: ['bounce', 'feedback_report', 'dmarc_received', 'suppression_created'],
+    mailclasses: [],
+    driver: 'redis',
+    driverConfig: { addr: '', stream: 'iris:events', password: '', db: '0' },
+    mode: 'batch',
+    batchMaxSize: 200,
+    batchMaxWait: '5s',
+    status: 'active',
+  },
+]

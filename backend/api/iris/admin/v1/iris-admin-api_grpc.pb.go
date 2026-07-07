@@ -48,6 +48,11 @@ const (
 	IrisAdminService_DeleteBounceRule_FullMethodName            = "/iris.admin.v1.IrisAdminService/DeleteBounceRule"
 	IrisAdminService_ResetBounceRules_FullMethodName            = "/iris.admin.v1.IrisAdminService/ResetBounceRules"
 	IrisAdminService_TestBounceDiagnostic_FullMethodName        = "/iris.admin.v1.IrisAdminService/TestBounceDiagnostic"
+	IrisAdminService_ListEventProcessors_FullMethodName         = "/iris.admin.v1.IrisAdminService/ListEventProcessors"
+	IrisAdminService_CreateEventProcessor_FullMethodName        = "/iris.admin.v1.IrisAdminService/CreateEventProcessor"
+	IrisAdminService_UpdateEventProcessor_FullMethodName        = "/iris.admin.v1.IrisAdminService/UpdateEventProcessor"
+	IrisAdminService_DeleteEventProcessor_FullMethodName        = "/iris.admin.v1.IrisAdminService/DeleteEventProcessor"
+	IrisAdminService_TestEventProcessor_FullMethodName          = "/iris.admin.v1.IrisAdminService/TestEventProcessor"
 	IrisAdminService_ListRoutingRules_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListRoutingRules"
 	IrisAdminService_CreateRoutingRule_FullMethodName           = "/iris.admin.v1.IrisAdminService/CreateRoutingRule"
 	IrisAdminService_UpdateRoutingRule_FullMethodName           = "/iris.admin.v1.IrisAdminService/UpdateRoutingRule"
@@ -165,6 +170,11 @@ type IrisAdminServiceClient interface {
 	DeleteBounceRule(ctx context.Context, in *DeleteBounceRuleRequest, opts ...grpc.CallOption) (*DeleteBounceRuleReply, error)
 	ResetBounceRules(ctx context.Context, in *ResetBounceRulesRequest, opts ...grpc.CallOption) (*ListBounceRulesReply, error)
 	TestBounceDiagnostic(ctx context.Context, in *TestBounceDiagnosticRequest, opts ...grpc.CallOption) (*TestBounceDiagnosticReply, error)
+	ListEventProcessors(ctx context.Context, in *ListEventProcessorsRequest, opts ...grpc.CallOption) (*ListEventProcessorsReply, error)
+	CreateEventProcessor(ctx context.Context, in *CreateEventProcessorRequest, opts ...grpc.CallOption) (*EventProcessor, error)
+	UpdateEventProcessor(ctx context.Context, in *UpdateEventProcessorRequest, opts ...grpc.CallOption) (*EventProcessor, error)
+	DeleteEventProcessor(ctx context.Context, in *DeleteEventProcessorRequest, opts ...grpc.CallOption) (*DeleteEventProcessorReply, error)
+	TestEventProcessor(ctx context.Context, in *TestEventProcessorRequest, opts ...grpc.CallOption) (*TestEventProcessorReply, error)
 	ListRoutingRules(ctx context.Context, in *ListRoutingRulesRequest, opts ...grpc.CallOption) (*ListRoutingRulesReply, error)
 	CreateRoutingRule(ctx context.Context, in *CreateRoutingRuleRequest, opts ...grpc.CallOption) (*RoutingRule, error)
 	UpdateRoutingRule(ctx context.Context, in *UpdateRoutingRuleRequest, opts ...grpc.CallOption) (*RoutingRule, error)
@@ -602,6 +612,56 @@ func (c *irisAdminServiceClient) TestBounceDiagnostic(ctx context.Context, in *T
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TestBounceDiagnosticReply)
 	err := c.cc.Invoke(ctx, IrisAdminService_TestBounceDiagnostic_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ListEventProcessors(ctx context.Context, in *ListEventProcessorsRequest, opts ...grpc.CallOption) (*ListEventProcessorsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListEventProcessorsReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListEventProcessors_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) CreateEventProcessor(ctx context.Context, in *CreateEventProcessorRequest, opts ...grpc.CallOption) (*EventProcessor, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventProcessor)
+	err := c.cc.Invoke(ctx, IrisAdminService_CreateEventProcessor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) UpdateEventProcessor(ctx context.Context, in *UpdateEventProcessorRequest, opts ...grpc.CallOption) (*EventProcessor, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventProcessor)
+	err := c.cc.Invoke(ctx, IrisAdminService_UpdateEventProcessor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) DeleteEventProcessor(ctx context.Context, in *DeleteEventProcessorRequest, opts ...grpc.CallOption) (*DeleteEventProcessorReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteEventProcessorReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_DeleteEventProcessor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) TestEventProcessor(ctx context.Context, in *TestEventProcessorRequest, opts ...grpc.CallOption) (*TestEventProcessorReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TestEventProcessorReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_TestEventProcessor_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1416,6 +1476,11 @@ type IrisAdminServiceServer interface {
 	DeleteBounceRule(context.Context, *DeleteBounceRuleRequest) (*DeleteBounceRuleReply, error)
 	ResetBounceRules(context.Context, *ResetBounceRulesRequest) (*ListBounceRulesReply, error)
 	TestBounceDiagnostic(context.Context, *TestBounceDiagnosticRequest) (*TestBounceDiagnosticReply, error)
+	ListEventProcessors(context.Context, *ListEventProcessorsRequest) (*ListEventProcessorsReply, error)
+	CreateEventProcessor(context.Context, *CreateEventProcessorRequest) (*EventProcessor, error)
+	UpdateEventProcessor(context.Context, *UpdateEventProcessorRequest) (*EventProcessor, error)
+	DeleteEventProcessor(context.Context, *DeleteEventProcessorRequest) (*DeleteEventProcessorReply, error)
+	TestEventProcessor(context.Context, *TestEventProcessorRequest) (*TestEventProcessorReply, error)
 	ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesReply, error)
 	CreateRoutingRule(context.Context, *CreateRoutingRuleRequest) (*RoutingRule, error)
 	UpdateRoutingRule(context.Context, *UpdateRoutingRuleRequest) (*RoutingRule, error)
@@ -1655,6 +1720,21 @@ func (UnimplementedIrisAdminServiceServer) ResetBounceRules(context.Context, *Re
 }
 func (UnimplementedIrisAdminServiceServer) TestBounceDiagnostic(context.Context, *TestBounceDiagnosticRequest) (*TestBounceDiagnosticReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method TestBounceDiagnostic not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListEventProcessors(context.Context, *ListEventProcessorsRequest) (*ListEventProcessorsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListEventProcessors not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) CreateEventProcessor(context.Context, *CreateEventProcessorRequest) (*EventProcessor, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateEventProcessor not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) UpdateEventProcessor(context.Context, *UpdateEventProcessorRequest) (*EventProcessor, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateEventProcessor not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) DeleteEventProcessor(context.Context, *DeleteEventProcessorRequest) (*DeleteEventProcessorReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteEventProcessor not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) TestEventProcessor(context.Context, *TestEventProcessorRequest) (*TestEventProcessorReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method TestEventProcessor not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRoutingRules not implemented")
@@ -2426,6 +2506,96 @@ func _IrisAdminService_TestBounceDiagnostic_Handler(srv interface{}, ctx context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IrisAdminServiceServer).TestBounceDiagnostic(ctx, req.(*TestBounceDiagnosticRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListEventProcessors_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListEventProcessorsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListEventProcessors(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListEventProcessors_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListEventProcessors(ctx, req.(*ListEventProcessorsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_CreateEventProcessor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateEventProcessorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).CreateEventProcessor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_CreateEventProcessor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).CreateEventProcessor(ctx, req.(*CreateEventProcessorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_UpdateEventProcessor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateEventProcessorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).UpdateEventProcessor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_UpdateEventProcessor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).UpdateEventProcessor(ctx, req.(*UpdateEventProcessorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_DeleteEventProcessor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteEventProcessorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).DeleteEventProcessor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_DeleteEventProcessor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).DeleteEventProcessor(ctx, req.(*DeleteEventProcessorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_TestEventProcessor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TestEventProcessorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).TestEventProcessor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_TestEventProcessor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).TestEventProcessor(ctx, req.(*TestEventProcessorRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -3938,6 +4108,26 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TestBounceDiagnostic",
 			Handler:    _IrisAdminService_TestBounceDiagnostic_Handler,
+		},
+		{
+			MethodName: "ListEventProcessors",
+			Handler:    _IrisAdminService_ListEventProcessors_Handler,
+		},
+		{
+			MethodName: "CreateEventProcessor",
+			Handler:    _IrisAdminService_CreateEventProcessor_Handler,
+		},
+		{
+			MethodName: "UpdateEventProcessor",
+			Handler:    _IrisAdminService_UpdateEventProcessor_Handler,
+		},
+		{
+			MethodName: "DeleteEventProcessor",
+			Handler:    _IrisAdminService_DeleteEventProcessor_Handler,
+		},
+		{
+			MethodName: "TestEventProcessor",
+			Handler:    _IrisAdminService_TestEventProcessor_Handler,
 		},
 		{
 			MethodName: "ListRoutingRules",
