@@ -20,8 +20,18 @@ function mailRecordFilter(query: Record<string, string>): ((r: MailRecord) => bo
   if (query.from) filters.push((r) => includes(r.fromHeader, query.from))
   if (query.recipient) filters.push((r) => includes(r.recipient, query.recipient))
   if (query.vmta_id) filters.push((r) => r.vmtaId === query.vmta_id)
-  if (query.status) filters.push((r) => r.status === query.status)
+  if (query.status)
+    filters.push((r) => (r.status ?? '').toLowerCase() === query.status.toLowerCase())
   if (query.record_type) filters.push((r) => r.recordType === query.record_type)
+  // Time range: RFC3339 bounds, matching the backend's from_time/to_time.
+  if (query.from_time) {
+    const t = Date.parse(query.from_time)
+    if (!Number.isNaN(t)) filters.push((r) => Date.parse(r.eventTime) >= t)
+  }
+  if (query.to_time) {
+    const t = Date.parse(query.to_time)
+    if (!Number.isNaN(t)) filters.push((r) => Date.parse(r.eventTime) <= t)
+  }
   if (filters.length === 0) return undefined
   return (r) => filters.every((fn) => fn(r))
 }

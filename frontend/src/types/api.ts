@@ -448,6 +448,10 @@ export interface MailRecordFilters {
   status?: string
   /** Filter by raw KumoMTA log record type (e.g. "AdminBounce"). */
   record_type?: string
+  /** RFC3339 lower bound on event time. */
+  from_time?: string
+  /** RFC3339 upper bound on event time. */
+  to_time?: string
   [key: string]: string | undefined
 }
 
