@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 )
@@ -89,6 +90,43 @@ func TestInjectMapsToKumoPayload(t *testing.T) {
 	// Custom GreenArrow header is flattened through.
 	if got.Content.Headers["X-Feedback-ID"] != "user@gmail.com:1:1:acme" {
 		t.Errorf("X-Feedback-ID header missing: %+v", got.Content.Headers)
+	}
+}
+
+// TestInjectPayloadJSONShape guards the KumoMTA contract: its Content builder
+// uses deny_unknown_fields, so the serialized `content` must contain ONLY the
+// builder's known keys (no "to" — the To header comes from recipients).
+func TestInjectPayloadJSONShape(t *testing.T) {
+	inj := &captureInjector{}
+	uc := NewGreenArrowInjectUsecase(inj, "u", "p", "")
+	if err := uc.Inject(context.Background(), &GAInjectRequest{Username: "u", Password: "p", Message: sampleMessage()}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	raw, err := json.Marshal(inj.last)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &top); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	for _, k := range []string{"envelope_sender", "content", "recipients"} {
+		if _, ok := top[k]; !ok {
+			t.Errorf("payload missing top-level key %q", k)
+		}
+	}
+	var content map[string]json.RawMessage
+	if err := json.Unmarshal(top["content"], &content); err != nil {
+		t.Fatalf("unmarshal content: %v", err)
+	}
+	allowed := map[string]bool{"subject": true, "text_body": true, "html_body": true, "from": true, "headers": true}
+	for k := range content {
+		if !allowed[k] {
+			t.Errorf("content has key %q not allowed by KumoMTA's Content builder (deny_unknown_fields)", k)
+		}
+	}
+	if _, ok := content["to"]; ok {
+		t.Error("content must NOT contain a \"to\" field — the To header is built from recipients")
 	}
 }
 

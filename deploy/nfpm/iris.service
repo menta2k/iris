@@ -29,6 +29,14 @@ ExecStart=/usr/local/bin/iris -config /etc/iris/iris.yaml
 Restart=on-failure
 RestartSec=5s
 
+# Allow binding privileged ports (< 1024) as the non-root iris user, so an
+# admin or injection listener can be configured on e.g. :443 or :80 without
+# running as root. Applied by systemd at exec (compatible with
+# NoNewPrivileges=true). Remove both lines if you always front Iris with a
+# reverse proxy and never bind low ports directly.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
 # Hardening — the service only needs to read its config and write its own
 # state directory.
 StateDirectory=iris

@@ -60,13 +60,16 @@ type KumoInjectRequest struct {
 	Recipients     []KumoInjectRcpt  `json:"recipients"`
 }
 
-// KumoInjectContent is the builder-form content block.
+// KumoInjectContent is the builder-form content block. Its field set must match
+// KumoMTA's Content builder exactly — that struct uses deny_unknown_fields, so
+// any extra key (e.g. a "to" field) makes the whole request fail to deserialize
+// (HTTP 422). The To: header is built automatically from the top-level
+// recipients, so it is deliberately not set here.
 type KumoInjectContent struct {
 	Subject  string            `json:"subject,omitempty"`
 	TextBody string            `json:"text_body,omitempty"`
 	HTMLBody string            `json:"html_body,omitempty"`
 	From     KumoInjectAddr    `json:"from"`
-	To       []KumoInjectAddr  `json:"to,omitempty"`
 	Headers  map[string]string `json:"headers,omitempty"`
 }
 
@@ -202,15 +205,14 @@ func (uc *GreenArrowInjectUsecase) build(m GAMessage) (KumoInjectRequest, error)
 		return KumoInjectRequest{}, Invalid("INJECT_BODY_REQUIRED", "html or text body is required")
 	}
 
+	// Recipients carry name + email; KumoMTA builds the To: header from them.
 	recipients := make([]KumoInjectRcpt, 0, len(m.To))
-	toHeader := make([]KumoInjectAddr, 0, len(m.To))
 	for _, r := range m.To {
 		email := strings.TrimSpace(r.Email)
 		if email == "" {
 			continue
 		}
 		recipients = append(recipients, KumoInjectRcpt{Email: email, Name: strings.TrimSpace(r.Name)})
-		toHeader = append(toHeader, KumoInjectAddr{Email: email, Name: strings.TrimSpace(r.Name)})
 	}
 	if len(recipients) == 0 {
 		return KumoInjectRequest{}, Invalid("INJECT_RECIPIENT_REQUIRED", "at least one recipient is required")
@@ -245,7 +247,6 @@ func (uc *GreenArrowInjectUsecase) build(m GAMessage) (KumoInjectRequest, error)
 			TextBody: m.Text,
 			HTMLBody: m.HTML,
 			From:     KumoInjectAddr{Email: from, Name: strings.TrimSpace(m.FromName)},
-			To:       toHeader,
 			Headers:  headers,
 		},
 	}, nil
