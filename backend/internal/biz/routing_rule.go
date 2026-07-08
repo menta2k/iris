@@ -52,12 +52,38 @@ type RoutingRule struct {
 	MatchType   string
 	MatchHeader string // header name for mailclass matches; empty otherwise
 	MatchValue  string
-	Priority    int
-	TargetType  string
-	TargetID    string
+	// Conditions is the OR-list of header/value pairs for a mailclass rule: the
+	// rule matches when ANY condition matches. MatchHeader/MatchValue mirror the
+	// first condition for backward compatibility (and for filtering). Empty for
+	// non-mailclass rules.
+	Conditions []RoutingMatchCondition
+	Priority   int
+	TargetType string
+	TargetID   string
 	// AssignMailclass is the class set by a sender_ip rule; empty otherwise.
 	AssignMailclass string
 	Status          string
+}
+
+// RoutingMatchCondition is one header NAME + VALUE pair of a mailclass rule.
+type RoutingMatchCondition struct {
+	Header string
+	Value  string
+}
+
+// routingConditions returns a mailclass rule's OR-conditions, synthesizing a
+// single condition from the legacy MatchHeader/MatchValue when Conditions is
+// empty (e.g. rows written before multi-condition support). Header defaults to
+// DefaultMailClassHeader.
+func routingConditions(r *RoutingRule) []RoutingMatchCondition {
+	if len(r.Conditions) > 0 {
+		return r.Conditions
+	}
+	header := r.MatchHeader
+	if header == "" {
+		header = DefaultMailClassHeader
+	}
+	return []RoutingMatchCondition{{Header: header, Value: r.MatchValue}}
 }
 
 // ValidMatchType reports whether t is a known match type.
@@ -93,11 +119,41 @@ func (r *RoutingRule) Validate() error {
 	// (case-insensitive); a mailclass header value is matched verbatim.
 	switch r.MatchType {
 	case MatchMailclass:
-		r.MatchValue = strings.TrimSpace(r.MatchValue)
-		if r.MatchHeader == "" {
-			r.MatchHeader = DefaultMailClassHeader
+		// Build the OR-condition list from the explicit Conditions, or synthesize
+		// a single condition from the legacy header/value fields.
+		if len(r.Conditions) == 0 {
+			r.Conditions = []RoutingMatchCondition{{Header: r.MatchHeader, Value: r.MatchValue}}
 		}
+		seen := map[[2]string]bool{}
+		norm := make([]RoutingMatchCondition, 0, len(r.Conditions))
+		for _, c := range r.Conditions {
+			h := strings.TrimSpace(c.Header)
+			if h == "" {
+				h = DefaultMailClassHeader
+			}
+			v := strings.TrimSpace(c.Value)
+			if v == "" {
+				continue // skip blanks so a stray empty row can't break the rule
+			}
+			if !headerNameRe.MatchString(h) {
+				return Invalid("ROUTING_MATCH_HEADER_INVALID", "match_header %q is not a valid header name", h)
+			}
+			key := [2]string{h, v}
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			norm = append(norm, RoutingMatchCondition{Header: h, Value: v})
+		}
+		if len(norm) == 0 {
+			return Invalid("ROUTING_MATCH_VALUE_REQUIRED", "at least one match header/value is required")
+		}
+		r.Conditions = norm
+		// Mirror the first condition into the legacy fields (compat + filtering).
+		r.MatchHeader = norm[0].Header
+		r.MatchValue = norm[0].Value
 	default:
+		r.Conditions = nil
 		r.MatchValue = strings.ToLower(strings.TrimSpace(r.MatchValue))
 		r.MatchHeader = "" // not applicable to recipient/sender_ip matches
 	}

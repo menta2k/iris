@@ -2962,6 +2962,10 @@ components:
                     type: string
                 assign_mailclass:
                     type: string
+                conditions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/RoutingMatchCondition'
         CreateSubjectClassificationRequest:
             type: object
             properties:
@@ -4465,6 +4469,14 @@ components:
                 last_run:
                     $ref: '#/components/schemas/RetentionRun'
             description: RetentionView is a policy plus live disk status for one managed table.
+        RoutingMatchCondition:
+            type: object
+            properties:
+                header:
+                    type: string
+                value:
+                    type: string
+            description: RoutingMatchCondition is one header NAME + VALUE pair of a mailclass rule.
         RoutingOutcome:
             type: object
             properties:
@@ -4516,6 +4528,14 @@ components:
                     description: |-
                         assign_mailclass is the class applied by a sender_ip rule (match_value is
                          then an IP or CIDR). Empty for other match types, which use target instead.
+                conditions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/RoutingMatchCondition'
+                    description: |-
+                        conditions is the OR-list of header/value pairs for a mailclass rule (the
+                         rule matches when ANY condition matches). match_header/match_value mirror
+                         the first condition. Empty for non-mailclass rules.
         RspamdResult:
             type: object
             properties:
@@ -5120,6 +5140,10 @@ components:
                     type: string
                 assign_mailclass:
                     type: string
+                conditions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/RoutingMatchCondition'
         UpdateSubjectClassificationRequest:
             type: object
             properties:

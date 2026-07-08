@@ -577,12 +577,18 @@ func writeRouting(b *strings.Builder, routes []*RoutingRule, vmtaName, groupName
 		if target == "" {
 			continue
 		}
-		header := r.MatchHeader
-		if r.MatchType == MatchMailclass && header == "" {
-			header = DefaultMailClassHeader
+		if r.MatchType == MatchMailclass {
+			// One ROUTES entry per header/value condition, all sharing this rule's
+			// priority and egress pool. select_pool returns the first match, so
+			// multiple conditions behave as an OR for the rule.
+			for _, c := range routingConditions(r) {
+				fmt.Fprintf(b, "  { match_type = %s, match_header = %s, match_value = %s, priority = %d, egress_pool = %s },\n",
+					MustLuaString(r.MatchType), MustLuaString(c.Header), MustLuaString(c.Value), r.Priority, MustLuaString(target))
+			}
+		} else {
+			fmt.Fprintf(b, "  { match_type = %s, match_header = %s, match_value = %s, priority = %d, egress_pool = %s },\n",
+				MustLuaString(r.MatchType), MustLuaString(r.MatchHeader), MustLuaString(r.MatchValue), r.Priority, MustLuaString(target))
 		}
-		fmt.Fprintf(b, "  { match_type = %s, match_header = %s, match_value = %s, priority = %d, egress_pool = %s },\n",
-			MustLuaString(r.MatchType), MustLuaString(header), MustLuaString(r.MatchValue), r.Priority, MustLuaString(target))
 		n++
 	}
 	b.WriteString("}\n")
@@ -603,19 +609,17 @@ local MAIL_CLASSES = {
 		if r.Status != RoutingStatusActive || r.MatchType != MatchMailclass {
 			continue
 		}
-		header := r.MatchHeader
-		if header == "" {
-			header = DefaultMailClassHeader
+		for _, c := range routingConditions(r) {
+			key := hv{c.Header, c.Value}
+			if _, ok := seenHV[key]; ok {
+				continue
+			}
+			seenHV[key] = struct{}{}
+			if _, ok := headers[c.Header]; !ok {
+				headerOrder = append(headerOrder, c.Header)
+			}
+			headers[c.Header] = append(headers[c.Header], c.Value)
 		}
-		key := hv{header, r.MatchValue}
-		if _, ok := seenHV[key]; ok {
-			continue
-		}
-		seenHV[key] = struct{}{}
-		if _, ok := headers[header]; !ok {
-			headerOrder = append(headerOrder, header)
-		}
-		headers[header] = append(headers[header], r.MatchValue)
 	}
 	sort.Strings(headerOrder)
 	for _, h := range headerOrder {

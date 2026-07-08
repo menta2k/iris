@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -10,6 +11,42 @@ import (
 
 	"github.com/menta2k/iris/backend/internal/biz"
 )
+
+// jsonRoutingCondition is the JSONB shape of a routing rule's match condition.
+type jsonRoutingCondition struct {
+	Header string `json:"header"`
+	Value  string `json:"value"`
+}
+
+// marshalRoutingConditions serializes conditions to a JSON array string for the
+// match_conditions JSONB column (empty array when none).
+func marshalRoutingConditions(conds []biz.RoutingMatchCondition) string {
+	arr := make([]jsonRoutingCondition, 0, len(conds))
+	for _, c := range conds {
+		arr = append(arr, jsonRoutingCondition{Header: c.Header, Value: c.Value})
+	}
+	b, err := json.Marshal(arr)
+	if err != nil {
+		return "[]"
+	}
+	return string(b)
+}
+
+// scanRoutingConditions parses the match_conditions JSONB column.
+func scanRoutingConditions(raw []byte) []biz.RoutingMatchCondition {
+	if len(raw) == 0 {
+		return nil
+	}
+	var arr []jsonRoutingCondition
+	if err := json.Unmarshal(raw, &arr); err != nil {
+		return nil
+	}
+	out := make([]biz.RoutingMatchCondition, 0, len(arr))
+	for _, c := range arr {
+		out = append(out, biz.RoutingMatchCondition{Header: c.Header, Value: c.Value})
+	}
+	return out
+}
 
 // OutboundConfigRepo persists VMTAs, VMTA groups, and routing rules.
 type OutboundConfigRepo struct {
@@ -292,32 +329,37 @@ func (r *OutboundConfigRepo) ListVMTAGroups(ctx context.Context, page biz.Page) 
 
 // CreateRoutingRule inserts a routing rule.
 func (r *OutboundConfigRepo) CreateRoutingRule(ctx context.Context, rule *biz.RoutingRule) (*biz.RoutingRule, error) {
+	var condsRaw []byte
 	row := r.db.Pool.QueryRow(ctx, `
-		INSERT INTO routing_rules (name, match_type, match_header, match_value, priority, target_type, target_id, assign_mailclass, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		RETURNING id, name, match_type, match_header, match_value, priority, coalesce(target_type, ''), coalesce(target_id::text, ''), assign_mailclass, status`,
-		rule.Name, rule.MatchType, rule.MatchHeader, rule.MatchValue, rule.Priority, nullableText(rule.TargetType), nullableUUID(rule.TargetID), rule.AssignMailclass, rule.Status)
+		INSERT INTO routing_rules (name, match_type, match_header, match_value, priority, target_type, target_id, assign_mailclass, status, match_conditions)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
+		RETURNING id, name, match_type, match_header, match_value, priority, coalesce(target_type, ''), coalesce(target_id::text, ''), assign_mailclass, status, match_conditions`,
+		rule.Name, rule.MatchType, rule.MatchHeader, rule.MatchValue, rule.Priority, nullableText(rule.TargetType), nullableUUID(rule.TargetID), rule.AssignMailclass, rule.Status, marshalRoutingConditions(rule.Conditions))
 	out := &biz.RoutingRule{}
 	if err := row.Scan(&out.ID, &out.Name, &out.MatchType, &out.MatchHeader, &out.MatchValue, &out.Priority,
-		&out.TargetType, &out.TargetID, &out.AssignMailclass, &out.Status); err != nil {
+		&out.TargetType, &out.TargetID, &out.AssignMailclass, &out.Status, &condsRaw); err != nil {
 		return nil, mapConstraint(err, "routing_rule")
 	}
+	out.Conditions = scanRoutingConditions(condsRaw)
 	return out, nil
 }
 
 // UpdateRoutingRule updates a routing rule by id.
 func (r *OutboundConfigRepo) UpdateRoutingRule(ctx context.Context, id string, rule *biz.RoutingRule) (*biz.RoutingRule, error) {
+	var condsRaw []byte
 	row := r.db.Pool.QueryRow(ctx, `
 		UPDATE routing_rules SET name = $2, match_type = $3, match_header = $4, match_value = $5,
-			priority = $6, target_type = $7, target_id = $8, assign_mailclass = $9, status = $10, updated_at = now()
+			priority = $6, target_type = $7, target_id = $8, assign_mailclass = $9, status = $10,
+			match_conditions = $11::jsonb, updated_at = now()
 		WHERE id = $1
-		RETURNING id, name, match_type, match_header, match_value, priority, coalesce(target_type, ''), coalesce(target_id::text, ''), assign_mailclass, status`,
-		id, rule.Name, rule.MatchType, rule.MatchHeader, rule.MatchValue, rule.Priority, nullableText(rule.TargetType), nullableUUID(rule.TargetID), rule.AssignMailclass, rule.Status)
+		RETURNING id, name, match_type, match_header, match_value, priority, coalesce(target_type, ''), coalesce(target_id::text, ''), assign_mailclass, status, match_conditions`,
+		id, rule.Name, rule.MatchType, rule.MatchHeader, rule.MatchValue, rule.Priority, nullableText(rule.TargetType), nullableUUID(rule.TargetID), rule.AssignMailclass, rule.Status, marshalRoutingConditions(rule.Conditions))
 	out := &biz.RoutingRule{}
 	if err := row.Scan(&out.ID, &out.Name, &out.MatchType, &out.MatchHeader, &out.MatchValue, &out.Priority,
-		&out.TargetType, &out.TargetID, &out.AssignMailclass, &out.Status); err != nil {
+		&out.TargetType, &out.TargetID, &out.AssignMailclass, &out.Status, &condsRaw); err != nil {
 		return nil, mapConstraint(err, "routing_rule")
 	}
+	out.Conditions = scanRoutingConditions(condsRaw)
 	return out, nil
 }
 
@@ -325,7 +367,7 @@ func (r *OutboundConfigRepo) UpdateRoutingRule(ctx context.Context, id string, r
 func (r *OutboundConfigRepo) ListRoutingRules(ctx context.Context, matchType, matchValue string, page biz.Page) ([]*biz.RoutingRule, error) {
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT id, name, match_type, match_header, match_value, priority,
-		       coalesce(target_type, ''), coalesce(target_id::text, ''), assign_mailclass, status
+		       coalesce(target_type, ''), coalesce(target_id::text, ''), assign_mailclass, status, match_conditions
 		FROM routing_rules
 		WHERE ($1 = '' OR match_type = $1) AND ($2 = '' OR match_value = $2)
 		ORDER BY priority DESC, name
@@ -337,10 +379,12 @@ func (r *OutboundConfigRepo) ListRoutingRules(ctx context.Context, matchType, ma
 	var out []*biz.RoutingRule
 	for rows.Next() {
 		rule := &biz.RoutingRule{}
+		var condsRaw []byte
 		if err := rows.Scan(&rule.ID, &rule.Name, &rule.MatchType, &rule.MatchHeader, &rule.MatchValue, &rule.Priority,
-			&rule.TargetType, &rule.TargetID, &rule.AssignMailclass, &rule.Status); err != nil {
+			&rule.TargetType, &rule.TargetID, &rule.AssignMailclass, &rule.Status, &condsRaw); err != nil {
 			return nil, fmt.Errorf("scan routing rule: %w", err)
 		}
+		rule.Conditions = scanRoutingConditions(condsRaw)
 		out = append(out, rule)
 	}
 	return out, rows.Err()

@@ -73,26 +73,48 @@ const dialogOpen = ref(false)
 const saving = ref(false)
 const mode = ref<'create' | 'edit'>('create')
 const editId = ref<string | null>(null)
-const form = ref({
-  name: '',
-  match_type: 'recipient_domain',
-  match_header: 'X-Mail-Class',
-  match_value: '',
-  priority: 100,
-  target_type: 'vmta_group',
-  target_id: '',
-  assign_mailclass: '',
-  status: 'active',
-})
+interface Condition {
+  header: string
+  value: string
+}
+function emptyForm() {
+  return {
+    name: '',
+    match_type: 'recipient_domain',
+    match_header: 'X-Mail-Class',
+    match_value: '',
+    conditions: [{ header: 'X-Mail-Class', value: '' }] as Condition[],
+    priority: 100,
+    target_type: 'vmta_group',
+    target_id: '',
+    assign_mailclass: '',
+    status: 'active',
+  }
+}
+const form = ref(emptyForm())
 
 const isEdit = computed(() => mode.value === 'edit')
 const isMailclass = computed(() => form.value.match_type === 'mailclass')
 // sender_ip rules classify by IP/CIDR and assign a mailclass; they have no
 // VMTA/group target.
 const isSenderIP = computed(() => form.value.match_type === 'sender_ip')
+// Mailclass rules match on one or more header/value conditions (OR); a rule is
+// valid when at least one condition has a value.
+const validConditions = computed(() =>
+  form.value.conditions.filter((c) => c.value.trim() !== ''),
+)
+function addCondition() {
+  form.value.conditions.push({ header: form.value.conditions[0]?.header || 'X-Mail-Class', value: '' })
+}
+function removeCondition(i: number) {
+  form.value.conditions.splice(i, 1)
+  if (form.value.conditions.length === 0) addCondition()
+}
 // The form is submittable when the type-specific required fields are present.
 const canSubmit = computed(() => {
-  if (!form.value.name || !form.value.match_value) return false
+  if (!form.value.name) return false
+  if (isMailclass.value) return validConditions.value.length > 0 && !!form.value.target_id
+  if (!form.value.match_value) return false
   return isSenderIP.value ? !!form.value.assign_mailclass : !!form.value.target_id
 })
 
@@ -142,17 +164,7 @@ onMounted(loadTargets)
 async function openCreate() {
   mode.value = 'create'
   editId.value = null
-  form.value = {
-    name: '',
-    match_type: 'recipient_domain',
-    match_header: 'X-Mail-Class',
-    match_value: '',
-    priority: 100,
-    target_type: 'vmta_group',
-    target_id: '',
-    assign_mailclass: '',
-    status: 'active',
-  }
+  form.value = emptyForm()
   dialogOpen.value = true
   await loadTargets()
 }
@@ -160,11 +172,16 @@ async function openCreate() {
 async function openEdit(r: RoutingRule) {
   mode.value = 'edit'
   editId.value = r.id
+  const conditions: Condition[] =
+    r.conditions && r.conditions.length
+      ? r.conditions.map((c) => ({ header: c.header || 'X-Mail-Class', value: c.value }))
+      : [{ header: r.matchHeader || 'X-Mail-Class', value: r.matchValue }]
   form.value = {
     name: r.name,
     match_type: r.matchType,
     match_header: r.matchHeader || 'X-Mail-Class',
     match_value: r.matchValue,
+    conditions,
     priority: r.priority,
     target_type: r.targetType || 'vmta_group',
     target_id: r.targetId,
@@ -179,15 +196,20 @@ async function submit() {
   if (!canSubmit.value) return
   saving.value = true
   try {
-    // match_header only applies to mailclass matches; sender_ip rules carry an
-    // assigned class and no VMTA/group target.
-    const matchHeader = form.value.match_type === 'mailclass' ? form.value.match_header : ''
+    // Mailclass rules send the OR-list of conditions (trimmed, header defaulted);
+    // match_header/match_value mirror the first for compatibility. sender_ip
+    // rules carry an assigned class and no VMTA/group target.
+    const mailclass = form.value.match_type === 'mailclass'
     const senderIP = form.value.match_type === 'sender_ip'
+    const conditions = mailclass
+      ? validConditions.value.map((c) => ({ header: c.header.trim() || 'X-Mail-Class', value: c.value.trim() }))
+      : undefined
     const payload = {
       name: form.value.name,
       match_type: form.value.match_type,
-      match_header: matchHeader,
-      match_value: form.value.match_value,
+      match_header: mailclass ? conditions![0].header : '',
+      match_value: mailclass ? conditions![0].value : form.value.match_value,
+      conditions,
       priority: Number(form.value.priority),
       target_type: senderIP ? '' : form.value.target_type,
       target_id: senderIP ? '' : form.value.target_id,
@@ -249,7 +271,14 @@ async function submit() {
                 <TableCell>
                   <Badge variant="outline">{{ r.matchType }}</Badge>
                   <span class="ml-2 font-mono text-caption">
-                    <template v-if="r.matchType === 'mailclass'">{{ r.matchHeader }}: </template>{{ r.matchValue }}
+                    <template v-if="r.matchType === 'mailclass' && r.conditions && r.conditions.length">
+                      <span v-for="(c, i) in r.conditions" :key="i">
+                        <template v-if="i > 0"> <span class="text-medium-emphasis">or</span> </template>{{ c.header }}: {{ c.value }}
+                      </span>
+                    </template>
+                    <template v-else>
+                      <template v-if="r.matchType === 'mailclass'">{{ r.matchHeader }}: </template>{{ r.matchValue }}
+                    </template>
                   </span>
                 </TableCell>
                 <TableCell>
@@ -290,7 +319,7 @@ async function submit() {
           <Input id="rr-name" v-model="form.name" placeholder="route-gmail" />
         </div>
         <v-row dense>
-          <v-col cols="6" class="d-flex flex-column ga-1">
+          <v-col :cols="isMailclass ? 12 : 6" class="d-flex flex-column ga-1">
             <Label for="rr-match-type">Match Type</Label>
             <v-select
               id="rr-match-type"
@@ -302,23 +331,55 @@ async function submit() {
               @update:model-value="onMatchTypeChange"
             />
           </v-col>
-          <v-col cols="6" class="d-flex flex-column ga-1">
-            <Label for="rr-match-value">{{
-              isMailclass ? 'Header Value' : isSenderIP ? 'Sender IP / CIDR' : 'Match Value'
-            }}</Label>
+          <v-col v-if="!isMailclass" cols="6" class="d-flex flex-column ga-1">
+            <Label for="rr-match-value">{{ isSenderIP ? 'Sender IP / CIDR' : 'Match Value' }}</Label>
             <Input
               id="rr-match-value"
               v-model="form.match_value"
-              :placeholder="isMailclass ? 'bulk' : isSenderIP ? '10.1.111.0/24' : 'gmail.com'"
+              :placeholder="isSenderIP ? '10.1.111.0/24' : 'gmail.com'"
             />
           </v-col>
         </v-row>
-        <div v-if="isMailclass" class="d-flex flex-column ga-1">
-          <Label for="rr-match-header">Header Name</Label>
-          <Input id="rr-match-header" v-model="form.match_header" placeholder="X-Mail-Class" />
+        <!-- Mailclass: one or more header/value conditions, matched with OR. -->
+        <div v-if="isMailclass" class="d-flex flex-column ga-2">
+          <Label>Match conditions <span class="text-medium-emphasis">(any match — OR)</span></Label>
+          <div
+            v-for="(c, i) in form.conditions"
+            :key="i"
+            class="d-flex align-center ga-2"
+          >
+            <Input
+              v-model="c.header"
+              class="font-mono"
+              style="flex: 1"
+              placeholder="X-Mail-Class"
+              :data-testid="`rr-cond-header-${i}`"
+            />
+            <span class="text-medium-emphasis">=</span>
+            <Input
+              v-model="c.value"
+              style="flex: 1"
+              placeholder="bulk"
+              :data-testid="`rr-cond-value-${i}`"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              :disabled="form.conditions.length === 1"
+              :data-testid="`rr-cond-remove-${i}`"
+              @click="removeCondition(i)"
+            >
+              Remove
+            </Button>
+          </div>
+          <div>
+            <Button type="button" variant="outline" size="sm" data-testid="rr-cond-add" @click="addCondition">
+              + Add condition
+            </Button>
+          </div>
           <p class="text-caption text-medium-emphasis">
-            Routes mail whose <span class="font-mono">{{ form.match_header || 'X-Mail-Class' }}</span>
-            header equals the value above.
+            The rule routes mail matching <em>any</em> of these header = value pairs.
           </p>
         </div>
         <div v-if="isSenderIP" class="d-flex flex-column ga-1">

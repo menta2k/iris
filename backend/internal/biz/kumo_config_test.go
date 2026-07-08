@@ -16,6 +16,53 @@ var testDKIMKeyPEM = func() string {
 	return pem
 }()
 
+// TestRoutingMultiConditionOR verifies a mailclass rule with several
+// header/value conditions renders one ROUTES row + MAIL_CLASSES entry per
+// condition (all sharing the rule's pool/priority), giving OR match semantics.
+func TestRoutingMultiConditionOR(t *testing.T) {
+	snap := ConfigSnapshot{
+		VMTAs:  []*VMTA{{ID: "v1", Name: "vmta-a", ListenerID: "l1", IPAddress: "203.0.113.10", EHLOName: "a.example.com", Status: VMTAStatusActive}},
+		Groups: []*VMTAGroup{{ID: "g1", Name: "bulk-pool", Status: VMTAGroupStatusActive, Members: []VMTAGroupMember{{VMTAID: "v1", Weight: 100}}}},
+		Routes: []*RoutingRule{
+			{ID: "r1", Name: "multi", MatchType: MatchMailclass, Priority: 100, TargetType: TargetVMTAGroup, TargetID: "g1", Status: RoutingStatusActive,
+				MatchHeader: "X-Mail-Class", MatchValue: "bulk",
+				Conditions: []RoutingMatchCondition{
+					{Header: "X-Mail-Class", Value: "bulk"},
+					{Header: "X-Mail-Class", Value: "promo"},
+					{Header: "X-Campaign", Value: "spring"},
+				}},
+		},
+		DKIM: []*DKIMDomain{{ID: "d1", Domain: "example.com", Selector: "s1", PrivateKeyRef: testDKIMKeyPEM, Status: DKIMReady}},
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	if !r.Valid {
+		t.Fatalf("policy failed lint: %v\n%s", r.LintIssues, r.Content)
+	}
+	// One ROUTES row per condition, all pointing at bulk-pool.
+	for _, want := range []string{
+		`match_header = "X-Mail-Class", match_value = "bulk", priority = 100, egress_pool = "bulk-pool"`,
+		`match_header = "X-Mail-Class", match_value = "promo", priority = 100, egress_pool = "bulk-pool"`,
+		`match_header = "X-Campaign", match_value = "spring", priority = 100, egress_pool = "bulk-pool"`,
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Errorf("missing ROUTES row: %s\n%s", want, r.Content)
+		}
+	}
+	// RouteCount counts rules, not rows.
+	if r.RouteCount != 1 {
+		t.Errorf("RouteCount = %d, want 1 (one rule)", r.RouteCount)
+	}
+	// All three values classify (MAIL_CLASSES).
+	for _, v := range []string{`["bulk"] = "bulk"`, `["promo"] = "promo"`, `["spring"] = "spring"`} {
+		if !strings.Contains(r.Content, v) {
+			t.Errorf("missing MAIL_CLASSES value: %s", v)
+		}
+	}
+}
+
 // TestHTTPInjectionHookOutbound verifies that HTTP-injected mail gets the same
 // outbound processing as SMTP: mailclass classification, the VERP envelope
 // rewrite, and egress-pool routing — not just DKIM signing.

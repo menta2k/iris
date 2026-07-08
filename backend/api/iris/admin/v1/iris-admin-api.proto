@@ -574,6 +574,16 @@ message RoutingRule {
   // assign_mailclass is the class applied by a sender_ip rule (match_value is
   // then an IP or CIDR). Empty for other match types, which use target instead.
   string assign_mailclass = 10;
+  // conditions is the OR-list of header/value pairs for a mailclass rule (the
+  // rule matches when ANY condition matches). match_header/match_value mirror
+  // the first condition. Empty for non-mailclass rules.
+  repeated RoutingMatchCondition conditions = 11;
+}
+
+// RoutingMatchCondition is one header NAME + VALUE pair of a mailclass rule.
+message RoutingMatchCondition {
+  string header = 1;
+  string value = 2;
 }
 
 // ---- IP warmup ----
@@ -910,6 +920,7 @@ message CreateRoutingRuleRequest {
   string target_id = 6;
   string match_header = 7;
   string assign_mailclass = 8;
+  repeated RoutingMatchCondition conditions = 9;
 }
 message UpdateRoutingRuleRequest {
   string id = 1;
@@ -922,6 +933,7 @@ message UpdateRoutingRuleRequest {
   string status = 8;
   string match_header = 9;
   string assign_mailclass = 10;
+  repeated RoutingMatchCondition conditions = 11;
 }
 
 // Mail operations -----------------------------------------------------------

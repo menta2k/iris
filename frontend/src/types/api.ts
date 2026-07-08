@@ -373,6 +373,12 @@ export interface UpdateVMTAGroupRequest {
 export type MatchType = 'mailclass' | 'recipient_email' | 'recipient_domain' | 'sender_ip' | string
 export type TargetType = 'vmta' | 'vmta_group' | '' | string
 
+// One header NAME + VALUE pair of a mailclass rule (OR-matched).
+export interface RoutingMatchCondition {
+  header: string
+  value: string
+}
+
 // Response type: camelCase. matchHeader is the header NAME for a mailclass match.
 export interface RoutingRule {
   id: string
@@ -380,6 +386,10 @@ export interface RoutingRule {
   matchType: MatchType
   matchHeader?: string
   matchValue: string
+  // conditions is the OR-list of header/value pairs for a mailclass rule; the
+  // rule matches when ANY condition matches. matchHeader/matchValue mirror the
+  // first condition. Empty for non-mailclass rules.
+  conditions?: RoutingMatchCondition[]
   priority: number
   targetType: TargetType
   targetId: string
@@ -394,6 +404,7 @@ export interface CreateRoutingRuleRequest {
   match_type: MatchType
   match_header?: string
   match_value: string
+  conditions?: RoutingMatchCondition[]
   priority: number
   target_type: TargetType
   target_id: string
@@ -405,6 +416,7 @@ export interface UpdateRoutingRuleRequest {
   match_type: MatchType
   match_header?: string
   match_value: string
+  conditions?: RoutingMatchCondition[]
   priority: number
   target_type: TargetType
   target_id: string
