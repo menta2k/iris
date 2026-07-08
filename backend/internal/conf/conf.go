@@ -13,12 +13,43 @@ import (
 
 // Config is the root application configuration.
 type Config struct {
-	Server  Server   `yaml:"server"`
-	Data    Data     `yaml:"data"`
-	Auth    Auth     `yaml:"auth"`
-	KumoMTA External `yaml:"kumomta"`
-	Rspamd  External `yaml:"rspamd"`
-	Log     Log      `yaml:"log"`
+	Server    Server    `yaml:"server"`
+	Data      Data      `yaml:"data"`
+	Auth      Auth      `yaml:"auth"`
+	KumoMTA   External  `yaml:"kumomta"`
+	Rspamd    External  `yaml:"rspamd"`
+	Injection Injection `yaml:"injection"`
+	Log       Log       `yaml:"log"`
+}
+
+// Injection configures the GreenArrow-compatible mail-injection API. For
+// security it runs on its OWN HTTP listener (separate port from the admin API),
+// authenticated by a body-level username/password rather than the admin JWT, so
+// it can be firewalled independently and never exposes the admin surface.
+type Injection struct {
+	// Enabled turns the separate injection listener on. Off by default.
+	Enabled bool `yaml:"enabled"`
+	// Addr is the injection listener's own address, e.g. ":8025". It MUST differ
+	// from the admin HTTP/gRPC ports.
+	Addr string `yaml:"addr"`
+	// Path is the route the injection handler answers on (POST). The caller
+	// points its API URL at http(s)://host:<port><path>.
+	Path string `yaml:"path"`
+	// Timeout bounds request handling.
+	Timeout time.Duration `yaml:"timeout"`
+	// Username/Password authenticate the injection request body (GreenArrow
+	// compatibility). Required when Enabled; supply via env in production.
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	// TLS serves the injection listener over HTTPS. Provide the certificate
+	// EITHER as an iris/ACME-managed cert by domain (TLSCertDomain) OR as an
+	// explicit key pair (TLSCertFile + TLSKeyFile). When TLS is true but no
+	// usable certificate is available the process refuses to start — the
+	// listener never silently falls back to plaintext.
+	TLS           bool   `yaml:"tls"`
+	TLSCertDomain string `yaml:"tls_cert_domain"`
+	TLSCertFile   string `yaml:"tls_cert_file"`
+	TLSKeyFile    string `yaml:"tls_key_file"`
 }
 
 // Server holds HTTP and gRPC transport configuration.
@@ -158,7 +189,13 @@ func Default() *Config {
 		},
 		KumoMTA: External{BaseURL: "http://localhost:8000", Timeout: 10 * time.Second, Stub: true, ConfigPath: "/opt/kumomta/etc/policy/iris_generated.lua"},
 		Rspamd:  External{BaseURL: "http://localhost:11334", Timeout: 10 * time.Second, Stub: true},
-		Log:     Log{Level: "info"},
+		Injection: Injection{
+			Enabled: false,
+			Addr:    ":8025",
+			Path:    "/api/inject",
+			Timeout: 30 * time.Second,
+		},
+		Log: Log{Level: "info"},
 	}
 }
 
@@ -189,6 +226,28 @@ func (c *Config) applyEnv() {
 			c.Auth.DevBypass = b
 		}
 	}
+	if v := os.Getenv("IRIS_INJECTION_ENABLED"); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			c.Injection.Enabled = b
+		}
+	}
+	if v := os.Getenv("IRIS_INJECTION_ADDR"); v != "" {
+		c.Injection.Addr = v
+	}
+	if v := os.Getenv("IRIS_INJECTION_PATH"); v != "" {
+		c.Injection.Path = v
+	}
+	if v := os.Getenv("IRIS_INJECTION_USERNAME"); v != "" {
+		c.Injection.Username = v
+	}
+	if v := os.Getenv("IRIS_INJECTION_PASSWORD"); v != "" {
+		c.Injection.Password = v
+	}
+	if v := os.Getenv("IRIS_INJECTION_TLS"); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			c.Injection.TLS = b
+		}
+	}
 }
 
 func (c *Config) validate() error {
@@ -197,6 +256,30 @@ func (c *Config) validate() error {
 	}
 	if c.Server.HTTP.Addr == "" && c.Server.GRPC.Addr == "" {
 		return fmt.Errorf("at least one server endpoint must be configured")
+	}
+	if c.Injection.Enabled {
+		if c.Injection.Addr == "" {
+			return fmt.Errorf("injection.addr must be set when injection is enabled")
+		}
+		if c.Injection.Addr == c.Server.HTTP.Addr || c.Injection.Addr == c.Server.GRPC.Addr {
+			return fmt.Errorf("injection.addr (%s) must differ from the admin HTTP/gRPC ports", c.Injection.Addr)
+		}
+		if c.Injection.Username == "" || c.Injection.Password == "" {
+			return fmt.Errorf("injection.username and injection.password are required when injection is enabled")
+		}
+		if c.Injection.Path == "" {
+			c.Injection.Path = "/api/inject"
+		}
+		if c.Injection.TLS {
+			hasFiles := c.Injection.TLSCertFile != "" && c.Injection.TLSKeyFile != ""
+			oneFile := (c.Injection.TLSCertFile != "") != (c.Injection.TLSKeyFile != "")
+			if oneFile {
+				return fmt.Errorf("injection: tls_cert_file and tls_key_file must both be set")
+			}
+			if !hasFiles && c.Injection.TLSCertDomain == "" {
+				return fmt.Errorf("injection.tls is enabled but no certificate is configured (set tls_cert_domain or tls_cert_file+tls_key_file)")
+			}
+		}
 	}
 	return nil
 }

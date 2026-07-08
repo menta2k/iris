@@ -21,6 +21,7 @@ import type {
   RoutingRule,
   RspamdResult,
   SubjectClassification,
+  InjectionCredential,
   Suppression,
   TLSPolicy,
   User,
@@ -56,6 +57,7 @@ export interface MockData {
   rspamdResults: RspamdResult[]
   feedbackLoops: FeedbackLoop[]
   classifications: SubjectClassification[]
+  injectionCredentials: InjectionCredential[]
   dmarcReports: DmarcReport[]
   acmeCertificates: AcmeCertificate[]
 }

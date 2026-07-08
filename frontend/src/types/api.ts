@@ -983,6 +983,39 @@ export interface UpdateSubjectClassificationRequest {
   priority: number
 }
 
+// ---- Injection API credentials (GreenArrow-compatible listener) ----
+
+export interface InjectionCredential {
+  id: string
+  username: string
+  label: string
+  enabled: boolean
+  allowedMailclasses: string[] // empty = any mailclass
+  lastUsedAt?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CreateInjectionCredentialRequest {
+  username: string
+  password: string
+  label: string
+  enabled: boolean
+  allowedMailclasses: string[]
+}
+
+export interface UpdateInjectionCredentialRequest {
+  id: string
+  label: string
+  enabled: boolean
+  allowedMailclasses: string[]
+}
+
+export interface SetInjectionCredentialPasswordRequest {
+  id: string
+  password: string
+}
+
 // ---- Dashboard metrics (Prometheus-backed time-series) ----
 
 export interface MetricPoint {

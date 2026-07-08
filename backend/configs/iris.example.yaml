@@ -68,5 +68,29 @@ rspamd:
   # fail-open if rspamd is unreachable.
   mode: ""
 
+# GreenArrow-compatible mail-injection API. Runs on its OWN HTTP listener
+# (separate port from the admin API above) so it can be firewalled independently
+# and never exposes the admin surface. Callers authenticate with the body
+# username/password (not the admin JWT). Messages are forwarded to KumoMTA's
+# /api/inject/v1. Point an existing GreenArrow client's API URL at
+# http://<host><addr><path> — the request/response contract is unchanged.
+injection:
+  enabled: false
+  addr: ":8025"          # MUST differ from server.http / server.grpc
+  path: "/api/inject"
+  timeout: 30s
+  # Supply credentials via env in production:
+  #   IRIS_INJECTION_ENABLED, IRIS_INJECTION_USERNAME, IRIS_INJECTION_PASSWORD
+  username: ""
+  password: ""
+  # Serve the injection listener over HTTPS. When tls is true you MUST provide a
+  # certificate one of two ways (else startup fails — it never falls back to
+  # plaintext): an iris/ACME-managed cert by domain, OR an explicit key pair.
+  # Toggle via IRIS_INJECTION_TLS.
+  tls: false
+  # tls_cert_domain: "inject.example.com"   # reuse an iris/ACME-issued cert
+  # tls_cert_file: "/etc/iris/inject.crt"   # or an explicit key pair
+  # tls_key_file:  "/etc/iris/inject.key"
+
 log:
   level: "info"

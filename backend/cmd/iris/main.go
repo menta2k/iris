@@ -129,12 +129,15 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// adapter (writes the generated policy and reloads KumoMTA) otherwise.
 	var kumo biz.KumoMTAAdapter
 	var queueAdmin biz.KumoQueueAdmin // live kumod queue control (nil in stub mode)
+	var injector biz.KumoInjector     // KumoMTA HTTP injection (stub in dev mode)
 	if cfg.KumoMTA.Stub {
 		kumo = biz.NewStubKumoMTA()
+		injector = data.StubInjector{}
 	} else {
 		fk := data.NewFileKumoMTA(cfg.KumoMTA)
 		kumo = fk
 		queueAdmin = fk
+		injector = fk
 	}
 
 	// US2 mail operations: repository, Redis producer, and use case.
@@ -210,6 +213,12 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	}
 	subjectClassifierUC := biz.NewSubjectClassifierUsecase(subjectClassRepo, aiClassifier, settingsUC)
 	subjectClassAdminUC := biz.NewSubjectClassificationUsecase(subjectClassRepo, auditor)
+
+	// Injection API credentials: DB-managed keys for the GreenArrow listener,
+	// plus their admin CRUD (always available so keys can be set up before the
+	// listener is turned on).
+	injectionCredRepo := data.NewInjectionCredentialRepo(db)
+	injectionCredUC := biz.NewInjectionCredentialUsecase(injectionCredRepo, auditor)
 	// Suppression list lives in Redis (write-through cache + per-entry TTL); the
 	// rendered policy consults it instead of an inline table. Attach the cache and
 	// TTL provider now that settingsUC exists, then backfill Redis from the DB so
@@ -347,6 +356,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		BounceRules:     bounceRuleUC,
 		EventProcessors: eventProcessorUC,
 		Classifications: subjectClassAdminUC,
+		InjectionCreds:  injectionCredUC,
 		SysMon:          sysMonUC,
 	}
 
@@ -404,10 +414,33 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	httpSrv := server.NewHTTPServer(adminServerConf, svc, adminv1.OpenAPISpec, checks, adminTLS, authMW)
 	grpcSrv := server.NewGRPCServer(cfg.Server, svc, authMW)
 
+	servers := []transport.Server{httpSrv, grpcSrv}
+
+	// GreenArrow-compatible mail injection on its OWN listener (separate port,
+	// no admin JWT) — body-credential auth, forwards to KumoMTA /api/inject/v1.
+	if cfg.Injection.Enabled {
+		var injTLS *tls.Config
+		if cfg.Injection.TLS {
+			tc, terr := loadInjectionTLS(ctx, acmeRepo, cfg.Injection)
+			if terr != nil {
+				// Fail hard: a security-sensitive listener must never silently
+				// downgrade to plaintext when HTTPS was requested.
+				return nil, cleanup, fmt.Errorf("injection TLS: %w", terr)
+			}
+			injTLS = tc
+			log.Info("injection HTTPS enabled", "addr", cfg.Injection.Addr)
+		}
+		injectUC := biz.NewGreenArrowInjectUsecase(injector, cfg.Injection.Username, cfg.Injection.Password, "").
+			WithCredentialStore(injectionCredRepo)
+		if injSrv := server.NewInjectionServer(cfg.Injection, injectUC, injTLS, log); injSrv != nil {
+			servers = append(servers, injSrv)
+		}
+	}
+
 	app := kratos.New(
 		kratos.Name("iris"),
 		kratos.Context(ctx),
-		kratos.Server([]transport.Server{httpSrv, grpcSrv}...),
+		kratos.Server(servers...),
 	)
 	return app, cleanup, nil
 }
@@ -472,6 +505,24 @@ func loadAdminTLS(ctx context.Context, repo biz.AcmeCertificateRepo, domain stri
 		return nil, err
 	}
 	return &tls.Config{Certificates: []tls.Certificate{pair}, MinVersion: tls.VersionTLS12}, nil
+}
+
+// loadInjectionTLS builds the TLS config for the injection listener from either
+// an explicit key pair (TLSCertFile+TLSKeyFile) or an iris/ACME-managed
+// certificate by domain (TLSCertDomain). It errors when no usable certificate
+// is available so the caller can refuse to start rather than serve plaintext.
+func loadInjectionTLS(ctx context.Context, repo biz.AcmeCertificateRepo, c conf.Injection) (*tls.Config, error) {
+	if c.TLSCertFile != "" && c.TLSKeyFile != "" {
+		pair, err := tls.LoadX509KeyPair(c.TLSCertFile, c.TLSKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("load key pair: %w", err)
+		}
+		return &tls.Config{Certificates: []tls.Certificate{pair}, MinVersion: tls.VersionTLS12}, nil
+	}
+	if c.TLSCertDomain != "" {
+		return loadAdminTLS(ctx, repo, c.TLSCertDomain)
+	}
+	return nil, fmt.Errorf("no certificate configured (set tls_cert_domain or tls_cert_file+tls_key_file)")
 }
 
 // startWorker launches a background worker goroutine, logging unexpected exits

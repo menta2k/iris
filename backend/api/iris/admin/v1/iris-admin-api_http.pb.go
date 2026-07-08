@@ -31,6 +31,7 @@ const OperationIrisAdminServiceCreateDeliveryBlueprint = "/iris.admin.v1.IrisAdm
 const OperationIrisAdminServiceCreateEventProcessor = "/iris.admin.v1.IrisAdminService/CreateEventProcessor"
 const OperationIrisAdminServiceCreateFeedbackLoop = "/iris.admin.v1.IrisAdminService/CreateFeedbackLoop"
 const OperationIrisAdminServiceCreateInboundRoute = "/iris.admin.v1.IrisAdminService/CreateInboundRoute"
+const OperationIrisAdminServiceCreateInjectionCredential = "/iris.admin.v1.IrisAdminService/CreateInjectionCredential"
 const OperationIrisAdminServiceCreateListener = "/iris.admin.v1.IrisAdminService/CreateListener"
 const OperationIrisAdminServiceCreateRoutingRule = "/iris.admin.v1.IrisAdminService/CreateRoutingRule"
 const OperationIrisAdminServiceCreateSubjectClassification = "/iris.admin.v1.IrisAdminService/CreateSubjectClassification"
@@ -46,6 +47,7 @@ const OperationIrisAdminServiceDeleteBounceRule = "/iris.admin.v1.IrisAdminServi
 const OperationIrisAdminServiceDeleteEventProcessor = "/iris.admin.v1.IrisAdminService/DeleteEventProcessor"
 const OperationIrisAdminServiceDeleteFeedbackLoop = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
 const OperationIrisAdminServiceDeleteInboundRoute = "/iris.admin.v1.IrisAdminService/DeleteInboundRoute"
+const OperationIrisAdminServiceDeleteInjectionCredential = "/iris.admin.v1.IrisAdminService/DeleteInjectionCredential"
 const OperationIrisAdminServiceDeleteSubjectClassification = "/iris.admin.v1.IrisAdminService/DeleteSubjectClassification"
 const OperationIrisAdminServiceDeleteTLSPolicy = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
 const OperationIrisAdminServiceDiagnose = "/iris.admin.v1.IrisAdminService/Diagnose"
@@ -83,6 +85,7 @@ const OperationIrisAdminServiceListEventProcessors = "/iris.admin.v1.IrisAdminSe
 const OperationIrisAdminServiceListFeedbackLoops = "/iris.admin.v1.IrisAdminService/ListFeedbackLoops"
 const OperationIrisAdminServiceListFeedbackReports = "/iris.admin.v1.IrisAdminService/ListFeedbackReports"
 const OperationIrisAdminServiceListInboundRoutes = "/iris.admin.v1.IrisAdminService/ListInboundRoutes"
+const OperationIrisAdminServiceListInjectionCredentials = "/iris.admin.v1.IrisAdminService/ListInjectionCredentials"
 const OperationIrisAdminServiceListListeners = "/iris.admin.v1.IrisAdminService/ListListeners"
 const OperationIrisAdminServiceListMailRecords = "/iris.admin.v1.IrisAdminService/ListMailRecords"
 const OperationIrisAdminServiceListQueues = "/iris.admin.v1.IrisAdminService/ListQueues"
@@ -114,6 +117,7 @@ const OperationIrisAdminServiceSeedDeliveryBlueprints = "/iris.admin.v1.IrisAdmi
 const OperationIrisAdminServiceSetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
 const OperationIrisAdminServiceSetAutomationRuleStatus = "/iris.admin.v1.IrisAdminService/SetAutomationRuleStatus"
 const OperationIrisAdminServiceSetDeliveryBlueprintStatus = "/iris.admin.v1.IrisAdminService/SetDeliveryBlueprintStatus"
+const OperationIrisAdminServiceSetInjectionCredentialPassword = "/iris.admin.v1.IrisAdminService/SetInjectionCredentialPassword"
 const OperationIrisAdminServiceTestBounceDiagnostic = "/iris.admin.v1.IrisAdminService/TestBounceDiagnostic"
 const OperationIrisAdminServiceTestEventProcessor = "/iris.admin.v1.IrisAdminService/TestEventProcessor"
 const OperationIrisAdminServiceTestMonitorNotification = "/iris.admin.v1.IrisAdminService/TestMonitorNotification"
@@ -125,6 +129,7 @@ const OperationIrisAdminServiceUpdateEventProcessor = "/iris.admin.v1.IrisAdminS
 const OperationIrisAdminServiceUpdateFeedbackLoop = "/iris.admin.v1.IrisAdminService/UpdateFeedbackLoop"
 const OperationIrisAdminServiceUpdateGlobalSettings = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
 const OperationIrisAdminServiceUpdateInboundRoute = "/iris.admin.v1.IrisAdminService/UpdateInboundRoute"
+const OperationIrisAdminServiceUpdateInjectionCredential = "/iris.admin.v1.IrisAdminService/UpdateInjectionCredential"
 const OperationIrisAdminServiceUpdateListener = "/iris.admin.v1.IrisAdminService/UpdateListener"
 const OperationIrisAdminServiceUpdateMonitorSettings = "/iris.admin.v1.IrisAdminService/UpdateMonitorSettings"
 const OperationIrisAdminServiceUpdateRetentionPolicy = "/iris.admin.v1.IrisAdminService/UpdateRetentionPolicy"
@@ -155,6 +160,7 @@ type IrisAdminServiceHTTPServer interface {
 	CreateEventProcessor(context.Context, *CreateEventProcessorRequest) (*EventProcessor, error)
 	CreateFeedbackLoop(context.Context, *CreateFeedbackLoopRequest) (*FeedbackLoop, error)
 	CreateInboundRoute(context.Context, *CreateInboundRouteRequest) (*InboundRoute, error)
+	CreateInjectionCredential(context.Context, *CreateInjectionCredentialRequest) (*InjectionCredential, error)
 	CreateListener(context.Context, *CreateListenerRequest) (*Listener, error)
 	CreateRoutingRule(context.Context, *CreateRoutingRuleRequest) (*RoutingRule, error)
 	CreateSubjectClassification(context.Context, *CreateSubjectClassificationRequest) (*SubjectClassification, error)
@@ -172,6 +178,7 @@ type IrisAdminServiceHTTPServer interface {
 	DeleteEventProcessor(context.Context, *DeleteEventProcessorRequest) (*DeleteEventProcessorReply, error)
 	DeleteFeedbackLoop(context.Context, *DeleteFeedbackLoopRequest) (*DeleteFeedbackLoopReply, error)
 	DeleteInboundRoute(context.Context, *DeleteInboundRouteRequest) (*DeleteInboundRouteReply, error)
+	DeleteInjectionCredential(context.Context, *DeleteInjectionCredentialRequest) (*DeleteInjectionCredentialReply, error)
 	DeleteSubjectClassification(context.Context, *DeleteSubjectClassificationRequest) (*DeleteSubjectClassificationReply, error)
 	DeleteTLSPolicy(context.Context, *DeleteTLSPolicyRequest) (*DeleteTLSPolicyReply, error)
 	// Diagnose Tools ---------------------------------------------------------------------
@@ -250,6 +257,8 @@ type IrisAdminServiceHTTPServer interface {
 	// Inbound routes (maildir / forward / webhook) — the unified inbound mail
 	// routing model. A webhook route POSTs the raw RFC822 message to an endpoint.
 	ListInboundRoutes(context.Context, *ListInboundRoutesRequest) (*ListInboundRoutesReply, error)
+	// ListInjectionCredentials Injection API credentials (GreenArrow-compatible mail-injection listener).
+	ListInjectionCredentials(context.Context, *ListInjectionCredentialsRequest) (*ListInjectionCredentialsReply, error)
 	// ListListeners Listeners (ESMTP) --------------------------------------------------------
 	ListListeners(context.Context, *ListListenersRequest) (*ListListenersReply, error)
 	// ListMailRecords Mail operations ----------------------------------------------------------
@@ -310,6 +319,7 @@ type IrisAdminServiceHTTPServer interface {
 	SetAcmeDnsProvider(context.Context, *SetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	SetAutomationRuleStatus(context.Context, *SetAutomationRuleStatusRequest) (*AutomationRule, error)
 	SetDeliveryBlueprintStatus(context.Context, *SetDeliveryBlueprintStatusRequest) (*DeliveryBlueprint, error)
+	SetInjectionCredentialPassword(context.Context, *SetInjectionCredentialPasswordRequest) (*InjectionCredential, error)
 	TestBounceDiagnostic(context.Context, *TestBounceDiagnosticRequest) (*TestBounceDiagnosticReply, error)
 	TestEventProcessor(context.Context, *TestEventProcessorRequest) (*TestEventProcessorReply, error)
 	TestMonitorNotification(context.Context, *TestMonitorNotificationRequest) (*TestMonitorNotificationReply, error)
@@ -321,6 +331,7 @@ type IrisAdminServiceHTTPServer interface {
 	UpdateFeedbackLoop(context.Context, *UpdateFeedbackLoopRequest) (*FeedbackLoop, error)
 	UpdateGlobalSettings(context.Context, *UpdateGlobalSettingsRequest) (*GlobalSettings, error)
 	UpdateInboundRoute(context.Context, *UpdateInboundRouteRequest) (*InboundRoute, error)
+	UpdateInjectionCredential(context.Context, *UpdateInjectionCredentialRequest) (*InjectionCredential, error)
 	UpdateListener(context.Context, *UpdateListenerRequest) (*Listener, error)
 	UpdateMonitorSettings(context.Context, *UpdateMonitorSettingsRequest) (*MonitorSettings, error)
 	UpdateRetentionPolicy(context.Context, *UpdateRetentionPolicyRequest) (*RetentionPolicy, error)
@@ -452,6 +463,11 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.POST("/v1/subject-classifications", _IrisAdminService_CreateSubjectClassification0_HTTP_Handler(srv))
 	r.PUT("/v1/subject-classifications/{id}", _IrisAdminService_UpdateSubjectClassification0_HTTP_Handler(srv))
 	r.DELETE("/v1/subject-classifications/{id}", _IrisAdminService_DeleteSubjectClassification0_HTTP_Handler(srv))
+	r.GET("/v1/injection-credentials", _IrisAdminService_ListInjectionCredentials0_HTTP_Handler(srv))
+	r.POST("/v1/injection-credentials", _IrisAdminService_CreateInjectionCredential0_HTTP_Handler(srv))
+	r.PUT("/v1/injection-credentials/{id}", _IrisAdminService_UpdateInjectionCredential0_HTTP_Handler(srv))
+	r.POST("/v1/injection-credentials/{id}/password", _IrisAdminService_SetInjectionCredentialPassword0_HTTP_Handler(srv))
+	r.DELETE("/v1/injection-credentials/{id}", _IrisAdminService_DeleteInjectionCredential0_HTTP_Handler(srv))
 	r.GET("/v1/system-monitor", _IrisAdminService_GetSystemMonitor0_HTTP_Handler(srv))
 	r.PUT("/v1/system-monitor/settings", _IrisAdminService_UpdateMonitorSettings0_HTTP_Handler(srv))
 	r.POST("/v1/system-monitor:test", _IrisAdminService_TestMonitorNotification0_HTTP_Handler(srv))
@@ -2893,6 +2909,119 @@ func _IrisAdminService_DeleteSubjectClassification0_HTTP_Handler(srv IrisAdminSe
 	}
 }
 
+func _IrisAdminService_ListInjectionCredentials0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListInjectionCredentialsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListInjectionCredentials)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListInjectionCredentials(ctx, req.(*ListInjectionCredentialsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListInjectionCredentialsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CreateInjectionCredential0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateInjectionCredentialRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCreateInjectionCredential)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateInjectionCredential(ctx, req.(*CreateInjectionCredentialRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*InjectionCredential)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateInjectionCredential0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateInjectionCredentialRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateInjectionCredential)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateInjectionCredential(ctx, req.(*UpdateInjectionCredentialRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*InjectionCredential)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_SetInjectionCredentialPassword0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SetInjectionCredentialPasswordRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceSetInjectionCredentialPassword)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SetInjectionCredentialPassword(ctx, req.(*SetInjectionCredentialPasswordRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*InjectionCredential)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_DeleteInjectionCredential0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteInjectionCredentialRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceDeleteInjectionCredential)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteInjectionCredential(ctx, req.(*DeleteInjectionCredentialRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteInjectionCredentialReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_GetSystemMonitor0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetSystemMonitorRequest
@@ -2974,6 +3103,7 @@ type IrisAdminServiceHTTPClient interface {
 	CreateEventProcessor(ctx context.Context, req *CreateEventProcessorRequest, opts ...http.CallOption) (rsp *EventProcessor, err error)
 	CreateFeedbackLoop(ctx context.Context, req *CreateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
 	CreateInboundRoute(ctx context.Context, req *CreateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
+	CreateInjectionCredential(ctx context.Context, req *CreateInjectionCredentialRequest, opts ...http.CallOption) (rsp *InjectionCredential, err error)
 	CreateListener(ctx context.Context, req *CreateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
 	CreateRoutingRule(ctx context.Context, req *CreateRoutingRuleRequest, opts ...http.CallOption) (rsp *RoutingRule, err error)
 	CreateSubjectClassification(ctx context.Context, req *CreateSubjectClassificationRequest, opts ...http.CallOption) (rsp *SubjectClassification, err error)
@@ -2991,6 +3121,7 @@ type IrisAdminServiceHTTPClient interface {
 	DeleteEventProcessor(ctx context.Context, req *DeleteEventProcessorRequest, opts ...http.CallOption) (rsp *DeleteEventProcessorReply, err error)
 	DeleteFeedbackLoop(ctx context.Context, req *DeleteFeedbackLoopRequest, opts ...http.CallOption) (rsp *DeleteFeedbackLoopReply, err error)
 	DeleteInboundRoute(ctx context.Context, req *DeleteInboundRouteRequest, opts ...http.CallOption) (rsp *DeleteInboundRouteReply, err error)
+	DeleteInjectionCredential(ctx context.Context, req *DeleteInjectionCredentialRequest, opts ...http.CallOption) (rsp *DeleteInjectionCredentialReply, err error)
 	DeleteSubjectClassification(ctx context.Context, req *DeleteSubjectClassificationRequest, opts ...http.CallOption) (rsp *DeleteSubjectClassificationReply, err error)
 	DeleteTLSPolicy(ctx context.Context, req *DeleteTLSPolicyRequest, opts ...http.CallOption) (rsp *DeleteTLSPolicyReply, err error)
 	// Diagnose Tools ---------------------------------------------------------------------
@@ -3069,6 +3200,8 @@ type IrisAdminServiceHTTPClient interface {
 	// Inbound routes (maildir / forward / webhook) — the unified inbound mail
 	// routing model. A webhook route POSTs the raw RFC822 message to an endpoint.
 	ListInboundRoutes(ctx context.Context, req *ListInboundRoutesRequest, opts ...http.CallOption) (rsp *ListInboundRoutesReply, err error)
+	// ListInjectionCredentials Injection API credentials (GreenArrow-compatible mail-injection listener).
+	ListInjectionCredentials(ctx context.Context, req *ListInjectionCredentialsRequest, opts ...http.CallOption) (rsp *ListInjectionCredentialsReply, err error)
 	// ListListeners Listeners (ESMTP) --------------------------------------------------------
 	ListListeners(ctx context.Context, req *ListListenersRequest, opts ...http.CallOption) (rsp *ListListenersReply, err error)
 	// ListMailRecords Mail operations ----------------------------------------------------------
@@ -3129,6 +3262,7 @@ type IrisAdminServiceHTTPClient interface {
 	SetAcmeDnsProvider(ctx context.Context, req *SetAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	SetAutomationRuleStatus(ctx context.Context, req *SetAutomationRuleStatusRequest, opts ...http.CallOption) (rsp *AutomationRule, err error)
 	SetDeliveryBlueprintStatus(ctx context.Context, req *SetDeliveryBlueprintStatusRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
+	SetInjectionCredentialPassword(ctx context.Context, req *SetInjectionCredentialPasswordRequest, opts ...http.CallOption) (rsp *InjectionCredential, err error)
 	TestBounceDiagnostic(ctx context.Context, req *TestBounceDiagnosticRequest, opts ...http.CallOption) (rsp *TestBounceDiagnosticReply, err error)
 	TestEventProcessor(ctx context.Context, req *TestEventProcessorRequest, opts ...http.CallOption) (rsp *TestEventProcessorReply, err error)
 	TestMonitorNotification(ctx context.Context, req *TestMonitorNotificationRequest, opts ...http.CallOption) (rsp *TestMonitorNotificationReply, err error)
@@ -3140,6 +3274,7 @@ type IrisAdminServiceHTTPClient interface {
 	UpdateFeedbackLoop(ctx context.Context, req *UpdateFeedbackLoopRequest, opts ...http.CallOption) (rsp *FeedbackLoop, err error)
 	UpdateGlobalSettings(ctx context.Context, req *UpdateGlobalSettingsRequest, opts ...http.CallOption) (rsp *GlobalSettings, err error)
 	UpdateInboundRoute(ctx context.Context, req *UpdateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
+	UpdateInjectionCredential(ctx context.Context, req *UpdateInjectionCredentialRequest, opts ...http.CallOption) (rsp *InjectionCredential, err error)
 	UpdateListener(ctx context.Context, req *UpdateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
 	UpdateMonitorSettings(ctx context.Context, req *UpdateMonitorSettingsRequest, opts ...http.CallOption) (rsp *MonitorSettings, err error)
 	UpdateRetentionPolicy(ctx context.Context, req *UpdateRetentionPolicyRequest, opts ...http.CallOption) (rsp *RetentionPolicy, err error)
@@ -3316,6 +3451,19 @@ func (c *IrisAdminServiceHTTPClientImpl) CreateInboundRoute(ctx context.Context,
 	pattern := "/v1/inbound-routes"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateInboundRoute))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) CreateInjectionCredential(ctx context.Context, in *CreateInjectionCredentialRequest, opts ...http.CallOption) (*InjectionCredential, error) {
+	var out InjectionCredential
+	pattern := "/v1/injection-credentials"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateInjectionCredential))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -3513,6 +3661,19 @@ func (c *IrisAdminServiceHTTPClientImpl) DeleteInboundRoute(ctx context.Context,
 	pattern := "/v1/inbound-routes/{id}"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteInboundRoute))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) DeleteInjectionCredential(ctx context.Context, in *DeleteInjectionCredentialRequest, opts ...http.CallOption) (*DeleteInjectionCredentialReply, error) {
+	var out DeleteInjectionCredentialReply
+	pattern := "/v1/injection-credentials/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteInjectionCredential))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {
@@ -4043,6 +4204,20 @@ func (c *IrisAdminServiceHTTPClientImpl) ListInboundRoutes(ctx context.Context, 
 	return &out, nil
 }
 
+// ListInjectionCredentials Injection API credentials (GreenArrow-compatible mail-injection listener).
+func (c *IrisAdminServiceHTTPClientImpl) ListInjectionCredentials(ctx context.Context, in *ListInjectionCredentialsRequest, opts ...http.CallOption) (*ListInjectionCredentialsReply, error) {
+	var out ListInjectionCredentialsReply
+	pattern := "/v1/injection-credentials"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListInjectionCredentials))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // ListListeners Listeners (ESMTP) --------------------------------------------------------
 func (c *IrisAdminServiceHTTPClientImpl) ListListeners(ctx context.Context, in *ListListenersRequest, opts ...http.CallOption) (*ListListenersReply, error) {
 	var out ListListenersReply
@@ -4475,6 +4650,19 @@ func (c *IrisAdminServiceHTTPClientImpl) SetDeliveryBlueprintStatus(ctx context.
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) SetInjectionCredentialPassword(ctx context.Context, in *SetInjectionCredentialPasswordRequest, opts ...http.CallOption) (*InjectionCredential, error) {
+	var out InjectionCredential
+	pattern := "/v1/injection-credentials/{id}/password"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceSetInjectionCredentialPassword))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) TestBounceDiagnostic(ctx context.Context, in *TestBounceDiagnosticRequest, opts ...http.CallOption) (*TestBounceDiagnosticReply, error) {
 	var out TestBounceDiagnosticReply
 	pattern := "/v1/bounce-rules:test"
@@ -4610,6 +4798,19 @@ func (c *IrisAdminServiceHTTPClientImpl) UpdateInboundRoute(ctx context.Context,
 	pattern := "/v1/inbound-routes/{id}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateInboundRoute))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) UpdateInjectionCredential(ctx context.Context, in *UpdateInjectionCredentialRequest, opts ...http.CallOption) (*InjectionCredential, error) {
+	var out InjectionCredential
+	pattern := "/v1/injection-credentials/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateInjectionCredential))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {

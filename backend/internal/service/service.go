@@ -45,6 +45,7 @@ type Service struct {
 	bounceRules     *biz.BounceRuleUsecase
 	eventProcessors *biz.EventProcessorUsecase
 	classifications *biz.SubjectClassificationUsecase
+	injectionCreds  *biz.InjectionCredentialUsecase
 	sysMon          *biz.SysMonUsecase
 }
 
@@ -78,6 +79,7 @@ type Deps struct {
 	BounceRules     *biz.BounceRuleUsecase
 	EventProcessors *biz.EventProcessorUsecase
 	Classifications *biz.SubjectClassificationUsecase
+	InjectionCreds  *biz.InjectionCredentialUsecase
 	SysMon          *biz.SysMonUsecase
 }
 
@@ -115,6 +117,7 @@ func NewService(d Deps) *Service {
 		bounceRules:     d.BounceRules,
 		eventProcessors: d.EventProcessors,
 		classifications: d.Classifications,
+		injectionCreds:  d.InjectionCreds,
 		sysMon:          d.SysMon,
 	}
 }

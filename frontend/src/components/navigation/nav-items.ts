@@ -110,6 +110,7 @@ export const navItems: NavItem[] = [
     children: [
       { label: 'Users', to: '/security/users', permission: 'security:read' },
       { label: 'MFA & Permissions', to: '/security/access', permission: 'security:read' },
+      { label: 'Injection API', to: '/security/injection-credentials', permission: 'security:write' },
       { label: 'Audit Log', to: '/security/audit', permission: 'security:read' },
     ],
   },

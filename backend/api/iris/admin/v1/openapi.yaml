@@ -1186,6 +1186,101 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/DeleteInboundRouteReply'
+    /v1/injection-credentials:
+        get:
+            tags:
+                - IrisAdminService
+            description: Injection API credentials (GreenArrow-compatible mail-injection listener).
+            operationId: IrisAdminService_ListInjectionCredentials
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListInjectionCredentialsReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateInjectionCredential
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateInjectionCredentialRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InjectionCredential'
+    /v1/injection-credentials/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateInjectionCredential
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateInjectionCredentialRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InjectionCredential'
+        delete:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_DeleteInjectionCredential
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteInjectionCredentialReply'
+    /v1/injection-credentials/{id}/password:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_SetInjectionCredentialPassword
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/SetInjectionCredentialPasswordRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InjectionCredential'
     /v1/kumomta/config:applied:
         get:
             tags:
@@ -2804,6 +2899,21 @@ components:
                     type: string
                 spam_scan:
                     type: string
+        CreateInjectionCredentialRequest:
+            type: object
+            properties:
+                username:
+                    type: string
+                password:
+                    type: string
+                label:
+                    type: string
+                enabled:
+                    type: boolean
+                allowed_mailclasses:
+                    type: array
+                    items:
+                        type: string
         CreateListenerRequest:
             type: object
             properties:
@@ -2987,6 +3097,11 @@ components:
             type: object
             properties: {}
         DeleteInboundRouteReply:
+            type: object
+            properties:
+                ok:
+                    type: boolean
+        DeleteInjectionCredentialReply:
             type: object
             properties:
                 ok:
@@ -3468,6 +3583,33 @@ components:
                  InboundRoute routes inbound mail for a recipient/domain to a maildir, a
                  forwarding smarthost, or an HTTP webhook. Action-specific fields are only
                  meaningful for the matching action. secret_ref is write-only (never returned).
+        InjectionCredential:
+            type: object
+            properties:
+                id:
+                    type: string
+                username:
+                    type: string
+                label:
+                    type: string
+                enabled:
+                    type: boolean
+                allowed_mailclasses:
+                    type: array
+                    items:
+                        type: string
+                    description: |-
+                        allowed_mailclasses restricts which mailclasses the key may inject; empty
+                         means any.
+                last_used_at:
+                    type: string
+                created_at:
+                    type: string
+                updated_at:
+                    type: string
+            description: |-
+                InjectionCredential is one API login for the injection listener. The password
+                 is write-only: it is never returned.
         KumoConfig:
             type: object
             properties:
@@ -3642,6 +3784,13 @@ components:
                         $ref: '#/components/schemas/InboundRoute'
                 page:
                     $ref: '#/components/schemas/PageReply'
+        ListInjectionCredentialsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/InjectionCredential'
         ListListenersReply:
             type: object
             properties:
@@ -4434,6 +4583,13 @@ components:
                     type: string
                 status:
                     type: string
+        SetInjectionCredentialPasswordRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                password:
+                    type: string
         SubjectClassification:
             type: object
             properties:
@@ -4850,6 +5006,19 @@ components:
                     type: string
                 spam_scan:
                     type: string
+        UpdateInjectionCredentialRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                label:
+                    type: string
+                enabled:
+                    type: boolean
+                allowed_mailclasses:
+                    type: array
+                    items:
+                        type: string
         UpdateListenerRequest:
             type: object
             properties:

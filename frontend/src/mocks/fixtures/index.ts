@@ -9,7 +9,7 @@ import { eventProcessors } from './event-processors'
 import { bounces, dmarcReports, feedbackReports, mailRecords, queues, workerErrors } from './operations'
 import { dkimDomains, suppressions, tlsPolicies } from './domain-safety'
 import { feedbackLoops, inboundRoutes, rspamdResults } from './inbound'
-import { auditEntries, users } from './security'
+import { auditEntries, injectionCredentials, users } from './security'
 import { classifications } from './settings'
 import { acmeCertificates } from './tools'
 
@@ -37,6 +37,7 @@ export const seedData: MockData = {
   rspamdResults,
   feedbackLoops,
   classifications,
+  injectionCredentials,
   dmarcReports,
   acmeCertificates,
 }

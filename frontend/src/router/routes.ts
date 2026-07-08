@@ -243,6 +243,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { permission: 'security:read', title: 'MFA & Permissions' },
       },
       {
+        path: 'security/injection-credentials',
+        name: 'injection-credentials',
+        component: () => import('@/pages/security/InjectionCredentialsPage.vue'),
+        meta: { permission: 'security:write', title: 'Injection API' },
+      },
+      {
         path: 'security/audit',
         name: 'audit-log',
         component: () => import('@/pages/security/AuditLogPage.vue'),
