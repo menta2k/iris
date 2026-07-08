@@ -953,12 +953,16 @@ export interface UpdateGlobalSettingsRequest {
 
 // ---- Subject classifications ----
 
+export type SubjectMatchType = 'similarity' | 'regex'
+
 export interface SubjectClassification {
   id: string
   subject: string
   subjectNormalized: string
   label: string
   source: string // "manual" | "ai"
+  matchType: SubjectMatchType // "similarity" (trigram) | "regex"
+  priority: number // higher is matched first; first match wins
   hitCount: string // int64 as JSON string
   createdAt?: string
   updatedAt?: string
@@ -967,12 +971,16 @@ export interface SubjectClassification {
 export interface CreateSubjectClassificationRequest {
   subject: string
   label: string
+  matchType: SubjectMatchType
+  priority: number
 }
 
 export interface UpdateSubjectClassificationRequest {
   id: string
   subject: string
   label: string
+  matchType: SubjectMatchType
+  priority: number
 }
 
 // ---- Dashboard metrics (Prometheus-backed time-series) ----

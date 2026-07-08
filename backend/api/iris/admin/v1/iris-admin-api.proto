@@ -1880,6 +1880,12 @@ message SubjectClassification {
   int64 hit_count = 6;
   string created_at = 7;
   string updated_at = 8;
+  // match_type is "similarity" (trigram, default) or "regex" (subject holds a
+  // regular expression matched against the raw subject).
+  string match_type = 9;
+  // priority orders evaluation: higher priority is matched first, first match
+  // wins. Default 0.
+  int32 priority = 10;
 }
 message ListSubjectClassificationsRequest {}
 message ListSubjectClassificationsReply {
@@ -1888,11 +1894,15 @@ message ListSubjectClassificationsReply {
 message CreateSubjectClassificationRequest {
   string subject = 1;
   string label = 2;
+  string match_type = 3;
+  int32 priority = 4;
 }
 message UpdateSubjectClassificationRequest {
   string id = 1;
   string subject = 2;
   string label = 3;
+  string match_type = 4;
+  int32 priority = 5;
 }
 message DeleteSubjectClassificationRequest {
   string id = 1;

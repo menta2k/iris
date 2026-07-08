@@ -63,18 +63,31 @@ export const settingsRoutes: Route[] = [
   },
 
   // ---- Subject classifications ----
-  { method: 'GET', pattern: '/subject-classifications', handler: () => ok({ items: all('classifications') }) },
+  {
+    method: 'GET',
+    pattern: '/subject-classifications',
+    // Mirror the backend List ordering: highest priority first, then most-used.
+    handler: () =>
+      ok({
+        items: [...all('classifications')].sort(
+          (a, b) => b.priority - a.priority || Number(b.hitCount) - Number(a.hitCount),
+        ),
+      }),
+  },
   {
     method: 'POST',
     pattern: '/subject-classifications',
     handler: (ctx) => {
-      const body = ctx.body as { subject: string; label: string }
+      const body = ctx.body as { subject: string; label: string; matchType?: string; priority?: number }
+      const matchType = body.matchType === 'regex' ? 'regex' : 'similarity'
       return ok(createRow('classifications', {
         id: genId('cls'),
         subject: body.subject,
-        subjectNormalized: body.subject.toLowerCase(),
+        subjectNormalized: matchType === 'regex' ? '' : body.subject.toLowerCase(),
         label: body.label,
         source: 'manual',
+        matchType,
+        priority: Number(body.priority) || 0,
         hitCount: '0',
         createdAt: daysAgo(0),
         updatedAt: daysAgo(0),
@@ -85,11 +98,14 @@ export const settingsRoutes: Route[] = [
     method: 'PUT',
     pattern: '/subject-classifications/:id',
     handler: (ctx) => {
-      const body = ctx.body as { id: string; subject: string; label: string }
+      const body = ctx.body as { id: string; subject: string; label: string; matchType?: string; priority?: number }
+      const matchType = body.matchType === 'regex' ? 'regex' : 'similarity'
       const updated = updateRow('classifications', ctx.params.id, {
         subject: body.subject,
-        subjectNormalized: body.subject.toLowerCase(),
+        subjectNormalized: matchType === 'regex' ? '' : body.subject.toLowerCase(),
         label: body.label,
+        matchType,
+        priority: Number(body.priority) || 0,
         updatedAt: daysAgo(0),
       })
       return updated ? ok(updated) : notFound('Classification not found')

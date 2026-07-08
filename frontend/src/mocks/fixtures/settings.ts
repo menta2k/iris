@@ -106,13 +106,48 @@ const SUBJECT_LABELS: Array<[string, string, SubjectClassification['source']]> =
   ['Action required: update payment', 'Billing', 'ai'],
 ]
 
-export const classifications: SubjectClassification[] = SUBJECT_LABELS.map(([subject, label, source], i) => ({
-  id: `cls_${i}`,
-  subject,
-  subjectNormalized: subject.toLowerCase(),
+// A few operator-authored regex rules with explicit priorities. These are
+// evaluated before similarity rules of lower priority (higher runs first).
+const REGEX_RULES: Array<[string, string, number]> = [
+  ['(?i)^\\[SECURITY\\]', 'security', 100],
+  ['(?i)\\bunsubscribe\\b', 'unsubscribe', 90],
+  ['(?i)^invoice\\s+#?\\d+', 'invoice', 50],
+]
+
+// Repeat the base labels a few times so the mock has enough rows to exercise
+// the table's pagination (page size starts at 25).
+const similarityRules: SubjectClassification[] = Array.from({ length: 31 }, (_, i) => {
+  const [subject, label, source] = SUBJECT_LABELS[i % SUBJECT_LABELS.length]
+  const round = Math.floor(i / SUBJECT_LABELS.length)
+  const displaySubject = round === 0 ? subject : `${subject} (${round + 1})`
+  return {
+    id: `cls_${i}`,
+    subject: displaySubject,
+    subjectNormalized: displaySubject.toLowerCase(),
+    label,
+    source,
+    matchType: 'similarity' as const,
+    priority: 0,
+    hitCount: String(Math.floor(Math.random() * 5000) + 10),
+    createdAt: daysAgo((30 - i + 60) % 60),
+    updatedAt: daysAgo(i % 7),
+  }
+})
+
+const regexRules: SubjectClassification[] = REGEX_RULES.map(([pattern, label, priority], i) => ({
+  id: `cls_rx_${i}`,
+  subject: pattern,
+  subjectNormalized: '',
   label,
-  source,
-  hitCount: String(Math.floor(Math.random() * 5000) + 10),
-  createdAt: daysAgo(30 - i),
-  updatedAt: daysAgo(i % 7),
+  source: 'manual',
+  matchType: 'regex' as const,
+  priority,
+  hitCount: String(Math.floor(Math.random() * 800) + 5),
+  createdAt: daysAgo(20 - i),
+  updatedAt: daysAgo(i % 5),
 }))
+
+// Highest priority first — the order the matcher would evaluate them in.
+export const classifications: SubjectClassification[] = [...regexRules, ...similarityRules].sort(
+  (a, b) => b.priority - a.priority,
+)

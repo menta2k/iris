@@ -15372,8 +15372,14 @@ type SubjectClassification struct {
 	HitCount          int64                  `protobuf:"varint,6,opt,name=hit_count,json=hitCount,proto3" json:"hit_count,omitempty"`
 	CreatedAt         string                 `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt         string                 `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// match_type is "similarity" (trigram, default) or "regex" (subject holds a
+	// regular expression matched against the raw subject).
+	MatchType string `protobuf:"bytes,9,opt,name=match_type,json=matchType,proto3" json:"match_type,omitempty"`
+	// priority orders evaluation: higher priority is matched first, first match
+	// wins. Default 0.
+	Priority      int32 `protobuf:"varint,10,opt,name=priority,proto3" json:"priority,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SubjectClassification) Reset() {
@@ -15462,6 +15468,20 @@ func (x *SubjectClassification) GetUpdatedAt() string {
 	return ""
 }
 
+func (x *SubjectClassification) GetMatchType() string {
+	if x != nil {
+		return x.MatchType
+	}
+	return ""
+}
+
+func (x *SubjectClassification) GetPriority() int32 {
+	if x != nil {
+		return x.Priority
+	}
+	return 0
+}
+
 type ListSubjectClassificationsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -15546,6 +15566,8 @@ type CreateSubjectClassificationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Subject       string                 `protobuf:"bytes,1,opt,name=subject,proto3" json:"subject,omitempty"`
 	Label         string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	MatchType     string                 `protobuf:"bytes,3,opt,name=match_type,json=matchType,proto3" json:"match_type,omitempty"`
+	Priority      int32                  `protobuf:"varint,4,opt,name=priority,proto3" json:"priority,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -15594,11 +15616,27 @@ func (x *CreateSubjectClassificationRequest) GetLabel() string {
 	return ""
 }
 
+func (x *CreateSubjectClassificationRequest) GetMatchType() string {
+	if x != nil {
+		return x.MatchType
+	}
+	return ""
+}
+
+func (x *CreateSubjectClassificationRequest) GetPriority() int32 {
+	if x != nil {
+		return x.Priority
+	}
+	return 0
+}
+
 type UpdateSubjectClassificationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Subject       string                 `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
 	Label         string                 `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	MatchType     string                 `protobuf:"bytes,4,opt,name=match_type,json=matchType,proto3" json:"match_type,omitempty"`
+	Priority      int32                  `protobuf:"varint,5,opt,name=priority,proto3" json:"priority,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -15652,6 +15690,20 @@ func (x *UpdateSubjectClassificationRequest) GetLabel() string {
 		return x.Label
 	}
 	return ""
+}
+
+func (x *UpdateSubjectClassificationRequest) GetMatchType() string {
+	if x != nil {
+		return x.MatchType
+	}
+	return ""
+}
+
+func (x *UpdateSubjectClassificationRequest) GetPriority() int32 {
+	if x != nil {
+		return x.Priority
+	}
+	return 0
 }
 
 type DeleteSubjectClassificationRequest struct {
@@ -17779,7 +17831,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x0eclassify_model\x18\x1a \x01(\tR\rclassifyModel\x12-\n" +
 	"\x12classify_threshold\x18\x1b \x01(\x01R\x11classifyThreshold\x12*\n" +
 	"\x11classify_api_base\x18\x1c \x01(\tR\x0fclassifyApiBase\x123\n" +
-	"\x16pin_egress_per_message\x18\x1d \x01(\bR\x13pinEgressPerMessageJ\x04\b\r\x10\x0e\"\xf9\x01\n" +
+	"\x16pin_egress_per_message\x18\x1d \x01(\bR\x13pinEgressPerMessageJ\x04\b\r\x10\x0e\"\xb4\x02\n" +
 	"\x15SubjectClassification\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12-\n" +
@@ -17790,17 +17842,27 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\a \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\b \x01(\tR\tupdatedAt\"#\n" +
+	"updated_at\x18\b \x01(\tR\tupdatedAt\x12\x1d\n" +
+	"\n" +
+	"match_type\x18\t \x01(\tR\tmatchType\x12\x1a\n" +
+	"\bpriority\x18\n" +
+	" \x01(\x05R\bpriority\"#\n" +
 	"!ListSubjectClassificationsRequest\"]\n" +
 	"\x1fListSubjectClassificationsReply\x12:\n" +
-	"\x05items\x18\x01 \x03(\v2$.iris.admin.v1.SubjectClassificationR\x05items\"T\n" +
+	"\x05items\x18\x01 \x03(\v2$.iris.admin.v1.SubjectClassificationR\x05items\"\x8f\x01\n" +
 	"\"CreateSubjectClassificationRequest\x12\x18\n" +
 	"\asubject\x18\x01 \x01(\tR\asubject\x12\x14\n" +
-	"\x05label\x18\x02 \x01(\tR\x05label\"d\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12\x1d\n" +
+	"\n" +
+	"match_type\x18\x03 \x01(\tR\tmatchType\x12\x1a\n" +
+	"\bpriority\x18\x04 \x01(\x05R\bpriority\"\x9f\x01\n" +
 	"\"UpdateSubjectClassificationRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12\x14\n" +
-	"\x05label\x18\x03 \x01(\tR\x05label\"4\n" +
+	"\x05label\x18\x03 \x01(\tR\x05label\x12\x1d\n" +
+	"\n" +
+	"match_type\x18\x04 \x01(\tR\tmatchType\x12\x1a\n" +
+	"\bpriority\x18\x05 \x01(\x05R\bpriority\"4\n" +
 	"\"DeleteSubjectClassificationRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"2\n" +
 	" DeleteSubjectClassificationReply\x12\x0e\n" +
