@@ -94,7 +94,22 @@ func (s *Service) ListBounces(ctx context.Context, req *adminv1.ListBouncesReque
 		return nil, notImplemented("ListBounces")
 	}
 	page := pageFrom(req.GetPage())
-	items, err := s.mailOps.ListBounces(ctx, page)
+	f := biz.BounceFilter{
+		Recipient:       req.GetRecipient(),
+		Mailclass:       req.GetMailclass(),
+		BounceType:      req.GetBounceType(),
+		Classification:  req.GetClassification(),
+		ProcessingState: req.GetProcessingState(),
+	}
+	if req.GetFromTime() != nil {
+		t := req.GetFromTime().AsTime()
+		f.FromTime = &t
+	}
+	if req.GetToTime() != nil {
+		t := req.GetToTime().AsTime()
+		f.ToTime = &t
+	}
+	items, err := s.mailOps.ListBounces(ctx, f, page)
 	if err != nil {
 		return nil, s.fail(ctx, "ListBounces", err)
 	}

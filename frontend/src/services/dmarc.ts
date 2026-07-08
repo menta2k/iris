@@ -2,11 +2,19 @@ import { http } from './http'
 import { pageQuery, type PageParams } from './pagination'
 import type { DmarcStats, DmarcReport, ListResponse } from '@/types'
 
+export interface DmarcStatsOptions {
+  domain?: string
+  reporter?: string
+  /** RFC3339 lower bound on the report window. */
+  from?: string
+}
+
 export const dmarcService = {
-  stats(domain?: string, reporter?: string) {
+  stats(opts: DmarcStatsOptions = {}) {
     const query: Record<string, string> = {}
-    if (domain) query.domain = domain
-    if (reporter) query.reporter = reporter
+    if (opts.domain) query.domain = opts.domain
+    if (opts.reporter) query.reporter = opts.reporter
+    if (opts.from) query.from = opts.from
     return http.get<DmarcStats>('/dmarc/stats', {
       query: Object.keys(query).length ? query : undefined,
     })

@@ -3,9 +3,10 @@
 // DMARC stats/reports/domains, and the domain bounce-readiness check.
 
 import type {
+  Bounce,
   MailRecord,
 } from '../../types'
-import { all, paged, updateRow } from '../db'
+import { all, paged, updateWhere } from '../db'
 import { dmarcDomains, dmarcReports } from '../fixtures/operations'
 import { notFound, ok, type Route } from '../router'
 
@@ -34,6 +35,29 @@ function mailRecordFilter(query: Record<string, string>): ((r: MailRecord) => bo
   }
   if (filters.length === 0) return undefined
   return (r) => filters.every((fn) => fn(r))
+}
+
+// Mirrors the backend's ListBounces filters (substring recipient/classification,
+// exact mailclass/type/state, RFC3339 time bounds).
+function bounceFilter(query: Record<string, string>): ((b: Bounce) => boolean) | undefined {
+  const filters: Array<(b: Bounce) => boolean> = []
+  if (query.recipient) filters.push((b) => includes(b.recipient, query.recipient))
+  if (query.mailclass) filters.push((b) => b.mailclass === query.mailclass)
+  if (query.bounce_type)
+    filters.push((b) => (b.bounceType ?? '').toLowerCase() === query.bounce_type.toLowerCase())
+  if (query.classification) filters.push((b) => includes(b.classification, query.classification))
+  if (query.processing_state)
+    filters.push((b) => (b.processingState ?? '').toLowerCase() === query.processing_state.toLowerCase())
+  if (query.from_time) {
+    const t = Date.parse(query.from_time)
+    if (!Number.isNaN(t)) filters.push((b) => Date.parse(b.eventTime) >= t)
+  }
+  if (query.to_time) {
+    const t = Date.parse(query.to_time)
+    if (!Number.isNaN(t)) filters.push((b) => Date.parse(b.eventTime) <= t)
+  }
+  if (filters.length === 0) return undefined
+  return (b) => filters.every((fn) => fn(b))
 }
 
 function domainCheck(domain: string) {
@@ -116,7 +140,11 @@ export const operationsRoutes: Route[] = [
   },
 
   // ---- Bounces ----
-  { method: 'GET', pattern: '/bounces', handler: (ctx) => ok(paged(all('bounces'), ctx.query)) },
+  {
+    method: 'GET',
+    pattern: '/bounces',
+    handler: (ctx) => ok(paged(all('bounces'), ctx.query, { filter: bounceFilter(ctx.query) })),
+  },
   {
     method: 'GET',
     pattern: '/dsn-messages',
@@ -172,10 +200,17 @@ export const operationsRoutes: Route[] = [
       const body = ctx.body as { action: 'suspend' | 'resume' | 'bounce'; domain: string; reason?: string }
       const queue = all('queues').find((q) => q.domain === body.domain)
       if (!queue) return notFound(`Queue for ${body.domain} not found`)
+      // Queues have no id — they are keyed by domain.
       if (body.action === 'suspend') {
-        updateRow('queues', body.domain, { suspended: true, suspendReason: body.reason ?? 'Suspended via UI' })
+        updateWhere('queues', (q) => q.domain === body.domain, {
+          suspended: true,
+          suspendReason: body.reason ?? 'Suspended via UI',
+        })
       } else if (body.action === 'resume') {
-        updateRow('queues', body.domain, { suspended: false, suspendReason: undefined })
+        updateWhere('queues', (q) => q.domain === body.domain, {
+          suspended: false,
+          suspendReason: undefined,
+        })
       }
       const verb = body.action === 'suspend' ? 'suspended' : body.action === 'resume' ? 'resumed' : 'bounced'
       return ok({ status: 'ok', summary: `Queue ${body.domain} ${verb}` })

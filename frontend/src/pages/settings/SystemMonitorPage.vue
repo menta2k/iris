@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
+import StatTile from '@/components/dashboard/StatTile.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -10,11 +11,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableEmpty,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import UsageMeter from '@/components/monitor/UsageMeter.vue'
 import SystemMetricsPanel from '@/components/monitor/SystemMetricsPanel.vue'
 import { useToast } from '@/composables/useToast'
@@ -73,6 +73,10 @@ const emptyForm = () => ({
 })
 const form = ref(emptyForm())
 
+// Snapshot of the last saved/loaded form, for the unsaved-changes indicator.
+const savedForm = ref(JSON.stringify(emptyForm()))
+const dirty = computed(() => JSON.stringify(form.value) !== savedForm.value)
+
 function parseList(s: string): string[] {
   return s.split(/[\s,]+/).map((v) => v.trim()).filter(Boolean)
 }
@@ -105,6 +109,7 @@ function applySettings(s: MonitorSettings) {
     cooldown_minutes: s.cooldownMinutes,
     sample_seconds: s.sampleSeconds,
   }
+  savedForm.value = JSON.stringify(form.value)
 }
 
 async function load(withSpinner = true) {
@@ -154,11 +159,44 @@ async function sendTest() {
   }
 }
 
-let timer: ReturnType<typeof setInterval> | undefined
-onMounted(() => {
-  load()
-  timer = setInterval(() => load(false), 15000) // refresh live stats + alerts
+// ---- KPI tiles (colored against the configured thresholds) ----
+
+function usageColor(value: number | undefined, threshold: number): string {
+  if (value === undefined || !snapshot.value?.available) return 'secondary'
+  const t = threshold > 0 ? threshold : 90
+  if (value >= t) return 'error'
+  if (value >= t * 0.85) return 'warning'
+  return 'success'
+}
+
+const worstDisk = computed(() => {
+  const disks = snapshot.value?.disks ?? []
+  return disks.reduce<(typeof disks)[number] | null>(
+    (worst, d) => (worst === null || d.usedPercent > worst.usedPercent ? d : worst),
+    null,
+  )
 })
+
+const pctText = (v?: number) =>
+  snapshot.value?.available && v !== undefined ? `${v.toFixed(1)}%` : '—'
+
+// ---- Live refresh (default on — this is a live operational view) ----
+
+const REFRESH_MS = 15_000
+
+const live = ref(true)
+let timer: ReturnType<typeof setInterval> | undefined
+
+watch(
+  live,
+  (on) => {
+    clearInterval(timer)
+    if (on) timer = setInterval(() => load(false), REFRESH_MS)
+  },
+  { immediate: true },
+)
+
+onMounted(() => load())
 onBeforeUnmount(() => clearInterval(timer))
 </script>
 
@@ -169,26 +207,97 @@ onBeforeUnmount(() => clearInterval(timer))
       description="Host CPU, memory, and disk usage with email alerts when a resource crosses its threshold."
     >
       <template #actions>
-        <Button variant="outline" :disabled="loading" @click="load()">Refresh</Button>
+        <v-switch
+          v-model="live"
+          label="Live"
+          color="primary"
+          density="compact"
+          hide-details
+          class="mr-2 flex-grow-0"
+        />
+        <v-btn
+          icon="mdi-refresh"
+          variant="text"
+          size="small"
+          :loading="loading"
+          aria-label="Refresh"
+          title="Refresh"
+          @click="load()"
+        />
       </template>
     </PageHeader>
 
-    <DataState :loading="loading" :error="error" :not-implemented="notImplemented" :empty="false">
+    <DataState :loading="loading && !snapshot" :error="error" :not-implemented="notImplemented" :empty="false">
       <div class="d-flex flex-column ga-4">
+        <v-row dense>
+          <v-col cols="12" sm="6" lg="3">
+            <StatTile
+              label="Monitoring"
+              :value="form.enabled ? 'Enabled' : 'Disabled'"
+              :caption="form.enabled ? `Alerts every ≤ ${form.cooldown_minutes} min per resource` : 'Email alerts are off'"
+              icon="mdi-monitor-eye"
+              :color="form.enabled ? 'success' : 'secondary'"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" lg="3">
+            <StatTile
+              label="CPU"
+              :value="pctText(snapshot?.cpuPercent)"
+              :caption="`Threshold ${form.cpu_threshold}%`"
+              icon="mdi-chip"
+              :color="usageColor(snapshot?.cpuPercent, form.cpu_threshold)"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" lg="3">
+            <StatTile
+              label="Memory"
+              :value="pctText(snapshot?.memPercent)"
+              :caption="snapshot?.available ? `${bytes(snapshot.memUsedBytes)} / ${bytes(snapshot.memTotalBytes)}` : `Threshold ${form.mem_threshold}%`"
+              icon="mdi-memory"
+              :color="usageColor(snapshot?.memPercent, form.mem_threshold)"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" lg="3">
+            <StatTile
+              label="Busiest Disk"
+              :value="pctText(worstDisk?.usedPercent)"
+              :caption="worstDisk ? worstDisk.path : `Threshold ${form.disk_threshold}%`"
+              icon="mdi-harddisk"
+              :color="usageColor(worstDisk?.usedPercent, form.disk_threshold)"
+            />
+          </v-col>
+        </v-row>
+
         <!-- Live usage -->
         <Card>
-          <CardHeader class="pb-2"><CardTitle class="text-body-2 text-medium-emphasis">Current usage</CardTitle></CardHeader>
+          <CardHeader class="pb-2">
+            <div class="d-flex flex-wrap align-center justify-space-between ga-2">
+              <div>
+                <CardTitle>Current Usage</CardTitle>
+                <p class="text-caption text-medium-emphasis mb-0">
+                  <template v-if="snapshot?.available">Sampled {{ formatDateTime(snapshot.collectedAt) }}</template>
+                  <template v-else>Waiting for the first sample</template>
+                </p>
+              </div>
+            </div>
+          </CardHeader>
           <CardContent>
             <p v-if="!snapshot?.available" class="py-2 text-body-2 text-medium-emphasis">Collecting first sample…</p>
             <div v-else class="d-flex flex-column ga-3">
               <UsageMeter label="CPU" :value="snapshot.cpuPercent" :threshold="form.cpu_threshold" />
-              <UsageMeter label="Memory" :value="snapshot.memPercent" :threshold="form.mem_threshold" />
+              <UsageMeter
+                label="Memory"
+                :value="snapshot.memPercent"
+                :threshold="form.mem_threshold"
+                :detail="`${bytes(snapshot.memUsedBytes)} / ${bytes(snapshot.memTotalBytes)}`"
+              />
               <UsageMeter
                 v-for="d in snapshot.disks ?? []"
                 :key="d.path"
                 :label="`Disk ${d.path}`"
                 :value="d.usedPercent"
                 :threshold="form.disk_threshold"
+                :detail="`${bytes(d.usedBytes)} / ${bytes(d.totalBytes)}`"
               />
             </div>
             <p class="mt-3 text-caption text-medium-emphasis">
@@ -204,9 +313,19 @@ onBeforeUnmount(() => clearInterval(timer))
 
         <!-- Settings -->
         <Card>
-          <CardHeader class="pb-2"><CardTitle class="text-body-2 text-medium-emphasis">Alerting</CardTitle></CardHeader>
+          <CardHeader class="pb-2">
+            <div class="d-flex flex-wrap align-center justify-space-between ga-2">
+              <div>
+                <CardTitle>Alerting</CardTitle>
+                <p class="text-caption text-medium-emphasis mb-0">
+                  Thresholds, monitored disks and email delivery
+                </p>
+              </div>
+              <v-chip v-if="dirty" size="small" color="warning" variant="tonal">Unsaved changes</v-chip>
+            </div>
+          </CardHeader>
           <CardContent>
-            <form class="d-flex flex-column ga-4" @submit.prevent="save">
+            <form class="d-flex flex-column ga-5" @submit.prevent="save">
               <v-switch
                 v-model="form.enabled"
                 color="primary"
@@ -214,22 +333,57 @@ onBeforeUnmount(() => clearInterval(timer))
                 hide-details
                 label="Enable email alerts on threshold breaches"
               />
-              <v-row dense>
-                <v-col cols="12" md="4" class="d-flex flex-column ga-1">
-                  <Label for="m-cpu">CPU threshold (%)</Label>
-                  <Input id="m-cpu" v-model.number="form.cpu_threshold" type="number" placeholder="90" />
-                </v-col>
-                <v-col cols="12" md="4" class="d-flex flex-column ga-1">
-                  <Label for="m-mem">Memory threshold (%)</Label>
-                  <Input id="m-mem" v-model.number="form.mem_threshold" type="number" placeholder="90" />
-                </v-col>
-                <v-col cols="12" md="4" class="d-flex flex-column ga-1">
-                  <Label for="m-disk">Disk threshold (%)</Label>
-                  <Input id="m-disk" v-model.number="form.disk_threshold" type="number" placeholder="85" />
-                </v-col>
-              </v-row>
+
+              <div>
+                <p class="text-overline text-medium-emphasis mb-2">Thresholds</p>
+                <v-row dense>
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      id="m-cpu"
+                      v-model.number="form.cpu_threshold"
+                      label="CPU"
+                      type="number"
+                      suffix="%"
+                      placeholder="90"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      id="m-mem"
+                      v-model.number="form.mem_threshold"
+                      label="Memory"
+                      type="number"
+                      suffix="%"
+                      placeholder="90"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      id="m-disk"
+                      v-model.number="form.disk_threshold"
+                      label="Disk"
+                      type="number"
+                      suffix="%"
+                      placeholder="85"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                  </v-col>
+                </v-row>
+                <p class="mt-1 text-caption text-medium-emphasis mb-0">
+                  A threshold of 0 disables that resource's check.
+                </p>
+              </div>
+
               <div class="d-flex flex-column ga-2">
-                <Label>Disks to monitor</Label>
+                <p class="text-overline text-medium-emphasis mb-0">Disks to monitor</p>
                 <div v-if="mounts.length" class="rounded border">
                   <div
                     v-for="m in mounts"
@@ -257,48 +411,105 @@ onBeforeUnmount(() => clearInterval(timer))
                     </span>
                   </div>
                 </div>
-                <p v-else class="text-caption text-medium-emphasis">No filesystems detected yet.</p>
+                <p v-else class="text-caption text-medium-emphasis mb-0">No filesystems detected yet.</p>
                 <div v-if="spoolPath && !monitored.has(spoolPath)" class="d-flex align-center ga-2">
                   <span class="text-caption text-medium-emphasis">Spool is at {{ spoolPath }} —</span>
                   <Button type="button" variant="outline" size="sm" @click="toggleMonitor(spoolPath)">
                     Monitor spool path
                   </Button>
                 </div>
-                <Input v-model="form.disk_paths" placeholder="/, /var/spool/kumomta" />
-                <p class="text-caption text-medium-emphasis">
+                <v-text-field
+                  v-model="form.disk_paths"
+                  label="Monitored paths"
+                  placeholder="/, /var/spool/kumomta"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                />
+                <p class="text-caption text-medium-emphasis mb-0">
                   Tick a detected filesystem, or type paths directly (comma-separated). A path that
                   isn't its own mount is measured on the filesystem that contains it.
                 </p>
               </div>
-              <v-row dense>
-                <v-col cols="12" md="6" class="d-flex flex-column ga-1">
-                  <Label for="m-to">Notify emails (comma-separated)</Label>
-                  <Input id="m-to" v-model="form.notify_emails" placeholder="ops@example.com" />
-                </v-col>
-                <v-col cols="12" md="6" class="d-flex flex-column ga-1">
-                  <Label for="m-from">From address</Label>
-                  <Input id="m-from" v-model="form.from_email" placeholder="iris@example.com" />
-                </v-col>
-              </v-row>
-              <v-row dense>
-                <v-col cols="12" md="4" class="d-flex flex-column ga-1">
-                  <Label for="m-smtp">SMTP host</Label>
-                  <Input id="m-smtp" v-model="form.smtp_host" placeholder="localhost:25" />
-                </v-col>
-                <v-col cols="12" md="4" class="d-flex flex-column ga-1">
-                  <Label for="m-cooldown">Cooldown (minutes)</Label>
-                  <Input id="m-cooldown" v-model.number="form.cooldown_minutes" type="number" placeholder="30" />
-                </v-col>
-                <v-col cols="12" md="4" class="d-flex flex-column ga-1">
-                  <Label for="m-sample">Sample interval (seconds)</Label>
-                  <Input id="m-sample" v-model.number="form.sample_seconds" type="number" placeholder="30" />
-                </v-col>
-              </v-row>
-              <p class="text-caption text-medium-emphasis">
-                A threshold of 0 disables that resource's check. Alerts repeat at most once per
-                cooldown per resource; a recovery notice is sent when it drops back. SMTP host
-                defaults to the local KumoMTA loopback.
-              </p>
+
+              <div>
+                <p class="text-overline text-medium-emphasis mb-2">Notifications</p>
+                <v-row dense>
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      id="m-to"
+                      v-model="form.notify_emails"
+                      label="Notify emails"
+                      placeholder="ops@example.com"
+                      prepend-inner-icon="mdi-email-outline"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      id="m-from"
+                      v-model="form.from_email"
+                      label="From address"
+                      placeholder="iris@example.com"
+                      prepend-inner-icon="mdi-email-arrow-right-outline"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      id="m-smtp"
+                      v-model="form.smtp_host"
+                      label="SMTP host"
+                      placeholder="localhost:25"
+                      prepend-inner-icon="mdi-server-network-outline"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                  </v-col>
+                </v-row>
+              </div>
+
+              <div>
+                <p class="text-overline text-medium-emphasis mb-2">Timing</p>
+                <v-row dense>
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      id="m-cooldown"
+                      v-model.number="form.cooldown_minutes"
+                      label="Alert cooldown"
+                      type="number"
+                      suffix="min"
+                      placeholder="30"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      id="m-sample"
+                      v-model.number="form.sample_seconds"
+                      label="Sample interval"
+                      type="number"
+                      suffix="s"
+                      placeholder="30"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                  </v-col>
+                </v-row>
+                <p class="mt-1 text-caption text-medium-emphasis mb-0">
+                  Alerts repeat at most once per cooldown per resource; a recovery notice is sent
+                  when it drops back. SMTP host defaults to the local KumoMTA loopback.
+                </p>
+              </div>
+
               <div class="d-flex ga-2">
                 <Button type="submit" :disabled="saving">{{ saving ? 'Saving…' : 'Save settings' }}</Button>
                 <Button type="button" variant="outline" :disabled="testing" @click="sendTest">
@@ -311,7 +522,10 @@ onBeforeUnmount(() => clearInterval(timer))
 
         <!-- Recent alerts -->
         <Card>
-          <CardHeader class="pb-2"><CardTitle class="text-body-2 text-medium-emphasis">Recent alerts</CardTitle></CardHeader>
+          <CardHeader class="pb-2">
+            <CardTitle>Recent Alerts</CardTitle>
+            <p class="text-caption text-medium-emphasis mb-0">Threshold breaches and recoveries</p>
+          </CardHeader>
           <CardContent class="pa-0">
             <Table>
               <TableHeader>
@@ -325,16 +539,17 @@ onBeforeUnmount(() => clearInterval(timer))
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableRow v-if="alerts.length === 0">
-                  <TableCell colspan="6" class="text-center text-medium-emphasis py-4">No alerts recorded.</TableCell>
-                </TableRow>
+                <TableEmpty v-if="alerts.length === 0" :colspan="6" message="No alerts recorded." />
                 <TableRow v-for="a in alerts" :key="a.id">
                   <TableCell class="text-no-wrap text-medium-emphasis">{{ formatDateTime(a.createdAt) }}</TableCell>
                   <TableCell class="text-no-wrap">{{ a.resource }}{{ a.detail ? ` ${a.detail}` : '' }}</TableCell>
                   <TableCell>
                     <Badge :variant="a.level === 'recovered' ? 'success' : 'destructive'">{{ a.level }}</Badge>
                   </TableCell>
-                  <TableCell class="text-right tabular-nums">{{ a.value.toFixed(1) }}%</TableCell>
+                  <TableCell class="text-right tabular-nums text-no-wrap">
+                    {{ a.value.toFixed(1) }}%
+                    <span v-if="a.threshold" class="text-caption text-medium-emphasis">/ {{ a.threshold }}%</span>
+                  </TableCell>
                   <TableCell class="text-medium-emphasis">{{ a.message }}</TableCell>
                   <TableCell>
                     <Badge :variant="a.notified ? 'secondary' : 'outline'">{{ a.notified ? 'yes' : 'no' }}</Badge>

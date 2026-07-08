@@ -28,6 +28,12 @@ const tone = computed(() => {
     </div>
     <div class="track">
       <div class="fill" :class="`bg-${tone}`" :style="{ width: `${pct}%` }" />
+      <div
+        v-if="threshold && threshold > 0 && threshold < 100"
+        class="tick"
+        :style="{ left: `${threshold}%` }"
+        :title="`Alert threshold ${threshold}%`"
+      />
     </div>
     <div v-if="detail || threshold" class="mt-1 d-flex justify-space-between text-caption text-medium-emphasis">
       <span>{{ detail || '' }}</span>
@@ -38,10 +44,19 @@ const tone = computed(() => {
 
 <style scoped>
 .track {
+  position: relative;
   height: 8px;
   border-radius: 999px;
   background: rgba(var(--v-theme-on-surface), 0.1);
   overflow: hidden;
+}
+/* Marks where the alert threshold sits on the bar. */
+.tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(var(--v-theme-on-surface), 0.45);
 }
 .fill {
   height: 100%;

@@ -65,7 +65,14 @@ func (s *Service) ListSuppressions(ctx context.Context, req *adminv1.ListSuppres
 		return nil, notImplemented("ListSuppressions")
 	}
 	page := pageFrom(req.GetPage())
-	items, err := s.domainSafety.ListSuppressions(ctx, req.GetSearch(), page)
+	f := biz.SuppressionFilter{
+		Search:    req.GetSearch(),
+		Type:      req.GetType(),
+		Status:    req.GetStatus(),
+		Source:    req.GetSource(),
+		Mailclass: req.GetMailclass(),
+	}
+	items, err := s.domainSafety.ListSuppressions(ctx, f, page)
 	if err != nil {
 		return nil, s.fail(ctx, "ListSuppressions", err)
 	}

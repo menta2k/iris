@@ -5,6 +5,8 @@ import { LineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import RangeToggle from '@/components/dashboard/RangeToggle.vue'
+import { useChartTheme } from '@/composables/useChartTheme'
 import { systemMonitorService, type SystemMetricsRange } from '@/services/system-monitor'
 import { ApiError } from '@/services/http'
 import type { MetricsSeries } from '@/types'
@@ -12,12 +14,10 @@ import type { MetricsSeries } from '@/types'
 echarts.use([LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
 
 const RANGES: SystemMetricsRange[] = ['1h', '6h', '24h', '7d']
-const FIXED: Record<string, string> = { cpu: '#2563eb', memory: '#16a34a' }
+// Disk series cycle a static mid-tone palette that holds up on both themes.
 const DISK_PALETTE = ['#d97706', '#dc2626', '#7c3aed', '#0891b2', '#c026d3', '#65a30d']
 
-function colorFor(key: string, diskIndex: number): string {
-  return FIXED[key] ?? DISK_PALETTE[diskIndex % DISK_PALETTE.length]
-}
+const chartTheme = useChartTheme()
 
 const range = ref<SystemMetricsRange>('6h')
 const loading = ref(false)
@@ -33,30 +33,39 @@ const hasData = computed(() => series.value.some((s) => (s.points?.length ?? 0) 
 
 function render() {
   if (!chart.value) return
+  const t = chartTheme.value
+  const fixed: Record<string, string> = { cpu: t.series.info, memory: t.series.success }
   let diskIndex = 0
   chart.value.setOption(
     {
-      tooltip: { trigger: 'axis', valueFormatter: (v: number) => `${Number(v).toFixed(1)}%` },
-      legend: { top: 0, icon: 'roundRect', textStyle: { color: '#64748b' } },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: t.tooltipBg,
+        borderColor: t.tooltipBorder,
+        textStyle: { color: t.tooltipText },
+        valueFormatter: (v: number) => `${Number(v).toFixed(1)}%`,
+      },
+      legend: { top: 0, icon: 'roundRect', textStyle: { color: t.legendText } },
       grid: { left: 44, right: 16, top: 36, bottom: 28 },
       xAxis: {
         type: 'time',
-        axisLabel: { color: '#64748b' },
-        axisLine: { lineStyle: { color: '#e2e8f0' } },
+        axisLabel: { color: t.axisLabel },
+        axisLine: { lineStyle: { color: t.axisLine } },
       },
       yAxis: {
         type: 'value',
         min: 0,
         max: 100,
-        axisLabel: { color: '#64748b', formatter: '{value}%' },
-        splitLine: { lineStyle: { color: '#f1f5f9' } },
+        axisLabel: { color: t.axisLabel, formatter: '{value}%' },
+        splitLine: { lineStyle: { color: t.splitLine } },
       },
       series: series.value.map((s) => ({
         name: s.label,
         type: 'line',
         smooth: true,
         showSymbol: false,
-        color: colorFor(s.key, s.key.startsWith('disk:') ? diskIndex++ : 0),
+        lineStyle: { width: 2 },
+        color: fixed[s.key] ?? DISK_PALETTE[(s.key.startsWith('disk:') ? diskIndex++ : 0) % DISK_PALETTE.length],
         data: (s.points ?? []).map((p) => [p.timestamp * 1000, p.value]),
       })),
     },
@@ -86,11 +95,6 @@ async function load() {
   }
 }
 
-function selectRange(r: SystemMetricsRange) {
-  if (r === range.value) return
-  range.value = r
-}
-
 const onResize = () => chart.value?.resize()
 
 onMounted(() => {
@@ -107,26 +111,21 @@ onBeforeUnmount(() => {
 })
 
 watch(range, load)
-watch([series, loading], () => {
+// Re-render whenever data lands, and re-skin when the theme flips.
+watch([series, loading, chartTheme], () => {
   if (hasData.value) render()
 })
 </script>
 
 <template>
   <Card data-testid="system-metrics-panel">
-    <CardHeader class="d-flex flex-row align-center justify-space-between pb-2">
-      <CardTitle class="text-body-2 text-medium-emphasis">System usage over time</CardTitle>
-      <div class="d-flex ga-1">
-        <button
-          v-for="r in RANGES"
-          :key="r"
-          type="button"
-          class="rounded px-2 text-caption font-weight-medium"
-          :class="r === range ? 'bg-primary' : 'text-medium-emphasis'"
-          @click="selectRange(r)"
-        >
-          {{ r }}
-        </button>
+    <CardHeader class="pb-2">
+      <div class="d-flex flex-wrap align-center justify-space-between ga-2">
+        <div>
+          <CardTitle>Usage History</CardTitle>
+          <p class="text-caption text-medium-emphasis mb-0">CPU, memory and disk over time</p>
+        </div>
+        <RangeToggle v-model="range" :options="RANGES" />
       </div>
     </CardHeader>
     <CardContent>

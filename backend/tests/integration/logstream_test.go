@@ -75,7 +75,7 @@ func TestLogStreamIngestion(t *testing.T) {
 		}
 	}
 
-	bounces, err := repo.ListBounces(context.Background(), biz.NormalizePage(0, ""))
+	bounces, err := repo.ListBounces(context.Background(), biz.BounceFilter{}, biz.NormalizePage(0, ""))
 	if err != nil {
 		t.Fatalf("list bounces: %v", err)
 	}

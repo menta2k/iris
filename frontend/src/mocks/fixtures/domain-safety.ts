@@ -27,7 +27,7 @@ const baseSuppressions: Suppression[] = [
   { id: 'sup_5', type: 'email', value: 'expired@outlook.com', reason: '550 5.1.1', source: 'bounce', status: 'active' },
   { id: 'sup_6', type: 'domain', value: 'spamtrap.example', reason: 'Spamtrap hit', source: 'manual', status: 'active' },
   { id: 'sup_7', type: 'email', value: 'temp.user@gmail.com', reason: 'bounce rule: Mailbox Full (persistent) 452', source: 'bounce', status: 'active', mailclass: 'acme_s', expiresAt: daysFromNowIso(30) },
-  { id: 'sup_8', type: 'email', value: 'old.contact@example.net', reason: 'Manual removal requested', source: 'manual', status: 'inactive' },
+  { id: 'sup_8', type: 'email', value: 'old.contact@example.net', reason: 'Manual removal requested', source: 'manual', status: 'disabled' },
   { id: 'sup_9', type: 'email', value: 'left.company@yahoo.com', reason: '550 5.1.1', source: 'bounce', status: 'active' },
   { id: 'sup_10', type: 'domain', value: 'deadmx.net', reason: 'Persistent delivery failure', source: 'manual', status: 'active' },
   { id: 'sup_dsn', type: 'email', value: 'async.bounce@example.com', reason: 'asynchronous bounce (DSN)', source: 'dsn', status: 'active' },
@@ -37,7 +37,7 @@ const baseSuppressions: Suppression[] = [
 // backlog so the list demonstrates pagination.
 const SUPP_REASONS = ['550 User unknown', '550 5.1.1 Mailbox unavailable', 'FBL complaint', 'Repeated soft bounces', 'Spamtrap hit', 'Blocklisted provider', 'Manual removal requested']
 const SUPP_SOURCES = ['bounce', 'bounce', 'bounce', 'feedback', 'manual']
-const SUPP_STATUSES = ['active', 'active', 'active', 'active', 'inactive', 'expired']
+const SUPP_STATUSES = ['active', 'active', 'active', 'active', 'disabled', 'expired']
 const SUPP_EMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'outlook.com', 'icloud.com', 'example.com', 'example.net']
 const SUPP_MAILCLASSES = ['newsletter', 'transactional', 'promo', 'acme_s', 'homesbg_h']
 

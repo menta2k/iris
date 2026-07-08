@@ -2,6 +2,7 @@ import { http } from './http'
 import { pageQuery, type PageParams } from './pagination'
 import type {
   Bounce,
+  BounceFilters,
   DsnMessage,
   FeedbackReport,
   ListResponse,
@@ -24,8 +25,8 @@ export const mailOperationsService = {
   nextDeliveryAttempt(messageId: string) {
     return http.get<NextDeliveryAttempt>(`/mail-records/${encodeURIComponent(messageId)}/next-attempt`)
   },
-  listBounces(page?: PageParams) {
-    return http.get<ListResponse<Bounce>>('/bounces', { query: pageQuery(page) })
+  listBounces(filters?: BounceFilters, page?: PageParams) {
+    return http.get<ListResponse<Bounce>>('/bounces', { query: pageQuery(page, { ...filters }) })
   },
   // Raw DSN notifications archived for a recipient (behind a dsn-type bounce).
   listDsnMessages(recipient: string) {

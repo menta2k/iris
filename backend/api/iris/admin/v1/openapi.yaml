@@ -460,6 +460,40 @@ paths:
                   in: query
                   schema:
                     type: string
+                - name: recipient
+                  in: query
+                  description: Case-insensitive substring match on the recipient address.
+                  schema:
+                    type: string
+                - name: mailclass
+                  in: query
+                  schema:
+                    type: string
+                - name: bounce_type
+                  in: query
+                  description: Filter by bounce type (hard | soft | dsn). Empty = all.
+                  schema:
+                    type: string
+                - name: classification
+                  in: query
+                  description: Case-insensitive substring match on the classifier category.
+                  schema:
+                    type: string
+                - name: processing_state
+                  in: query
+                  description: Filter by processing state (new | processing | processed | suppressed | retried).
+                  schema:
+                    type: string
+                - name: from_time
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: to_time
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
             responses:
                 "200":
                     description: OK
@@ -1748,6 +1782,22 @@ paths:
                   schema:
                     type: string
                 - name: search
+                  in: query
+                  schema:
+                    type: string
+                - name: type
+                  in: query
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: source
+                  in: query
+                  schema:
+                    type: string
+                - name: mailclass
                   in: query
                   schema:
                     type: string

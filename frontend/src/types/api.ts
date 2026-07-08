@@ -488,6 +488,24 @@ export interface Bounce {
   classification?: string
 }
 
+/** Query filters for the bounce list (mirrors ListBouncesRequest). */
+export interface BounceFilters {
+  /** Case-insensitive substring match on the recipient address. */
+  recipient?: string
+  mailclass?: string
+  /** hard | soft | dsn; empty matches all. */
+  bounce_type?: string
+  /** Case-insensitive substring match on the classifier category. */
+  classification?: string
+  /** new | processing | processed | suppressed | retried; empty matches all. */
+  processing_state?: string
+  /** RFC3339 lower bound on event time. */
+  from_time?: string
+  /** RFC3339 upper bound on event time. */
+  to_time?: string
+  [key: string]: string | undefined
+}
+
 export interface FeedbackReport {
   id: string
   receivedAt: string
@@ -659,6 +677,21 @@ export interface Suppression {
   mailclass?: string
   createdAt?: string
   expiresAt?: string
+}
+
+/** Query filters for the suppression list (mirrors ListSuppressionsRequest). */
+export interface SuppressionFilters {
+  /** Case-insensitive substring match on the suppressed value. */
+  search?: string
+  /** email | domain; empty matches all. */
+  type?: string
+  /** active | disabled | expired; empty matches all. */
+  status?: string
+  /** manual | bounce | feedback | dsn; empty matches all. */
+  source?: string
+  /** Exact match on the triggering event's mailclass. */
+  mailclass?: string
+  [key: string]: string | undefined
 }
 
 export interface CreateSuppressionRequest {

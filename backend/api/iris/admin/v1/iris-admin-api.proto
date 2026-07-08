@@ -1003,7 +1003,20 @@ message NextDeliveryAttempt {
   string expires_at = 8;          // creation time + max_age
   string interval = 9;            // delay until the next attempt (e.g. "1h20m")
 }
-message ListBouncesRequest { PageRequest page = 1; }
+message ListBouncesRequest {
+  PageRequest page = 1;
+  // Case-insensitive substring match on the recipient address.
+  string recipient = 2;
+  string mailclass = 3;
+  // Filter by bounce type (hard | soft | dsn). Empty = all.
+  string bounce_type = 4;
+  // Case-insensitive substring match on the classifier category.
+  string classification = 5;
+  // Filter by processing state (new | processing | processed | suppressed | retried).
+  string processing_state = 6;
+  google.protobuf.Timestamp from_time = 7;
+  google.protobuf.Timestamp to_time = 8;
+}
 message ListBouncesReply {
   repeated Bounce items = 1;
   PageReply page = 2;
@@ -1084,7 +1097,11 @@ message GenerateDKIMKeyReply {
 }
 message ListSuppressionsRequest {
   PageRequest page = 1;
-  string search = 2; // case-insensitive substring match on the suppressed value
+  string search = 2;    // case-insensitive substring match on the suppressed value
+  string type = 3;      // email | domain; empty = all
+  string status = 4;    // active | disabled | expired; empty = all
+  string source = 5;    // manual | bounce | feedback | dsn; empty = all
+  string mailclass = 6; // exact match; empty = all
 }
 message ListSuppressionsReply {
   repeated Suppression items = 1;

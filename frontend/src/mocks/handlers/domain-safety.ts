@@ -59,9 +59,28 @@ export const domainSafetyRoutes: Route[] = [
     method: 'GET',
     pattern: '/suppressions',
     handler: (ctx) => {
-      const search = (ctx.query.search || '').toString().toLowerCase()
-      let rows = all('suppressions')
-      if (search) rows = rows.filter((s) => (s as { value: string }).value.toLowerCase().includes(search))
+      // Mirrors the backend's ListSuppressions filters.
+      const q = (name: string) => (ctx.query[name] || '').toString().toLowerCase()
+      const search = q('search')
+      const type = q('type')
+      const status = q('status')
+      const source = q('source')
+      const mailclass = (ctx.query.mailclass || '').toString()
+      const rows = all('suppressions').filter((row) => {
+        const s = row as {
+          value: string
+          type?: string
+          status?: string
+          source?: string
+          mailclass?: string
+        }
+        if (search && !s.value.toLowerCase().includes(search)) return false
+        if (type && (s.type ?? '').toLowerCase() !== type) return false
+        if (status && (s.status ?? '').toLowerCase() !== status) return false
+        if (source && (s.source ?? '').toLowerCase() !== source) return false
+        if (mailclass && s.mailclass !== mailclass) return false
+        return true
+      })
       return ok(paged(rows, ctx.query))
     },
   },

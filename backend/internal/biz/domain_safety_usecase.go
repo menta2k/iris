@@ -12,7 +12,7 @@ type DomainSafetyRepo interface {
 	ListDKIMDomains(ctx context.Context, page Page) ([]*DKIMDomain, error)
 	CreateSuppression(ctx context.Context, s *SuppressionEntry) (*SuppressionEntry, error)
 	UpdateSuppression(ctx context.Context, id string, s *SuppressionEntry) (*SuppressionEntry, error)
-	ListSuppressions(ctx context.Context, search string, page Page) ([]*SuppressionEntry, error)
+	ListSuppressions(ctx context.Context, f SuppressionFilter, page Page) ([]*SuppressionEntry, error)
 	IsSuppressed(ctx context.Context, recipient string) (bool, error)
 	// SuppressionValueByID resolves a suppression's value (the recipient) by id;
 	// "" when no such entry exists.
@@ -178,14 +178,36 @@ func deriveDKIMFingerprint(d *DKIMDomain) error {
 	return nil
 }
 
-// ListSuppressions returns suppression entries, optionally filtered by a
-// case-insensitive substring of the suppressed value (email/domain).
-func (uc *DomainSafetyUsecase) ListSuppressions(ctx context.Context, search string, page Page) ([]*SuppressionEntry, error) {
+// SuppressionFilter is a validated, bounded set of suppression query filters.
+type SuppressionFilter struct {
+	// Search is a case-insensitive substring match on the suppressed value.
+	Search string
+	// Type filters by email/domain. Empty matches all.
+	Type string
+	// Status filters by active/disabled/expired. Empty matches all.
+	Status string
+	// Source filters by manual/bounce/feedback/dsn. Empty matches all.
+	Source string
+	// Mailclass is an exact match on the triggering event's class.
+	Mailclass string
+}
+
+// NormalizeSuppressionFilter sanitizes and bounds the free-text filter fields.
+func NormalizeSuppressionFilter(f SuppressionFilter) SuppressionFilter {
+	f.Search = strings.ToLower(SanitizeFilter(f.Search))
+	f.Type = strings.ToLower(SanitizeFilter(f.Type))
+	f.Status = strings.ToLower(SanitizeFilter(f.Status))
+	f.Source = strings.ToLower(SanitizeFilter(f.Source))
+	f.Mailclass = SanitizeFilter(f.Mailclass)
+	return f
+}
+
+// ListSuppressions returns suppression entries matching the filter.
+func (uc *DomainSafetyUsecase) ListSuppressions(ctx context.Context, f SuppressionFilter, page Page) ([]*SuppressionEntry, error) {
 	if _, err := RequirePermission(ctx, PermSuppressionRead); err != nil {
 		return nil, err
 	}
-	search = strings.ToLower(strings.TrimSpace(search))
-	return uc.repo.ListSuppressions(ctx, search, page)
+	return uc.repo.ListSuppressions(ctx, NormalizeSuppressionFilter(f), page)
 }
 
 // SuppressionDSNMessages returns the raw DSN notifications archived for the

@@ -11,7 +11,7 @@ import (
 type MailOpsRepo interface {
 	ListMailRecords(ctx context.Context, f MailFilter, page Page) ([]*MailRecord, error)
 	ListRecordsByMessageID(ctx context.Context, messageID string) ([]*MailRecord, error)
-	ListBounces(ctx context.Context, page Page) ([]*BounceRecord, error)
+	ListBounces(ctx context.Context, f BounceFilter, page Page) ([]*BounceRecord, error)
 	ListFeedbackReports(ctx context.Context, page Page) ([]*FeedbackReport, error)
 	// ListDSNMessages returns the raw DSN messages archived for a recipient,
 	// newest first, bounded by limit. Used to show the notification behind a
@@ -89,12 +89,16 @@ func (uc *MailOpsUsecase) NextDeliveryAttempt(ctx context.Context, messageID str
 	return &est, nil
 }
 
-// ListBounces returns bounce records.
-func (uc *MailOpsUsecase) ListBounces(ctx context.Context, page Page) ([]*BounceRecord, error) {
+// ListBounces returns bounce records matching the filter.
+func (uc *MailOpsUsecase) ListBounces(ctx context.Context, f BounceFilter, page Page) ([]*BounceRecord, error) {
 	if _, err := RequirePermission(ctx, PermMailRead); err != nil {
 		return nil, err
 	}
-	return uc.repo.ListBounces(ctx, page)
+	f, err := NormalizeBounceFilter(f)
+	if err != nil {
+		return nil, err
+	}
+	return uc.repo.ListBounces(ctx, f, page)
 }
 
 // DSNMessagesForRecipient returns the raw DSN notifications archived for a

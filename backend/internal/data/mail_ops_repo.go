@@ -85,14 +85,23 @@ func (r *MailOpsRepo) ListRecordsByMessageID(ctx context.Context, messageID stri
 	return out, rows.Err()
 }
 
-// ListBounces returns bounce records newest first.
-func (r *MailOpsRepo) ListBounces(ctx context.Context, page biz.Page) ([]*biz.BounceRecord, error) {
+// ListBounces returns bounce records matching the filter, newest first.
+func (r *MailOpsRepo) ListBounces(ctx context.Context, f biz.BounceFilter, page biz.Page) ([]*biz.BounceRecord, error) {
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT id, coalesce(mail_record_id::text,''), event_time, recipient,
 		       coalesce(vmta_id::text,''), mailclass, smtp_status, bounce_type,
 		       diagnostic, classification, processing_state
-		FROM bounce_records ORDER BY event_time DESC LIMIT $1 OFFSET $2`,
-		page.Size, page.Offset)
+		FROM bounce_records
+		WHERE ($1 = '' OR recipient ILIKE '%' || $1 || '%')
+		  AND ($2 = '' OR mailclass = $2)
+		  AND ($3 = '' OR lower(bounce_type) = $3)
+		  AND ($4 = '' OR classification ILIKE '%' || $4 || '%')
+		  AND ($5 = '' OR lower(processing_state) = $5)
+		  AND ($6::timestamptz IS NULL OR event_time >= $6)
+		  AND ($7::timestamptz IS NULL OR event_time <= $7)
+		ORDER BY event_time DESC LIMIT $8 OFFSET $9`,
+		f.Recipient, f.Mailclass, f.BounceType, f.Classification, f.ProcessingState,
+		f.FromTime, f.ToTime, page.Size, page.Offset)
 	if err != nil {
 		return nil, fmt.Errorf("query bounces: %w", err)
 	}

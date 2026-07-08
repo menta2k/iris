@@ -76,7 +76,7 @@ func TestFeedbackIngestionAutoSuppresses(t *testing.T) {
 	}
 
 	// And the suppression entry carries the FBL source.
-	supps, err := safetyRepo.ListSuppressions(context.Background(), biz.NormalizePage(0, ""))
+	supps, err := safetyRepo.ListSuppressions(context.Background(), biz.SuppressionFilter{}, biz.NormalizePage(0, ""))
 	if err != nil {
 		t.Fatalf("list suppressions: %v", err)
 	}
