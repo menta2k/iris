@@ -1848,6 +1848,16 @@ message GlobalSettings {
   // Pin a message to one egress IP across retries (deterministic per-message
   // source selection) instead of KumoMTA's per-attempt weighted round-robin.
   bool pin_egress_per_message = 31;
+  // Injection listener (GreenArrow-compatible mail-injection API). Applied on
+  // restart. injection_enabled turns the dedicated listener on;
+  // injection_listen_addr / injection_path set where it binds and answers;
+  // injection_tls_enabled serves HTTPS using the issued cert whose domain is
+  // injection_tls_cert_domain.
+  bool injection_enabled = 32;
+  string injection_listen_addr = 33;
+  string injection_path = 34;
+  bool injection_tls_enabled = 35;
+  string injection_tls_cert_domain = 36;
 }
 message GetGlobalSettingsRequest {}
 message UpdateGlobalSettingsRequest {
@@ -1883,6 +1893,12 @@ message UpdateGlobalSettingsRequest {
   string classify_api_base = 28;
   // Pin egress IP per message across retries (see GlobalSettings).
   bool pin_egress_per_message = 29;
+  // Injection listener knobs (see GlobalSettings).
+  bool injection_enabled = 30;
+  string injection_listen_addr = 31;
+  string injection_path = 32;
+  bool injection_tls_enabled = 33;
+  string injection_tls_cert_domain = 34;
 }
 
 // A subject → label classification rule. source is "manual" (operator-authored)

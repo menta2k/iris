@@ -3537,6 +3537,22 @@ components:
                     description: |-
                         Pin a message to one egress IP across retries (deterministic per-message
                          source selection) instead of KumoMTA's per-attempt weighted round-robin.
+                injection_enabled:
+                    type: boolean
+                    description: |-
+                        Injection listener (GreenArrow-compatible mail-injection API). Applied on
+                         restart. injection_enabled turns the dedicated listener on;
+                         injection_listen_addr / injection_path set where it binds and answers;
+                         injection_tls_enabled serves HTTPS using the issued cert whose domain is
+                         injection_tls_cert_domain.
+                injection_listen_addr:
+                    type: string
+                injection_path:
+                    type: string
+                injection_tls_enabled:
+                    type: boolean
+                injection_tls_cert_domain:
+                    type: string
             description: Global settings — deployment-level policy knobs an operator edits in the UI.
         InboundRoute:
             type: object
@@ -4970,6 +4986,17 @@ components:
                 pin_egress_per_message:
                     type: boolean
                     description: Pin egress IP per message across retries (see GlobalSettings).
+                injection_enabled:
+                    type: boolean
+                    description: Injection listener knobs (see GlobalSettings).
+                injection_listen_addr:
+                    type: string
+                injection_path:
+                    type: string
+                injection_tls_enabled:
+                    type: boolean
+                injection_tls_cert_domain:
+                    type: string
         UpdateInboundRouteRequest:
             type: object
             properties:

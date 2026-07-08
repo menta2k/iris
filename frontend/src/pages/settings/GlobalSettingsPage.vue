@@ -65,6 +65,11 @@ const form = ref({
   classify_model: '',
   classify_threshold: 0.45,
   classify_api_base: '',
+  injection_enabled: false,
+  injection_listen_addr: '',
+  injection_path: '',
+  injection_tls_enabled: false,
+  injection_tls_cert_domain: '',
 })
 
 // Snapshot of the last saved/loaded form, for the unsaved-changes indicator.
@@ -101,6 +106,11 @@ function apply(s: GlobalSettings) {
     classify_model: s.classifyModel || '',
     classify_threshold: s.classifyThreshold ?? 0.45,
     classify_api_base: s.classifyApiBase || '',
+    injection_enabled: s.injectionEnabled ?? false,
+    injection_listen_addr: s.injectionListenAddr || '',
+    injection_path: s.injectionPath || '',
+    injection_tls_enabled: s.injectionTlsEnabled ?? false,
+    injection_tls_cert_domain: s.injectionTlsCertDomain || '',
   }
   updatedBy.value = s.updatedBy || ''
   updatedAt.value = s.updatedAt || ''
@@ -167,6 +177,11 @@ async function save() {
         classify_model: form.value.classify_model,
         classify_threshold: Number(form.value.classify_threshold),
         classify_api_base: form.value.classify_api_base,
+        injection_enabled: form.value.injection_enabled,
+        injection_listen_addr: form.value.injection_listen_addr,
+        injection_path: form.value.injection_path,
+        injection_tls_enabled: form.value.injection_tls_enabled,
+        injection_tls_cert_domain: form.value.injection_tls_cert_domain,
       }),
     )
     toast({
@@ -194,6 +209,7 @@ const SECTIONS = [
   { id: 'sec-observability', title: 'Observability', icon: 'mdi-chart-line', keywords: 'prometheus metrics dashboard charts' },
   { id: 'sec-classify', title: 'Subject Classification', icon: 'mdi-label-outline', keywords: 'classify subject openai model llm threshold' },
   { id: 'sec-admin', title: 'Admin Server', icon: 'mdi-monitor-lock', keywords: 'admin ui https tls certificate bind' },
+  { id: 'sec-injection', title: 'Injection API', icon: 'mdi-email-fast-outline', keywords: 'injection greenarrow inject listener port https tls api credentials mail' },
   { id: 'sec-acme', title: 'ACME Auto-Renew', icon: 'mdi-certificate-outline', keywords: 'acme renew certificate expiry scan' },
 ] as const
 
@@ -740,6 +756,89 @@ onBeforeUnmount(() => window.removeEventListener('scroll', updateActiveSection))
                     loaded at startup, Iris falls back to plain HTTP (so a bad pick won't lock you out).
                   </p>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card v-show="sectionShown.has('sec-injection')" id="sec-injection" class="scroll-target">
+              <CardHeader>
+                <CardTitle>Injection API (GreenArrow-compatible)</CardTitle>
+                <CardDescription>
+                  A dedicated mail-injection listener on its own port, isolated from this admin API.
+                  Applications authenticate with a username + password (managed under
+                  <RouterLink to="/security/injection-credentials" class="text-primary">Access → Injection API</RouterLink>)
+                  and mail is forwarded to KumoMTA. Changes apply on a service restart (the socket is
+                  bound at startup).
+                </CardDescription>
+              </CardHeader>
+              <CardContent class="d-flex flex-column ga-4">
+                <v-switch
+                  v-model="form.injection_enabled"
+                  color="primary"
+                  density="compact"
+                  hide-details
+                  label="Enable the injection listener"
+                  data-testid="injection-enabled"
+                />
+                <template v-if="form.injection_enabled">
+                  <div class="d-flex flex-wrap ga-4">
+                    <div>
+                      <v-text-field
+                        v-model="form.injection_listen_addr"
+                        label="Listen address (host:port)"
+                        placeholder=":8025"
+                        variant="outlined"
+                        density="compact"
+                        hide-details
+                        style="max-width: 240px"
+                        data-testid="injection-addr"
+                      />
+                      <p class="mt-1 text-caption text-medium-emphasis mb-0">
+                        Must differ from the admin port. Blank uses :8025.
+                      </p>
+                    </div>
+                    <div>
+                      <v-text-field
+                        v-model="form.injection_path"
+                        label="Request path"
+                        placeholder="/api/inject"
+                        variant="outlined"
+                        density="compact"
+                        hide-details
+                        style="max-width: 240px"
+                        data-testid="injection-path"
+                      />
+                      <p class="mt-1 text-caption text-medium-emphasis mb-0">
+                        The route clients POST to. Blank uses /api/inject.
+                      </p>
+                    </div>
+                  </div>
+                  <v-switch
+                    v-model="form.injection_tls_enabled"
+                    color="primary"
+                    density="compact"
+                    hide-details
+                    label="Serve HTTPS using an issued certificate"
+                    data-testid="injection-tls-enabled"
+                  />
+                  <div v-if="form.injection_tls_enabled">
+                    <v-select
+                      v-model="form.injection_tls_cert_domain"
+                      :items="certItems"
+                      label="Certificate"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                      :placeholder="issuedCerts.length ? 'Select a certificate…' : 'No issued certificates'"
+                      no-data-text="No issued certificates"
+                      data-testid="injection-cert"
+                    />
+                    <p class="mt-1 text-caption text-medium-emphasis mb-0">
+                      Issue certificates under TLS Certificates (ACME) first. If the cert can't be
+                      loaded at startup the service refuses to start (it never serves the injection
+                      API in plaintext once HTTPS is requested).
+                    </p>
+                  </div>
+                </template>
               </CardContent>
             </Card>
 

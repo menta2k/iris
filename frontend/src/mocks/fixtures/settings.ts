@@ -37,6 +37,11 @@ export const globalSettings: GlobalSettings = {
   classifyModel: 'subject-classifier-v2',
   classifyThreshold: 0.82,
   classifyApiBase: 'http://classifier:8080',
+  injectionEnabled: true,
+  injectionListenAddr: ':8025',
+  injectionPath: '/api/inject',
+  injectionTlsEnabled: true,
+  injectionTlsCertDomain: 'inject.example.net',
   updatedAt: hoursAgo(3),
   updatedBy: 'admin@iris.local',
 }

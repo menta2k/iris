@@ -307,9 +307,26 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	var adminTLS *tls.Config
 	renewInterval := envDuration("IRIS_ACME_RENEW_INTERVAL", 12*time.Hour)
 	renewBefore := envDuration("IRIS_ACME_RENEW_BEFORE", 30*24*time.Hour)
+	// Effective injection listener config: the config file supplies defaults and
+	// the static fallback credential / explicit cert files; global settings (the
+	// UI) drive enable/addr/path/TLS. Applied on restart. The YAML enable flags
+	// default to false, so the UI is the normal control; an explicit YAML `true`
+	// force-enables (acts as an override).
+	injCfg := cfg.Injection
 	if gs, gerr := settingsRepo.Get(ctx); gerr == nil {
 		if gs.AdminHTTPAddr != "" {
 			adminServerConf.HTTP.Addr = gs.AdminHTTPAddr
+		}
+		injCfg.Enabled = injCfg.Enabled || gs.InjectionEnabled
+		if gs.InjectionListenAddr != "" {
+			injCfg.Addr = gs.InjectionListenAddr
+		}
+		if gs.InjectionPath != "" {
+			injCfg.Path = gs.InjectionPath
+		}
+		injCfg.TLS = injCfg.TLS || gs.InjectionTLSEnabled
+		if gs.InjectionTLSCertDomain != "" {
+			injCfg.TLSCertDomain = gs.InjectionTLSCertDomain
 		}
 		if gs.AdminTLSEnabled && gs.AdminTLSCertDomain != "" {
 			if tc, terr := loadAdminTLS(ctx, acmeRepo, gs.AdminTLSCertDomain); terr != nil {
@@ -418,21 +435,27 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 
 	// GreenArrow-compatible mail injection on its OWN listener (separate port,
 	// no admin JWT) — body-credential auth, forwards to KumoMTA /api/inject/v1.
-	if cfg.Injection.Enabled {
+	if injCfg.Enabled {
+		if injCfg.Addr == "" {
+			injCfg.Addr = ":8025"
+		}
+		if injCfg.Addr == adminServerConf.HTTP.Addr || injCfg.Addr == cfg.Server.GRPC.Addr {
+			return nil, cleanup, fmt.Errorf("injection listener addr (%s) must differ from the admin HTTP/gRPC ports", injCfg.Addr)
+		}
 		var injTLS *tls.Config
-		if cfg.Injection.TLS {
-			tc, terr := loadInjectionTLS(ctx, acmeRepo, cfg.Injection)
+		if injCfg.TLS {
+			tc, terr := loadInjectionTLS(ctx, acmeRepo, injCfg)
 			if terr != nil {
 				// Fail hard: a security-sensitive listener must never silently
 				// downgrade to plaintext when HTTPS was requested.
 				return nil, cleanup, fmt.Errorf("injection TLS: %w", terr)
 			}
 			injTLS = tc
-			log.Info("injection HTTPS enabled", "addr", cfg.Injection.Addr)
+			log.Info("injection HTTPS enabled", "addr", injCfg.Addr)
 		}
-		injectUC := biz.NewGreenArrowInjectUsecase(injector, cfg.Injection.Username, cfg.Injection.Password, "").
+		injectUC := biz.NewGreenArrowInjectUsecase(injector, injCfg.Username, injCfg.Password, "").
 			WithCredentialStore(injectionCredRepo)
-		if injSrv := server.NewInjectionServer(cfg.Injection, injectUC, injTLS, log); injSrv != nil {
+		if injSrv := server.NewInjectionServer(injCfg, injectUC, injTLS, log); injSrv != nil {
 			servers = append(servers, injSrv)
 		}
 	}

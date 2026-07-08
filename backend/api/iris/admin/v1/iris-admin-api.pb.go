@@ -14816,8 +14816,18 @@ type GlobalSettings struct {
 	// Pin a message to one egress IP across retries (deterministic per-message
 	// source selection) instead of KumoMTA's per-attempt weighted round-robin.
 	PinEgressPerMessage bool `protobuf:"varint,31,opt,name=pin_egress_per_message,json=pinEgressPerMessage,proto3" json:"pin_egress_per_message,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Injection listener (GreenArrow-compatible mail-injection API). Applied on
+	// restart. injection_enabled turns the dedicated listener on;
+	// injection_listen_addr / injection_path set where it binds and answers;
+	// injection_tls_enabled serves HTTPS using the issued cert whose domain is
+	// injection_tls_cert_domain.
+	InjectionEnabled       bool   `protobuf:"varint,32,opt,name=injection_enabled,json=injectionEnabled,proto3" json:"injection_enabled,omitempty"`
+	InjectionListenAddr    string `protobuf:"bytes,33,opt,name=injection_listen_addr,json=injectionListenAddr,proto3" json:"injection_listen_addr,omitempty"`
+	InjectionPath          string `protobuf:"bytes,34,opt,name=injection_path,json=injectionPath,proto3" json:"injection_path,omitempty"`
+	InjectionTlsEnabled    bool   `protobuf:"varint,35,opt,name=injection_tls_enabled,json=injectionTlsEnabled,proto3" json:"injection_tls_enabled,omitempty"`
+	InjectionTlsCertDomain string `protobuf:"bytes,36,opt,name=injection_tls_cert_domain,json=injectionTlsCertDomain,proto3" json:"injection_tls_cert_domain,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GlobalSettings) Reset() {
@@ -15060,6 +15070,41 @@ func (x *GlobalSettings) GetPinEgressPerMessage() bool {
 	return false
 }
 
+func (x *GlobalSettings) GetInjectionEnabled() bool {
+	if x != nil {
+		return x.InjectionEnabled
+	}
+	return false
+}
+
+func (x *GlobalSettings) GetInjectionListenAddr() string {
+	if x != nil {
+		return x.InjectionListenAddr
+	}
+	return ""
+}
+
+func (x *GlobalSettings) GetInjectionPath() string {
+	if x != nil {
+		return x.InjectionPath
+	}
+	return ""
+}
+
+func (x *GlobalSettings) GetInjectionTlsEnabled() bool {
+	if x != nil {
+		return x.InjectionTlsEnabled
+	}
+	return false
+}
+
+func (x *GlobalSettings) GetInjectionTlsCertDomain() string {
+	if x != nil {
+		return x.InjectionTlsCertDomain
+	}
+	return ""
+}
+
 type GetGlobalSettingsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -15129,8 +15174,14 @@ type UpdateGlobalSettingsRequest struct {
 	ClassifyApiBase   string  `protobuf:"bytes,28,opt,name=classify_api_base,json=classifyApiBase,proto3" json:"classify_api_base,omitempty"`
 	// Pin egress IP per message across retries (see GlobalSettings).
 	PinEgressPerMessage bool `protobuf:"varint,29,opt,name=pin_egress_per_message,json=pinEgressPerMessage,proto3" json:"pin_egress_per_message,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Injection listener knobs (see GlobalSettings).
+	InjectionEnabled       bool   `protobuf:"varint,30,opt,name=injection_enabled,json=injectionEnabled,proto3" json:"injection_enabled,omitempty"`
+	InjectionListenAddr    string `protobuf:"bytes,31,opt,name=injection_listen_addr,json=injectionListenAddr,proto3" json:"injection_listen_addr,omitempty"`
+	InjectionPath          string `protobuf:"bytes,32,opt,name=injection_path,json=injectionPath,proto3" json:"injection_path,omitempty"`
+	InjectionTlsEnabled    bool   `protobuf:"varint,33,opt,name=injection_tls_enabled,json=injectionTlsEnabled,proto3" json:"injection_tls_enabled,omitempty"`
+	InjectionTlsCertDomain string `protobuf:"bytes,34,opt,name=injection_tls_cert_domain,json=injectionTlsCertDomain,proto3" json:"injection_tls_cert_domain,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UpdateGlobalSettingsRequest) Reset() {
@@ -15357,6 +15408,41 @@ func (x *UpdateGlobalSettingsRequest) GetPinEgressPerMessage() bool {
 		return x.PinEgressPerMessage
 	}
 	return false
+}
+
+func (x *UpdateGlobalSettingsRequest) GetInjectionEnabled() bool {
+	if x != nil {
+		return x.InjectionEnabled
+	}
+	return false
+}
+
+func (x *UpdateGlobalSettingsRequest) GetInjectionListenAddr() string {
+	if x != nil {
+		return x.InjectionListenAddr
+	}
+	return ""
+}
+
+func (x *UpdateGlobalSettingsRequest) GetInjectionPath() string {
+	if x != nil {
+		return x.InjectionPath
+	}
+	return ""
+}
+
+func (x *UpdateGlobalSettingsRequest) GetInjectionTlsEnabled() bool {
+	if x != nil {
+		return x.InjectionTlsEnabled
+	}
+	return false
+}
+
+func (x *UpdateGlobalSettingsRequest) GetInjectionTlsCertDomain() string {
+	if x != nil {
+		return x.InjectionTlsCertDomain
+	}
+	return ""
 }
 
 // A subject → label classification rule. source is "manual" (operator-authored)
@@ -18226,8 +18312,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\vtotal_count\x18\x03 \x01(\x03R\n" +
 	"totalCount\x12\x14\n" +
 	"\x05range\x18\x04 \x01(\tR\x05range\x121\n" +
-	"\x14prometheus_available\x18\x05 \x01(\bR\x13prometheusAvailable\"\xd2\n" +
-	"\n" +
+	"\x14prometheus_available\x18\x05 \x01(\bR\x13prometheusAvailable\"\xc9\f\n" +
 	"\x0eGlobalSettings\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -18264,9 +18349,13 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x0eclassify_model\x18\x1c \x01(\tR\rclassifyModel\x12-\n" +
 	"\x12classify_threshold\x18\x1d \x01(\x01R\x11classifyThreshold\x12*\n" +
 	"\x11classify_api_base\x18\x1e \x01(\tR\x0fclassifyApiBase\x123\n" +
-	"\x16pin_egress_per_message\x18\x1f \x01(\bR\x13pinEgressPerMessageJ\x04\b\r\x10\x0e\"\x1a\n" +
-	"\x18GetGlobalSettingsRequest\"\xa1\n" +
-	"\n" +
+	"\x16pin_egress_per_message\x18\x1f \x01(\bR\x13pinEgressPerMessage\x12+\n" +
+	"\x11injection_enabled\x18  \x01(\bR\x10injectionEnabled\x122\n" +
+	"\x15injection_listen_addr\x18! \x01(\tR\x13injectionListenAddr\x12%\n" +
+	"\x0einjection_path\x18\" \x01(\tR\rinjectionPath\x122\n" +
+	"\x15injection_tls_enabled\x18# \x01(\bR\x13injectionTlsEnabled\x129\n" +
+	"\x19injection_tls_cert_domain\x18$ \x01(\tR\x16injectionTlsCertDomainJ\x04\b\r\x10\x0e\"\x1a\n" +
+	"\x18GetGlobalSettingsRequest\"\x98\f\n" +
 	"\x1bUpdateGlobalSettingsRequest\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -18299,7 +18388,12 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x0eclassify_model\x18\x1a \x01(\tR\rclassifyModel\x12-\n" +
 	"\x12classify_threshold\x18\x1b \x01(\x01R\x11classifyThreshold\x12*\n" +
 	"\x11classify_api_base\x18\x1c \x01(\tR\x0fclassifyApiBase\x123\n" +
-	"\x16pin_egress_per_message\x18\x1d \x01(\bR\x13pinEgressPerMessageJ\x04\b\r\x10\x0e\"\xb4\x02\n" +
+	"\x16pin_egress_per_message\x18\x1d \x01(\bR\x13pinEgressPerMessage\x12+\n" +
+	"\x11injection_enabled\x18\x1e \x01(\bR\x10injectionEnabled\x122\n" +
+	"\x15injection_listen_addr\x18\x1f \x01(\tR\x13injectionListenAddr\x12%\n" +
+	"\x0einjection_path\x18  \x01(\tR\rinjectionPath\x122\n" +
+	"\x15injection_tls_enabled\x18! \x01(\bR\x13injectionTlsEnabled\x129\n" +
+	"\x19injection_tls_cert_domain\x18\" \x01(\tR\x16injectionTlsCertDomainJ\x04\b\r\x10\x0e\"\xb4\x02\n" +
 	"\x15SubjectClassification\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12-\n" +

@@ -916,6 +916,11 @@ export interface GlobalSettings {
   classifyModel: string
   classifyThreshold: number
   classifyApiBase: string
+  injectionEnabled: boolean
+  injectionListenAddr: string
+  injectionPath: string
+  injectionTlsEnabled: boolean
+  injectionTlsCertDomain: string
   updatedAt?: string
   updatedBy?: string
 }
@@ -949,6 +954,11 @@ export interface UpdateGlobalSettingsRequest {
   classify_model: string
   classify_threshold: number
   classify_api_base: string
+  injection_enabled: boolean
+  injection_listen_addr: string
+  injection_path: string
+  injection_tls_enabled: boolean
+  injection_tls_cert_domain: string
 }
 
 // ---- Subject classifications ----

@@ -28,6 +28,7 @@ const globalSettingsCols = `rspamd_mode, rspamd_url, egress_ehlo_domain,
 	inbound_maildir_base_path, bounce_domain_template,
 	classify_subjects, classify_model, classify_threshold, classify_api_base,
 	pin_egress_per_message,
+	injection_enabled, injection_listen_addr, injection_path, injection_tls_enabled, injection_tls_cert_domain,
 	updated_at, updated_by`
 
 // scanGlobalSettings scans a row in globalSettingsCols order.
@@ -42,6 +43,7 @@ func scanGlobalSettings(row interface{ Scan(...any) error }) (*biz.GlobalSetting
 		&out.InboundMaildirBasePath, &out.BounceDomainTemplate,
 		&out.ClassifySubjects, &out.ClassifyModel, &out.ClassifyThreshold, &out.ClassifyAPIBase,
 		&out.PinEgressPerMessage,
+		&out.InjectionEnabled, &out.InjectionListenAddr, &out.InjectionPath, &out.InjectionTLSEnabled, &out.InjectionTLSCertDomain,
 		&out.UpdatedAt, &out.UpdatedBy)
 	return out, err
 }
@@ -76,7 +78,9 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in *biz.GlobalSettings,
 			inbound_maildir_base_path = $22, bounce_domain_template = $23,
 			classify_subjects = $24, classify_model = $25, classify_threshold = $26, classify_api_base = $27,
 			pin_egress_per_message = $28,
-			updated_at = now(), updated_by = $29
+			injection_enabled = $29, injection_listen_addr = $30, injection_path = $31,
+			injection_tls_enabled = $32, injection_tls_cert_domain = $33,
+			updated_at = now(), updated_by = $34
 		WHERE id = 1
 		RETURNING `+globalSettingsCols,
 		in.RspamdMode, in.RspamdURL, in.EgressEHLODomain,
@@ -87,7 +91,9 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in *biz.GlobalSettings,
 		in.AcmeRenewInterval, in.AcmeRenewBefore, in.PrometheusURL, in.FBLRequireVerification,
 		in.InboundMaildirBasePath, in.BounceDomainTemplate,
 		in.ClassifySubjects, in.ClassifyModel, in.ClassifyThreshold, in.ClassifyAPIBase,
-		in.PinEgressPerMessage, actor))
+		in.PinEgressPerMessage,
+		in.InjectionEnabled, in.InjectionListenAddr, in.InjectionPath, in.InjectionTLSEnabled, in.InjectionTLSCertDomain,
+		actor))
 	if err != nil {
 		return nil, mapConstraint(err, "global_settings")
 	}
