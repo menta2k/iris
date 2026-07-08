@@ -13,8 +13,8 @@ function daysFromNowIso(n: number): string {
 }
 
 export const dkimDomains: DkimDomain[] = [
-  { id: 'dkim_main', domain: 'example.net', selector: 'iris', publicKeyFingerprint: '8F:2A:1C:9B:44:AE:07:E3', status: 'active' },
-  { id: 'dkim_promo', domain: 'promo.example.net', selector: 'iris', publicKeyFingerprint: '1A:2B:3C:4D:5E:6F:70:81', status: 'active' },
+  { id: 'dkim_main', domain: 'example.net', selector: 'iris', publicKeyFingerprint: '8F:2A:1C:9B:44:AE:07:E3', status: 'ready' },
+  { id: 'dkim_promo', domain: 'promo.example.net', selector: 'iris', publicKeyFingerprint: '1A:2B:3C:4D:5E:6F:70:81', status: 'ready' },
   { id: 'dkim_news', domain: 'news.example.net', selector: 'mail', publicKeyFingerprint: '9C:8D:7E:6F:50:41:32:23', status: 'needs_attention' },
   { id: 'dkim_alt', domain: 'example.com', selector: 'iris2026', publicKeyFingerprint: 'BB:AA:99:88:77:66:55:44', status: 'disabled' },
 ]
