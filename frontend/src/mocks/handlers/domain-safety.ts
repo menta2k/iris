@@ -78,7 +78,7 @@ export const domainSafetyRoutes: Route[] = [
         if (type && (s.type ?? '').toLowerCase() !== type) return false
         if (status && (s.status ?? '').toLowerCase() !== status) return false
         if (source && (s.source ?? '').toLowerCase() !== source) return false
-        if (mailclass && s.mailclass !== mailclass) return false
+        if (mailclass && !(s.mailclass ?? '').toLowerCase().includes(mailclass.toLowerCase())) return false
         return true
       })
       return ok(paged(rows, ctx.query))

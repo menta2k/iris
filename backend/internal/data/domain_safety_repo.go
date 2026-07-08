@@ -220,7 +220,9 @@ func (r *DomainSafetyRepo) ListSuppressions(ctx context.Context, f biz.Suppressi
 		  AND ($4 = '' OR lower(type) = $4)
 		  AND ($5 = '' OR lower(status) = $5)
 		  AND ($6 = '' OR lower(source) = $6)
-		  AND ($7 = '' OR mailclass = $7)
+		  -- Partial, case-insensitive so operators can filter by a mailclass
+		  -- fragment (e.g. "acme") rather than the exact class.
+		  AND ($7 = '' OR mailclass ILIKE '%' || $7 || '%')
 		ORDER BY value LIMIT $1 OFFSET $2`,
 		page.Size, page.Offset, f.Search, f.Type, f.Status, f.Source, f.Mailclass)
 	if err != nil {

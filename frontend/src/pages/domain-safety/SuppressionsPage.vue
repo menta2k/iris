@@ -298,7 +298,7 @@ async function viewDsn(s: Suppression) {
             <v-text-field
               v-model="filters.mailclass"
               label="Mailclass"
-              placeholder="marketing"
+              placeholder="marketing (partial ok)"
               prepend-inner-icon="mdi-tag-outline"
               variant="outlined"
               density="compact"

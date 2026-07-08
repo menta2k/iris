@@ -29,8 +29,11 @@ func (r *MailOpsRepo) ListMailRecords(ctx context.Context, f biz.MailFilter, pag
 		       recipient_domain, coalesce(vmta_id::text,''), egress_source, status, record_type, smtp_status, diagnostic, classification
 		FROM mail_records
 		WHERE ($1 = '' OR mailclass = $1)
-		  AND ($2 = '' OR sender = $2)
-		  AND ($3 = '' OR recipient = $3)
+		  -- sender/recipient/from are partial, case-insensitive matches so an
+		  -- operator can search by just a domain (e.g. "gmail.com") or a name
+		  -- fragment, not only a full address.
+		  AND ($2 = '' OR sender ILIKE '%' || $2 || '%')
+		  AND ($3 = '' OR recipient ILIKE '%' || $3 || '%')
 		  AND ($4 = '' OR egress_source = $4)
 		  AND ($5::timestamptz IS NULL OR event_time >= $5)
 		  AND ($6::timestamptz IS NULL OR event_time <= $6)

@@ -239,7 +239,7 @@ function toggleExpand(b: Bounce) {
             <v-text-field
               v-model="filters.recipient"
               label="Recipient"
-              placeholder="user@gmail.com"
+              placeholder="user@gmail.com or gmail.com"
               prepend-inner-icon="mdi-email-outline"
               variant="outlined"
               density="compact"

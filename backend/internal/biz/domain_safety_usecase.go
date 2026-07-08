@@ -188,7 +188,8 @@ type SuppressionFilter struct {
 	Status string
 	// Source filters by manual/bounce/feedback/dsn. Empty matches all.
 	Source string
-	// Mailclass is an exact match on the triggering event's class.
+	// Mailclass is a case-insensitive substring match on the triggering event's
+	// class (so a fragment like "acme" matches "acme_k").
 	Mailclass string
 }
 

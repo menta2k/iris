@@ -313,7 +313,7 @@ onBeforeUnmount(() => {
             <v-text-field
               v-model="filters.recipient"
               label="Recipient"
-              placeholder="user@gmail.com"
+              placeholder="user@gmail.com or gmail.com"
               prepend-inner-icon="mdi-email-outline"
               variant="outlined"
               density="compact"
@@ -337,7 +337,7 @@ onBeforeUnmount(() => {
             <v-text-field
               v-model="filters.sender"
               label="Sender (envelope)"
-              placeholder="news@example.com"
+              placeholder="news@example.com or example.com"
               prepend-inner-icon="mdi-email-arrow-right-outline"
               variant="outlined"
               density="compact"
