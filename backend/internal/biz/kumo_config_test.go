@@ -16,6 +16,59 @@ var testDKIMKeyPEM = func() string {
 	return pem
 }()
 
+// TestHTTPInjectionHookOutbound verifies that HTTP-injected mail gets the same
+// outbound processing as SMTP: mailclass classification, the VERP envelope
+// rewrite, and egress-pool routing — not just DKIM signing.
+func TestHTTPInjectionHookOutbound(t *testing.T) {
+	snap := ConfigSnapshot{
+		VMTAs: []*VMTA{
+			{ID: "v1", Name: "vmta-a", ListenerID: "lst-1", IPAddress: "203.0.113.10", EHLOName: "a.example.com", Status: VMTAStatusActive},
+		},
+		Groups: []*VMTAGroup{
+			{ID: "g1", Name: "bulk-pool", Status: VMTAGroupStatusActive, Members: []VMTAGroupMember{{VMTAID: "v1", Weight: 100}}},
+		},
+		Routes: []*RoutingRule{
+			{ID: "r1", Name: "bulk", MatchType: MatchMailclass, MatchValue: "bulk", Priority: 100, TargetType: TargetVMTAGroup, TargetID: "g1", Status: RoutingStatusActive},
+		},
+		DKIM: []*DKIMDomain{
+			{ID: "d1", Domain: "example.com", Selector: "s1", PrivateKeyRef: testDKIMKeyPEM, Status: DKIMReady},
+		},
+		// Enable VERP: bounce domain + redis log stream + verp secret.
+		BounceDomain:      "bounce.example.com",
+		LogStreamRedisURL: "redis://localhost:6379",
+		BounceVerpSecret:  "s3cret-verp-key",
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	if !r.Valid {
+		t.Fatalf("rendered policy failed lint: %v\n%s", r.LintIssues, r.Content)
+	}
+	// Isolate the http_message_generated hook body.
+	start := strings.Index(r.Content, "kumo.on('http_message_generated'")
+	if start < 0 {
+		t.Fatalf("policy missing http_message_generated hook:\n%s", r.Content)
+	}
+	hook := r.Content[start:]
+	if end := strings.Index(hook, "end)"); end >= 0 {
+		hook = hook[:end]
+	}
+	for _, want := range []string{
+		"classify_mail(msg)",           // mailclass classification
+		"msg:set_meta('mailclass'",     // records the class
+		"msg:set_sender(",              // VERP envelope rewrite
+		"iris_bounce_domain(msg)",      // bounce-domain derivation
+		"iris_dkim_sign(msg)",          // DKIM
+		"select_pool(msg,",             // egress-pool routing
+		"msg:set_meta('tenant', pool)", // records the pool
+	} {
+		if !strings.Contains(hook, want) {
+			t.Errorf("http_message_generated hook missing %q; got:\n%s", want, hook)
+		}
+	}
+}
+
 func TestRenderKumoConfig(t *testing.T) {
 	snap := ConfigSnapshot{
 		VMTAs: []*VMTA{

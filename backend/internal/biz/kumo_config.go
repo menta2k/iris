@@ -846,6 +846,48 @@ kumo.on('smtp_server_message_received', function(msg)
 end)
 
 `)
+
+	// HTTP-injection hook. Mail submitted via KumoMTA's /api/inject/v1 does NOT
+	// pass through smtp_server_message_received, so without this it would skip
+	// mailclass classification, the VERP envelope rewrite, and egress-pool
+	// routing (sending unrouted, with an un-rewritten return-path). Mirror the
+	// reception hook's OUTBOUND steps here; the inbound catchers (bounce/DMARC/
+	// FBL/inbound-routes) and rspamd scanning are reception-only and intentionally
+	// omitted. All helpers below are in scope at this point (defined earlier in
+	// the rendered policy).
+	b.WriteString(`-- Classify, sign, VERP-rewrite and route mail injected via the HTTP API
+-- (the reception hook above covers SMTP submissions).
+kumo.on('http_message_generated', function(msg)
+  iris_ensure_message_id(msg)
+  iris_ensure_date(msg)
+  local class = classify_mail(msg)
+  if class then
+    msg:set_meta('mailclass', class)
+  end
+`)
+	if verp {
+		b.WriteString(`  do
+    local mid = msg:id()
+    if mid and tostring(mid) ~= '' then
+      mid = tostring(mid)
+      local mac = kumo.digest.hmac_sha256({ key_data = BOUNCE_VERP_SECRET }, mid)
+      msg:set_sender(string.format('b+%s.%s@%s', string.sub(tostring(mac), 1, 16), mid, iris_bounce_domain(msg)))
+    end
+  end
+`)
+	}
+	b.WriteString(`  iris_dkim_sign(msg)
+  local pool = select_pool(msg, msg:recipient().email, class)
+  if pool then
+`)
+	if pin {
+		b.WriteString("    pool = iris_pin_egress_pool(pool, msg)\n")
+	}
+	b.WriteString(`    msg:set_meta('tenant', pool)
+  end
+end)
+
+`)
 	return n
 }
 
@@ -1034,10 +1076,10 @@ func bounceEnabled(snap ConfigSnapshot) bool {
 func writeDKIMSigning(b *strings.Builder) {
 	// KumoMTA signs on reception, not on send: there is no
 	// smtp_client_message_sending event. iris_dkim_sign is called from the
-	// smtp_server_message_received reception hook (SMTP) and from
-	// http_message_generated (HTTP injection), matching KumoMTA's reference
-	// policy. The signature is applied to the received message and persists
-	// through delivery.
+	// smtp_server_message_received reception hook (SMTP) and from the
+	// http_message_generated hook (HTTP injection, registered at the end of
+	// writeRouting where the classify/route/VERP helpers are in scope). The
+	// signature is applied to the received message and persists through delivery.
 	b.WriteString(`-- ===== message-id =====
 -- RFC 5322 requires a Message-ID. Injecting apps (and bare SMTP clients) often
 -- omit it, which trips rspamd's MISSING_MID and weakens threading. Add one when
@@ -1101,13 +1143,6 @@ local function iris_dkim_sign(msg)
   end
   msg:dkim_sign(signer)
 end
-
--- Sign mail injected via the HTTP API (the reception hook covers SMTP).
-kumo.on('http_message_generated', function(msg)
-  iris_ensure_message_id(msg)
-  iris_ensure_date(msg)
-  iris_dkim_sign(msg)
-end)
 
 `)
 }
