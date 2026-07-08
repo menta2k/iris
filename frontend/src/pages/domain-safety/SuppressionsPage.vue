@@ -108,7 +108,8 @@ const SUPPRESSION_TYPE_ITEMS = [
 function formatDate(iso?: string): string {
   if (!iso) return '—'
   const d = new Date(iso)
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString()
+  // Force 24-hour clock so the Suppressed/Expires columns never render AM/PM.
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString(undefined, { hour12: false })
 }
 
 // Compact relative time ("in 21d", "3h ago") so expiry reads at a glance.
