@@ -27,7 +27,7 @@ type ReadinessChecker interface {
 // NewHTTPServer builds the HTTP transport, registers the admin service, and
 // exposes health/readiness endpoints plus the OpenAPI document. When tlsConf is
 // non-nil the server serves HTTPS on the same address.
-func NewHTTPServer(c conf.Server, svc adminv1.IrisAdminServiceHTTPServer, openapi []byte, checks []ReadinessChecker, tlsConf *tls.Config, mws ...middleware.Middleware) *kratoshttp.Server {
+func NewHTTPServer(c conf.Server, svc adminv1.IrisAdminServiceHTTPServer, openapi []byte, checks []ReadinessChecker, tlsConf *tls.Config, sseHandler http.Handler, mws ...middleware.Middleware) *kratoshttp.Server {
 	opts := []kratoshttp.ServerOption{
 		kratoshttp.Middleware(append([]middleware.Middleware{recovery.Recovery()}, mws...)...),
 	}
@@ -69,6 +69,14 @@ func NewHTTPServer(c conf.Server, svc adminv1.IrisAdminServiceHTTPServer, openap
 	srv.Handle("/metrics", promhttp.Handler())
 
 	adminv1.RegisterIrisAdminServiceHTTPServer(srv, svc)
+
+	// Server-Sent Events for real-time UI updates (mail logs / bounces /
+	// dashboard). Registered before the SPA fallback so it matches first; it does
+	// its own query-param JWT auth (EventSource can't send an Authorization
+	// header), so it sits outside the admin JWT middleware like /metrics.
+	if sseHandler != nil {
+		srv.HandleFunc("/sse", sseHandler.ServeHTTP)
+	}
 
 	// Serve the embedded SPA last so it acts as a fallback: the specific routes
 	// above (API, health, metrics, openapi) are matched first; everything else

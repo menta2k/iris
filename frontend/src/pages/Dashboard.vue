@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
 import ServiceStatusWidget from '@/components/dashboard/ServiceStatusWidget.vue'
@@ -14,6 +14,7 @@ import SystemStatsPanel from '@/components/dashboard/SystemStatsPanel.vue'
 import MailVolumePanel, { type VolumeRow } from '@/components/dashboard/MailVolumePanel.vue'
 import QueueTimeHistogramPanel from '@/components/dashboard/QueueTimeHistogramPanel.vue'
 import { dashboardService, mailOperationsService, identityAuditService } from '@/services'
+import { useEventStream } from '@/composables/useEventStream'
 import type { WarmupStatsRange } from '@/services/dashboard'
 import { ApiError } from '@/services/http'
 import type { AuditEntry, DashboardSummary, MailRecord } from '@/types'
@@ -77,7 +78,25 @@ async function loadRecipientDomainStats(range: WarmupStatsRange): Promise<Volume
   }))
 }
 
-onMounted(load)
+// Real-time: refresh the KPI tiles + recent-activity feeds shortly after new
+// mail/bounce events arrive (debounced so a burst collapses into one reload).
+let refreshTimer: ReturnType<typeof setTimeout> | undefined
+function scheduleRefresh() {
+  clearTimeout(refreshTimer)
+  refreshTimer = setTimeout(() => {
+    if (!loading.value) load()
+  }, 4000)
+}
+const dashStream = useEventStream('dashboard', scheduleRefresh)
+
+onMounted(() => {
+  load()
+  dashStream.start()
+})
+onBeforeUnmount(() => {
+  clearTimeout(refreshTimer)
+  dashStream.stop()
+})
 </script>
 
 <template>

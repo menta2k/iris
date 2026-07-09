@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table'
 import { StatusBadge } from '@/components/ui/badge'
 import { usePagedList } from '@/composables/usePagedList'
+import { useEventStream } from '@/composables/useEventStream'
 import { useConfigStore } from '@/stores/config'
 import { useToast } from '@/composables/useToast'
 import { mailOperationsService } from '@/services'
@@ -129,19 +130,34 @@ function resetFilters() {
   reload()
 }
 
-// ---- Live auto-refresh (keeps the current page; new rows arrive on page 1) ----
-
-const REFRESH_MS = 15_000
+// ---- Live updates via SSE (matching rows are prepended on page 1) ----
 
 const live = ref(false)
-let liveTimer: ReturnType<typeof setInterval> | undefined
+const MAX_LIVE_ROWS = 200
 
-watch(live, (on) => {
-  clearInterval(liveTimer)
-  if (on) liveTimer = setInterval(() => {
-    if (!loading.value) load()
-  }, REFRESH_MS)
-})
+// Client-side filter match mirroring the backend query, so a pushed record only
+// appears when it fits the operator's current filters.
+function matchesFilters(rec: MailRecord): boolean {
+  const f = filters.value
+  const has = (v?: string) => (v ?? '').trim() !== ''
+  const sub = (hay: string | undefined, needle?: string) =>
+    !has(needle) || (hay ?? '').toLowerCase().includes((needle ?? '').toLowerCase())
+  if (has(f.mailclass) && rec.mailclass !== f.mailclass) return false
+  if (has(f.status) && rec.status !== f.status) return false
+  if (has(f.record_type) && rec.recordType !== f.record_type) return false
+  return sub(rec.sender, f.sender) && sub(rec.fromHeader, f.from) &&
+    sub(rec.recipient, f.recipient) && sub(rec.egressSource, f.vmta_id)
+}
+
+function onMailEvent(rec: MailRecord) {
+  if (pageNumber.value !== 1) return // don't disturb a paginated view
+  if (!matchesFilters(rec)) return
+  if (items.value.some((m) => m.id === rec.id)) return
+  items.value = [rec, ...items.value].slice(0, Math.max(pageSize.value, MAX_LIVE_ROWS))
+}
+
+const mailStream = useEventStream<MailRecord>('mail-logs', onMailEvent)
+watch(live, (on) => (on ? mailStream.start() : mailStream.stop()))
 
 // ---- Column visibility & density (persisted per-table in the config store) ----
 
@@ -298,7 +314,7 @@ onMounted(() => window.addEventListener('keydown', onEsc))
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onEsc)
   clearTimeout(debounceTimer)
-  clearInterval(liveTimer)
+  mailStream.stop()
 })
 </script>
 

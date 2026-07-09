@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { usePagedList } from '@/composables/usePagedList'
+import { useEventStream } from '@/composables/useEventStream'
 import { mailOperationsService } from '@/services'
 import { ApiError } from '@/services/http'
 import { formatDateTime } from '@/composables/useTimezone'
@@ -114,23 +115,36 @@ function resetFilters() {
   reload()
 }
 
-// ---- Live auto-refresh (keeps the current page; new rows arrive on page 1) ----
-
-const REFRESH_MS = 15_000
+// ---- Live updates via SSE (matching bounces are prepended on page 1) ----
 
 const live = ref(false)
-let liveTimer: ReturnType<typeof setInterval> | undefined
+const MAX_LIVE_ROWS = 200
 
-watch(live, (on) => {
-  clearInterval(liveTimer)
-  if (on) liveTimer = setInterval(() => {
-    if (!loading.value) load()
-  }, REFRESH_MS)
-})
+// Client-side filter match mirroring the backend query.
+function matchesFilters(b: Bounce): boolean {
+  const f = filters.value
+  const has = (v?: string) => (v ?? '').trim() !== ''
+  const sub = (hay: string | undefined, needle?: string) =>
+    !has(needle) || (hay ?? '').toLowerCase().includes((needle ?? '').toLowerCase())
+  if (has(f.bounce_type) && (b.bounceType ?? '').toLowerCase() !== (f.bounce_type ?? '').toLowerCase()) return false
+  if (has(f.processing_state) && (b.processingState ?? '').toLowerCase() !== (f.processing_state ?? '').toLowerCase()) return false
+  if (has(f.mailclass) && b.mailclass !== f.mailclass) return false // backend: exact
+  return sub(b.recipient, f.recipient) && sub(b.classification, f.classification)
+}
+
+function onBounceEvent(b: Bounce) {
+  if (pageNumber.value !== 1) return
+  if (!matchesFilters(b)) return
+  if (items.value.some((x) => x.id === b.id)) return
+  items.value = [b, ...items.value].slice(0, Math.max(pageSize.value, MAX_LIVE_ROWS))
+}
+
+const bounceStream = useEventStream<Bounce>('bounces', onBounceEvent)
+watch(live, (on) => (on ? bounceStream.start() : bounceStream.stop()))
 
 onBeforeUnmount(() => {
   clearTimeout(debounceTimer)
-  clearInterval(liveTimer)
+  bounceStream.stop()
 })
 
 // ---- Presentation helpers ----

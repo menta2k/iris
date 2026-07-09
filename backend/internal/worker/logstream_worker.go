@@ -93,11 +93,21 @@ type LogStreamWorker struct {
 
 	// events forwards bounce/feedback events to the Event Processor (nil = off).
 	events biz.EventEmitter
+
+	// realtime pushes freshly-persisted records to connected UI clients (SSE).
+	realtime biz.RealtimePublisher
 }
 
 // WithEventEmitter forwards bounce and feedback events to the Event Processor.
 func (w *LogStreamWorker) WithEventEmitter(e biz.EventEmitter) *LogStreamWorker {
 	w.events = e
+	return w
+}
+
+// WithRealtimePublisher pushes newly-persisted mail/bounce records to connected
+// UI clients over SSE. Returns the worker for chaining.
+func (w *LogStreamWorker) WithRealtimePublisher(p biz.RealtimePublisher) *LogStreamWorker {
+	w.realtime = p
 	return w
 }
 
@@ -291,6 +301,9 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 		w.log.Error("persist mail event", "type", rec.Type, "error", err.Error())
 		return
 	}
+	if w.realtime != nil {
+		w.realtime.PublishMailRecord(ctx, mr)
+	}
 
 	// Metrics: mail events by status/class/domain, and outbound events by VMTA
 	// (egress source is present on Delivery/Bounce, absent on Reception).
@@ -328,6 +341,8 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 		}
 		if err := w.store.InsertBounce(ctx, bounce); err != nil {
 			w.log.Error("persist bounce", "error", err.Error())
+		} else if w.realtime != nil {
+			w.realtime.PublishBounce(ctx, bounce)
 		}
 		bounceType := "soft"
 		if bounce.IsHardBounce() {

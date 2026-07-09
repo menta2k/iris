@@ -403,11 +403,17 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// log_hook) into the mail_records hypertable that powers the Logs UI.
 	// Inbound-route webhooks are delivered in-policy by kumod (make.webhook_post),
 	// which forwards the raw message — there is no webhook fan-out worker.
+	// SSE: real-time mail-log / bounce / dashboard updates for the UI, mounted
+	// same-origin on the admin server (/sse). The log-stream worker publishes to
+	// it as records are persisted.
+	sseSrv := server.NewSSEServer(authUC, log)
+	rtPublisher := server.NewSSEPublisher(sseSrv, log)
 	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, wlog("log-stream")).
 		WithFeedbackVerification(domainSafetyRepo, settingsUC).
 		WithClassification(settingsUC).
 		WithBounceRules(bounceRuleUC).
-		WithEventEmitter(eventDispatcher).Run)
+		WithEventEmitter(eventDispatcher).
+		WithRealtimePublisher(rtPublisher).Run)
 	// Optional subject classification: consumes the transient classify-pending
 	// stream, resolves labels (trigram → LLM), and backfills mail_records. Idles
 	// when the feature is off (nothing is enqueued).
@@ -428,7 +434,9 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	authMW := service.AuthMiddleware(cfg.Auth, authUC)
 	checks := []server.ReadinessChecker{db, streams}
 
-	httpSrv := server.NewHTTPServer(adminServerConf, svc, adminv1.OpenAPISpec, checks, adminTLS, authMW)
+	// sseSrv (built above, before the log-stream worker) is mounted same-origin
+	// on the admin server at /sse.
+	httpSrv := server.NewHTTPServer(adminServerConf, svc, adminv1.OpenAPISpec, checks, adminTLS, sseSrv, authMW)
 	grpcSrv := server.NewGRPCServer(cfg.Server, svc, authMW)
 
 	servers := []transport.Server{httpSrv, grpcSrv}
