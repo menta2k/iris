@@ -27,16 +27,17 @@ type ReadinessChecker interface {
 // NewHTTPServer builds the HTTP transport, registers the admin service, and
 // exposes health/readiness endpoints plus the OpenAPI document. When tlsConf is
 // non-nil the server serves HTTPS on the same address.
-func NewHTTPServer(c conf.Server, svc adminv1.IrisAdminServiceHTTPServer, openapi []byte, checks []ReadinessChecker, tlsConf *tls.Config, mws ...middleware.Middleware) *kratoshttp.Server {
+func NewHTTPServer(c conf.Server, svc adminv1.IrisAdminServiceHTTPServer, openapi []byte, checks []ReadinessChecker, tlsConf *tls.Config, sseHandler http.Handler, mws ...middleware.Middleware) *kratoshttp.Server {
 	opts := []kratoshttp.ServerOption{
 		kratoshttp.Middleware(append([]middleware.Middleware{recovery.Recovery()}, mws...)...),
 	}
 	if c.HTTP.Addr != "" {
 		opts = append(opts, kratoshttp.Address(c.HTTP.Addr))
 	}
-	if c.HTTP.Timeout > 0 {
-		opts = append(opts, kratoshttp.Timeout(c.HTTP.Timeout))
-	}
+	// Always set the per-request timeout explicitly (Kratos defaults to 1s when
+	// unset). 0 disables the deadline — required for the long-lived /sse streams
+	// mounted on this server, which any positive deadline would sever.
+	opts = append(opts, kratoshttp.Timeout(c.HTTP.Timeout))
 	if tlsConf != nil {
 		opts = append(opts, kratoshttp.TLSConfig(tlsConf))
 	}
@@ -69,6 +70,14 @@ func NewHTTPServer(c conf.Server, svc adminv1.IrisAdminServiceHTTPServer, openap
 	srv.Handle("/metrics", promhttp.Handler())
 
 	adminv1.RegisterIrisAdminServiceHTTPServer(srv, svc)
+
+	// Server-Sent Events for real-time UI updates (mail logs / bounces /
+	// dashboard). Registered before the SPA fallback so it matches first; it does
+	// its own query-param JWT auth (EventSource can't send an Authorization
+	// header), so it sits outside the admin JWT middleware like /metrics.
+	if sseHandler != nil {
+		srv.HandleFunc("/sse", sseHandler.ServeHTTP)
+	}
 
 	// Serve the embedded SPA last so it acts as a fallback: the specific routes
 	// above (API, health, metrics, openapi) are matched first; everything else

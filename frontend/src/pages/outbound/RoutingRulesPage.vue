@@ -57,6 +57,7 @@ const matchTypes = [
   { value: 'recipient_email', label: 'Recipient Email' },
   { value: 'recipient_domain', label: 'Recipient Domain' },
   { value: 'sender_ip', label: 'Sender IP → assign mail class' },
+  { value: 'header_vmta', label: 'Header → VMTA (dynamic)' },
 ]
 const targetTypes = [
   { value: 'vmta', label: 'VMTA' },
@@ -98,6 +99,9 @@ const isMailclass = computed(() => form.value.match_type === 'mailclass')
 // sender_ip rules classify by IP/CIDR and assign a mailclass; they have no
 // VMTA/group target.
 const isSenderIP = computed(() => form.value.match_type === 'sender_ip')
+// header_vmta reads a header whose value names the egress VMTA; no fixed target
+// or match value.
+const isHeaderVmta = computed(() => form.value.match_type === 'header_vmta')
 // Mailclass rules match on one or more header/value conditions (OR); a rule is
 // valid when at least one condition has a value.
 const validConditions = computed(() =>
@@ -113,6 +117,7 @@ function removeCondition(i: number) {
 // The form is submittable when the type-specific required fields are present.
 const canSubmit = computed(() => {
   if (!form.value.name) return false
+  if (isHeaderVmta.value) return !!form.value.match_header.trim() // header has a default
   if (isMailclass.value) return validConditions.value.length > 0 && !!form.value.target_id
   if (!form.value.match_value) return false
   return isSenderIP.value ? !!form.value.assign_mailclass : !!form.value.target_id
@@ -148,6 +153,13 @@ function onTargetTypeChange() {
 // When switching to a targeted match type, make sure a target is preselected so
 // the form is immediately valid.
 function onMatchTypeChange() {
+  if (form.value.match_type === 'header_vmta') {
+    // Give the header a sensible default when arriving from a mailclass rule.
+    if (!form.value.match_header || form.value.match_header === 'X-Mail-Class') {
+      form.value.match_header = 'X-Kumo-VMTA'
+    }
+    return
+  }
   if (form.value.match_type !== 'sender_ip') ensureTargetSelected()
 }
 
@@ -179,7 +191,7 @@ async function openEdit(r: RoutingRule) {
   form.value = {
     name: r.name,
     match_type: r.matchType,
-    match_header: r.matchHeader || 'X-Mail-Class',
+    match_header: r.matchHeader || (r.matchType === 'header_vmta' ? 'X-Kumo-VMTA' : 'X-Mail-Class'),
     match_value: r.matchValue,
     conditions,
     priority: r.priority,
@@ -201,18 +213,22 @@ async function submit() {
     // rules carry an assigned class and no VMTA/group target.
     const mailclass = form.value.match_type === 'mailclass'
     const senderIP = form.value.match_type === 'sender_ip'
+    const headerVmta = form.value.match_type === 'header_vmta'
     const conditions = mailclass
       ? validConditions.value.map((c) => ({ header: c.header.trim() || 'X-Mail-Class', value: c.value.trim() }))
       : undefined
+    // header_vmta carries the header name (its value dynamically names the VMTA)
+    // and has no fixed target or match value.
+    const targetless = senderIP || headerVmta
     const payload = {
       name: form.value.name,
       match_type: form.value.match_type,
-      match_header: mailclass ? conditions![0].header : '',
-      match_value: mailclass ? conditions![0].value : form.value.match_value,
+      match_header: mailclass ? conditions![0].header : headerVmta ? form.value.match_header.trim() : '',
+      match_value: mailclass ? conditions![0].value : headerVmta ? '' : form.value.match_value,
       conditions,
       priority: Number(form.value.priority),
-      target_type: senderIP ? '' : form.value.target_type,
-      target_id: senderIP ? '' : form.value.target_id,
+      target_type: targetless ? '' : form.value.target_type,
+      target_id: targetless ? '' : form.value.target_id,
       assign_mailclass: senderIP ? form.value.assign_mailclass : '',
     }
     if (isEdit.value && editId.value) {
@@ -271,7 +287,8 @@ async function submit() {
                 <TableCell>
                   <Badge variant="outline">{{ r.matchType }}</Badge>
                   <span class="ml-2 font-mono text-caption">
-                    <template v-if="r.matchType === 'mailclass' && r.conditions && r.conditions.length">
+                    <template v-if="r.matchType === 'header_vmta'">{{ r.matchHeader }} → VMTA</template>
+                    <template v-else-if="r.matchType === 'mailclass' && r.conditions && r.conditions.length">
                       <span v-for="(c, i) in r.conditions" :key="i">
                         <template v-if="i > 0"> <span class="text-medium-emphasis">or</span> </template>{{ c.header }}: {{ c.value }}
                       </span>
@@ -285,6 +302,9 @@ async function submit() {
                   <template v-if="r.matchType === 'sender_ip'">
                     <Badge variant="secondary">mail class</Badge>
                     <span class="ml-2 font-mono text-caption">{{ r.assignMailclass }}</span>
+                  </template>
+                  <template v-else-if="r.matchType === 'header_vmta'">
+                    <span class="text-caption text-medium-emphasis">via header value (dynamic)</span>
                   </template>
                   <template v-else>
                     <Badge variant="secondary">{{ r.targetType }}</Badge>
@@ -319,7 +339,7 @@ async function submit() {
           <Input id="rr-name" v-model="form.name" placeholder="route-gmail" />
         </div>
         <v-row dense>
-          <v-col :cols="isMailclass ? 12 : 6" class="d-flex flex-column ga-1">
+          <v-col :cols="isMailclass || isHeaderVmta ? 12 : 6" class="d-flex flex-column ga-1">
             <Label for="rr-match-type">Match Type</Label>
             <v-select
               id="rr-match-type"
@@ -331,7 +351,7 @@ async function submit() {
               @update:model-value="onMatchTypeChange"
             />
           </v-col>
-          <v-col v-if="!isMailclass" cols="6" class="d-flex flex-column ga-1">
+          <v-col v-if="!isMailclass && !isHeaderVmta" cols="6" class="d-flex flex-column ga-1">
             <Label for="rr-match-value">{{ isSenderIP ? 'Sender IP / CIDR' : 'Match Value' }}</Label>
             <Input
               id="rr-match-value"
@@ -340,6 +360,16 @@ async function submit() {
             />
           </v-col>
         </v-row>
+        <!-- header_vmta: the header whose value names the egress VMTA. -->
+        <div v-if="isHeaderVmta" class="d-flex flex-column ga-1">
+          <Label for="rr-vmta-header">Header name</Label>
+          <Input id="rr-vmta-header" v-model="form.match_header" class="font-mono" placeholder="X-Kumo-VMTA" data-testid="rr-vmta-header" />
+          <p class="text-caption text-medium-emphasis">
+            Routes outbound mail via the VMTA named in this header's value, if that VMTA exists
+            (e.g. <span class="font-mono">{{ form.match_header || 'X-Kumo-VMTA' }}: vmta-02</span> → sends via vmta-02).
+            Only honored for relayable mail; unknown values fall through. The header is stripped before delivery.
+          </p>
+        </div>
         <!-- Mailclass: one or more header/value conditions, matched with OR. -->
         <div v-if="isMailclass" class="d-flex flex-column ga-2">
           <Label>Match conditions <span class="text-medium-emphasis">(any match — OR)</span></Label>
@@ -396,7 +426,7 @@ async function submit() {
             follows that class's routing rule.
           </p>
         </div>
-        <v-row v-if="!isSenderIP" dense>
+        <v-row v-if="!isSenderIP && !isHeaderVmta" dense>
           <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="rr-target-type">Target Type</Label>
             <v-select

@@ -16,7 +16,15 @@ const (
 	// mailclass header. It has no VMTA/group target; delivery then follows the
 	// mailclass rule for the assigned class.
 	MatchSenderIP = "sender_ip"
+	// MatchHeaderVMTA reads a header (MatchHeader, e.g. "X-Kumo-VMTA") whose VALUE
+	// names the egress VMTA to route via. It has no fixed target — the target is
+	// the header value, honored only when that VMTA exists and the mail is
+	// relayable (outbound). The header is stripped after use.
+	MatchHeaderVMTA = "header_vmta"
 )
+
+// DefaultVMTAHeader is the header name a header_vmta rule reads when none is set.
+const DefaultVMTAHeader = "X-Kumo-VMTA"
 
 // Routing target types.
 const (
@@ -89,7 +97,7 @@ func routingConditions(r *RoutingRule) []RoutingMatchCondition {
 // ValidMatchType reports whether t is a known match type.
 func ValidMatchType(t string) bool {
 	switch t {
-	case MatchMailclass, MatchRecipientEmail, MatchRecipientDomain, MatchSenderIP:
+	case MatchMailclass, MatchRecipientEmail, MatchRecipientDomain, MatchSenderIP, MatchHeaderVMTA:
 		return true
 	default:
 		return false
@@ -152,17 +160,26 @@ func (r *RoutingRule) Validate() error {
 		// Mirror the first condition into the legacy fields (compat + filtering).
 		r.MatchHeader = norm[0].Header
 		r.MatchValue = norm[0].Value
+	case MatchHeaderVMTA:
+		// The header's VALUE is the dynamic target; no match value is stored.
+		r.Conditions = nil
+		r.MatchValue = ""
+		if r.MatchHeader == "" {
+			r.MatchHeader = DefaultVMTAHeader
+		}
 	default:
 		r.Conditions = nil
 		r.MatchValue = strings.ToLower(strings.TrimSpace(r.MatchValue))
 		r.MatchHeader = "" // not applicable to recipient/sender_ip matches
 	}
-	// sender_ip rules have no VMTA/group target; clear any stray value so the
-	// row stores a null target.
-	if r.MatchType == MatchSenderIP {
+	// sender_ip and header_vmta rules have no VMTA/group target; clear any stray
+	// value so the row stores a null target.
+	targetless := r.MatchType == MatchSenderIP || r.MatchType == MatchHeaderVMTA
+	if targetless {
 		r.TargetType = ""
 		r.TargetID = ""
-	} else {
+	}
+	if r.MatchType != MatchSenderIP {
 		r.AssignMailclass = "" // only meaningful for sender_ip rules
 	}
 
@@ -172,10 +189,11 @@ func (r *RoutingRule) Validate() error {
 	if !ValidMatchType(r.MatchType) {
 		return Invalid("ROUTING_MATCH_TYPE_INVALID", "match_type %q is not valid", r.MatchType)
 	}
-	if r.MatchType == MatchMailclass && !headerNameRe.MatchString(r.MatchHeader) {
+	if (r.MatchType == MatchMailclass || r.MatchType == MatchHeaderVMTA) && !headerNameRe.MatchString(r.MatchHeader) {
 		return Invalid("ROUTING_MATCH_HEADER_INVALID", "match_header %q is not a valid header name", r.MatchHeader)
 	}
-	if r.MatchValue == "" {
+	// header_vmta needs no match value (the header value is the dynamic target).
+	if r.MatchType != MatchHeaderVMTA && r.MatchValue == "" {
 		return Invalid("ROUTING_MATCH_VALUE_REQUIRED", "match_value is required")
 	}
 
@@ -189,7 +207,9 @@ func (r *RoutingRule) Validate() error {
 		if !mailclassNameRe.MatchString(r.AssignMailclass) {
 			return Invalid("ROUTING_ASSIGN_MAILCLASS_INVALID", "assign_mailclass %q is not a valid mailclass name", r.AssignMailclass)
 		}
-	} else {
+	} else if r.MatchType != MatchHeaderVMTA {
+		// mailclass / recipient rules route to a fixed VMTA or group; header_vmta
+		// resolves its target dynamically from the header value.
 		if !ValidTargetType(r.TargetType) {
 			return Invalid("ROUTING_TARGET_TYPE_INVALID", "target_type %q is not valid", r.TargetType)
 		}

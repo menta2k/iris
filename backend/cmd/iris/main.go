@@ -304,6 +304,14 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// override the HTTP bind and enable HTTPS using an issued certificate;
 	// unreadable cert config falls back to plain HTTP rather than failing boot.
 	adminServerConf := cfg.Server
+	// Disable Kratos's blanket per-request timeout on the admin HTTP server: it
+	// wraps EVERY request (including the mounted /sse handler) in a context
+	// deadline, which would cancel the long-lived SSE streams every N seconds and
+	// force the browser to reconnect. Go's stdlib server imposes no such deadline
+	// by default, and every iris handler already does ctx-aware, individually
+	// timed I/O (DB/Redis/HTTP), so this only removes an unnecessary net that
+	// happens to be incompatible with streaming.
+	adminServerConf.HTTP.Timeout = 0
 	var adminTLS *tls.Config
 	renewInterval := envDuration("IRIS_ACME_RENEW_INTERVAL", 12*time.Hour)
 	renewBefore := envDuration("IRIS_ACME_RENEW_BEFORE", 30*24*time.Hour)
@@ -403,11 +411,17 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// log_hook) into the mail_records hypertable that powers the Logs UI.
 	// Inbound-route webhooks are delivered in-policy by kumod (make.webhook_post),
 	// which forwards the raw message — there is no webhook fan-out worker.
+	// SSE: real-time mail-log / bounce / dashboard updates for the UI, mounted
+	// same-origin on the admin server (/sse). The log-stream worker publishes to
+	// it as records are persisted.
+	sseSrv := server.NewSSEServer(ctx, authUC, log)
+	rtPublisher := server.NewSSEPublisher(sseSrv, log)
 	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, wlog("log-stream")).
 		WithFeedbackVerification(domainSafetyRepo, settingsUC).
 		WithClassification(settingsUC).
 		WithBounceRules(bounceRuleUC).
-		WithEventEmitter(eventDispatcher).Run)
+		WithEventEmitter(eventDispatcher).
+		WithRealtimePublisher(rtPublisher).Run)
 	// Optional subject classification: consumes the transient classify-pending
 	// stream, resolves labels (trigram → LLM), and backfills mail_records. Idles
 	// when the feature is off (nothing is enqueued).
@@ -428,7 +442,9 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	authMW := service.AuthMiddleware(cfg.Auth, authUC)
 	checks := []server.ReadinessChecker{db, streams}
 
-	httpSrv := server.NewHTTPServer(adminServerConf, svc, adminv1.OpenAPISpec, checks, adminTLS, authMW)
+	// sseSrv (built above, before the log-stream worker) is mounted same-origin
+	// on the admin server at /sse.
+	httpSrv := server.NewHTTPServer(adminServerConf, svc, adminv1.OpenAPISpec, checks, adminTLS, sseSrv, authMW)
 	grpcSrv := server.NewGRPCServer(cfg.Server, svc, authMW)
 
 	servers := []transport.Server{httpSrv, grpcSrv}

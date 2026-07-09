@@ -303,14 +303,15 @@ func (r *MailOpsRepo) InsertMailEvent(ctx context.Context, rec *biz.MailRecord) 
 }
 
 // InsertBounce appends a bounce-record row (used for KumoMTA Bounce log events).
+// RETURNING id so the row can be referenced (e.g. pushed over SSE).
 func (r *MailOpsRepo) InsertBounce(ctx context.Context, b *biz.BounceRecord) error {
-	_, err := r.db.Pool.Exec(ctx, `
+	if err := r.db.Pool.QueryRow(ctx, `
 		INSERT INTO bounce_records
 			(event_time, recipient, mailclass, smtp_status, bounce_type, diagnostic, classification, processing_state)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id`,
 		b.EventTime, b.Recipient, b.Mailclass, b.SMTPStatus, b.BounceType, b.Diagnostic, b.Classification,
-		strOrDefault(b.ProcessingState, biz.ProcessingNew))
-	if err != nil {
+		strOrDefault(b.ProcessingState, biz.ProcessingNew)).Scan(&b.ID); err != nil {
 		return fmt.Errorf("insert bounce: %w", err)
 	}
 	return nil
