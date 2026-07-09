@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { StatusBadge } from '@/components/ui/badge'
 import { formatDateTime } from '@/composables/useTimezone'
-import type { MailRecord } from '@/types'
+import { mailOperationsService } from '@/services'
+import type { MailRecord, NextDeliveryAttempt } from '@/types'
 
 // Full-record inspector shown in the Mail Logs right-hand detail drawer.
 // `related` is every loaded record sharing the message id (the message's
@@ -85,6 +86,35 @@ const fields = computed<Field[]>(() =>
 const lifecycle = computed(() =>
   [...props.related].sort((a, b) => a.eventTime.localeCompare(b.eventTime)),
 )
+
+// Estimated retry schedule for a deferred message. Fetched from the backend,
+// which reconstructs the message's full lifecycle (not just this page) and
+// applies the effective exponential-backoff schedule.
+const nextAttempt = ref<NextDeliveryAttempt | null>(null)
+
+watch(
+  () => props.record.messageId,
+  async (messageId) => {
+    nextAttempt.value = null
+    if (!messageId) return
+    try {
+      nextAttempt.value = await mailOperationsService.nextDeliveryAttempt(messageId)
+    } catch {
+      // Best-effort: the estimate is a convenience, never blocks the detail view.
+    }
+  },
+  { immediate: true },
+)
+
+const deferredEstimate = computed(() => (nextAttempt.value?.deferred ? nextAttempt.value : null))
+
+// Relative time from now, e.g. "in 1h 4m" / "due now".
+function fromNow(iso?: string): string {
+  if (!iso) return ''
+  const ms = new Date(iso).getTime() - Date.now()
+  if (Number.isNaN(ms)) return ''
+  return ms <= 0 ? 'due now' : `in ${formatDuration(ms)}`
+}
 </script>
 
 <template>
@@ -100,6 +130,34 @@ const lifecycle = computed(() =>
         <dd :class="{ 'font-mono text-caption': f.mono }" class="text-break">{{ f.value }}</dd>
       </template>
     </dl>
+
+    <template v-if="deferredEstimate">
+      <p class="mt-4 mb-1 text-caption text-uppercase text-medium-emphasis">Retry schedule (estimated)</p>
+      <div class="rounded border pa-3 text-body-2 d-flex flex-column ga-1">
+        <template v-if="deferredEstimate.willExpire">
+          <div class="d-flex align-center ga-2">
+            <StatusBadge status="bounced" />
+            <span>No further attempts — expires {{ formatDateTime(deferredEstimate.expiresAt) }} ({{ fromNow(deferredEstimate.expiresAt) }}).</span>
+          </div>
+        </template>
+        <template v-else>
+          <div>
+            <span class="text-medium-emphasis">Next attempt:</span>
+            <span class="font-weight-medium"> {{ formatDateTime(deferredEstimate.nextAttempt) }}</span>
+            <span class="text-medium-emphasis"> ({{ fromNow(deferredEstimate.nextAttempt) }})</span>
+          </div>
+          <div>
+            <span class="text-medium-emphasis">Attempts so far:</span> {{ deferredEstimate.attempts }}
+            <span class="text-medium-emphasis ml-3">Remaining before expiry:</span>
+            <span class="font-weight-medium"> ~{{ deferredEstimate.remainingAttempts }}</span>
+          </div>
+          <div class="text-caption text-medium-emphasis">
+            Backoff doubles each try; expires {{ formatDateTime(deferredEstimate.expiresAt) }} ({{ fromNow(deferredEstimate.expiresAt) }}).
+            Estimate — subject to jitter and traffic shaping.
+          </div>
+        </template>
+      </div>
+    </template>
 
     <template v-if="record.diagnostic">
       <p class="mt-4 mb-1 text-caption text-uppercase text-medium-emphasis">Diagnostic</p>

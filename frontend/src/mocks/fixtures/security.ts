@@ -1,8 +1,8 @@
 // Identity + audit fixtures: users (admin included) and audit-log entries.
 
-import type { AuditEntry, User } from '../../types'
+import type { AuditEntry, InjectionCredential, User } from '../../types'
 import { ADMIN_USER } from './auth'
-import { hoursAgo, pick, randomString } from './util'
+import { daysAgo, hoursAgo, pick, randomString } from './util'
 
 export const users: User[] = [
   ADMIN_USER,
@@ -39,3 +39,36 @@ export const auditEntries: AuditEntry[] = Array.from({ length: 40 }, (_, i) => {
     ipAddress: `10.0.0.${10 + (i % 20)}`,
   } satisfies AuditEntry
 })
+
+// Injection API credentials for the GreenArrow-compatible listener.
+export const injectionCredentials: InjectionCredential[] = [
+  {
+    id: 'inj_acme',
+    username: 'acme-app',
+    label: 'Example transactional app',
+    enabled: true,
+    allowedMailclasses: ['acme_k'],
+    lastUsedAt: hoursAgo(3),
+    createdAt: daysAgo(40),
+    updatedAt: daysAgo(2),
+  },
+  {
+    id: 'inj_homesbg',
+    username: 'homesbg-app',
+    label: 'Homes.bg newsletter',
+    enabled: true,
+    allowedMailclasses: ['homesbg_h', 'homesbg_g'],
+    lastUsedAt: hoursAgo(20),
+    createdAt: daysAgo(30),
+    updatedAt: daysAgo(5),
+  },
+  {
+    id: 'inj_legacy',
+    username: 'legacy-integration',
+    label: 'Legacy integration (any mailclass)',
+    enabled: false,
+    allowedMailclasses: [],
+    createdAt: daysAgo(120),
+    updatedAt: daysAgo(60),
+  },
+]

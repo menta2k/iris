@@ -79,6 +79,10 @@ func DefaultBlueprints() []DeliveryBlueprint {
 		}
 	}
 	return []DeliveryBlueprint{
+		// gmail.com is the primary Gmail recipient domain; google.com/googlemail.com
+		// are corporate/legacy. With mx_rollup=false the shaping block matches the
+		// literal recipient domain, so without gmail.com real Gmail mail is unshaped.
+		bp("Gmail", "gmail.com", "5/min", 10, 3, 150),
 		bp("Gmail", "google.com", "5/min", 10, 3, 150),
 		bp("Gmail", "googlemail.com", "5/min", 10, 3, 150),
 		bp("Microsoft", "outlook.com", "3/min", 10, 2, 150),

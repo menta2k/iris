@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -50,13 +51,65 @@ func (s *Service) ListMailRecords(ctx context.Context, req *adminv1.ListMailReco
 	return out, nil
 }
 
+// GetNextDeliveryAttempt estimates a deferred message's retry schedule.
+func (s *Service) GetNextDeliveryAttempt(ctx context.Context, req *adminv1.GetNextDeliveryAttemptRequest) (*adminv1.NextDeliveryAttempt, error) {
+	if s.mailOps == nil {
+		return nil, notImplemented("GetNextDeliveryAttempt")
+	}
+	var sched biz.RetrySchedule
+	if s.settings != nil {
+		sched = s.settings.RetryScheduleNow(ctx)
+	}
+	est, err := s.mailOps.NextDeliveryAttempt(ctx, req.GetMessageId(), sched)
+	if err != nil {
+		return nil, s.fail(ctx, "GetNextDeliveryAttempt", err)
+	}
+	out := &adminv1.NextDeliveryAttempt{
+		Deferred:          est.Deferred,
+		Attempts:          int32(est.Attempts),
+		RemainingAttempts: int32(est.RemainingAttempts),
+		WillExpire:        est.WillExpire,
+	}
+	if est.Interval > 0 {
+		out.Interval = est.Interval.String()
+	}
+	if !est.LastAttempt.IsZero() {
+		out.LastAttempt = est.LastAttempt.UTC().Format(time.RFC3339)
+	}
+	if !est.NextAttempt.IsZero() {
+		out.NextAttempt = est.NextAttempt.UTC().Format(time.RFC3339)
+	}
+	if !est.FinalAttempt.IsZero() {
+		out.FinalAttempt = est.FinalAttempt.UTC().Format(time.RFC3339)
+	}
+	if !est.ExpiresAt.IsZero() {
+		out.ExpiresAt = est.ExpiresAt.UTC().Format(time.RFC3339)
+	}
+	return out, nil
+}
+
 // ListBounces returns bounce records (US2).
 func (s *Service) ListBounces(ctx context.Context, req *adminv1.ListBouncesRequest) (*adminv1.ListBouncesReply, error) {
 	if s.mailOps == nil {
 		return nil, notImplemented("ListBounces")
 	}
 	page := pageFrom(req.GetPage())
-	items, err := s.mailOps.ListBounces(ctx, page)
+	f := biz.BounceFilter{
+		Recipient:       req.GetRecipient(),
+		Mailclass:       req.GetMailclass(),
+		BounceType:      req.GetBounceType(),
+		Classification:  req.GetClassification(),
+		ProcessingState: req.GetProcessingState(),
+	}
+	if req.GetFromTime() != nil {
+		t := req.GetFromTime().AsTime()
+		f.FromTime = &t
+	}
+	if req.GetToTime() != nil {
+		t := req.GetToTime().AsTime()
+		f.ToTime = &t
+	}
+	items, err := s.mailOps.ListBounces(ctx, f, page)
 	if err != nil {
 		return nil, s.fail(ctx, "ListBounces", err)
 	}
@@ -66,6 +119,28 @@ func (s *Service) ListBounces(ctx context.Context, req *adminv1.ListBouncesReque
 			Id: b.ID, EventTime: timestamppb.New(b.EventTime), Recipient: b.Recipient,
 			Mailclass: b.Mailclass, SmtpStatus: b.SMTPStatus, BounceType: b.BounceType,
 			Diagnostic: b.Diagnostic, ProcessingState: b.ProcessingState, Classification: b.Classification,
+		})
+	}
+	return out, nil
+}
+
+// ListDsnMessages returns the raw DSN notifications archived for a recipient,
+// so the operator can read the full asynchronous bounce behind a dsn-type bounce.
+func (s *Service) ListDsnMessages(ctx context.Context, req *adminv1.ListDsnMessagesRequest) (*adminv1.ListDsnMessagesReply, error) {
+	if s.mailOps == nil {
+		return nil, notImplemented("ListDsnMessages")
+	}
+	msgs, err := s.mailOps.DSNMessagesForRecipient(ctx, req.GetRecipient())
+	if err != nil {
+		return nil, s.fail(ctx, "ListDsnMessages", err)
+	}
+	out := &adminv1.ListDsnMessagesReply{}
+	for _, m := range msgs {
+		out.Items = append(out.Items, &adminv1.DsnMessage{
+			Id:         m.ID,
+			MessageId:  m.MessageID,
+			RawMessage: m.RawMessage,
+			ReceivedAt: m.ReceivedAt.UTC().Format(time.RFC3339),
 		})
 	}
 	return out, nil

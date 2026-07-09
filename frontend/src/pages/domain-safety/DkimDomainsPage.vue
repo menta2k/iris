@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
+import StatTile from '@/components/dashboard/StatTile.vue'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
@@ -10,22 +11,119 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableEmpty,
 } from '@/components/ui/table'
-import { StatusBadge } from '@/components/ui/badge'
+import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
-import { domainSafetyService } from '@/services'
+import { domainSafetyService, domainCheckService } from '@/services'
 import { ApiError } from '@/services/http'
-import type { DkimDomain } from '@/types'
+import type { DkimDomain, DomainCheckItem } from '@/types'
 
 const { items, loading, error, notImplemented, load } = useAsyncList<DkimDomain>({
   loader: () => domainSafetyService.listDkimDomains(),
 })
 const { toast } = useToast()
+
+// ---- Filters (client-side; the list is small and unpaginated) ----
+
+const search = ref('')
+const statusFilter = ref('')
+
+const STATUS_FILTER_ITEMS = [
+  { title: 'All statuses', value: '' },
+  { title: 'Ready', value: 'ready' },
+  { title: 'Needs attention', value: 'needs_attention' },
+  { title: 'Disabled', value: 'disabled' },
+]
+
+const visible = computed(() => {
+  const term = (search.value ?? '').trim().toLowerCase()
+  const st = statusFilter.value
+  return items.value.filter(
+    (d) =>
+      (!term || d.domain.toLowerCase().includes(term) || d.selector.toLowerCase().includes(term)) &&
+      (!st || (d.status || '').toLowerCase() === st),
+  )
+})
+
+const hasActiveFilters = computed(() => (search.value ?? '') !== '' || statusFilter.value !== '')
+
+function resetFilters() {
+  search.value = ''
+  statusFilter.value = ''
+}
+
+// ---- KPI tiles ----
+
+const countBy = (s: string) => items.value.filter((d) => (d.status || '').toLowerCase() === s).length
+const readyCount = computed(() => countBy('ready'))
+const attentionCount = computed(() => countBy('needs_attention'))
+const disabledCount = computed(() => countBy('disabled'))
+
+// ---- Live DNS verification (expandable row, per domain) ----
+
+type CheckState = { loading: boolean; error: string | null; items: DomainCheckItem[] }
+const expandedId = ref<string | null>(null)
+const checkByDomain = ref<Record<string, CheckState>>({})
+
+async function verifyDns(d: DkimDomain, force = false) {
+  if (expandedId.value === d.id && !force) {
+    expandedId.value = null
+    return
+  }
+  expandedId.value = d.id
+  if (checkByDomain.value[d.id] && !force) return // cached from a prior run
+  checkByDomain.value = { ...checkByDomain.value, [d.id]: { loading: true, error: null, items: [] } }
+  try {
+    const res = await domainCheckService.check(d.domain)
+    checkByDomain.value = {
+      ...checkByDomain.value,
+      [d.id]: { loading: false, error: null, items: res.items ?? [] },
+    }
+  } catch (err) {
+    const msg = err instanceof ApiError ? err.message : 'DNS check failed.'
+    checkByDomain.value = { ...checkByDomain.value, [d.id]: { loading: false, error: msg, items: [] } }
+  }
+}
+
+function checkVariant(status: string) {
+  switch ((status || '').toLowerCase()) {
+    case 'pass':
+      return 'success' as const
+    case 'warn':
+      return 'warning' as const
+    default:
+      return 'destructive' as const
+  }
+}
+
+// Summary chip after a check ran: worst status across the items.
+function checkSummary(d: DkimDomain): { label: string; variant: 'success' | 'warning' | 'destructive' } | null {
+  const c = checkByDomain.value[d.id]
+  if (!c || c.loading || c.error || c.items.length === 0) return null
+  const statuses = c.items.map((i) => (i.status || '').toLowerCase())
+  if (statuses.includes('fail')) return { label: 'DNS issues', variant: 'destructive' }
+  if (statuses.includes('warn')) return { label: 'DNS warnings', variant: 'warning' }
+  return { label: 'DNS ok', variant: 'success' }
+}
+
+// ---- Clipboard ----
+
+async function copy(text: string, what: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    toast({ title: `${what} copied`, variant: 'success', duration: 2000 })
+  } catch {
+    toast({ title: 'Could not copy to clipboard', variant: 'destructive' })
+  }
+}
+
+// ---- Create/edit dialog ----
 
 const DKIM_STATUSES = ['ready', 'disabled', 'needs_attention']
 const DKIM_STATUS_ITEMS = DKIM_STATUSES.map((s) => ({ title: s, value: s }))
@@ -142,15 +240,102 @@ async function submit() {
         <Button data-testid="create-dkim-domain" @click="openCreate">Add Domain</Button>
       </template>
     </PageHeader>
-    <DataState
-      :loading="loading"
-      :error="error"
-      :not-implemented="notImplemented"
-      :empty="items.length === 0"
-      empty-message="No DKIM domains configured."
-    >
-      <Card>
-        <CardContent class="pa-0">
+
+    <v-row dense class="mb-2">
+      <v-col cols="12" sm="6" lg="3">
+        <StatTile
+          label="Signing Domains"
+          :value="items.length.toLocaleString()"
+          caption="Configured in Iris"
+          icon="mdi-web"
+          color="primary"
+        />
+      </v-col>
+      <v-col cols="12" sm="6" lg="3">
+        <StatTile
+          label="Ready"
+          :value="readyCount.toLocaleString()"
+          caption="Signing outbound mail"
+          icon="mdi-shield-check-outline"
+          color="success"
+        />
+      </v-col>
+      <v-col cols="12" sm="6" lg="3">
+        <StatTile
+          label="Needs Attention"
+          :value="attentionCount.toLocaleString()"
+          caption="Not signing until resolved"
+          icon="mdi-shield-alert-outline"
+          :color="attentionCount > 0 ? 'warning' : 'secondary'"
+          :value-class="attentionCount > 0 ? 'text-warning' : ''"
+        />
+      </v-col>
+      <v-col cols="12" sm="6" lg="3">
+        <StatTile
+          label="Disabled"
+          :value="disabledCount.toLocaleString()"
+          caption="Signing switched off"
+          icon="mdi-shield-off-outline"
+          color="secondary"
+        />
+      </v-col>
+    </v-row>
+
+    <Card>
+      <div class="d-flex flex-wrap align-center ga-2 px-4 py-2">
+        <div class="mr-1">
+          <span class="text-subtitle-1 font-weight-bold">Domains</span>
+          <p class="text-caption text-medium-emphasis mb-0">Verify DNS runs a live MX/SPF/DKIM check</p>
+        </div>
+        <v-spacer />
+        <v-text-field
+          v-model="search"
+          placeholder="Search domain or selector"
+          prepend-inner-icon="mdi-magnify"
+          variant="outlined"
+          density="compact"
+          hide-details
+          clearable
+          class="flex-grow-0"
+          style="width: 240px"
+        />
+        <v-select
+          v-model="statusFilter"
+          :items="STATUS_FILTER_ITEMS"
+          variant="outlined"
+          density="compact"
+          hide-details
+          class="flex-grow-0"
+          style="width: 180px"
+        />
+        <v-btn
+          v-if="hasActiveFilters"
+          variant="text"
+          size="small"
+          @click="resetFilters"
+        >
+          Reset
+        </v-btn>
+        <v-btn
+          icon="mdi-refresh"
+          variant="text"
+          size="small"
+          :loading="loading"
+          aria-label="Refresh"
+          title="Refresh"
+          @click="load"
+        />
+      </div>
+      <v-divider />
+      <v-progress-linear :active="loading" indeterminate color="primary" height="2" />
+      <CardContent class="pa-0">
+        <DataState
+          :loading="loading && items.length === 0"
+          :error="error"
+          :not-implemented="notImplemented"
+          :empty="items.length === 0"
+          empty-message="No DKIM domains configured."
+        >
           <Table>
             <TableHeader>
               <TableRow>
@@ -158,31 +343,101 @@ async function submit() {
                 <TableHead>Selector</TableHead>
                 <TableHead>Public Key Fingerprint</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>DNS</TableHead>
                 <TableHead class="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="d in items" :key="d.id">
-                <TableCell class="font-weight-medium">{{ d.domain }}</TableCell>
-                <TableCell class="font-mono text-caption">{{ d.selector }}</TableCell>
-                <TableCell class="font-mono text-caption text-medium-emphasis">{{ d.publicKeyFingerprint }}</TableCell>
-                <TableCell><StatusBadge :status="d.status" /></TableCell>
-                <TableCell class="text-right">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    :data-testid="`edit-dkim-domain-${d.id}`"
-                    @click="openEdit(d)"
-                  >
-                    Edit
-                  </Button>
-                </TableCell>
-              </TableRow>
+              <TableEmpty
+                v-if="visible.length === 0"
+                :colspan="6"
+                message="No domains match the selected filters."
+              />
+              <template v-for="d in visible" :key="d.id">
+                <TableRow class="row-clickable" @click="verifyDns(d)">
+                  <TableCell class="font-weight-medium">{{ d.domain }}</TableCell>
+                  <TableCell class="font-mono text-caption">{{ d.selector }}</TableCell>
+                  <TableCell style="max-width: 260px">
+                    <span
+                      class="d-block text-truncate font-mono text-caption text-medium-emphasis"
+                      :title="d.publicKeyFingerprint"
+                    >
+                      {{ d.publicKeyFingerprint || '—' }}
+                    </span>
+                  </TableCell>
+                  <TableCell><StatusBadge :status="d.status" /></TableCell>
+                  <TableCell>
+                    <Badge v-if="checkSummary(d)" :variant="checkSummary(d)!.variant">
+                      {{ checkSummary(d)!.label }}
+                    </Badge>
+                    <span v-else-if="checkByDomain[d.id]?.loading" class="text-caption text-medium-emphasis">
+                      Checking…
+                    </span>
+                    <span v-else class="text-caption text-medium-emphasis">—</span>
+                  </TableCell>
+                  <TableCell class="text-right">
+                    <div class="d-flex justify-end ga-1">
+                      <v-btn
+                        icon="mdi-dns-outline"
+                        variant="text"
+                        size="small"
+                        :loading="checkByDomain[d.id]?.loading"
+                        aria-label="Verify DNS"
+                        title="Verify DNS (live MX/SPF/DKIM lookup)"
+                        :data-testid="`verify-dkim-domain-${d.id}`"
+                        @click.stop="verifyDns(d, expandedId === d.id)"
+                      />
+                      <v-btn
+                        icon="mdi-pencil-outline"
+                        variant="text"
+                        size="small"
+                        aria-label="Edit domain"
+                        title="Edit domain"
+                        :data-testid="`edit-dkim-domain-${d.id}`"
+                        @click.stop="openEdit(d)"
+                      />
+                    </div>
+                  </TableCell>
+                </TableRow>
+                <tr v-if="expandedId === d.id">
+                  <td :colspan="6" class="px-4 py-3">
+                    <p class="mb-2 text-caption text-uppercase text-medium-emphasis">
+                      Live DNS check — {{ d.domain }}
+                    </p>
+                    <div v-if="checkByDomain[d.id]?.loading" class="text-caption text-medium-emphasis">
+                      Looking up DNS records…
+                    </div>
+                    <div v-else-if="checkByDomain[d.id]?.error" class="text-caption text-error">
+                      {{ checkByDomain[d.id]?.error }}
+                    </div>
+                    <div v-else class="d-flex flex-column ga-2">
+                      <div
+                        v-for="item in checkByDomain[d.id]?.items ?? []"
+                        :key="item.name"
+                        class="d-flex flex-wrap align-center ga-2"
+                      >
+                        <Badge :variant="checkVariant(item.status)" style="min-width: 64px; justify-content: center">
+                          {{ item.status }}
+                        </Badge>
+                        <span class="text-body-2 font-weight-medium" style="min-width: 140px">{{ item.name }}</span>
+                        <span class="text-body-2 text-medium-emphasis">{{ item.detail }}</span>
+                        <span
+                          v-for="r in item.records ?? []"
+                          :key="r"
+                          class="font-mono text-caption text-medium-emphasis text-break"
+                        >
+                          {{ r }}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </template>
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-    </DataState>
+        </DataState>
+      </CardContent>
+    </Card>
 
     <Dialog v-model:open="dialogOpen">
       <DialogHeader>
@@ -241,11 +496,42 @@ async function submit() {
           </p>
         </div>
         <v-alert v-if="dnsRecord" type="warning" variant="tonal" density="comfortable">
-          <p class="text-caption font-weight-medium">Publish this DNS TXT record, then save:</p>
+          <div class="d-flex align-center justify-space-between ga-2">
+            <p class="text-caption font-weight-medium mb-0">Publish this DNS TXT record, then save:</p>
+            <v-btn
+              variant="text"
+              size="x-small"
+              prepend-icon="mdi-content-copy"
+              @click="copy(`${dnsRecord!.name} TXT ${dnsRecord!.value}`, 'DNS record')"
+            >
+              Copy record
+            </v-btn>
+          </div>
           <div class="d-flex flex-column ga-1 font-mono text-caption text-break">
-            <div><span class="text-medium-emphasis">name:</span> {{ dnsRecord.name }}</div>
+            <div class="d-flex align-center ga-1">
+              <span class="text-medium-emphasis">name:</span> {{ dnsRecord.name }}
+              <v-btn
+                icon="mdi-content-copy"
+                variant="text"
+                size="x-small"
+                aria-label="Copy record name"
+                title="Copy record name"
+                @click="copy(dnsRecord!.name, 'Record name')"
+              />
+            </div>
             <div><span class="text-medium-emphasis">type:</span> TXT</div>
-            <div><span class="text-medium-emphasis">value:</span> {{ dnsRecord.value }}</div>
+            <div class="d-flex align-center ga-1">
+              <span class="text-medium-emphasis">value:</span>
+              <span class="text-break flex-grow-1">{{ dnsRecord.value }}</span>
+              <v-btn
+                icon="mdi-content-copy"
+                variant="text"
+                size="x-small"
+                aria-label="Copy record value"
+                title="Copy record value"
+                @click="copy(dnsRecord!.value, 'Record value')"
+              />
+            </div>
           </div>
         </v-alert>
         <div v-if="isEdit" class="d-flex flex-column ga-1">
@@ -273,3 +559,9 @@ async function submit() {
     </Dialog>
   </div>
 </template>
+
+<style scoped>
+.row-clickable {
+  cursor: pointer;
+}
+</style>

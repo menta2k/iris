@@ -41,6 +41,11 @@ const (
 	PermSettingsRead  Permission = "settings:read"
 	PermSettingsWrite Permission = "settings:write"
 
+	// Mail-injection API credentials (GreenArrow-compatible listener). These are
+	// authentication material, so writes live with the security administrator.
+	PermInjectionRead  Permission = "injection:read"
+	PermInjectionWrite Permission = "injection:write"
+
 	// Wildcard granting all permissions; reserved for the owner role.
 	PermAll Permission = "*"
 )
@@ -67,12 +72,13 @@ var BuiltinRolePermissions = map[string][]Permission{
 	RoleSecurity: {
 		PermUserRead, PermUserWrite, PermAuditRead, PermDashboardRead,
 		PermMailRead, PermQueueRead, PermWorkerLogsRead,
+		PermInjectionRead, PermInjectionWrite,
 	},
 	RoleViewer: {
 		PermVMTARead, PermRoutingRead, PermMailRead, PermQueueRead,
 		PermDKIMRead, PermSuppressionRead, PermWebhookRead, PermRspamdRead,
 		PermDashboardRead, PermUserRead, PermAuditRead, PermSettingsRead,
-		PermWorkerLogsRead,
+		PermWorkerLogsRead, PermInjectionRead,
 	},
 }
 

@@ -15,7 +15,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    include: ['tests/component/**/*.spec.ts'],
+    include: ['tests/component/**/*.spec.ts', 'tests/unit/**/*.spec.ts'],
     setupFiles: ['tests/component/setup.ts'],
     // Vuetify's component modules import raw .css; inline them so vite
     // processes (and stubs) those imports instead of Node failing on them.

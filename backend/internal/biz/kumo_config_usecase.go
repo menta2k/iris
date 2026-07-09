@@ -61,6 +61,12 @@ type KumoConfigSettings struct {
 	// TSAUrl, when set, points the policy at a Traffic Shaping Automation daemon
 	// for adaptive back-off. Empty = static shaping only.
 	TSAUrl string
+
+	// PinEgressPerMessage keeps a message on one egress source across retries: the
+	// reception hook deterministically maps the message to a single source in its
+	// pool (by hashing the message id) instead of leaving KumoMTA's weighted
+	// round-robin to re-pick a (possibly different) source on every attempt.
+	PinEgressPerMessage bool
 }
 
 // KumoConfigUsecase renders Iris configuration into KumoMTA policy and applies
@@ -157,6 +163,7 @@ func (uc *KumoConfigUsecase) render(ctx context.Context) (RenderedConfig, error)
 	snap.InboundMaildirBase = settings.InboundMaildirBase
 	snap.ShapingDir = settings.ShapingDir
 	snap.TSAUrl = settings.TSAUrl
+	snap.PinEgressPerMessage = settings.PinEgressPerMessage
 	// IP warmup: resolve the active/paused schedules to per-source, per-MBP
 	// message-rate caps for today. Done here (not in RenderKumoConfig) so the
 	// renderer stays a pure, time-independent snapshot→policy function.

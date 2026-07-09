@@ -130,6 +130,73 @@ func (uc *MetricsUsecase) Timeseries(ctx context.Context, rng string) (*MetricsT
 	return out, nil
 }
 
+// SystemTimeseries returns host CPU / memory / per-disk usage over the given
+// lookback from the iris_system_* gauges. CPU and memory are single series; each
+// monitored disk path is its own series (discovered from the metric's path
+// label). PrometheusAvailable=false (not an error) when no Prometheus is set.
+func (uc *MetricsUsecase) SystemTimeseries(ctx context.Context, rng string) (*MetricsTimeseries, error) {
+	if _, err := RequirePermission(ctx, PermDashboardRead); err != nil {
+		return nil, err
+	}
+	lookback, step, _, eff := rangeParams(rng)
+	out := &MetricsTimeseries{Range: eff, StepSeconds: int64(step.Seconds())}
+
+	base := ""
+	if uc.urls != nil {
+		base = strings.TrimRight(strings.TrimSpace(uc.urls.PrometheusURLNow(ctx)), "/")
+	}
+	if base == "" {
+		out.PrometheusAvailable = false
+		return out, nil
+	}
+	out.PrometheusAvailable = true
+
+	end := uc.now()
+	start := end.Add(-lookback)
+
+	simple := []struct{ key, label, expr string }{
+		{"cpu", "CPU %", "iris_system_cpu_percent"},
+		{"memory", "Memory %", "iris_system_memory_percent"},
+	}
+	for _, s := range simple {
+		pts, err := uc.queryRange(ctx, base, s.expr, start, end, step)
+		if err != nil {
+			return nil, Internal(err, "prometheus query %q", s.key)
+		}
+		out.Series = append(out.Series, MetricsSeries{Key: s.key, Label: s.label, Points: pts})
+	}
+
+	// One series per monitored disk path (discovered from the label set).
+	for _, p := range uc.discoverDiskPaths(ctx, base) {
+		q := fmt.Sprintf(`iris_system_disk_used_percent{path=%q}`, p)
+		pts, err := uc.queryRange(ctx, base, q, start, end, step)
+		if err != nil {
+			return nil, Internal(err, "prometheus disk query %q", p)
+		}
+		out.Series = append(out.Series, MetricsSeries{Key: "disk:" + p, Label: "Disk " + p, Points: pts})
+	}
+	return out, nil
+}
+
+// discoverDiskPaths lists the path labels present on the disk-usage gauge, so the
+// series set matches whatever is currently monitored.
+func (uc *MetricsUsecase) discoverDiskPaths(ctx context.Context, base string) []string {
+	samples, err := uc.queryInstant(ctx, base, `group by (path) (iris_system_disk_used_percent)`)
+	if err != nil {
+		return nil
+	}
+	var paths []string
+	seen := map[string]bool{}
+	for _, s := range samples {
+		if p := s.Metric["path"]; p != "" && !seen[p] {
+			seen[p] = true
+			paths = append(paths, p)
+		}
+	}
+	sort.Strings(paths)
+	return paths
+}
+
 // QueueTimeBucket is one delivery-queue-time histogram bucket: the per-bucket
 // (non-cumulative) count of deliveries whose queue time fell in
 // (previous upper bound, UpperBound]. UpperBound is +Inf for the overflow bucket.

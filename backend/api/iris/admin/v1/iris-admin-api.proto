@@ -83,6 +83,39 @@ service IrisAdminService {
   rpc SetAutomationRuleStatus(SetAutomationRuleStatusRequest) returns (AutomationRule) {
     option (google.api.http) = { post: "/v1/automation-rules/{id}:status" body: "*" };
   }
+  rpc ListBounceRules(ListBounceRulesRequest) returns (ListBounceRulesReply) {
+    option (google.api.http) = { get: "/v1/bounce-rules" };
+  }
+  rpc CreateBounceRule(CreateBounceRuleRequest) returns (BounceRule) {
+    option (google.api.http) = { post: "/v1/bounce-rules" body: "*" };
+  }
+  rpc UpdateBounceRule(UpdateBounceRuleRequest) returns (BounceRule) {
+    option (google.api.http) = { put: "/v1/bounce-rules/{id}" body: "*" };
+  }
+  rpc DeleteBounceRule(DeleteBounceRuleRequest) returns (DeleteBounceRuleReply) {
+    option (google.api.http) = { delete: "/v1/bounce-rules/{id}" };
+  }
+  rpc ResetBounceRules(ResetBounceRulesRequest) returns (ListBounceRulesReply) {
+    option (google.api.http) = { post: "/v1/bounce-rules:reset" body: "*" };
+  }
+  rpc TestBounceDiagnostic(TestBounceDiagnosticRequest) returns (TestBounceDiagnosticReply) {
+    option (google.api.http) = { post: "/v1/bounce-rules:test" body: "*" };
+  }
+  rpc ListEventProcessors(ListEventProcessorsRequest) returns (ListEventProcessorsReply) {
+    option (google.api.http) = { get: "/v1/event-processors" };
+  }
+  rpc CreateEventProcessor(CreateEventProcessorRequest) returns (EventProcessor) {
+    option (google.api.http) = { post: "/v1/event-processors" body: "*" };
+  }
+  rpc UpdateEventProcessor(UpdateEventProcessorRequest) returns (EventProcessor) {
+    option (google.api.http) = { put: "/v1/event-processors/{id}" body: "*" };
+  }
+  rpc DeleteEventProcessor(DeleteEventProcessorRequest) returns (DeleteEventProcessorReply) {
+    option (google.api.http) = { delete: "/v1/event-processors/{id}" };
+  }
+  rpc TestEventProcessor(TestEventProcessorRequest) returns (TestEventProcessorReply) {
+    option (google.api.http) = { post: "/v1/event-processors:test" body: "*" };
+  }
   rpc ListRoutingRules(ListRoutingRulesRequest) returns (ListRoutingRulesReply) {
     option (google.api.http) = { get: "/v1/routing-rules" };
   }
@@ -96,6 +129,14 @@ service IrisAdminService {
   // Mail operations ----------------------------------------------------------
   rpc ListMailRecords(ListMailRecordsRequest) returns (ListMailRecordsReply) {
     option (google.api.http) = { get: "/v1/mail-records" };
+  }
+  rpc GetNextDeliveryAttempt(GetNextDeliveryAttemptRequest) returns (NextDeliveryAttempt) {
+    option (google.api.http) = { get: "/v1/mail-records/{message_id}/next-attempt" };
+  }
+  // ListDsnMessages returns the raw DSN notifications archived for a recipient,
+  // so the operator can read the full asynchronous bounce behind a dsn-type bounce.
+  rpc ListDsnMessages(ListDsnMessagesRequest) returns (ListDsnMessagesReply) {
+    option (google.api.http) = { get: "/v1/dsn-messages" };
   }
   rpc ListBounces(ListBouncesRequest) returns (ListBouncesReply) {
     option (google.api.http) = { get: "/v1/bounces" };
@@ -133,6 +174,12 @@ service IrisAdminService {
   }
   rpc UpdateSuppression(UpdateSuppressionRequest) returns (Suppression) {
     option (google.api.http) = { put: "/v1/suppressions/{id}" body: "*" };
+  }
+  // ListSuppressionDsnMessages returns the raw DSN notifications archived for the
+  // recipient behind a dsn-sourced suppression, so an operator can read the full
+  // asynchronous bounce.
+  rpc ListSuppressionDsnMessages(ListSuppressionDsnMessagesRequest) returns (ListSuppressionDsnMessagesReply) {
+    option (google.api.http) = { get: "/v1/suppressions/{id}/dsn-messages" };
   }
 
   // Require-TLS policies (outbound delivery must use TLS for these domains) ---
@@ -303,6 +350,11 @@ service IrisAdminService {
   rpc GetMetricsTimeseries(GetMetricsTimeseriesRequest) returns (MetricsTimeseries) {
     option (google.api.http) = { get: "/v1/dashboard/metrics" };
   }
+  // GetSystemMetrics returns host CPU / memory / per-disk usage over time from
+  // the iris_system_* Prometheus gauges.
+  rpc GetSystemMetrics(GetSystemMetricsRequest) returns (MetricsTimeseries) {
+    option (google.api.http) = { get: "/v1/system-monitor/metrics" };
+  }
   // GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
   // bounce rates over a lookback window — used to watch IP-warmup health.
   rpc GetWarmupDeliveryStats(GetWarmupDeliveryStatsRequest) returns (WarmupDeliveryStats) {
@@ -392,6 +444,34 @@ service IrisAdminService {
   }
   rpc DeleteSubjectClassification(DeleteSubjectClassificationRequest) returns (DeleteSubjectClassificationReply) {
     option (google.api.http) = { delete: "/v1/subject-classifications/{id}" };
+  }
+
+  // Injection API credentials (GreenArrow-compatible mail-injection listener).
+  rpc ListInjectionCredentials(ListInjectionCredentialsRequest) returns (ListInjectionCredentialsReply) {
+    option (google.api.http) = { get: "/v1/injection-credentials" };
+  }
+  rpc CreateInjectionCredential(CreateInjectionCredentialRequest) returns (InjectionCredential) {
+    option (google.api.http) = { post: "/v1/injection-credentials" body: "*" };
+  }
+  rpc UpdateInjectionCredential(UpdateInjectionCredentialRequest) returns (InjectionCredential) {
+    option (google.api.http) = { put: "/v1/injection-credentials/{id}" body: "*" };
+  }
+  rpc SetInjectionCredentialPassword(SetInjectionCredentialPasswordRequest) returns (InjectionCredential) {
+    option (google.api.http) = { post: "/v1/injection-credentials/{id}/password" body: "*" };
+  }
+  rpc DeleteInjectionCredential(DeleteInjectionCredentialRequest) returns (DeleteInjectionCredentialReply) {
+    option (google.api.http) = { delete: "/v1/injection-credentials/{id}" };
+  }
+
+  // System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
+  rpc GetSystemMonitor(GetSystemMonitorRequest) returns (SystemMonitor) {
+    option (google.api.http) = { get: "/v1/system-monitor" };
+  }
+  rpc UpdateMonitorSettings(UpdateMonitorSettingsRequest) returns (MonitorSettings) {
+    option (google.api.http) = { put: "/v1/system-monitor/settings" body: "*" };
+  }
+  rpc TestMonitorNotification(TestMonitorNotificationRequest) returns (TestMonitorNotificationReply) {
+    option (google.api.http) = { post: "/v1/system-monitor:test" body: "*" };
   }
 }
 
@@ -494,6 +574,16 @@ message RoutingRule {
   // assign_mailclass is the class applied by a sender_ip rule (match_value is
   // then an IP or CIDR). Empty for other match types, which use target instead.
   string assign_mailclass = 10;
+  // conditions is the OR-list of header/value pairs for a mailclass rule (the
+  // rule matches when ANY condition matches). match_header/match_value mirror
+  // the first condition. Empty for non-mailclass rules.
+  repeated RoutingMatchCondition conditions = 11;
+}
+
+// RoutingMatchCondition is one header NAME + VALUE pair of a mailclass rule.
+message RoutingMatchCondition {
+  string header = 1;
+  string value = 2;
 }
 
 // ---- IP warmup ----
@@ -635,6 +725,141 @@ message SetAutomationRuleStatusRequest {
   string status = 2;
 }
 
+// ---- Bounce-based actions (classification & response rules) ----
+message BounceRule {
+  string id = 1;
+  string smtp_code = 2;         // "421", "550", or "" (any)
+  string enhanced_code = 3;     // "4.7.0", "5.1.1", or "" (any)
+  string provider = 4;          // gmail | yahoo | microsoft | ... or "" (all)
+  string pattern = 5;           // case-insensitive substring of the diagnostic
+  string class = 6;             // soft | hard
+  string category = 7;          // e.g. "Rate Limited"
+  string action = 8;            // retry | throttle | suspend_domain | suppress
+  string action_config = 9;     // throttle rate / suspend duration
+  string suggested_action = 10; // operator guidance
+  int32 priority = 11;
+  string source = 12;           // default | overlay
+  string status = 13;           // active | disabled
+  string created_at = 14;
+  string updated_at = 15;
+  int32 min_attempts = 16;      // apply only after this many delivery attempts
+  string suppress_ttl = 17;     // per-rule suppression lifetime (e.g. "30d")
+}
+message ListBounceRulesRequest {}
+message ListBounceRulesReply {
+  repeated BounceRule items = 1;
+}
+message CreateBounceRuleRequest {
+  string smtp_code = 1;
+  string enhanced_code = 2;
+  string provider = 3;
+  string pattern = 4;
+  string class = 5;
+  string category = 6;
+  string action = 7;
+  string action_config = 8;
+  string suggested_action = 9;
+  int32 priority = 10;
+  int32 min_attempts = 11;
+  string suppress_ttl = 12;
+}
+message UpdateBounceRuleRequest {
+  string id = 1;
+  string smtp_code = 2;
+  string enhanced_code = 3;
+  string provider = 4;
+  string pattern = 5;
+  string class = 6;
+  string category = 7;
+  string action = 8;
+  string action_config = 9;
+  string suggested_action = 10;
+  int32 priority = 11;
+  string status = 12;
+  int32 min_attempts = 13;
+  string suppress_ttl = 14;
+}
+message DeleteBounceRuleRequest {
+  string id = 1;
+}
+message DeleteBounceRuleReply {}
+message ResetBounceRulesRequest {}
+// Test a bounce diagnostic against the current active ruleset.
+message TestBounceDiagnosticRequest {
+  string smtp_code = 1;
+  string domain = 2;      // recipient domain (derives provider when blank)
+  string diagnostic = 3;  // full SMTP response text
+  int32 attempts = 4;     // delivery attempts so far (gates min_attempts rules)
+}
+message TestBounceDiagnosticReply {
+  // The normalized signature the matcher evaluated.
+  string smtp_code = 1;
+  string enhanced_code = 2;
+  string provider = 3;
+  bool matched = 4;
+  BounceRule rule = 5;      // the matched rule (unset when matched=false)
+  string effective_action = 6; // matched action, or "retry" when nothing matched
+}
+
+// ---- Event Processor (forward events to external services) ----
+message EventProcessor {
+  string id = 1;
+  string name = 2;
+  repeated string event_types = 3;  // bounce | suppression_created | feedback_report | dmarc_received
+  repeated string mailclasses = 4;  // empty = all classes
+  string driver = 5;                // webhook | redis | …
+  map<string, string> driver_config = 6;
+  string mode = 7;                  // single | batch
+  int32 batch_max_size = 8;
+  string batch_max_wait = 9;        // duration, e.g. "5s"
+  string status = 10;               // active | disabled
+  string created_at = 11;
+  string updated_at = 12;
+}
+message ListEventProcessorsRequest {}
+message ListEventProcessorsReply {
+  repeated EventProcessor items = 1;
+}
+message CreateEventProcessorRequest {
+  string name = 1;
+  repeated string event_types = 2;
+  repeated string mailclasses = 3;
+  string driver = 4;
+  map<string, string> driver_config = 5;
+  string mode = 6;
+  int32 batch_max_size = 7;
+  string batch_max_wait = 8;
+}
+message UpdateEventProcessorRequest {
+  string id = 1;
+  string name = 2;
+  repeated string event_types = 3;
+  repeated string mailclasses = 4;
+  string driver = 5;
+  map<string, string> driver_config = 6;
+  string mode = 7;
+  int32 batch_max_size = 8;
+  string batch_max_wait = 9;
+  string status = 10;
+}
+message DeleteEventProcessorRequest { string id = 1; }
+message DeleteEventProcessorReply {}
+// Send a synthetic event through the (possibly unsaved) processor's driver.
+message TestEventProcessorRequest {
+  string name = 1;
+  repeated string event_types = 2;
+  repeated string mailclasses = 3;
+  string driver = 4;
+  map<string, string> driver_config = 5;
+  string mode = 6;
+  int32 batch_max_size = 7;
+  string batch_max_wait = 8;
+}
+message TestEventProcessorReply {
+  bool ok = 1;
+  string error = 2;
+}
+
 message ListVMTAsRequest {
   PageRequest page = 1;
   string status = 2;
@@ -695,6 +920,7 @@ message CreateRoutingRuleRequest {
   string target_id = 6;
   string match_header = 7;
   string assign_mailclass = 8;
+  repeated RoutingMatchCondition conditions = 9;
 }
 message UpdateRoutingRuleRequest {
   string id = 1;
@@ -707,6 +933,7 @@ message UpdateRoutingRuleRequest {
   string status = 8;
   string match_header = 9;
   string assign_mailclass = 10;
+  repeated RoutingMatchCondition conditions = 11;
 }
 
 // Mail operations -----------------------------------------------------------
@@ -789,11 +1016,42 @@ message ListMailRecordsReply {
   repeated MailRecord items = 1;
   PageReply page = 2;
 }
-message ListBouncesRequest { PageRequest page = 1; }
+message GetNextDeliveryAttemptRequest {
+  string message_id = 1;
+}
+// Estimated retry schedule for a deferred message (empty/deferred=false when the
+// message already reached a terminal outcome). Times are RFC3339 UTC.
+message NextDeliveryAttempt {
+  bool deferred = 1;
+  int32 attempts = 2;             // transient failures so far
+  string last_attempt = 3;        // time of the most recent deferral
+  string next_attempt = 4;        // estimated next delivery attempt
+  int32 remaining_attempts = 5;   // future attempts before expiry (incl. next)
+  string final_attempt = 6;       // last attempt that fits before expiry
+  bool will_expire = 7;           // next attempt would exceed max_age
+  string expires_at = 8;          // creation time + max_age
+  string interval = 9;            // delay until the next attempt (e.g. "1h20m")
+}
+message ListBouncesRequest {
+  PageRequest page = 1;
+  // Case-insensitive substring match on the recipient address.
+  string recipient = 2;
+  string mailclass = 3;
+  // Filter by bounce type (hard | soft | dsn). Empty = all.
+  string bounce_type = 4;
+  // Case-insensitive substring match on the classifier category.
+  string classification = 5;
+  // Filter by processing state (new | processing | processed | suppressed | retried).
+  string processing_state = 6;
+  google.protobuf.Timestamp from_time = 7;
+  google.protobuf.Timestamp to_time = 8;
+}
 message ListBouncesReply {
   repeated Bounce items = 1;
   PageReply page = 2;
 }
+message ListDsnMessagesRequest { string recipient = 1; }
+message ListDsnMessagesReply { repeated DsnMessage items = 1; }
 message ListFeedbackReportsRequest { PageRequest page = 1; }
 message ListFeedbackReportsReply {
   repeated FeedbackReport items = 1;
@@ -830,6 +1088,9 @@ message Suppression {
   string reason = 4;
   string source = 5;
   string status = 6;
+  string mailclass = 7; // class of the event that triggered it (empty if manual)
+  string created_at = 8; // RFC3339 — when the entry was recorded
+  string expires_at = 9; // RFC3339 — when it stops blocking; empty = permanent
 }
 
 message ListDKIMDomainsRequest { PageRequest page = 1; }
@@ -863,7 +1124,14 @@ message GenerateDKIMKeyReply {
   string record_value = 3;
   string public_key_fingerprint = 4;
 }
-message ListSuppressionsRequest { PageRequest page = 1; }
+message ListSuppressionsRequest {
+  PageRequest page = 1;
+  string search = 2;    // case-insensitive substring match on the suppressed value
+  string type = 3;      // email | domain; empty = all
+  string status = 4;    // active | disabled | expired; empty = all
+  string source = 5;    // manual | bounce | feedback | dsn; empty = all
+  string mailclass = 6; // exact match; empty = all
+}
 message ListSuppressionsReply {
   repeated Suppression items = 1;
   PageReply page = 2;
@@ -878,6 +1146,16 @@ message UpdateSuppressionRequest {
   string reason = 2;
   string status = 3;
 }
+
+// DsnMessage is a raw asynchronous bounce (DSN) archived at the bounce domain.
+message DsnMessage {
+  string id = 1;
+  string message_id = 2;
+  string raw_message = 3;
+  string received_at = 4; // RFC3339
+}
+message ListSuppressionDsnMessagesRequest { string id = 1; }
+message ListSuppressionDsnMessagesReply { repeated DsnMessage items = 1; }
 
 // TLSPolicy requires TLS on outbound delivery to a destination domain. mode is
 // "required" (STARTTLS + valid cert) or "required_insecure" (STARTTLS, skip
@@ -1404,6 +1682,9 @@ message DashboardSummary {
 message GetMetricsTimeseriesRequest {
   string range = 1;
 }
+message GetSystemMetricsRequest {
+  string range = 1;
+}
 message MetricPoint {
   int64 timestamp = 1; // unix seconds
   double value = 2;    // events per minute at that point
@@ -1439,10 +1720,20 @@ message WarmupDeliveryStat {
   double delivery_rate = 8;    // sent / attempted
   double bounce_rate = 9;      // bounced / attempted
 }
+// DomainDeferredStat is the count of DISTINCT messages that deferred to one
+// recipient domain (deduped across VMTAs). Unlike the per-VMTA rows, these
+// numbers are summable — a message that retried across several IPs counts once.
+message DomainDeferredStat {
+  string recipient_domain = 1;
+  int64 messages = 2;
+}
 message WarmupDeliveryStats {
   repeated WarmupDeliveryStat rows = 1;
   string range = 2;            // echoed effective range
   int64 since = 3;             // unix seconds: window start
+  // Distinct messages deferred per recipient domain (deduped across VMTAs), so
+  // the number reflects "messages deferred", not per-IP retry incidence.
+  repeated DomainDeferredStat deferred_by_domain = 4;
 }
 
 // GetMailClassStats selects the lookback window: "1h" | "6h" | "24h" | "7d"
@@ -1566,6 +1857,19 @@ message GlobalSettings {
   string classify_model = 28;
   double classify_threshold = 29;
   string classify_api_base = 30;
+  // Pin a message to one egress IP across retries (deterministic per-message
+  // source selection) instead of KumoMTA's per-attempt weighted round-robin.
+  bool pin_egress_per_message = 31;
+  // Injection listener (GreenArrow-compatible mail-injection API). Applied on
+  // restart. injection_enabled turns the dedicated listener on;
+  // injection_listen_addr / injection_path set where it binds and answers;
+  // injection_tls_enabled serves HTTPS using the issued cert whose domain is
+  // injection_tls_cert_domain.
+  bool injection_enabled = 32;
+  string injection_listen_addr = 33;
+  string injection_path = 34;
+  bool injection_tls_enabled = 35;
+  string injection_tls_cert_domain = 36;
 }
 message GetGlobalSettingsRequest {}
 message UpdateGlobalSettingsRequest {
@@ -1599,6 +1903,14 @@ message UpdateGlobalSettingsRequest {
   string classify_model = 26;
   double classify_threshold = 27;
   string classify_api_base = 28;
+  // Pin egress IP per message across retries (see GlobalSettings).
+  bool pin_egress_per_message = 29;
+  // Injection listener knobs (see GlobalSettings).
+  bool injection_enabled = 30;
+  string injection_listen_addr = 31;
+  string injection_path = 32;
+  bool injection_tls_enabled = 33;
+  string injection_tls_cert_domain = 34;
 }
 
 // A subject → label classification rule. source is "manual" (operator-authored)
@@ -1613,6 +1925,12 @@ message SubjectClassification {
   int64 hit_count = 6;
   string created_at = 7;
   string updated_at = 8;
+  // match_type is "similarity" (trigram, default) or "regex" (subject holds a
+  // regular expression matched against the raw subject).
+  string match_type = 9;
+  // priority orders evaluation: higher priority is matched first, first match
+  // wins. Default 0.
+  int32 priority = 10;
 }
 message ListSubjectClassificationsRequest {}
 message ListSubjectClassificationsReply {
@@ -1621,15 +1939,129 @@ message ListSubjectClassificationsReply {
 message CreateSubjectClassificationRequest {
   string subject = 1;
   string label = 2;
+  string match_type = 3;
+  int32 priority = 4;
 }
 message UpdateSubjectClassificationRequest {
   string id = 1;
   string subject = 2;
   string label = 3;
+  string match_type = 4;
+  int32 priority = 5;
 }
 message DeleteSubjectClassificationRequest {
   string id = 1;
 }
 message DeleteSubjectClassificationReply {
   bool ok = 1;
+}
+
+// InjectionCredential is one API login for the injection listener. The password
+// is write-only: it is never returned.
+message InjectionCredential {
+  string id = 1;
+  string username = 2;
+  string label = 3;
+  bool enabled = 4;
+  // allowed_mailclasses restricts which mailclasses the key may inject; empty
+  // means any.
+  repeated string allowed_mailclasses = 5;
+  string last_used_at = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+message ListInjectionCredentialsRequest {}
+message ListInjectionCredentialsReply {
+  repeated InjectionCredential items = 1;
+}
+message CreateInjectionCredentialRequest {
+  string username = 1;
+  string password = 2;
+  string label = 3;
+  bool enabled = 4;
+  repeated string allowed_mailclasses = 5;
+}
+message UpdateInjectionCredentialRequest {
+  string id = 1;
+  string label = 2;
+  bool enabled = 3;
+  repeated string allowed_mailclasses = 4;
+}
+message SetInjectionCredentialPasswordRequest {
+  string id = 1;
+  string password = 2;
+}
+message DeleteInjectionCredentialRequest {
+  string id = 1;
+}
+message DeleteInjectionCredentialReply {
+  bool ok = 1;
+}
+
+// ---- System self-monitoring ----
+message DiskUsage {
+  string path = 1;
+  double used_percent = 2;
+  uint64 used_bytes = 3;
+  uint64 total_bytes = 4;
+}
+message SystemSnapshot {
+  string collected_at = 1; // RFC3339, empty before the first sample
+  double cpu_percent = 2;
+  double mem_percent = 3;
+  uint64 mem_used_bytes = 4;
+  uint64 mem_total_bytes = 5;
+  repeated DiskUsage disks = 6;
+  bool available = 7;
+}
+message MonitorSettings {
+  bool enabled = 1;
+  int32 cpu_threshold = 2;  // percent; 0 disables the check
+  int32 mem_threshold = 3;
+  int32 disk_threshold = 4;
+  repeated string disk_paths = 5;
+  repeated string notify_emails = 6;
+  string from_email = 7;
+  string smtp_host = 8;      // host:port (default localhost:25)
+  int32 cooldown_minutes = 9;
+  int32 sample_seconds = 10;
+}
+message MonitorAlert {
+  string id = 1;
+  string resource = 2; // cpu | memory | disk
+  string detail = 3;   // disk path (empty for cpu/memory)
+  string level = 4;    // breached | recovered
+  double value = 5;
+  int32 threshold = 6;
+  string message = 7;
+  bool notified = 8;
+  string created_at = 9;
+}
+// Mount is a real filesystem detected on the host (for the "which disks to
+// monitor" picker).
+message Mount {
+  string path = 1;
+  string device = 2;
+  string fstype = 3;
+  double used_percent = 4;
+  uint64 used_bytes = 5;
+  uint64 total_bytes = 6;
+}
+message SystemMonitor {
+  SystemSnapshot snapshot = 1;
+  MonitorSettings settings = 2;
+  repeated MonitorAlert recent_alerts = 3;
+  repeated Mount mounts = 4;    // detected filesystems the operator can pick
+  string spool_path = 5;        // KumoMTA spool root (suggested monitor path)
+}
+message GetSystemMonitorRequest {}
+message UpdateMonitorSettingsRequest {
+  MonitorSettings settings = 1;
+}
+message TestMonitorNotificationRequest {
+  MonitorSettings settings = 1;
+}
+message TestMonitorNotificationReply {
+  bool ok = 1;
+  string error = 2;
 }

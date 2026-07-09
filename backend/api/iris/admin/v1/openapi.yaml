@@ -339,6 +339,112 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/AutomationRule'
+    /v1/bounce-rules:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListBounceRules
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListBounceRulesReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateBounceRule
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateBounceRuleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BounceRule'
+    /v1/bounce-rules/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateBounceRule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateBounceRuleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BounceRule'
+        delete:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_DeleteBounceRule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteBounceRuleReply'
+    /v1/bounce-rules:reset:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ResetBounceRules
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ResetBounceRulesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListBounceRulesReply'
+    /v1/bounce-rules:test:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_TestBounceDiagnostic
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/TestBounceDiagnosticRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TestBounceDiagnosticReply'
     /v1/bounces:
         get:
             tags:
@@ -354,6 +460,40 @@ paths:
                   in: query
                   schema:
                     type: string
+                - name: recipient
+                  in: query
+                  description: Case-insensitive substring match on the recipient address.
+                  schema:
+                    type: string
+                - name: mailclass
+                  in: query
+                  schema:
+                    type: string
+                - name: bounce_type
+                  in: query
+                  description: Filter by bounce type (hard | soft | dsn). Empty = all.
+                  schema:
+                    type: string
+                - name: classification
+                  in: query
+                  description: Case-insensitive substring match on the classifier category.
+                  schema:
+                    type: string
+                - name: processing_state
+                  in: query
+                  description: Filter by processing state (new | processing | processed | suppressed | retried).
+                  schema:
+                    type: string
+                - name: from_time
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: to_time
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
             responses:
                 "200":
                     description: OK
@@ -748,6 +888,114 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/DomainBounceCheck'
+    /v1/dsn-messages:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                ListDsnMessages returns the raw DSN notifications archived for a recipient,
+                 so the operator can read the full asynchronous bounce behind a dsn-type bounce.
+            operationId: IrisAdminService_ListDsnMessages
+            parameters:
+                - name: recipient
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListDsnMessagesReply'
+    /v1/event-processors:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListEventProcessors
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListEventProcessorsReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateEventProcessor
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateEventProcessorRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/EventProcessor'
+    /v1/event-processors/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateEventProcessor
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateEventProcessorRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/EventProcessor'
+        delete:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_DeleteEventProcessor
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteEventProcessorReply'
+    /v1/event-processors:test:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_TestEventProcessor
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/TestEventProcessorRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TestEventProcessorReply'
     /v1/feedback-loops:
         get:
             tags:
@@ -938,6 +1186,101 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/DeleteInboundRouteReply'
+    /v1/injection-credentials:
+        get:
+            tags:
+                - IrisAdminService
+            description: Injection API credentials (GreenArrow-compatible mail-injection listener).
+            operationId: IrisAdminService_ListInjectionCredentials
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListInjectionCredentialsReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateInjectionCredential
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateInjectionCredentialRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InjectionCredential'
+    /v1/injection-credentials/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateInjectionCredential
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateInjectionCredentialRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InjectionCredential'
+        delete:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_DeleteInjectionCredential
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteInjectionCredentialReply'
+    /v1/injection-credentials/{id}/password:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_SetInjectionCredentialPassword
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/SetInjectionCredentialPasswordRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InjectionCredential'
     /v1/kumomta/config:applied:
         get:
             tags:
@@ -1152,6 +1495,24 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ListMailRecordsReply'
+    /v1/mail-records/{message_id}/next-attempt:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_GetNextDeliveryAttempt
+            parameters:
+                - name: message_id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NextDeliveryAttempt'
     /v1/mfa:confirm:
         post:
             tags:
@@ -1515,6 +1876,26 @@ paths:
                   in: query
                   schema:
                     type: string
+                - name: search
+                  in: query
+                  schema:
+                    type: string
+                - name: type
+                  in: query
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: source
+                  in: query
+                  schema:
+                    type: string
+                - name: mailclass
+                  in: query
+                  schema:
+                    type: string
             responses:
                 "200":
                     description: OK
@@ -1563,6 +1944,97 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Suppression'
+    /v1/suppressions/{id}/dsn-messages:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                ListSuppressionDsnMessages returns the raw DSN notifications archived for the
+                 recipient behind a dsn-sourced suppression, so an operator can read the full
+                 asynchronous bounce.
+            operationId: IrisAdminService_ListSuppressionDsnMessages
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListSuppressionDsnMessagesReply'
+    /v1/system-monitor:
+        get:
+            tags:
+                - IrisAdminService
+            description: 'System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.'
+            operationId: IrisAdminService_GetSystemMonitor
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SystemMonitor'
+    /v1/system-monitor/metrics:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                GetSystemMetrics returns host CPU / memory / per-disk usage over time from
+                 the iris_system_* Prometheus gauges.
+            operationId: IrisAdminService_GetSystemMetrics
+            parameters:
+                - name: range
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MetricsTimeseries'
+    /v1/system-monitor/settings:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateMonitorSettings
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateMonitorSettingsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MonitorSettings'
+    /v1/system-monitor:test:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_TestMonitorNotification
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/TestMonitorNotificationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TestMonitorNotificationReply'
     /v1/tls-policies:
         get:
             tags:
@@ -2216,6 +2688,46 @@ components:
                     description: |-
                         classification is KumoMTA's bounce-classifier category (InvalidRecipient,
                          SpamBlock, …); empty when the classifier is disabled or no rule matched.
+        BounceRule:
+            type: object
+            properties:
+                id:
+                    type: string
+                smtp_code:
+                    type: string
+                enhanced_code:
+                    type: string
+                provider:
+                    type: string
+                pattern:
+                    type: string
+                class:
+                    type: string
+                category:
+                    type: string
+                action:
+                    type: string
+                action_config:
+                    type: string
+                suggested_action:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                source:
+                    type: string
+                status:
+                    type: string
+                created_at:
+                    type: string
+                updated_at:
+                    type: string
+                min_attempts:
+                    type: integer
+                    format: int32
+                suppress_ttl:
+                    type: string
+            description: '---- Bounce-based actions (classification & response rules) ----'
         ChangePasswordReply:
             type: object
             properties: {}
@@ -2258,6 +2770,35 @@ components:
                     type: string
                 duration:
                     type: string
+        CreateBounceRuleRequest:
+            type: object
+            properties:
+                smtp_code:
+                    type: string
+                enhanced_code:
+                    type: string
+                provider:
+                    type: string
+                pattern:
+                    type: string
+                class:
+                    type: string
+                category:
+                    type: string
+                action:
+                    type: string
+                action_config:
+                    type: string
+                suggested_action:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                min_attempts:
+                    type: integer
+                    format: int32
+                suppress_ttl:
+                    type: string
         CreateDKIMDomainRequest:
             type: object
             properties:
@@ -2287,6 +2828,32 @@ components:
                 daily_cap:
                     type: integer
                     format: int32
+        CreateEventProcessorRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                event_types:
+                    type: array
+                    items:
+                        type: string
+                mailclasses:
+                    type: array
+                    items:
+                        type: string
+                driver:
+                    type: string
+                driver_config:
+                    type: object
+                    additionalProperties:
+                        type: string
+                mode:
+                    type: string
+                batch_max_size:
+                    type: integer
+                    format: int32
+                batch_max_wait:
+                    type: string
         CreateFeedbackLoopRequest:
             type: object
             properties:
@@ -2332,6 +2899,21 @@ components:
                     type: string
                 spam_scan:
                     type: string
+        CreateInjectionCredentialRequest:
+            type: object
+            properties:
+                username:
+                    type: string
+                password:
+                    type: string
+                label:
+                    type: string
+                enabled:
+                    type: boolean
+                allowed_mailclasses:
+                    type: array
+                    items:
+                        type: string
         CreateListenerRequest:
             type: object
             properties:
@@ -2380,6 +2962,10 @@ components:
                     type: string
                 assign_mailclass:
                     type: string
+                conditions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/RoutingMatchCondition'
         CreateSubjectClassificationRequest:
             type: object
             properties:
@@ -2387,6 +2973,11 @@ components:
                     type: string
                 label:
                     type: string
+                match_type:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
         CreateSuppressionRequest:
             type: object
             properties:
@@ -2500,10 +3091,21 @@ components:
         DeleteAcmeCertificateReply:
             type: object
             properties: {}
+        DeleteBounceRuleReply:
+            type: object
+            properties: {}
+        DeleteEventProcessorReply:
+            type: object
+            properties: {}
         DeleteFeedbackLoopReply:
             type: object
             properties: {}
         DeleteInboundRouteReply:
+            type: object
+            properties:
+                ok:
+                    type: boolean
+        DeleteInjectionCredentialReply:
             type: object
             properties:
                 ok:
@@ -2572,6 +3174,19 @@ components:
         DisableMFARequest:
             type: object
             properties: {}
+        DiskUsage:
+            type: object
+            properties:
+                path:
+                    type: string
+                used_percent:
+                    type: number
+                    format: double
+                used_bytes:
+                    type: string
+                total_bytes:
+                    type: string
+            description: '---- System self-monitoring ----'
         DmarcCount:
             type: object
             properties:
@@ -2708,6 +3323,29 @@ components:
                     type: array
                     items:
                         type: string
+        DomainDeferredStat:
+            type: object
+            properties:
+                recipient_domain:
+                    type: string
+                messages:
+                    type: string
+            description: |-
+                DomainDeferredStat is the count of DISTINCT messages that deferred to one
+                 recipient domain (deduped across VMTAs). Unlike the per-VMTA rows, these
+                 numbers are summable — a message that retried across several IPs counts once.
+        DsnMessage:
+            type: object
+            properties:
+                id:
+                    type: string
+                message_id:
+                    type: string
+                raw_message:
+                    type: string
+                received_at:
+                    type: string
+            description: DsnMessage is a raw asynchronous bounce (DSN) archived at the bounce domain.
         EnrollMFAReply:
             type: object
             properties:
@@ -2719,6 +3357,41 @@ components:
         EnrollMFARequest:
             type: object
             properties: {}
+        EventProcessor:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                event_types:
+                    type: array
+                    items:
+                        type: string
+                mailclasses:
+                    type: array
+                    items:
+                        type: string
+                driver:
+                    type: string
+                driver_config:
+                    type: object
+                    additionalProperties:
+                        type: string
+                mode:
+                    type: string
+                batch_max_size:
+                    type: integer
+                    format: int32
+                batch_max_wait:
+                    type: string
+                status:
+                    type: string
+                created_at:
+                    type: string
+                updated_at:
+                    type: string
+            description: '---- Event Processor (forward events to external services) ----'
         FeedbackLoop:
             type: object
             properties:
@@ -2863,6 +3536,27 @@ components:
                     format: double
                 classify_api_base:
                     type: string
+                pin_egress_per_message:
+                    type: boolean
+                    description: |-
+                        Pin a message to one egress IP across retries (deterministic per-message
+                         source selection) instead of KumoMTA's per-attempt weighted round-robin.
+                injection_enabled:
+                    type: boolean
+                    description: |-
+                        Injection listener (GreenArrow-compatible mail-injection API). Applied on
+                         restart. injection_enabled turns the dedicated listener on;
+                         injection_listen_addr / injection_path set where it binds and answers;
+                         injection_tls_enabled serves HTTPS using the issued cert whose domain is
+                         injection_tls_cert_domain.
+                injection_listen_addr:
+                    type: string
+                injection_path:
+                    type: string
+                injection_tls_enabled:
+                    type: boolean
+                injection_tls_cert_domain:
+                    type: string
             description: Global settings — deployment-level policy knobs an operator edits in the UI.
         InboundRoute:
             type: object
@@ -2909,6 +3603,33 @@ components:
                  InboundRoute routes inbound mail for a recipient/domain to a maildir, a
                  forwarding smarthost, or an HTTP webhook. Action-specific fields are only
                  meaningful for the matching action. secret_ref is write-only (never returned).
+        InjectionCredential:
+            type: object
+            properties:
+                id:
+                    type: string
+                username:
+                    type: string
+                label:
+                    type: string
+                enabled:
+                    type: boolean
+                allowed_mailclasses:
+                    type: array
+                    items:
+                        type: string
+                    description: |-
+                        allowed_mailclasses restricts which mailclasses the key may inject; empty
+                         means any.
+                last_used_at:
+                    type: string
+                created_at:
+                    type: string
+                updated_at:
+                    type: string
+            description: |-
+                InjectionCredential is one API login for the injection listener. The password
+                 is write-only: it is never returned.
         KumoConfig:
             type: object
             properties:
@@ -2994,6 +3715,13 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/AutomationRule'
+        ListBounceRulesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/BounceRule'
         ListBouncesReply:
             type: object
             properties:
@@ -3035,6 +3763,20 @@ components:
                         $ref: '#/components/schemas/DmarcReport'
                 page:
                     $ref: '#/components/schemas/PageReply'
+        ListDsnMessagesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DsnMessage'
+        ListEventProcessorsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/EventProcessor'
         ListFeedbackLoopsReply:
             type: object
             properties:
@@ -3062,6 +3804,13 @@ components:
                         $ref: '#/components/schemas/InboundRoute'
                 page:
                     $ref: '#/components/schemas/PageReply'
+        ListInjectionCredentialsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/InjectionCredential'
         ListListenersReply:
             type: object
             properties:
@@ -3121,6 +3870,13 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/SubjectClassification'
+        ListSuppressionDsnMessagesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DsnMessage'
         ListSuppressionsReply:
             type: object
             properties:
@@ -3369,6 +4125,106 @@ components:
                     type: string
                 prometheus_available:
                     type: boolean
+        MonitorAlert:
+            type: object
+            properties:
+                id:
+                    type: string
+                resource:
+                    type: string
+                detail:
+                    type: string
+                level:
+                    type: string
+                value:
+                    type: number
+                    format: double
+                threshold:
+                    type: integer
+                    format: int32
+                message:
+                    type: string
+                notified:
+                    type: boolean
+                created_at:
+                    type: string
+        MonitorSettings:
+            type: object
+            properties:
+                enabled:
+                    type: boolean
+                cpu_threshold:
+                    type: integer
+                    format: int32
+                mem_threshold:
+                    type: integer
+                    format: int32
+                disk_threshold:
+                    type: integer
+                    format: int32
+                disk_paths:
+                    type: array
+                    items:
+                        type: string
+                notify_emails:
+                    type: array
+                    items:
+                        type: string
+                from_email:
+                    type: string
+                smtp_host:
+                    type: string
+                cooldown_minutes:
+                    type: integer
+                    format: int32
+                sample_seconds:
+                    type: integer
+                    format: int32
+        Mount:
+            type: object
+            properties:
+                path:
+                    type: string
+                device:
+                    type: string
+                fstype:
+                    type: string
+                used_percent:
+                    type: number
+                    format: double
+                used_bytes:
+                    type: string
+                total_bytes:
+                    type: string
+            description: |-
+                Mount is a real filesystem detected on the host (for the "which disks to
+                 monitor" picker).
+        NextDeliveryAttempt:
+            type: object
+            properties:
+                deferred:
+                    type: boolean
+                attempts:
+                    type: integer
+                    format: int32
+                last_attempt:
+                    type: string
+                next_attempt:
+                    type: string
+                remaining_attempts:
+                    type: integer
+                    format: int32
+                final_attempt:
+                    type: string
+                will_expire:
+                    type: boolean
+                expires_at:
+                    type: string
+                interval:
+                    type: string
+            description: |-
+                Estimated retry schedule for a deferred message (empty/deferred=false when the
+                 message already reached a terminal outcome). Times are RFC3339 UTC.
         PageReply:
             type: object
             properties:
@@ -3527,6 +4383,9 @@ components:
                 confirmation_id:
                     type: string
             description: KumoMTA service & configuration -------------------------------------------
+        ResetBounceRulesRequest:
+            type: object
+            properties: {}
         ResetUserPasswordReply:
             type: object
             properties: {}
@@ -3610,6 +4469,14 @@ components:
                 last_run:
                     $ref: '#/components/schemas/RetentionRun'
             description: RetentionView is a policy plus live disk status for one managed table.
+        RoutingMatchCondition:
+            type: object
+            properties:
+                header:
+                    type: string
+                value:
+                    type: string
+            description: RoutingMatchCondition is one header NAME + VALUE pair of a mailclass rule.
         RoutingOutcome:
             type: object
             properties:
@@ -3661,6 +4528,14 @@ components:
                     description: |-
                         assign_mailclass is the class applied by a sender_ip rule (match_value is
                          then an IP or CIDR). Empty for other match types, which use target instead.
+                conditions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/RoutingMatchCondition'
+                    description: |-
+                        conditions is the OR-list of header/value pairs for a mailclass rule (the
+                         rule matches when ANY condition matches). match_header/match_value mirror
+                         the first condition. Empty for non-mailclass rules.
         RspamdResult:
             type: object
             properties:
@@ -3744,6 +4619,13 @@ components:
                     type: string
                 status:
                     type: string
+        SetInjectionCredentialPasswordRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                password:
+                    type: string
         SubjectClassification:
             type: object
             properties:
@@ -3763,6 +4645,17 @@ components:
                     type: string
                 updated_at:
                     type: string
+                match_type:
+                    type: string
+                    description: |-
+                        match_type is "similarity" (trigram, default) or "regex" (subject holds a
+                         regular expression matched against the raw subject).
+                priority:
+                    type: integer
+                    description: |-
+                        priority orders evaluation: higher priority is matched first, first match
+                         wins. Default 0.
+                    format: int32
             description: |-
                 A subject → label classification rule. source is "manual" (operator-authored)
                  or "ai" (generated by the LLM fallback and cached). hit_count is how many
@@ -3782,6 +4675,50 @@ components:
                     type: string
                 status:
                     type: string
+                mailclass:
+                    type: string
+                created_at:
+                    type: string
+                expires_at:
+                    type: string
+        SystemMonitor:
+            type: object
+            properties:
+                snapshot:
+                    $ref: '#/components/schemas/SystemSnapshot'
+                settings:
+                    $ref: '#/components/schemas/MonitorSettings'
+                recent_alerts:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/MonitorAlert'
+                mounts:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Mount'
+                spool_path:
+                    type: string
+        SystemSnapshot:
+            type: object
+            properties:
+                collected_at:
+                    type: string
+                cpu_percent:
+                    type: number
+                    format: double
+                mem_percent:
+                    type: number
+                    format: double
+                mem_used_bytes:
+                    type: string
+                mem_total_bytes:
+                    type: string
+                disks:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DiskUsage'
+                available:
+                    type: boolean
         TLSPolicy:
             type: object
             properties:
@@ -3797,6 +4734,81 @@ components:
                 TLSPolicy requires TLS on outbound delivery to a destination domain. mode is
                  "required" (STARTTLS + valid cert) or "required_insecure" (STARTTLS, skip
                  cert validation).
+        TestBounceDiagnosticReply:
+            type: object
+            properties:
+                smtp_code:
+                    type: string
+                    description: The normalized signature the matcher evaluated.
+                enhanced_code:
+                    type: string
+                provider:
+                    type: string
+                matched:
+                    type: boolean
+                rule:
+                    $ref: '#/components/schemas/BounceRule'
+                effective_action:
+                    type: string
+        TestBounceDiagnosticRequest:
+            type: object
+            properties:
+                smtp_code:
+                    type: string
+                domain:
+                    type: string
+                diagnostic:
+                    type: string
+                attempts:
+                    type: integer
+                    format: int32
+            description: Test a bounce diagnostic against the current active ruleset.
+        TestEventProcessorReply:
+            type: object
+            properties:
+                ok:
+                    type: boolean
+                error:
+                    type: string
+        TestEventProcessorRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                event_types:
+                    type: array
+                    items:
+                        type: string
+                mailclasses:
+                    type: array
+                    items:
+                        type: string
+                driver:
+                    type: string
+                driver_config:
+                    type: object
+                    additionalProperties:
+                        type: string
+                mode:
+                    type: string
+                batch_max_size:
+                    type: integer
+                    format: int32
+                batch_max_wait:
+                    type: string
+            description: Send a synthetic event through the (possibly unsaved) processor's driver.
+        TestMonitorNotificationReply:
+            type: object
+            properties:
+                ok:
+                    type: boolean
+                error:
+                    type: string
+        TestMonitorNotificationRequest:
+            type: object
+            properties:
+                settings:
+                    $ref: '#/components/schemas/MonitorSettings'
         UpdateAutomationRuleRequest:
             type: object
             properties:
@@ -3817,6 +4829,39 @@ components:
                 duration:
                     type: string
                 status:
+                    type: string
+        UpdateBounceRuleRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                smtp_code:
+                    type: string
+                enhanced_code:
+                    type: string
+                provider:
+                    type: string
+                pattern:
+                    type: string
+                class:
+                    type: string
+                category:
+                    type: string
+                action:
+                    type: string
+                action_config:
+                    type: string
+                suggested_action:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                status:
+                    type: string
+                min_attempts:
+                    type: integer
+                    format: int32
+                suppress_ttl:
                     type: string
         UpdateDKIMDomainRequest:
             type: object
@@ -3852,6 +4897,36 @@ components:
                 daily_cap:
                     type: integer
                     format: int32
+                status:
+                    type: string
+        UpdateEventProcessorRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                event_types:
+                    type: array
+                    items:
+                        type: string
+                mailclasses:
+                    type: array
+                    items:
+                        type: string
+                driver:
+                    type: string
+                driver_config:
+                    type: object
+                    additionalProperties:
+                        type: string
+                mode:
+                    type: string
+                batch_max_size:
+                    type: integer
+                    format: int32
+                batch_max_wait:
+                    type: string
                 status:
                     type: string
         UpdateFeedbackLoopRequest:
@@ -3928,6 +5003,20 @@ components:
                     format: double
                 classify_api_base:
                     type: string
+                pin_egress_per_message:
+                    type: boolean
+                    description: Pin egress IP per message across retries (see GlobalSettings).
+                injection_enabled:
+                    type: boolean
+                    description: Injection listener knobs (see GlobalSettings).
+                injection_listen_addr:
+                    type: string
+                injection_path:
+                    type: string
+                injection_tls_enabled:
+                    type: boolean
+                injection_tls_cert_domain:
+                    type: string
         UpdateInboundRouteRequest:
             type: object
             properties:
@@ -3964,6 +5053,19 @@ components:
                     type: string
                 spam_scan:
                     type: string
+        UpdateInjectionCredentialRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                label:
+                    type: string
+                enabled:
+                    type: boolean
+                allowed_mailclasses:
+                    type: array
+                    items:
+                        type: string
         UpdateListenerRequest:
             type: object
             properties:
@@ -3996,6 +5098,11 @@ components:
                     type: string
                 role:
                     type: string
+        UpdateMonitorSettingsRequest:
+            type: object
+            properties:
+                settings:
+                    $ref: '#/components/schemas/MonitorSettings'
         UpdateRetentionPolicyRequest:
             type: object
             properties:
@@ -4033,6 +5140,10 @@ components:
                     type: string
                 assign_mailclass:
                     type: string
+                conditions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/RoutingMatchCondition'
         UpdateSubjectClassificationRequest:
             type: object
             properties:
@@ -4042,6 +5153,11 @@ components:
                     type: string
                 label:
                     type: string
+                match_type:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
         UpdateSuppressionRequest:
             type: object
             properties:
@@ -4229,6 +5345,13 @@ components:
                     type: string
                 since:
                     type: string
+                deferred_by_domain:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DomainDeferredStat'
+                    description: |-
+                        Distinct messages deferred per recipient domain (deduped across VMTAs), so
+                         the number reflects "messages deferred", not per-IP retry incidence.
         WarmupSchedule:
             type: object
             properties:

@@ -30,10 +30,20 @@ type ConfigSnapshot struct {
 	// rendered into iris-automation.toml (loaded by the TSA daemon).
 	AutomationRules []*AutomationRule
 
+	// BounceRules are the active bounce-action rules. throttle/suspend_domain
+	// rules are compiled into additional TSA automation blocks (retry/suppress
+	// rules are enforced elsewhere and produce no shaping).
+	BounceRules []*BounceActionRule
+
 	// ShapingDir is the directory the policy loads iris-base.toml + iris-warmup.toml
 	// from (written next to the policy by the apply adapter). Empty falls back to
 	// the standard policy dir.
 	ShapingDir string
+
+	// PinEgressPerMessage keeps a message on one egress source across retries by
+	// deterministically mapping it (hash of message id) to a single source in its
+	// pool at reception, instead of KumoMTA's per-attempt weighted round-robin.
+	PinEgressPerMessage bool
 
 	// TSAUrl, when set, is the KumoMTA Traffic Shaping Automation daemon URL the
 	// policy publishes log events to and subscribes to for adaptive (hourly)
@@ -307,7 +317,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	// Egress sources (one per active VMTA).
 	rendered := writeEgressSources(&b, snap.VMTAs, snap.EgressEHLODefault)
 	// Egress pools: a singleton pool per VMTA + one per active group.
-	pools := writeEgressPools(&b, snap.VMTAs, snap.Groups, vmtaName)
+	pools := writeEgressPools(&b, snap.VMTAs, snap.Groups, vmtaName, snap.PinEgressPerMessage)
 	// Per-VMTA connection limits (max_connections) via the egress path config.
 	fwdTLS, _ := forwardTargets(snap)
 	writeEgressPaths(&b, snap.VMTAs, snap.TLSPolicies, fwdTLS, snap.ShapingDir, snap.TSAUrl)
@@ -322,12 +332,16 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	// Suppression lookup (redis-backed; the list is no longer rendered inline).
 	writeSuppression(&b, snap)
 	// Routing table (priority-ordered) and reception hook (which signs DKIM).
-	routes := writeRouting(&b, snap.Routes, vmtaName, groupName, snap.rspamdEnabled(), bounceEnabled(snap), inboundRoutesEnabled(snap), verpEnabled(snap), fblForwardEnabled(snap), dmarcEnabled(snap))
+	routes := writeRouting(&b, snap.Routes, vmtaName, groupName, snap.rspamdEnabled(), bounceEnabled(snap), inboundRoutesEnabled(snap), verpEnabled(snap), fblForwardEnabled(snap), dmarcEnabled(snap), snap.PinEgressPerMessage)
 	// get_queue_config maps tenant → egress pool (and the log-stream tracker).
 	writeQueueConfig(&b, snap)
 
 	content := b.String()
-	sum := sha256.Sum256([]byte(content))
+	// Checksum over the policy WITHOUT the user-specific `generated_by` comment:
+	// it records who rendered the config and must not trip drift detection when a
+	// different user regenerates an otherwise-identical policy. The comment still
+	// ships in Content (audit); it just doesn't influence the checksum.
+	sum := sha256.Sum256([]byte(stripVolatileHeader(content)))
 	initSum := sha256.Sum256([]byte(initContent))
 
 	issues := LintLua(content)
@@ -346,7 +360,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 		// when ShapingDir is set; the policy loads them via kumo.shaping.load).
 		ShapingBase:       RenderBaseShaping(snap.Blueprints),
 		ShapingWarmup:     RenderWarmupShaping(snap.WarmupRates),
-		ShapingAutomation: RenderAutomation(snap.AutomationRules),
+		ShapingAutomation: RenderAutomation(mergeAutomation(snap.AutomationRules, BounceRulesToAutomation(snap.BounceRules))),
 	}, nil
 }
 
@@ -377,7 +391,7 @@ end)
 	return n
 }
 
-func writeEgressPools(b *strings.Builder, vmtas []*VMTA, groups []*VMTAGroup, vmtaName map[string]string) int {
+func writeEgressPools(b *strings.Builder, vmtas []*VMTA, groups []*VMTAGroup, vmtaName map[string]string, pin bool) int {
 	b.WriteString("-- ===== egress pools (one per VMTA + one per group) =====\n")
 	b.WriteString("local POOLS = {}\n")
 	for _, v := range sortedVMTAs(vmtas) {
@@ -420,12 +434,61 @@ func writeEgressPools(b *strings.Builder, vmtas []*VMTA, groups []*VMTAGroup, vm
 kumo.on('get_egress_pool', function(name)
   local cfg = POOLS[name]
   if not cfg or not cfg.entries or #cfg.entries == 0 then
-    return kumo.make_egress_pool { name = name, entries = { { name = name } } }
+`)
+	if pin {
+		b.WriteString(`    -- Pinned single-source pool "<pool>-pin-<source>": resolve to that one source.
+    -- The separator must avoid '@' / ':' / '!', which are KumoMTA queue-name
+    -- delimiters (tenant@domain) — '-pin-' uses only tenant-safe characters.
+    local src = string.match(name, '.*%-pin%-(.+)$')
+    if src then
+      return kumo.make_egress_pool { name = name, entries = { { name = src } } }
+    end
+`)
+	}
+	b.WriteString(`    return kumo.make_egress_pool { name = name, entries = { { name = name } } }
   end
   return kumo.make_egress_pool { name = name, entries = cfg.entries }
 end)
 
 `)
+	if pin {
+		// Deterministic per-message egress pinning helper (references POOLS above,
+		// used by the reception hook below). Lua 5.1-safe (no bitwise ops).
+		b.WriteString(`-- Map a message to ONE source in its pool, chosen by a stable hash of the
+-- message id (weighted by the pool weights), so it stays on that IP across
+-- retries instead of KumoMTA re-picking a source per attempt (WRR). Single-source
+-- or unknown pools are returned unchanged.
+local function iris_pin_egress_pool(pool, msg)
+  local cfg = POOLS[pool]
+  if not cfg or not cfg.entries or #cfg.entries <= 1 then
+    return pool
+  end
+  local id = tostring(msg:id() or '')
+  local h = 0
+  for i = 1, #id do
+    h = (h * 31 + string.byte(id, i)) % 2147483647
+  end
+  local total = 0
+  for _, e in ipairs(cfg.entries) do
+    total = total + (e.weight or 1)
+  end
+  if total <= 0 then return pool end
+  local pick = h % total
+  local acc = 0
+  for _, e in ipairs(cfg.entries) do
+    acc = acc + (e.weight or 1)
+    if pick < acc then
+      -- '-pin-' separator, not '@': the pinned name becomes the message tenant,
+      -- and KumoMTA's scheduled-queue name is "tenant@domain" — an '@' here would
+      -- corrupt the queue name (e.g. regular-mails@vmta-04@nra.bg → malformed).
+      return pool .. '-pin-' .. e.name
+    end
+  end
+  return pool
+end
+
+`)
+	}
 	return n
 }
 
@@ -494,7 +557,7 @@ local is_suppressed = kumo.memoize(_supp_lookup, {
 `)
 }
 
-func writeRouting(b *strings.Builder, routes []*RoutingRule, vmtaName, groupName map[string]string, rspamd, bounce, inboundRoutes, verp, fblForward, dmarc bool) int {
+func writeRouting(b *strings.Builder, routes []*RoutingRule, vmtaName, groupName map[string]string, rspamd, bounce, inboundRoutes, verp, fblForward, dmarc, pin bool) int {
 	b.WriteString("-- ===== routing rules (descending priority: higher priority wins) =====\n")
 	b.WriteString("-- A mailclass match is a header (name + value) pair; recipient matches use\n")
 	b.WriteString("-- the address/domain. The first matching rule (highest priority) wins.\n")
@@ -514,12 +577,18 @@ func writeRouting(b *strings.Builder, routes []*RoutingRule, vmtaName, groupName
 		if target == "" {
 			continue
 		}
-		header := r.MatchHeader
-		if r.MatchType == MatchMailclass && header == "" {
-			header = DefaultMailClassHeader
+		if r.MatchType == MatchMailclass {
+			// One ROUTES entry per header/value condition, all sharing this rule's
+			// priority and egress pool. select_pool returns the first match, so
+			// multiple conditions behave as an OR for the rule.
+			for _, c := range routingConditions(r) {
+				fmt.Fprintf(b, "  { match_type = %s, match_header = %s, match_value = %s, priority = %d, egress_pool = %s },\n",
+					MustLuaString(r.MatchType), MustLuaString(c.Header), MustLuaString(c.Value), r.Priority, MustLuaString(target))
+			}
+		} else {
+			fmt.Fprintf(b, "  { match_type = %s, match_header = %s, match_value = %s, priority = %d, egress_pool = %s },\n",
+				MustLuaString(r.MatchType), MustLuaString(r.MatchHeader), MustLuaString(r.MatchValue), r.Priority, MustLuaString(target))
 		}
-		fmt.Fprintf(b, "  { match_type = %s, match_header = %s, match_value = %s, priority = %d, egress_pool = %s },\n",
-			MustLuaString(r.MatchType), MustLuaString(header), MustLuaString(r.MatchValue), r.Priority, MustLuaString(target))
 		n++
 	}
 	b.WriteString("}\n")
@@ -540,19 +609,17 @@ local MAIL_CLASSES = {
 		if r.Status != RoutingStatusActive || r.MatchType != MatchMailclass {
 			continue
 		}
-		header := r.MatchHeader
-		if header == "" {
-			header = DefaultMailClassHeader
+		for _, c := range routingConditions(r) {
+			key := hv{c.Header, c.Value}
+			if _, ok := seenHV[key]; ok {
+				continue
+			}
+			seenHV[key] = struct{}{}
+			if _, ok := headers[c.Header]; !ok {
+				headerOrder = append(headerOrder, c.Header)
+			}
+			headers[c.Header] = append(headers[c.Header], c.Value)
 		}
-		key := hv{header, r.MatchValue}
-		if _, ok := seenHV[key]; ok {
-			continue
-		}
-		seenHV[key] = struct{}{}
-		if _, ok := headers[header]; !ok {
-			headerOrder = append(headerOrder, header)
-		}
-		headers[header] = append(headers[header], r.MatchValue)
 	}
 	sort.Strings(headerOrder)
 	for _, h := range headerOrder {
@@ -772,7 +839,55 @@ kumo.on('smtp_server_message_received', function(msg)
   end
   local pool = select_pool(msg, recipient, class)
   if pool then
-    msg:set_meta('tenant', pool)
+`)
+	if pin {
+		// Pin the message to one egress source in its pool so retries stay on the
+		// same IP (deterministic hash of the message id, weighted).
+		b.WriteString("    pool = iris_pin_egress_pool(pool, msg)\n")
+	}
+	b.WriteString(`    msg:set_meta('tenant', pool)
+  end
+end)
+
+`)
+
+	// HTTP-injection hook. Mail submitted via KumoMTA's /api/inject/v1 does NOT
+	// pass through smtp_server_message_received, so without this it would skip
+	// mailclass classification, the VERP envelope rewrite, and egress-pool
+	// routing (sending unrouted, with an un-rewritten return-path). Mirror the
+	// reception hook's OUTBOUND steps here; the inbound catchers (bounce/DMARC/
+	// FBL/inbound-routes) and rspamd scanning are reception-only and intentionally
+	// omitted. All helpers below are in scope at this point (defined earlier in
+	// the rendered policy).
+	b.WriteString(`-- Classify, sign, VERP-rewrite and route mail injected via the HTTP API
+-- (the reception hook above covers SMTP submissions).
+kumo.on('http_message_generated', function(msg)
+  iris_ensure_message_id(msg)
+  iris_ensure_date(msg)
+  local class = classify_mail(msg)
+  if class then
+    msg:set_meta('mailclass', class)
+  end
+`)
+	if verp {
+		b.WriteString(`  do
+    local mid = msg:id()
+    if mid and tostring(mid) ~= '' then
+      mid = tostring(mid)
+      local mac = kumo.digest.hmac_sha256({ key_data = BOUNCE_VERP_SECRET }, mid)
+      msg:set_sender(string.format('b+%s.%s@%s', string.sub(tostring(mac), 1, 16), mid, iris_bounce_domain(msg)))
+    end
+  end
+`)
+	}
+	b.WriteString(`  iris_dkim_sign(msg)
+  local pool = select_pool(msg, msg:recipient().email, class)
+  if pool then
+`)
+	if pin {
+		b.WriteString("    pool = iris_pin_egress_pool(pool, msg)\n")
+	}
+	b.WriteString(`    msg:set_meta('tenant', pool)
   end
 end)
 
@@ -965,10 +1080,10 @@ func bounceEnabled(snap ConfigSnapshot) bool {
 func writeDKIMSigning(b *strings.Builder) {
 	// KumoMTA signs on reception, not on send: there is no
 	// smtp_client_message_sending event. iris_dkim_sign is called from the
-	// smtp_server_message_received reception hook (SMTP) and from
-	// http_message_generated (HTTP injection), matching KumoMTA's reference
-	// policy. The signature is applied to the received message and persists
-	// through delivery.
+	// smtp_server_message_received reception hook (SMTP) and from the
+	// http_message_generated hook (HTTP injection, registered at the end of
+	// writeRouting where the classify/route/VERP helpers are in scope). The
+	// signature is applied to the received message and persists through delivery.
 	b.WriteString(`-- ===== message-id =====
 -- RFC 5322 requires a Message-ID. Injecting apps (and bare SMTP clients) often
 -- omit it, which trips rspamd's MISSING_MID and weakens threading. Add one when
@@ -1032,13 +1147,6 @@ local function iris_dkim_sign(msg)
   end
   msg:dkim_sign(signer)
 end
-
--- Sign mail injected via the HTTP API (the reception hook covers SMTP).
-kumo.on('http_message_generated', function(msg)
-  iris_ensure_message_id(msg)
-  iris_ensure_date(msg)
-  iris_dkim_sign(msg)
-end)
 
 `)
 }

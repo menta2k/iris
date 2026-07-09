@@ -5,10 +5,12 @@ import DataState from '@/components/common/DataState.vue'
 import ServiceStatusWidget from '@/components/dashboard/ServiceStatusWidget.vue'
 import QueueHealthWidget from '@/components/dashboard/QueueHealthWidget.vue'
 import DeferredQueueWidget from '@/components/dashboard/DeferredQueueWidget.vue'
+import MailEventsWidget from '@/components/dashboard/MailEventsWidget.vue'
 import RecentMailActivity from '@/components/dashboard/RecentMailActivity.vue'
 import RecentAuditActivity from '@/components/dashboard/RecentAuditActivity.vue'
 import MailFlowPanel from '@/components/dashboard/MailFlowPanel.vue'
 import WarmupStatsPanel from '@/components/dashboard/WarmupStatsPanel.vue'
+import SystemStatsPanel from '@/components/dashboard/SystemStatsPanel.vue'
 import MailVolumePanel, { type VolumeRow } from '@/components/dashboard/MailVolumePanel.vue'
 import QueueTimeHistogramPanel from '@/components/dashboard/QueueTimeHistogramPanel.vue'
 import { dashboardService, mailOperationsService, identityAuditService } from '@/services'
@@ -83,37 +85,50 @@ onMounted(load)
     <PageHeader title="Dashboard" description="Operational overview of your KumoMTA deployment." />
 
     <DataState :loading="loading" :error="error" :not-implemented="notImplemented">
+      <!-- Widgets are ordered by importance: health KPIs, live mail flow,
+           volume breakdowns, warmup performance, then diagnostics and
+           activity feeds. -->
       <div class="d-flex flex-column ga-6">
         <v-row dense>
-          <v-col cols="12" sm="6" lg="4">
+          <v-col cols="12" sm="6" lg="3">
             <ServiceStatusWidget :state="summary?.serviceState" />
           </v-col>
-          <v-col cols="12" sm="6" lg="4">
+          <v-col cols="12" sm="6" lg="3">
             <QueueHealthWidget :queued="summary?.queuedMessages" />
           </v-col>
-          <v-col cols="12" sm="6" lg="4">
+          <v-col cols="12" sm="6" lg="3">
             <DeferredQueueWidget :deferred="summary?.deferredInQueue" />
+          </v-col>
+          <v-col cols="12" sm="6" lg="3">
+            <MailEventsWidget :count="summary?.recentMailEvents" />
           </v-col>
         </v-row>
         <MailFlowPanel />
         <v-row dense>
           <v-col cols="12" lg="6">
             <MailVolumePanel
-              title="Mail by class"
+              title="Mail by Class"
               :fetcher="loadMailClassStats"
               empty-message="No mail in this range yet."
             />
           </v-col>
           <v-col cols="12" lg="6">
             <MailVolumePanel
-              title="Top recipient domains"
+              title="Top Recipient Domains"
               :fetcher="loadRecipientDomainStats"
               empty-message="No recipient activity in this range yet."
             />
           </v-col>
         </v-row>
-        <QueueTimeHistogramPanel />
         <WarmupStatsPanel />
+        <v-row dense>
+          <v-col cols="12" lg="8">
+            <QueueTimeHistogramPanel />
+          </v-col>
+          <v-col cols="12" lg="4">
+            <SystemStatsPanel />
+          </v-col>
+        </v-row>
         <v-row dense>
           <v-col cols="12" lg="6">
             <RecentMailActivity :events="recentMail" :count="summary?.recentMailEvents" />

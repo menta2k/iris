@@ -10,8 +10,13 @@ import (
 // MailOpsRepo is the persistence boundary for mail operations.
 type MailOpsRepo interface {
 	ListMailRecords(ctx context.Context, f MailFilter, page Page) ([]*MailRecord, error)
-	ListBounces(ctx context.Context, page Page) ([]*BounceRecord, error)
+	ListRecordsByMessageID(ctx context.Context, messageID string) ([]*MailRecord, error)
+	ListBounces(ctx context.Context, f BounceFilter, page Page) ([]*BounceRecord, error)
 	ListFeedbackReports(ctx context.Context, page Page) ([]*FeedbackReport, error)
+	// ListDSNMessages returns the raw DSN messages archived for a recipient,
+	// newest first, bounded by limit. Used to show the notification behind a
+	// dsn-type bounce.
+	ListDSNMessages(ctx context.Context, recipient string, limit int) ([]*DSNMessage, error)
 	CreateServiceControlRequest(ctx context.Context, rec *ServiceControlRecord) (*ServiceControlRecord, error)
 	ActiveServiceControlExists(ctx context.Context) (bool, error)
 	UpdateServiceControlStatus(ctx context.Context, id, status, resultSummary string) error
@@ -64,12 +69,50 @@ func (uc *MailOpsUsecase) ListMailRecords(ctx context.Context, f MailFilter, pag
 	return uc.repo.ListMailRecords(ctx, nf, page)
 }
 
-// ListBounces returns bounce records.
-func (uc *MailOpsUsecase) ListBounces(ctx context.Context, page Page) ([]*BounceRecord, error) {
+// NextDeliveryAttempt estimates a deferred message's retry schedule — next
+// attempt, remaining attempts, and expiry — from its full recorded lifecycle and
+// the effective retry schedule. Read-only; returns Deferred=false when the
+// message already reached a terminal outcome.
+func (uc *MailOpsUsecase) NextDeliveryAttempt(ctx context.Context, messageID string, sched RetrySchedule) (*NextAttemptEstimate, error) {
 	if _, err := RequirePermission(ctx, PermMailRead); err != nil {
 		return nil, err
 	}
-	return uc.repo.ListBounces(ctx, page)
+	messageID = strings.TrimSpace(messageID)
+	if messageID == "" {
+		return nil, Invalid("MESSAGE_ID_REQUIRED", "message_id is required")
+	}
+	events, err := uc.repo.ListRecordsByMessageID(ctx, messageID)
+	if err != nil {
+		return nil, err
+	}
+	est := EstimateNextAttempt(events, sched)
+	return &est, nil
+}
+
+// ListBounces returns bounce records matching the filter.
+func (uc *MailOpsUsecase) ListBounces(ctx context.Context, f BounceFilter, page Page) ([]*BounceRecord, error) {
+	if _, err := RequirePermission(ctx, PermMailRead); err != nil {
+		return nil, err
+	}
+	f, err := NormalizeBounceFilter(f)
+	if err != nil {
+		return nil, err
+	}
+	return uc.repo.ListBounces(ctx, f, page)
+}
+
+// DSNMessagesForRecipient returns the raw DSN notifications archived for a
+// recipient, so the operator can read the full asynchronous bounce behind a
+// dsn-type bounce row. Empty when nothing was archived for that recipient.
+func (uc *MailOpsUsecase) DSNMessagesForRecipient(ctx context.Context, recipient string) ([]*DSNMessage, error) {
+	if _, err := RequirePermission(ctx, PermMailRead); err != nil {
+		return nil, err
+	}
+	recipient = strings.ToLower(strings.TrimSpace(recipient))
+	if recipient == "" {
+		return nil, nil
+	}
+	return uc.repo.ListDSNMessages(ctx, recipient, 20)
 }
 
 // ListFeedbackReports returns feedback reports.

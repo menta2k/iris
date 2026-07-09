@@ -869,8 +869,12 @@ type RoutingRule struct {
 	// assign_mailclass is the class applied by a sender_ip rule (match_value is
 	// then an IP or CIDR). Empty for other match types, which use target instead.
 	AssignMailclass string `protobuf:"bytes,10,opt,name=assign_mailclass,json=assignMailclass,proto3" json:"assign_mailclass,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// conditions is the OR-list of header/value pairs for a mailclass rule (the
+	// rule matches when ANY condition matches). match_header/match_value mirror
+	// the first condition. Empty for non-mailclass rules.
+	Conditions    []*RoutingMatchCondition `protobuf:"bytes,11,rep,name=conditions,proto3" json:"conditions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RoutingRule) Reset() {
@@ -973,6 +977,66 @@ func (x *RoutingRule) GetAssignMailclass() string {
 	return ""
 }
 
+func (x *RoutingRule) GetConditions() []*RoutingMatchCondition {
+	if x != nil {
+		return x.Conditions
+	}
+	return nil
+}
+
+// RoutingMatchCondition is one header NAME + VALUE pair of a mailclass rule.
+type RoutingMatchCondition struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Header        string                 `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
+	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RoutingMatchCondition) Reset() {
+	*x = RoutingMatchCondition{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RoutingMatchCondition) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RoutingMatchCondition) ProtoMessage() {}
+
+func (x *RoutingMatchCondition) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RoutingMatchCondition.ProtoReflect.Descriptor instead.
+func (*RoutingMatchCondition) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *RoutingMatchCondition) GetHeader() string {
+	if x != nil {
+		return x.Header
+	}
+	return ""
+}
+
+func (x *RoutingMatchCondition) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
 // ---- IP warmup ----
 type WarmupStage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -985,7 +1049,7 @@ type WarmupStage struct {
 
 func (x *WarmupStage) Reset() {
 	*x = WarmupStage{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[11]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -997,7 +1061,7 @@ func (x *WarmupStage) String() string {
 func (*WarmupStage) ProtoMessage() {}
 
 func (x *WarmupStage) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[11]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1010,7 +1074,7 @@ func (x *WarmupStage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WarmupStage.ProtoReflect.Descriptor instead.
 func (*WarmupStage) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{11}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *WarmupStage) GetDayFrom() int32 {
@@ -1053,7 +1117,7 @@ type WarmupSchedule struct {
 
 func (x *WarmupSchedule) Reset() {
 	*x = WarmupSchedule{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[12]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1065,7 +1129,7 @@ func (x *WarmupSchedule) String() string {
 func (*WarmupSchedule) ProtoMessage() {}
 
 func (x *WarmupSchedule) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[12]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1078,7 +1142,7 @@ func (x *WarmupSchedule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WarmupSchedule.ProtoReflect.Descriptor instead.
 func (*WarmupSchedule) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{12}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *WarmupSchedule) GetId() string {
@@ -1168,7 +1232,7 @@ type WarmupCurve struct {
 
 func (x *WarmupCurve) Reset() {
 	*x = WarmupCurve{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[13]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1180,7 +1244,7 @@ func (x *WarmupCurve) String() string {
 func (*WarmupCurve) ProtoMessage() {}
 
 func (x *WarmupCurve) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[13]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1193,7 +1257,7 @@ func (x *WarmupCurve) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WarmupCurve.ProtoReflect.Descriptor instead.
 func (*WarmupCurve) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{13}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *WarmupCurve) GetName() string {
@@ -1220,7 +1284,7 @@ type ListWarmupSchedulesRequest struct {
 
 func (x *ListWarmupSchedulesRequest) Reset() {
 	*x = ListWarmupSchedulesRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[14]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1232,7 +1296,7 @@ func (x *ListWarmupSchedulesRequest) String() string {
 func (*ListWarmupSchedulesRequest) ProtoMessage() {}
 
 func (x *ListWarmupSchedulesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[14]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1245,7 +1309,7 @@ func (x *ListWarmupSchedulesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWarmupSchedulesRequest.ProtoReflect.Descriptor instead.
 func (*ListWarmupSchedulesRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{14}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ListWarmupSchedulesRequest) GetPage() *PageRequest {
@@ -1273,7 +1337,7 @@ type ListWarmupSchedulesReply struct {
 
 func (x *ListWarmupSchedulesReply) Reset() {
 	*x = ListWarmupSchedulesReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[15]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1285,7 +1349,7 @@ func (x *ListWarmupSchedulesReply) String() string {
 func (*ListWarmupSchedulesReply) ProtoMessage() {}
 
 func (x *ListWarmupSchedulesReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[15]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1298,7 +1362,7 @@ func (x *ListWarmupSchedulesReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWarmupSchedulesReply.ProtoReflect.Descriptor instead.
 func (*ListWarmupSchedulesReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{15}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ListWarmupSchedulesReply) GetItems() []*WarmupSchedule {
@@ -1334,7 +1398,7 @@ type CreateWarmupScheduleRequest struct {
 
 func (x *CreateWarmupScheduleRequest) Reset() {
 	*x = CreateWarmupScheduleRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[16]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1346,7 +1410,7 @@ func (x *CreateWarmupScheduleRequest) String() string {
 func (*CreateWarmupScheduleRequest) ProtoMessage() {}
 
 func (x *CreateWarmupScheduleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[16]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1359,7 +1423,7 @@ func (x *CreateWarmupScheduleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateWarmupScheduleRequest.ProtoReflect.Descriptor instead.
 func (*CreateWarmupScheduleRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{16}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CreateWarmupScheduleRequest) GetVmtaId() string {
@@ -1402,7 +1466,7 @@ type UpdateWarmupScheduleRequest struct {
 
 func (x *UpdateWarmupScheduleRequest) Reset() {
 	*x = UpdateWarmupScheduleRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[17]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1414,7 +1478,7 @@ func (x *UpdateWarmupScheduleRequest) String() string {
 func (*UpdateWarmupScheduleRequest) ProtoMessage() {}
 
 func (x *UpdateWarmupScheduleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[17]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1427,7 +1491,7 @@ func (x *UpdateWarmupScheduleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateWarmupScheduleRequest.ProtoReflect.Descriptor instead.
 func (*UpdateWarmupScheduleRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{17}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *UpdateWarmupScheduleRequest) GetId() string {
@@ -1468,7 +1532,7 @@ type PauseWarmupScheduleRequest struct {
 
 func (x *PauseWarmupScheduleRequest) Reset() {
 	*x = PauseWarmupScheduleRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[18]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1480,7 +1544,7 @@ func (x *PauseWarmupScheduleRequest) String() string {
 func (*PauseWarmupScheduleRequest) ProtoMessage() {}
 
 func (x *PauseWarmupScheduleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[18]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1493,7 +1557,7 @@ func (x *PauseWarmupScheduleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PauseWarmupScheduleRequest.ProtoReflect.Descriptor instead.
 func (*PauseWarmupScheduleRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{18}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *PauseWarmupScheduleRequest) GetId() string {
@@ -1519,7 +1583,7 @@ type ResumeWarmupScheduleRequest struct {
 
 func (x *ResumeWarmupScheduleRequest) Reset() {
 	*x = ResumeWarmupScheduleRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[19]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1531,7 +1595,7 @@ func (x *ResumeWarmupScheduleRequest) String() string {
 func (*ResumeWarmupScheduleRequest) ProtoMessage() {}
 
 func (x *ResumeWarmupScheduleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[19]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1544,7 +1608,7 @@ func (x *ResumeWarmupScheduleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeWarmupScheduleRequest.ProtoReflect.Descriptor instead.
 func (*ResumeWarmupScheduleRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{19}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ResumeWarmupScheduleRequest) GetId() string {
@@ -1573,7 +1637,7 @@ type DeliveryBlueprint struct {
 
 func (x *DeliveryBlueprint) Reset() {
 	*x = DeliveryBlueprint{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[20]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1585,7 +1649,7 @@ func (x *DeliveryBlueprint) String() string {
 func (*DeliveryBlueprint) ProtoMessage() {}
 
 func (x *DeliveryBlueprint) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[20]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1598,7 +1662,7 @@ func (x *DeliveryBlueprint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeliveryBlueprint.ProtoReflect.Descriptor instead.
 func (*DeliveryBlueprint) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{20}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *DeliveryBlueprint) GetId() string {
@@ -1679,7 +1743,7 @@ type ListDeliveryBlueprintsRequest struct {
 
 func (x *ListDeliveryBlueprintsRequest) Reset() {
 	*x = ListDeliveryBlueprintsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[21]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1691,7 +1755,7 @@ func (x *ListDeliveryBlueprintsRequest) String() string {
 func (*ListDeliveryBlueprintsRequest) ProtoMessage() {}
 
 func (x *ListDeliveryBlueprintsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[21]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1704,7 +1768,7 @@ func (x *ListDeliveryBlueprintsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDeliveryBlueprintsRequest.ProtoReflect.Descriptor instead.
 func (*ListDeliveryBlueprintsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{21}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{22}
 }
 
 type ListDeliveryBlueprintsReply struct {
@@ -1716,7 +1780,7 @@ type ListDeliveryBlueprintsReply struct {
 
 func (x *ListDeliveryBlueprintsReply) Reset() {
 	*x = ListDeliveryBlueprintsReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[22]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1728,7 +1792,7 @@ func (x *ListDeliveryBlueprintsReply) String() string {
 func (*ListDeliveryBlueprintsReply) ProtoMessage() {}
 
 func (x *ListDeliveryBlueprintsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[22]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1741,7 +1805,7 @@ func (x *ListDeliveryBlueprintsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDeliveryBlueprintsReply.ProtoReflect.Descriptor instead.
 func (*ListDeliveryBlueprintsReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{22}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListDeliveryBlueprintsReply) GetItems() []*DeliveryBlueprint {
@@ -1765,7 +1829,7 @@ type CreateDeliveryBlueprintRequest struct {
 
 func (x *CreateDeliveryBlueprintRequest) Reset() {
 	*x = CreateDeliveryBlueprintRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[23]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1777,7 +1841,7 @@ func (x *CreateDeliveryBlueprintRequest) String() string {
 func (*CreateDeliveryBlueprintRequest) ProtoMessage() {}
 
 func (x *CreateDeliveryBlueprintRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[23]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1790,7 +1854,7 @@ func (x *CreateDeliveryBlueprintRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDeliveryBlueprintRequest.ProtoReflect.Descriptor instead.
 func (*CreateDeliveryBlueprintRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{23}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *CreateDeliveryBlueprintRequest) GetProvider() string {
@@ -1851,7 +1915,7 @@ type UpdateDeliveryBlueprintRequest struct {
 
 func (x *UpdateDeliveryBlueprintRequest) Reset() {
 	*x = UpdateDeliveryBlueprintRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[24]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1863,7 +1927,7 @@ func (x *UpdateDeliveryBlueprintRequest) String() string {
 func (*UpdateDeliveryBlueprintRequest) ProtoMessage() {}
 
 func (x *UpdateDeliveryBlueprintRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[24]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1876,7 +1940,7 @@ func (x *UpdateDeliveryBlueprintRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDeliveryBlueprintRequest.ProtoReflect.Descriptor instead.
 func (*UpdateDeliveryBlueprintRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{24}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *UpdateDeliveryBlueprintRequest) GetId() string {
@@ -1945,7 +2009,7 @@ type SetDeliveryBlueprintStatusRequest struct {
 
 func (x *SetDeliveryBlueprintStatusRequest) Reset() {
 	*x = SetDeliveryBlueprintStatusRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[25]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1957,7 +2021,7 @@ func (x *SetDeliveryBlueprintStatusRequest) String() string {
 func (*SetDeliveryBlueprintStatusRequest) ProtoMessage() {}
 
 func (x *SetDeliveryBlueprintStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[25]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1970,7 +2034,7 @@ func (x *SetDeliveryBlueprintStatusRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use SetDeliveryBlueprintStatusRequest.ProtoReflect.Descriptor instead.
 func (*SetDeliveryBlueprintStatusRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{25}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *SetDeliveryBlueprintStatusRequest) GetId() string {
@@ -1995,7 +2059,7 @@ type SeedDeliveryBlueprintsRequest struct {
 
 func (x *SeedDeliveryBlueprintsRequest) Reset() {
 	*x = SeedDeliveryBlueprintsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[26]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2007,7 +2071,7 @@ func (x *SeedDeliveryBlueprintsRequest) String() string {
 func (*SeedDeliveryBlueprintsRequest) ProtoMessage() {}
 
 func (x *SeedDeliveryBlueprintsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[26]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2020,7 +2084,7 @@ func (x *SeedDeliveryBlueprintsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SeedDeliveryBlueprintsRequest.ProtoReflect.Descriptor instead.
 func (*SeedDeliveryBlueprintsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{26}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{27}
 }
 
 type SeedDeliveryBlueprintsReply struct {
@@ -2032,7 +2096,7 @@ type SeedDeliveryBlueprintsReply struct {
 
 func (x *SeedDeliveryBlueprintsReply) Reset() {
 	*x = SeedDeliveryBlueprintsReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[27]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2044,7 +2108,7 @@ func (x *SeedDeliveryBlueprintsReply) String() string {
 func (*SeedDeliveryBlueprintsReply) ProtoMessage() {}
 
 func (x *SeedDeliveryBlueprintsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[27]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2057,7 +2121,7 @@ func (x *SeedDeliveryBlueprintsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SeedDeliveryBlueprintsReply.ProtoReflect.Descriptor instead.
 func (*SeedDeliveryBlueprintsReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{27}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *SeedDeliveryBlueprintsReply) GetInserted() int32 {
@@ -2087,7 +2151,7 @@ type AutomationRule struct {
 
 func (x *AutomationRule) Reset() {
 	*x = AutomationRule{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[28]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2099,7 +2163,7 @@ func (x *AutomationRule) String() string {
 func (*AutomationRule) ProtoMessage() {}
 
 func (x *AutomationRule) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[28]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2112,7 +2176,7 @@ func (x *AutomationRule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AutomationRule.ProtoReflect.Descriptor instead.
 func (*AutomationRule) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{28}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *AutomationRule) GetId() string {
@@ -2200,7 +2264,7 @@ type ListAutomationRulesRequest struct {
 
 func (x *ListAutomationRulesRequest) Reset() {
 	*x = ListAutomationRulesRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[29]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2212,7 +2276,7 @@ func (x *ListAutomationRulesRequest) String() string {
 func (*ListAutomationRulesRequest) ProtoMessage() {}
 
 func (x *ListAutomationRulesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[29]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2225,7 +2289,7 @@ func (x *ListAutomationRulesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAutomationRulesRequest.ProtoReflect.Descriptor instead.
 func (*ListAutomationRulesRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{29}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{30}
 }
 
 type ListAutomationRulesReply struct {
@@ -2237,7 +2301,7 @@ type ListAutomationRulesReply struct {
 
 func (x *ListAutomationRulesReply) Reset() {
 	*x = ListAutomationRulesReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[30]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2249,7 +2313,7 @@ func (x *ListAutomationRulesReply) String() string {
 func (*ListAutomationRulesReply) ProtoMessage() {}
 
 func (x *ListAutomationRulesReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[30]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2262,7 +2326,7 @@ func (x *ListAutomationRulesReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAutomationRulesReply.ProtoReflect.Descriptor instead.
 func (*ListAutomationRulesReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{30}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ListAutomationRulesReply) GetItems() []*AutomationRule {
@@ -2287,7 +2351,7 @@ type CreateAutomationRuleRequest struct {
 
 func (x *CreateAutomationRuleRequest) Reset() {
 	*x = CreateAutomationRuleRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[31]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2299,7 +2363,7 @@ func (x *CreateAutomationRuleRequest) String() string {
 func (*CreateAutomationRuleRequest) ProtoMessage() {}
 
 func (x *CreateAutomationRuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[31]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2312,7 +2376,7 @@ func (x *CreateAutomationRuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAutomationRuleRequest.ProtoReflect.Descriptor instead.
 func (*CreateAutomationRuleRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{31}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *CreateAutomationRuleRequest) GetDomain() string {
@@ -2381,7 +2445,7 @@ type UpdateAutomationRuleRequest struct {
 
 func (x *UpdateAutomationRuleRequest) Reset() {
 	*x = UpdateAutomationRuleRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[32]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2393,7 +2457,7 @@ func (x *UpdateAutomationRuleRequest) String() string {
 func (*UpdateAutomationRuleRequest) ProtoMessage() {}
 
 func (x *UpdateAutomationRuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[32]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2406,7 +2470,7 @@ func (x *UpdateAutomationRuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateAutomationRuleRequest.ProtoReflect.Descriptor instead.
 func (*UpdateAutomationRuleRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{32}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *UpdateAutomationRuleRequest) GetId() string {
@@ -2482,7 +2546,7 @@ type SetAutomationRuleStatusRequest struct {
 
 func (x *SetAutomationRuleStatusRequest) Reset() {
 	*x = SetAutomationRuleStatusRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[33]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2494,7 +2558,7 @@ func (x *SetAutomationRuleStatusRequest) String() string {
 func (*SetAutomationRuleStatusRequest) ProtoMessage() {}
 
 func (x *SetAutomationRuleStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[33]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2507,7 +2571,7 @@ func (x *SetAutomationRuleStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetAutomationRuleStatusRequest.ProtoReflect.Descriptor instead.
 func (*SetAutomationRuleStatusRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{33}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *SetAutomationRuleStatusRequest) GetId() string {
@@ -2524,6 +2588,1471 @@ func (x *SetAutomationRuleStatusRequest) GetStatus() string {
 	return ""
 }
 
+// ---- Bounce-based actions (classification & response rules) ----
+type BounceRule struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SmtpCode        string                 `protobuf:"bytes,2,opt,name=smtp_code,json=smtpCode,proto3" json:"smtp_code,omitempty"`                       // "421", "550", or "" (any)
+	EnhancedCode    string                 `protobuf:"bytes,3,opt,name=enhanced_code,json=enhancedCode,proto3" json:"enhanced_code,omitempty"`           // "4.7.0", "5.1.1", or "" (any)
+	Provider        string                 `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`                                       // gmail | yahoo | microsoft | ... or "" (all)
+	Pattern         string                 `protobuf:"bytes,5,opt,name=pattern,proto3" json:"pattern,omitempty"`                                         // case-insensitive substring of the diagnostic
+	Class           string                 `protobuf:"bytes,6,opt,name=class,proto3" json:"class,omitempty"`                                             // soft | hard
+	Category        string                 `protobuf:"bytes,7,opt,name=category,proto3" json:"category,omitempty"`                                       // e.g. "Rate Limited"
+	Action          string                 `protobuf:"bytes,8,opt,name=action,proto3" json:"action,omitempty"`                                           // retry | throttle | suspend_domain | suppress
+	ActionConfig    string                 `protobuf:"bytes,9,opt,name=action_config,json=actionConfig,proto3" json:"action_config,omitempty"`           // throttle rate / suspend duration
+	SuggestedAction string                 `protobuf:"bytes,10,opt,name=suggested_action,json=suggestedAction,proto3" json:"suggested_action,omitempty"` // operator guidance
+	Priority        int32                  `protobuf:"varint,11,opt,name=priority,proto3" json:"priority,omitempty"`
+	Source          string                 `protobuf:"bytes,12,opt,name=source,proto3" json:"source,omitempty"` // default | overlay
+	Status          string                 `protobuf:"bytes,13,opt,name=status,proto3" json:"status,omitempty"` // active | disabled
+	CreatedAt       string                 `protobuf:"bytes,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt       string                 `protobuf:"bytes,15,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	MinAttempts     int32                  `protobuf:"varint,16,opt,name=min_attempts,json=minAttempts,proto3" json:"min_attempts,omitempty"` // apply only after this many delivery attempts
+	SuppressTtl     string                 `protobuf:"bytes,17,opt,name=suppress_ttl,json=suppressTtl,proto3" json:"suppress_ttl,omitempty"`  // per-rule suppression lifetime (e.g. "30d")
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *BounceRule) Reset() {
+	*x = BounceRule{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BounceRule) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BounceRule) ProtoMessage() {}
+
+func (x *BounceRule) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BounceRule.ProtoReflect.Descriptor instead.
+func (*BounceRule) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *BounceRule) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *BounceRule) GetSmtpCode() string {
+	if x != nil {
+		return x.SmtpCode
+	}
+	return ""
+}
+
+func (x *BounceRule) GetEnhancedCode() string {
+	if x != nil {
+		return x.EnhancedCode
+	}
+	return ""
+}
+
+func (x *BounceRule) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *BounceRule) GetPattern() string {
+	if x != nil {
+		return x.Pattern
+	}
+	return ""
+}
+
+func (x *BounceRule) GetClass() string {
+	if x != nil {
+		return x.Class
+	}
+	return ""
+}
+
+func (x *BounceRule) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *BounceRule) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *BounceRule) GetActionConfig() string {
+	if x != nil {
+		return x.ActionConfig
+	}
+	return ""
+}
+
+func (x *BounceRule) GetSuggestedAction() string {
+	if x != nil {
+		return x.SuggestedAction
+	}
+	return ""
+}
+
+func (x *BounceRule) GetPriority() int32 {
+	if x != nil {
+		return x.Priority
+	}
+	return 0
+}
+
+func (x *BounceRule) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *BounceRule) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *BounceRule) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *BounceRule) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+func (x *BounceRule) GetMinAttempts() int32 {
+	if x != nil {
+		return x.MinAttempts
+	}
+	return 0
+}
+
+func (x *BounceRule) GetSuppressTtl() string {
+	if x != nil {
+		return x.SuppressTtl
+	}
+	return ""
+}
+
+type ListBounceRulesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListBounceRulesRequest) Reset() {
+	*x = ListBounceRulesRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListBounceRulesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListBounceRulesRequest) ProtoMessage() {}
+
+func (x *ListBounceRulesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListBounceRulesRequest.ProtoReflect.Descriptor instead.
+func (*ListBounceRulesRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{36}
+}
+
+type ListBounceRulesReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Items         []*BounceRule          `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListBounceRulesReply) Reset() {
+	*x = ListBounceRulesReply{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListBounceRulesReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListBounceRulesReply) ProtoMessage() {}
+
+func (x *ListBounceRulesReply) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListBounceRulesReply.ProtoReflect.Descriptor instead.
+func (*ListBounceRulesReply) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *ListBounceRulesReply) GetItems() []*BounceRule {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+type CreateBounceRuleRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	SmtpCode        string                 `protobuf:"bytes,1,opt,name=smtp_code,json=smtpCode,proto3" json:"smtp_code,omitempty"`
+	EnhancedCode    string                 `protobuf:"bytes,2,opt,name=enhanced_code,json=enhancedCode,proto3" json:"enhanced_code,omitempty"`
+	Provider        string                 `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`
+	Pattern         string                 `protobuf:"bytes,4,opt,name=pattern,proto3" json:"pattern,omitempty"`
+	Class           string                 `protobuf:"bytes,5,opt,name=class,proto3" json:"class,omitempty"`
+	Category        string                 `protobuf:"bytes,6,opt,name=category,proto3" json:"category,omitempty"`
+	Action          string                 `protobuf:"bytes,7,opt,name=action,proto3" json:"action,omitempty"`
+	ActionConfig    string                 `protobuf:"bytes,8,opt,name=action_config,json=actionConfig,proto3" json:"action_config,omitempty"`
+	SuggestedAction string                 `protobuf:"bytes,9,opt,name=suggested_action,json=suggestedAction,proto3" json:"suggested_action,omitempty"`
+	Priority        int32                  `protobuf:"varint,10,opt,name=priority,proto3" json:"priority,omitempty"`
+	MinAttempts     int32                  `protobuf:"varint,11,opt,name=min_attempts,json=minAttempts,proto3" json:"min_attempts,omitempty"`
+	SuppressTtl     string                 `protobuf:"bytes,12,opt,name=suppress_ttl,json=suppressTtl,proto3" json:"suppress_ttl,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *CreateBounceRuleRequest) Reset() {
+	*x = CreateBounceRuleRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateBounceRuleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateBounceRuleRequest) ProtoMessage() {}
+
+func (x *CreateBounceRuleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateBounceRuleRequest.ProtoReflect.Descriptor instead.
+func (*CreateBounceRuleRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *CreateBounceRuleRequest) GetSmtpCode() string {
+	if x != nil {
+		return x.SmtpCode
+	}
+	return ""
+}
+
+func (x *CreateBounceRuleRequest) GetEnhancedCode() string {
+	if x != nil {
+		return x.EnhancedCode
+	}
+	return ""
+}
+
+func (x *CreateBounceRuleRequest) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *CreateBounceRuleRequest) GetPattern() string {
+	if x != nil {
+		return x.Pattern
+	}
+	return ""
+}
+
+func (x *CreateBounceRuleRequest) GetClass() string {
+	if x != nil {
+		return x.Class
+	}
+	return ""
+}
+
+func (x *CreateBounceRuleRequest) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *CreateBounceRuleRequest) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *CreateBounceRuleRequest) GetActionConfig() string {
+	if x != nil {
+		return x.ActionConfig
+	}
+	return ""
+}
+
+func (x *CreateBounceRuleRequest) GetSuggestedAction() string {
+	if x != nil {
+		return x.SuggestedAction
+	}
+	return ""
+}
+
+func (x *CreateBounceRuleRequest) GetPriority() int32 {
+	if x != nil {
+		return x.Priority
+	}
+	return 0
+}
+
+func (x *CreateBounceRuleRequest) GetMinAttempts() int32 {
+	if x != nil {
+		return x.MinAttempts
+	}
+	return 0
+}
+
+func (x *CreateBounceRuleRequest) GetSuppressTtl() string {
+	if x != nil {
+		return x.SuppressTtl
+	}
+	return ""
+}
+
+type UpdateBounceRuleRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SmtpCode        string                 `protobuf:"bytes,2,opt,name=smtp_code,json=smtpCode,proto3" json:"smtp_code,omitempty"`
+	EnhancedCode    string                 `protobuf:"bytes,3,opt,name=enhanced_code,json=enhancedCode,proto3" json:"enhanced_code,omitempty"`
+	Provider        string                 `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`
+	Pattern         string                 `protobuf:"bytes,5,opt,name=pattern,proto3" json:"pattern,omitempty"`
+	Class           string                 `protobuf:"bytes,6,opt,name=class,proto3" json:"class,omitempty"`
+	Category        string                 `protobuf:"bytes,7,opt,name=category,proto3" json:"category,omitempty"`
+	Action          string                 `protobuf:"bytes,8,opt,name=action,proto3" json:"action,omitempty"`
+	ActionConfig    string                 `protobuf:"bytes,9,opt,name=action_config,json=actionConfig,proto3" json:"action_config,omitempty"`
+	SuggestedAction string                 `protobuf:"bytes,10,opt,name=suggested_action,json=suggestedAction,proto3" json:"suggested_action,omitempty"`
+	Priority        int32                  `protobuf:"varint,11,opt,name=priority,proto3" json:"priority,omitempty"`
+	Status          string                 `protobuf:"bytes,12,opt,name=status,proto3" json:"status,omitempty"`
+	MinAttempts     int32                  `protobuf:"varint,13,opt,name=min_attempts,json=minAttempts,proto3" json:"min_attempts,omitempty"`
+	SuppressTtl     string                 `protobuf:"bytes,14,opt,name=suppress_ttl,json=suppressTtl,proto3" json:"suppress_ttl,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *UpdateBounceRuleRequest) Reset() {
+	*x = UpdateBounceRuleRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateBounceRuleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateBounceRuleRequest) ProtoMessage() {}
+
+func (x *UpdateBounceRuleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateBounceRuleRequest.ProtoReflect.Descriptor instead.
+func (*UpdateBounceRuleRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *UpdateBounceRuleRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateBounceRuleRequest) GetSmtpCode() string {
+	if x != nil {
+		return x.SmtpCode
+	}
+	return ""
+}
+
+func (x *UpdateBounceRuleRequest) GetEnhancedCode() string {
+	if x != nil {
+		return x.EnhancedCode
+	}
+	return ""
+}
+
+func (x *UpdateBounceRuleRequest) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *UpdateBounceRuleRequest) GetPattern() string {
+	if x != nil {
+		return x.Pattern
+	}
+	return ""
+}
+
+func (x *UpdateBounceRuleRequest) GetClass() string {
+	if x != nil {
+		return x.Class
+	}
+	return ""
+}
+
+func (x *UpdateBounceRuleRequest) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *UpdateBounceRuleRequest) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *UpdateBounceRuleRequest) GetActionConfig() string {
+	if x != nil {
+		return x.ActionConfig
+	}
+	return ""
+}
+
+func (x *UpdateBounceRuleRequest) GetSuggestedAction() string {
+	if x != nil {
+		return x.SuggestedAction
+	}
+	return ""
+}
+
+func (x *UpdateBounceRuleRequest) GetPriority() int32 {
+	if x != nil {
+		return x.Priority
+	}
+	return 0
+}
+
+func (x *UpdateBounceRuleRequest) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *UpdateBounceRuleRequest) GetMinAttempts() int32 {
+	if x != nil {
+		return x.MinAttempts
+	}
+	return 0
+}
+
+func (x *UpdateBounceRuleRequest) GetSuppressTtl() string {
+	if x != nil {
+		return x.SuppressTtl
+	}
+	return ""
+}
+
+type DeleteBounceRuleRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteBounceRuleRequest) Reset() {
+	*x = DeleteBounceRuleRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteBounceRuleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteBounceRuleRequest) ProtoMessage() {}
+
+func (x *DeleteBounceRuleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteBounceRuleRequest.ProtoReflect.Descriptor instead.
+func (*DeleteBounceRuleRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *DeleteBounceRuleRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DeleteBounceRuleReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteBounceRuleReply) Reset() {
+	*x = DeleteBounceRuleReply{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteBounceRuleReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteBounceRuleReply) ProtoMessage() {}
+
+func (x *DeleteBounceRuleReply) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteBounceRuleReply.ProtoReflect.Descriptor instead.
+func (*DeleteBounceRuleReply) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{41}
+}
+
+type ResetBounceRulesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResetBounceRulesRequest) Reset() {
+	*x = ResetBounceRulesRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResetBounceRulesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResetBounceRulesRequest) ProtoMessage() {}
+
+func (x *ResetBounceRulesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResetBounceRulesRequest.ProtoReflect.Descriptor instead.
+func (*ResetBounceRulesRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{42}
+}
+
+// Test a bounce diagnostic against the current active ruleset.
+type TestBounceDiagnosticRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SmtpCode      string                 `protobuf:"bytes,1,opt,name=smtp_code,json=smtpCode,proto3" json:"smtp_code,omitempty"`
+	Domain        string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`         // recipient domain (derives provider when blank)
+	Diagnostic    string                 `protobuf:"bytes,3,opt,name=diagnostic,proto3" json:"diagnostic,omitempty"` // full SMTP response text
+	Attempts      int32                  `protobuf:"varint,4,opt,name=attempts,proto3" json:"attempts,omitempty"`    // delivery attempts so far (gates min_attempts rules)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestBounceDiagnosticRequest) Reset() {
+	*x = TestBounceDiagnosticRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestBounceDiagnosticRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestBounceDiagnosticRequest) ProtoMessage() {}
+
+func (x *TestBounceDiagnosticRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestBounceDiagnosticRequest.ProtoReflect.Descriptor instead.
+func (*TestBounceDiagnosticRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *TestBounceDiagnosticRequest) GetSmtpCode() string {
+	if x != nil {
+		return x.SmtpCode
+	}
+	return ""
+}
+
+func (x *TestBounceDiagnosticRequest) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
+}
+
+func (x *TestBounceDiagnosticRequest) GetDiagnostic() string {
+	if x != nil {
+		return x.Diagnostic
+	}
+	return ""
+}
+
+func (x *TestBounceDiagnosticRequest) GetAttempts() int32 {
+	if x != nil {
+		return x.Attempts
+	}
+	return 0
+}
+
+type TestBounceDiagnosticReply struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The normalized signature the matcher evaluated.
+	SmtpCode        string      `protobuf:"bytes,1,opt,name=smtp_code,json=smtpCode,proto3" json:"smtp_code,omitempty"`
+	EnhancedCode    string      `protobuf:"bytes,2,opt,name=enhanced_code,json=enhancedCode,proto3" json:"enhanced_code,omitempty"`
+	Provider        string      `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`
+	Matched         bool        `protobuf:"varint,4,opt,name=matched,proto3" json:"matched,omitempty"`
+	Rule            *BounceRule `protobuf:"bytes,5,opt,name=rule,proto3" json:"rule,omitempty"`                                              // the matched rule (unset when matched=false)
+	EffectiveAction string      `protobuf:"bytes,6,opt,name=effective_action,json=effectiveAction,proto3" json:"effective_action,omitempty"` // matched action, or "retry" when nothing matched
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *TestBounceDiagnosticReply) Reset() {
+	*x = TestBounceDiagnosticReply{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestBounceDiagnosticReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestBounceDiagnosticReply) ProtoMessage() {}
+
+func (x *TestBounceDiagnosticReply) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestBounceDiagnosticReply.ProtoReflect.Descriptor instead.
+func (*TestBounceDiagnosticReply) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *TestBounceDiagnosticReply) GetSmtpCode() string {
+	if x != nil {
+		return x.SmtpCode
+	}
+	return ""
+}
+
+func (x *TestBounceDiagnosticReply) GetEnhancedCode() string {
+	if x != nil {
+		return x.EnhancedCode
+	}
+	return ""
+}
+
+func (x *TestBounceDiagnosticReply) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *TestBounceDiagnosticReply) GetMatched() bool {
+	if x != nil {
+		return x.Matched
+	}
+	return false
+}
+
+func (x *TestBounceDiagnosticReply) GetRule() *BounceRule {
+	if x != nil {
+		return x.Rule
+	}
+	return nil
+}
+
+func (x *TestBounceDiagnosticReply) GetEffectiveAction() string {
+	if x != nil {
+		return x.EffectiveAction
+	}
+	return ""
+}
+
+// ---- Event Processor (forward events to external services) ----
+type EventProcessor struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	EventTypes    []string               `protobuf:"bytes,3,rep,name=event_types,json=eventTypes,proto3" json:"event_types,omitempty"` // bounce | suppression_created | feedback_report | dmarc_received
+	Mailclasses   []string               `protobuf:"bytes,4,rep,name=mailclasses,proto3" json:"mailclasses,omitempty"`                 // empty = all classes
+	Driver        string                 `protobuf:"bytes,5,opt,name=driver,proto3" json:"driver,omitempty"`                           // webhook | redis | …
+	DriverConfig  map[string]string      `protobuf:"bytes,6,rep,name=driver_config,json=driverConfig,proto3" json:"driver_config,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Mode          string                 `protobuf:"bytes,7,opt,name=mode,proto3" json:"mode,omitempty"` // single | batch
+	BatchMaxSize  int32                  `protobuf:"varint,8,opt,name=batch_max_size,json=batchMaxSize,proto3" json:"batch_max_size,omitempty"`
+	BatchMaxWait  string                 `protobuf:"bytes,9,opt,name=batch_max_wait,json=batchMaxWait,proto3" json:"batch_max_wait,omitempty"` // duration, e.g. "5s"
+	Status        string                 `protobuf:"bytes,10,opt,name=status,proto3" json:"status,omitempty"`                                  // active | disabled
+	CreatedAt     string                 `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     string                 `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EventProcessor) Reset() {
+	*x = EventProcessor{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EventProcessor) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EventProcessor) ProtoMessage() {}
+
+func (x *EventProcessor) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EventProcessor.ProtoReflect.Descriptor instead.
+func (*EventProcessor) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *EventProcessor) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *EventProcessor) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *EventProcessor) GetEventTypes() []string {
+	if x != nil {
+		return x.EventTypes
+	}
+	return nil
+}
+
+func (x *EventProcessor) GetMailclasses() []string {
+	if x != nil {
+		return x.Mailclasses
+	}
+	return nil
+}
+
+func (x *EventProcessor) GetDriver() string {
+	if x != nil {
+		return x.Driver
+	}
+	return ""
+}
+
+func (x *EventProcessor) GetDriverConfig() map[string]string {
+	if x != nil {
+		return x.DriverConfig
+	}
+	return nil
+}
+
+func (x *EventProcessor) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *EventProcessor) GetBatchMaxSize() int32 {
+	if x != nil {
+		return x.BatchMaxSize
+	}
+	return 0
+}
+
+func (x *EventProcessor) GetBatchMaxWait() string {
+	if x != nil {
+		return x.BatchMaxWait
+	}
+	return ""
+}
+
+func (x *EventProcessor) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *EventProcessor) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *EventProcessor) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+type ListEventProcessorsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEventProcessorsRequest) Reset() {
+	*x = ListEventProcessorsRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEventProcessorsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEventProcessorsRequest) ProtoMessage() {}
+
+func (x *ListEventProcessorsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEventProcessorsRequest.ProtoReflect.Descriptor instead.
+func (*ListEventProcessorsRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{46}
+}
+
+type ListEventProcessorsReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Items         []*EventProcessor      `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEventProcessorsReply) Reset() {
+	*x = ListEventProcessorsReply{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEventProcessorsReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEventProcessorsReply) ProtoMessage() {}
+
+func (x *ListEventProcessorsReply) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEventProcessorsReply.ProtoReflect.Descriptor instead.
+func (*ListEventProcessorsReply) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *ListEventProcessorsReply) GetItems() []*EventProcessor {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+type CreateEventProcessorRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	EventTypes    []string               `protobuf:"bytes,2,rep,name=event_types,json=eventTypes,proto3" json:"event_types,omitempty"`
+	Mailclasses   []string               `protobuf:"bytes,3,rep,name=mailclasses,proto3" json:"mailclasses,omitempty"`
+	Driver        string                 `protobuf:"bytes,4,opt,name=driver,proto3" json:"driver,omitempty"`
+	DriverConfig  map[string]string      `protobuf:"bytes,5,rep,name=driver_config,json=driverConfig,proto3" json:"driver_config,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Mode          string                 `protobuf:"bytes,6,opt,name=mode,proto3" json:"mode,omitempty"`
+	BatchMaxSize  int32                  `protobuf:"varint,7,opt,name=batch_max_size,json=batchMaxSize,proto3" json:"batch_max_size,omitempty"`
+	BatchMaxWait  string                 `protobuf:"bytes,8,opt,name=batch_max_wait,json=batchMaxWait,proto3" json:"batch_max_wait,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateEventProcessorRequest) Reset() {
+	*x = CreateEventProcessorRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateEventProcessorRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateEventProcessorRequest) ProtoMessage() {}
+
+func (x *CreateEventProcessorRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateEventProcessorRequest.ProtoReflect.Descriptor instead.
+func (*CreateEventProcessorRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *CreateEventProcessorRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateEventProcessorRequest) GetEventTypes() []string {
+	if x != nil {
+		return x.EventTypes
+	}
+	return nil
+}
+
+func (x *CreateEventProcessorRequest) GetMailclasses() []string {
+	if x != nil {
+		return x.Mailclasses
+	}
+	return nil
+}
+
+func (x *CreateEventProcessorRequest) GetDriver() string {
+	if x != nil {
+		return x.Driver
+	}
+	return ""
+}
+
+func (x *CreateEventProcessorRequest) GetDriverConfig() map[string]string {
+	if x != nil {
+		return x.DriverConfig
+	}
+	return nil
+}
+
+func (x *CreateEventProcessorRequest) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *CreateEventProcessorRequest) GetBatchMaxSize() int32 {
+	if x != nil {
+		return x.BatchMaxSize
+	}
+	return 0
+}
+
+func (x *CreateEventProcessorRequest) GetBatchMaxWait() string {
+	if x != nil {
+		return x.BatchMaxWait
+	}
+	return ""
+}
+
+type UpdateEventProcessorRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	EventTypes    []string               `protobuf:"bytes,3,rep,name=event_types,json=eventTypes,proto3" json:"event_types,omitempty"`
+	Mailclasses   []string               `protobuf:"bytes,4,rep,name=mailclasses,proto3" json:"mailclasses,omitempty"`
+	Driver        string                 `protobuf:"bytes,5,opt,name=driver,proto3" json:"driver,omitempty"`
+	DriverConfig  map[string]string      `protobuf:"bytes,6,rep,name=driver_config,json=driverConfig,proto3" json:"driver_config,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Mode          string                 `protobuf:"bytes,7,opt,name=mode,proto3" json:"mode,omitempty"`
+	BatchMaxSize  int32                  `protobuf:"varint,8,opt,name=batch_max_size,json=batchMaxSize,proto3" json:"batch_max_size,omitempty"`
+	BatchMaxWait  string                 `protobuf:"bytes,9,opt,name=batch_max_wait,json=batchMaxWait,proto3" json:"batch_max_wait,omitempty"`
+	Status        string                 `protobuf:"bytes,10,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateEventProcessorRequest) Reset() {
+	*x = UpdateEventProcessorRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateEventProcessorRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateEventProcessorRequest) ProtoMessage() {}
+
+func (x *UpdateEventProcessorRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateEventProcessorRequest.ProtoReflect.Descriptor instead.
+func (*UpdateEventProcessorRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *UpdateEventProcessorRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateEventProcessorRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UpdateEventProcessorRequest) GetEventTypes() []string {
+	if x != nil {
+		return x.EventTypes
+	}
+	return nil
+}
+
+func (x *UpdateEventProcessorRequest) GetMailclasses() []string {
+	if x != nil {
+		return x.Mailclasses
+	}
+	return nil
+}
+
+func (x *UpdateEventProcessorRequest) GetDriver() string {
+	if x != nil {
+		return x.Driver
+	}
+	return ""
+}
+
+func (x *UpdateEventProcessorRequest) GetDriverConfig() map[string]string {
+	if x != nil {
+		return x.DriverConfig
+	}
+	return nil
+}
+
+func (x *UpdateEventProcessorRequest) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *UpdateEventProcessorRequest) GetBatchMaxSize() int32 {
+	if x != nil {
+		return x.BatchMaxSize
+	}
+	return 0
+}
+
+func (x *UpdateEventProcessorRequest) GetBatchMaxWait() string {
+	if x != nil {
+		return x.BatchMaxWait
+	}
+	return ""
+}
+
+func (x *UpdateEventProcessorRequest) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+type DeleteEventProcessorRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteEventProcessorRequest) Reset() {
+	*x = DeleteEventProcessorRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteEventProcessorRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteEventProcessorRequest) ProtoMessage() {}
+
+func (x *DeleteEventProcessorRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteEventProcessorRequest.ProtoReflect.Descriptor instead.
+func (*DeleteEventProcessorRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *DeleteEventProcessorRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DeleteEventProcessorReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteEventProcessorReply) Reset() {
+	*x = DeleteEventProcessorReply{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteEventProcessorReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteEventProcessorReply) ProtoMessage() {}
+
+func (x *DeleteEventProcessorReply) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteEventProcessorReply.ProtoReflect.Descriptor instead.
+func (*DeleteEventProcessorReply) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{51}
+}
+
+// Send a synthetic event through the (possibly unsaved) processor's driver.
+type TestEventProcessorRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	EventTypes    []string               `protobuf:"bytes,2,rep,name=event_types,json=eventTypes,proto3" json:"event_types,omitempty"`
+	Mailclasses   []string               `protobuf:"bytes,3,rep,name=mailclasses,proto3" json:"mailclasses,omitempty"`
+	Driver        string                 `protobuf:"bytes,4,opt,name=driver,proto3" json:"driver,omitempty"`
+	DriverConfig  map[string]string      `protobuf:"bytes,5,rep,name=driver_config,json=driverConfig,proto3" json:"driver_config,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Mode          string                 `protobuf:"bytes,6,opt,name=mode,proto3" json:"mode,omitempty"`
+	BatchMaxSize  int32                  `protobuf:"varint,7,opt,name=batch_max_size,json=batchMaxSize,proto3" json:"batch_max_size,omitempty"`
+	BatchMaxWait  string                 `protobuf:"bytes,8,opt,name=batch_max_wait,json=batchMaxWait,proto3" json:"batch_max_wait,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestEventProcessorRequest) Reset() {
+	*x = TestEventProcessorRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestEventProcessorRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestEventProcessorRequest) ProtoMessage() {}
+
+func (x *TestEventProcessorRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestEventProcessorRequest.ProtoReflect.Descriptor instead.
+func (*TestEventProcessorRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *TestEventProcessorRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *TestEventProcessorRequest) GetEventTypes() []string {
+	if x != nil {
+		return x.EventTypes
+	}
+	return nil
+}
+
+func (x *TestEventProcessorRequest) GetMailclasses() []string {
+	if x != nil {
+		return x.Mailclasses
+	}
+	return nil
+}
+
+func (x *TestEventProcessorRequest) GetDriver() string {
+	if x != nil {
+		return x.Driver
+	}
+	return ""
+}
+
+func (x *TestEventProcessorRequest) GetDriverConfig() map[string]string {
+	if x != nil {
+		return x.DriverConfig
+	}
+	return nil
+}
+
+func (x *TestEventProcessorRequest) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *TestEventProcessorRequest) GetBatchMaxSize() int32 {
+	if x != nil {
+		return x.BatchMaxSize
+	}
+	return 0
+}
+
+func (x *TestEventProcessorRequest) GetBatchMaxWait() string {
+	if x != nil {
+		return x.BatchMaxWait
+	}
+	return ""
+}
+
+type TestEventProcessorReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	Error         string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestEventProcessorReply) Reset() {
+	*x = TestEventProcessorReply{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[53]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestEventProcessorReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestEventProcessorReply) ProtoMessage() {}
+
+func (x *TestEventProcessorReply) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[53]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestEventProcessorReply.ProtoReflect.Descriptor instead.
+func (*TestEventProcessorReply) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{53}
+}
+
+func (x *TestEventProcessorReply) GetOk() bool {
+	if x != nil {
+		return x.Ok
+	}
+	return false
+}
+
+func (x *TestEventProcessorReply) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
 type ListVMTAsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Page          *PageRequest           `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
@@ -2534,7 +4063,7 @@ type ListVMTAsRequest struct {
 
 func (x *ListVMTAsRequest) Reset() {
 	*x = ListVMTAsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[34]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2546,7 +4075,7 @@ func (x *ListVMTAsRequest) String() string {
 func (*ListVMTAsRequest) ProtoMessage() {}
 
 func (x *ListVMTAsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[34]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2559,7 +4088,7 @@ func (x *ListVMTAsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVMTAsRequest.ProtoReflect.Descriptor instead.
 func (*ListVMTAsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{34}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *ListVMTAsRequest) GetPage() *PageRequest {
@@ -2586,7 +4115,7 @@ type ListVMTAsReply struct {
 
 func (x *ListVMTAsReply) Reset() {
 	*x = ListVMTAsReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[35]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2598,7 +4127,7 @@ func (x *ListVMTAsReply) String() string {
 func (*ListVMTAsReply) ProtoMessage() {}
 
 func (x *ListVMTAsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[35]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2611,7 +4140,7 @@ func (x *ListVMTAsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVMTAsReply.ProtoReflect.Descriptor instead.
 func (*ListVMTAsReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{35}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *ListVMTAsReply) GetItems() []*VMTA {
@@ -2641,7 +4170,7 @@ type CreateVMTARequest struct {
 
 func (x *CreateVMTARequest) Reset() {
 	*x = CreateVMTARequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[36]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2653,7 +4182,7 @@ func (x *CreateVMTARequest) String() string {
 func (*CreateVMTARequest) ProtoMessage() {}
 
 func (x *CreateVMTARequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[36]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2666,7 +4195,7 @@ func (x *CreateVMTARequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateVMTARequest.ProtoReflect.Descriptor instead.
 func (*CreateVMTARequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{36}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *CreateVMTARequest) GetName() string {
@@ -2720,7 +4249,7 @@ type UpdateVMTARequest struct {
 
 func (x *UpdateVMTARequest) Reset() {
 	*x = UpdateVMTARequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[37]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2732,7 +4261,7 @@ func (x *UpdateVMTARequest) String() string {
 func (*UpdateVMTARequest) ProtoMessage() {}
 
 func (x *UpdateVMTARequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[37]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2745,7 +4274,7 @@ func (x *UpdateVMTARequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateVMTARequest.ProtoReflect.Descriptor instead.
 func (*UpdateVMTARequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{37}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *UpdateVMTARequest) GetId() string {
@@ -2813,7 +4342,7 @@ type ListVMTAGroupsRequest struct {
 
 func (x *ListVMTAGroupsRequest) Reset() {
 	*x = ListVMTAGroupsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[38]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2825,7 +4354,7 @@ func (x *ListVMTAGroupsRequest) String() string {
 func (*ListVMTAGroupsRequest) ProtoMessage() {}
 
 func (x *ListVMTAGroupsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[38]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2838,7 +4367,7 @@ func (x *ListVMTAGroupsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVMTAGroupsRequest.ProtoReflect.Descriptor instead.
 func (*ListVMTAGroupsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{38}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *ListVMTAGroupsRequest) GetPage() *PageRequest {
@@ -2858,7 +4387,7 @@ type ListVMTAGroupsReply struct {
 
 func (x *ListVMTAGroupsReply) Reset() {
 	*x = ListVMTAGroupsReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[39]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2870,7 +4399,7 @@ func (x *ListVMTAGroupsReply) String() string {
 func (*ListVMTAGroupsReply) ProtoMessage() {}
 
 func (x *ListVMTAGroupsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[39]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2883,7 +4412,7 @@ func (x *ListVMTAGroupsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVMTAGroupsReply.ProtoReflect.Descriptor instead.
 func (*ListVMTAGroupsReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{39}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *ListVMTAGroupsReply) GetItems() []*VMTAGroup {
@@ -2910,7 +4439,7 @@ type CreateVMTAGroupRequest struct {
 
 func (x *CreateVMTAGroupRequest) Reset() {
 	*x = CreateVMTAGroupRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[40]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2922,7 +4451,7 @@ func (x *CreateVMTAGroupRequest) String() string {
 func (*CreateVMTAGroupRequest) ProtoMessage() {}
 
 func (x *CreateVMTAGroupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[40]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2935,7 +4464,7 @@ func (x *CreateVMTAGroupRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateVMTAGroupRequest.ProtoReflect.Descriptor instead.
 func (*CreateVMTAGroupRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{40}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *CreateVMTAGroupRequest) GetName() string {
@@ -2964,7 +4493,7 @@ type UpdateVMTAGroupRequest struct {
 
 func (x *UpdateVMTAGroupRequest) Reset() {
 	*x = UpdateVMTAGroupRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[41]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2976,7 +4505,7 @@ func (x *UpdateVMTAGroupRequest) String() string {
 func (*UpdateVMTAGroupRequest) ProtoMessage() {}
 
 func (x *UpdateVMTAGroupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[41]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2989,7 +4518,7 @@ func (x *UpdateVMTAGroupRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateVMTAGroupRequest.ProtoReflect.Descriptor instead.
 func (*UpdateVMTAGroupRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{41}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *UpdateVMTAGroupRequest) GetId() string {
@@ -3031,7 +4560,7 @@ type ListRoutingRulesRequest struct {
 
 func (x *ListRoutingRulesRequest) Reset() {
 	*x = ListRoutingRulesRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[42]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3043,7 +4572,7 @@ func (x *ListRoutingRulesRequest) String() string {
 func (*ListRoutingRulesRequest) ProtoMessage() {}
 
 func (x *ListRoutingRulesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[42]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3056,7 +4585,7 @@ func (x *ListRoutingRulesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRoutingRulesRequest.ProtoReflect.Descriptor instead.
 func (*ListRoutingRulesRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{42}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *ListRoutingRulesRequest) GetPage() *PageRequest {
@@ -3090,7 +4619,7 @@ type ListRoutingRulesReply struct {
 
 func (x *ListRoutingRulesReply) Reset() {
 	*x = ListRoutingRulesReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[43]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3102,7 +4631,7 @@ func (x *ListRoutingRulesReply) String() string {
 func (*ListRoutingRulesReply) ProtoMessage() {}
 
 func (x *ListRoutingRulesReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[43]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3115,7 +4644,7 @@ func (x *ListRoutingRulesReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRoutingRulesReply.ProtoReflect.Descriptor instead.
 func (*ListRoutingRulesReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{43}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *ListRoutingRulesReply) GetItems() []*RoutingRule {
@@ -3133,22 +4662,23 @@ func (x *ListRoutingRulesReply) GetPage() *PageReply {
 }
 
 type CreateRoutingRuleRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Name            string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	MatchType       string                 `protobuf:"bytes,2,opt,name=match_type,json=matchType,proto3" json:"match_type,omitempty"`
-	MatchValue      string                 `protobuf:"bytes,3,opt,name=match_value,json=matchValue,proto3" json:"match_value,omitempty"`
-	Priority        int32                  `protobuf:"varint,4,opt,name=priority,proto3" json:"priority,omitempty"`
-	TargetType      string                 `protobuf:"bytes,5,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
-	TargetId        string                 `protobuf:"bytes,6,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
-	MatchHeader     string                 `protobuf:"bytes,7,opt,name=match_header,json=matchHeader,proto3" json:"match_header,omitempty"`
-	AssignMailclass string                 `protobuf:"bytes,8,opt,name=assign_mailclass,json=assignMailclass,proto3" json:"assign_mailclass,omitempty"`
+	state           protoimpl.MessageState   `protogen:"open.v1"`
+	Name            string                   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	MatchType       string                   `protobuf:"bytes,2,opt,name=match_type,json=matchType,proto3" json:"match_type,omitempty"`
+	MatchValue      string                   `protobuf:"bytes,3,opt,name=match_value,json=matchValue,proto3" json:"match_value,omitempty"`
+	Priority        int32                    `protobuf:"varint,4,opt,name=priority,proto3" json:"priority,omitempty"`
+	TargetType      string                   `protobuf:"bytes,5,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
+	TargetId        string                   `protobuf:"bytes,6,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
+	MatchHeader     string                   `protobuf:"bytes,7,opt,name=match_header,json=matchHeader,proto3" json:"match_header,omitempty"`
+	AssignMailclass string                   `protobuf:"bytes,8,opt,name=assign_mailclass,json=assignMailclass,proto3" json:"assign_mailclass,omitempty"`
+	Conditions      []*RoutingMatchCondition `protobuf:"bytes,9,rep,name=conditions,proto3" json:"conditions,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *CreateRoutingRuleRequest) Reset() {
 	*x = CreateRoutingRuleRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[44]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3160,7 +4690,7 @@ func (x *CreateRoutingRuleRequest) String() string {
 func (*CreateRoutingRuleRequest) ProtoMessage() {}
 
 func (x *CreateRoutingRuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[44]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3173,7 +4703,7 @@ func (x *CreateRoutingRuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRoutingRuleRequest.ProtoReflect.Descriptor instead.
 func (*CreateRoutingRuleRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{44}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *CreateRoutingRuleRequest) GetName() string {
@@ -3232,25 +4762,33 @@ func (x *CreateRoutingRuleRequest) GetAssignMailclass() string {
 	return ""
 }
 
+func (x *CreateRoutingRuleRequest) GetConditions() []*RoutingMatchCondition {
+	if x != nil {
+		return x.Conditions
+	}
+	return nil
+}
+
 type UpdateRoutingRuleRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name            string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	MatchType       string                 `protobuf:"bytes,3,opt,name=match_type,json=matchType,proto3" json:"match_type,omitempty"`
-	MatchValue      string                 `protobuf:"bytes,4,opt,name=match_value,json=matchValue,proto3" json:"match_value,omitempty"`
-	Priority        int32                  `protobuf:"varint,5,opt,name=priority,proto3" json:"priority,omitempty"`
-	TargetType      string                 `protobuf:"bytes,6,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
-	TargetId        string                 `protobuf:"bytes,7,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
-	Status          string                 `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"`
-	MatchHeader     string                 `protobuf:"bytes,9,opt,name=match_header,json=matchHeader,proto3" json:"match_header,omitempty"`
-	AssignMailclass string                 `protobuf:"bytes,10,opt,name=assign_mailclass,json=assignMailclass,proto3" json:"assign_mailclass,omitempty"`
+	state           protoimpl.MessageState   `protogen:"open.v1"`
+	Id              string                   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name            string                   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	MatchType       string                   `protobuf:"bytes,3,opt,name=match_type,json=matchType,proto3" json:"match_type,omitempty"`
+	MatchValue      string                   `protobuf:"bytes,4,opt,name=match_value,json=matchValue,proto3" json:"match_value,omitempty"`
+	Priority        int32                    `protobuf:"varint,5,opt,name=priority,proto3" json:"priority,omitempty"`
+	TargetType      string                   `protobuf:"bytes,6,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
+	TargetId        string                   `protobuf:"bytes,7,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
+	Status          string                   `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"`
+	MatchHeader     string                   `protobuf:"bytes,9,opt,name=match_header,json=matchHeader,proto3" json:"match_header,omitempty"`
+	AssignMailclass string                   `protobuf:"bytes,10,opt,name=assign_mailclass,json=assignMailclass,proto3" json:"assign_mailclass,omitempty"`
+	Conditions      []*RoutingMatchCondition `protobuf:"bytes,11,rep,name=conditions,proto3" json:"conditions,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UpdateRoutingRuleRequest) Reset() {
 	*x = UpdateRoutingRuleRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[45]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3262,7 +4800,7 @@ func (x *UpdateRoutingRuleRequest) String() string {
 func (*UpdateRoutingRuleRequest) ProtoMessage() {}
 
 func (x *UpdateRoutingRuleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[45]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3275,7 +4813,7 @@ func (x *UpdateRoutingRuleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRoutingRuleRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRoutingRuleRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{45}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *UpdateRoutingRuleRequest) GetId() string {
@@ -3348,6 +4886,13 @@ func (x *UpdateRoutingRuleRequest) GetAssignMailclass() string {
 	return ""
 }
 
+func (x *UpdateRoutingRuleRequest) GetConditions() []*RoutingMatchCondition {
+	if x != nil {
+		return x.Conditions
+	}
+	return nil
+}
+
 // Mail operations -----------------------------------------------------------
 type MailRecord struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
@@ -3385,7 +4930,7 @@ type MailRecord struct {
 
 func (x *MailRecord) Reset() {
 	*x = MailRecord{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[46]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3397,7 +4942,7 @@ func (x *MailRecord) String() string {
 func (*MailRecord) ProtoMessage() {}
 
 func (x *MailRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[46]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3410,7 +4955,7 @@ func (x *MailRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MailRecord.ProtoReflect.Descriptor instead.
 func (*MailRecord) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{46}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *MailRecord) GetId() string {
@@ -3537,7 +5082,7 @@ type Bounce struct {
 
 func (x *Bounce) Reset() {
 	*x = Bounce{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[47]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3549,7 +5094,7 @@ func (x *Bounce) String() string {
 func (*Bounce) ProtoMessage() {}
 
 func (x *Bounce) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[47]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3562,7 +5107,7 @@ func (x *Bounce) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Bounce.ProtoReflect.Descriptor instead.
 func (*Bounce) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{47}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *Bounce) GetId() string {
@@ -3642,7 +5187,7 @@ type FeedbackReport struct {
 
 func (x *FeedbackReport) Reset() {
 	*x = FeedbackReport{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[48]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3654,7 +5199,7 @@ func (x *FeedbackReport) String() string {
 func (*FeedbackReport) ProtoMessage() {}
 
 func (x *FeedbackReport) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[48]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3667,7 +5212,7 @@ func (x *FeedbackReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FeedbackReport.ProtoReflect.Descriptor instead.
 func (*FeedbackReport) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{48}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *FeedbackReport) GetId() string {
@@ -3725,7 +5270,7 @@ type Queue struct {
 
 func (x *Queue) Reset() {
 	*x = Queue{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[49]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3737,7 +5282,7 @@ func (x *Queue) String() string {
 func (*Queue) ProtoMessage() {}
 
 func (x *Queue) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[49]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3750,7 +5295,7 @@ func (x *Queue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Queue.ProtoReflect.Descriptor instead.
 func (*Queue) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{49}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *Queue) GetDomain() string {
@@ -3803,7 +5348,7 @@ type ListMailRecordsRequest struct {
 
 func (x *ListMailRecordsRequest) Reset() {
 	*x = ListMailRecordsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[50]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3815,7 +5360,7 @@ func (x *ListMailRecordsRequest) String() string {
 func (*ListMailRecordsRequest) ProtoMessage() {}
 
 func (x *ListMailRecordsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[50]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3828,7 +5373,7 @@ func (x *ListMailRecordsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMailRecordsRequest.ProtoReflect.Descriptor instead.
 func (*ListMailRecordsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{50}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *ListMailRecordsRequest) GetPage() *PageRequest {
@@ -3911,7 +5456,7 @@ type ListMailRecordsReply struct {
 
 func (x *ListMailRecordsReply) Reset() {
 	*x = ListMailRecordsReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[51]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3923,7 +5468,7 @@ func (x *ListMailRecordsReply) String() string {
 func (*ListMailRecordsReply) ProtoMessage() {}
 
 func (x *ListMailRecordsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[51]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3936,7 +5481,7 @@ func (x *ListMailRecordsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMailRecordsReply.ProtoReflect.Descriptor instead.
 func (*ListMailRecordsReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{51}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *ListMailRecordsReply) GetItems() []*MailRecord {
@@ -3953,16 +5498,181 @@ func (x *ListMailRecordsReply) GetPage() *PageReply {
 	return nil
 }
 
-type ListBouncesRequest struct {
+type GetNextDeliveryAttemptRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Page          *PageRequest           `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
+	MessageId     string                 `protobuf:"bytes,1,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
+func (x *GetNextDeliveryAttemptRequest) Reset() {
+	*x = GetNextDeliveryAttemptRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[72]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetNextDeliveryAttemptRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetNextDeliveryAttemptRequest) ProtoMessage() {}
+
+func (x *GetNextDeliveryAttemptRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[72]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetNextDeliveryAttemptRequest.ProtoReflect.Descriptor instead.
+func (*GetNextDeliveryAttemptRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{72}
+}
+
+func (x *GetNextDeliveryAttemptRequest) GetMessageId() string {
+	if x != nil {
+		return x.MessageId
+	}
+	return ""
+}
+
+// Estimated retry schedule for a deferred message (empty/deferred=false when the
+// message already reached a terminal outcome). Times are RFC3339 UTC.
+type NextDeliveryAttempt struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Deferred          bool                   `protobuf:"varint,1,opt,name=deferred,proto3" json:"deferred,omitempty"`
+	Attempts          int32                  `protobuf:"varint,2,opt,name=attempts,proto3" json:"attempts,omitempty"`                                            // transient failures so far
+	LastAttempt       string                 `protobuf:"bytes,3,opt,name=last_attempt,json=lastAttempt,proto3" json:"last_attempt,omitempty"`                    // time of the most recent deferral
+	NextAttempt       string                 `protobuf:"bytes,4,opt,name=next_attempt,json=nextAttempt,proto3" json:"next_attempt,omitempty"`                    // estimated next delivery attempt
+	RemainingAttempts int32                  `protobuf:"varint,5,opt,name=remaining_attempts,json=remainingAttempts,proto3" json:"remaining_attempts,omitempty"` // future attempts before expiry (incl. next)
+	FinalAttempt      string                 `protobuf:"bytes,6,opt,name=final_attempt,json=finalAttempt,proto3" json:"final_attempt,omitempty"`                 // last attempt that fits before expiry
+	WillExpire        bool                   `protobuf:"varint,7,opt,name=will_expire,json=willExpire,proto3" json:"will_expire,omitempty"`                      // next attempt would exceed max_age
+	ExpiresAt         string                 `protobuf:"bytes,8,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`                          // creation time + max_age
+	Interval          string                 `protobuf:"bytes,9,opt,name=interval,proto3" json:"interval,omitempty"`                                             // delay until the next attempt (e.g. "1h20m")
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *NextDeliveryAttempt) Reset() {
+	*x = NextDeliveryAttempt{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[73]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NextDeliveryAttempt) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NextDeliveryAttempt) ProtoMessage() {}
+
+func (x *NextDeliveryAttempt) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[73]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NextDeliveryAttempt.ProtoReflect.Descriptor instead.
+func (*NextDeliveryAttempt) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{73}
+}
+
+func (x *NextDeliveryAttempt) GetDeferred() bool {
+	if x != nil {
+		return x.Deferred
+	}
+	return false
+}
+
+func (x *NextDeliveryAttempt) GetAttempts() int32 {
+	if x != nil {
+		return x.Attempts
+	}
+	return 0
+}
+
+func (x *NextDeliveryAttempt) GetLastAttempt() string {
+	if x != nil {
+		return x.LastAttempt
+	}
+	return ""
+}
+
+func (x *NextDeliveryAttempt) GetNextAttempt() string {
+	if x != nil {
+		return x.NextAttempt
+	}
+	return ""
+}
+
+func (x *NextDeliveryAttempt) GetRemainingAttempts() int32 {
+	if x != nil {
+		return x.RemainingAttempts
+	}
+	return 0
+}
+
+func (x *NextDeliveryAttempt) GetFinalAttempt() string {
+	if x != nil {
+		return x.FinalAttempt
+	}
+	return ""
+}
+
+func (x *NextDeliveryAttempt) GetWillExpire() bool {
+	if x != nil {
+		return x.WillExpire
+	}
+	return false
+}
+
+func (x *NextDeliveryAttempt) GetExpiresAt() string {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return ""
+}
+
+func (x *NextDeliveryAttempt) GetInterval() string {
+	if x != nil {
+		return x.Interval
+	}
+	return ""
+}
+
+type ListBouncesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Page  *PageRequest           `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
+	// Case-insensitive substring match on the recipient address.
+	Recipient string `protobuf:"bytes,2,opt,name=recipient,proto3" json:"recipient,omitempty"`
+	Mailclass string `protobuf:"bytes,3,opt,name=mailclass,proto3" json:"mailclass,omitempty"`
+	// Filter by bounce type (hard | soft | dsn). Empty = all.
+	BounceType string `protobuf:"bytes,4,opt,name=bounce_type,json=bounceType,proto3" json:"bounce_type,omitempty"`
+	// Case-insensitive substring match on the classifier category.
+	Classification string `protobuf:"bytes,5,opt,name=classification,proto3" json:"classification,omitempty"`
+	// Filter by processing state (new | processing | processed | suppressed | retried).
+	ProcessingState string                 `protobuf:"bytes,6,opt,name=processing_state,json=processingState,proto3" json:"processing_state,omitempty"`
+	FromTime        *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=from_time,json=fromTime,proto3" json:"from_time,omitempty"`
+	ToTime          *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=to_time,json=toTime,proto3" json:"to_time,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
 func (x *ListBouncesRequest) Reset() {
 	*x = ListBouncesRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[52]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3974,7 +5684,7 @@ func (x *ListBouncesRequest) String() string {
 func (*ListBouncesRequest) ProtoMessage() {}
 
 func (x *ListBouncesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[52]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3987,12 +5697,61 @@ func (x *ListBouncesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBouncesRequest.ProtoReflect.Descriptor instead.
 func (*ListBouncesRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{52}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *ListBouncesRequest) GetPage() *PageRequest {
 	if x != nil {
 		return x.Page
+	}
+	return nil
+}
+
+func (x *ListBouncesRequest) GetRecipient() string {
+	if x != nil {
+		return x.Recipient
+	}
+	return ""
+}
+
+func (x *ListBouncesRequest) GetMailclass() string {
+	if x != nil {
+		return x.Mailclass
+	}
+	return ""
+}
+
+func (x *ListBouncesRequest) GetBounceType() string {
+	if x != nil {
+		return x.BounceType
+	}
+	return ""
+}
+
+func (x *ListBouncesRequest) GetClassification() string {
+	if x != nil {
+		return x.Classification
+	}
+	return ""
+}
+
+func (x *ListBouncesRequest) GetProcessingState() string {
+	if x != nil {
+		return x.ProcessingState
+	}
+	return ""
+}
+
+func (x *ListBouncesRequest) GetFromTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.FromTime
+	}
+	return nil
+}
+
+func (x *ListBouncesRequest) GetToTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ToTime
 	}
 	return nil
 }
@@ -4007,7 +5766,7 @@ type ListBouncesReply struct {
 
 func (x *ListBouncesReply) Reset() {
 	*x = ListBouncesReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[53]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4019,7 +5778,7 @@ func (x *ListBouncesReply) String() string {
 func (*ListBouncesReply) ProtoMessage() {}
 
 func (x *ListBouncesReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[53]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4032,7 +5791,7 @@ func (x *ListBouncesReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBouncesReply.ProtoReflect.Descriptor instead.
 func (*ListBouncesReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{53}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *ListBouncesReply) GetItems() []*Bounce {
@@ -4049,6 +5808,94 @@ func (x *ListBouncesReply) GetPage() *PageReply {
 	return nil
 }
 
+type ListDsnMessagesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Recipient     string                 `protobuf:"bytes,1,opt,name=recipient,proto3" json:"recipient,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDsnMessagesRequest) Reset() {
+	*x = ListDsnMessagesRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[76]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDsnMessagesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDsnMessagesRequest) ProtoMessage() {}
+
+func (x *ListDsnMessagesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[76]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDsnMessagesRequest.ProtoReflect.Descriptor instead.
+func (*ListDsnMessagesRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{76}
+}
+
+func (x *ListDsnMessagesRequest) GetRecipient() string {
+	if x != nil {
+		return x.Recipient
+	}
+	return ""
+}
+
+type ListDsnMessagesReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Items         []*DsnMessage          `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDsnMessagesReply) Reset() {
+	*x = ListDsnMessagesReply{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[77]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDsnMessagesReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDsnMessagesReply) ProtoMessage() {}
+
+func (x *ListDsnMessagesReply) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[77]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDsnMessagesReply.ProtoReflect.Descriptor instead.
+func (*ListDsnMessagesReply) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{77}
+}
+
+func (x *ListDsnMessagesReply) GetItems() []*DsnMessage {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
 type ListFeedbackReportsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Page          *PageRequest           `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
@@ -4058,7 +5905,7 @@ type ListFeedbackReportsRequest struct {
 
 func (x *ListFeedbackReportsRequest) Reset() {
 	*x = ListFeedbackReportsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[54]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4070,7 +5917,7 @@ func (x *ListFeedbackReportsRequest) String() string {
 func (*ListFeedbackReportsRequest) ProtoMessage() {}
 
 func (x *ListFeedbackReportsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[54]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4083,7 +5930,7 @@ func (x *ListFeedbackReportsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFeedbackReportsRequest.ProtoReflect.Descriptor instead.
 func (*ListFeedbackReportsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{54}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *ListFeedbackReportsRequest) GetPage() *PageRequest {
@@ -4103,7 +5950,7 @@ type ListFeedbackReportsReply struct {
 
 func (x *ListFeedbackReportsReply) Reset() {
 	*x = ListFeedbackReportsReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[55]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4115,7 +5962,7 @@ func (x *ListFeedbackReportsReply) String() string {
 func (*ListFeedbackReportsReply) ProtoMessage() {}
 
 func (x *ListFeedbackReportsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[55]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4128,7 +5975,7 @@ func (x *ListFeedbackReportsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFeedbackReportsReply.ProtoReflect.Descriptor instead.
 func (*ListFeedbackReportsReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{55}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *ListFeedbackReportsReply) GetItems() []*FeedbackReport {
@@ -4154,7 +6001,7 @@ type ListQueuesRequest struct {
 
 func (x *ListQueuesRequest) Reset() {
 	*x = ListQueuesRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[56]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4166,7 +6013,7 @@ func (x *ListQueuesRequest) String() string {
 func (*ListQueuesRequest) ProtoMessage() {}
 
 func (x *ListQueuesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[56]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4179,7 +6026,7 @@ func (x *ListQueuesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListQueuesRequest.ProtoReflect.Descriptor instead.
 func (*ListQueuesRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{56}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *ListQueuesRequest) GetPage() *PageRequest {
@@ -4199,7 +6046,7 @@ type ListQueuesReply struct {
 
 func (x *ListQueuesReply) Reset() {
 	*x = ListQueuesReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[57]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4211,7 +6058,7 @@ func (x *ListQueuesReply) String() string {
 func (*ListQueuesReply) ProtoMessage() {}
 
 func (x *ListQueuesReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[57]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4224,7 +6071,7 @@ func (x *ListQueuesReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListQueuesReply.ProtoReflect.Descriptor instead.
 func (*ListQueuesReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{57}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *ListQueuesReply) GetItems() []*Queue {
@@ -4253,7 +6100,7 @@ type RequestQueueActionRequest struct {
 
 func (x *RequestQueueActionRequest) Reset() {
 	*x = RequestQueueActionRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[58]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4265,7 +6112,7 @@ func (x *RequestQueueActionRequest) String() string {
 func (*RequestQueueActionRequest) ProtoMessage() {}
 
 func (x *RequestQueueActionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[58]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4278,7 +6125,7 @@ func (x *RequestQueueActionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestQueueActionRequest.ProtoReflect.Descriptor instead.
 func (*RequestQueueActionRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{58}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *RequestQueueActionRequest) GetAction() string {
@@ -4319,7 +6166,7 @@ type QueueActionReply struct {
 
 func (x *QueueActionReply) Reset() {
 	*x = QueueActionReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[59]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4331,7 +6178,7 @@ func (x *QueueActionReply) String() string {
 func (*QueueActionReply) ProtoMessage() {}
 
 func (x *QueueActionReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[59]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4344,7 +6191,7 @@ func (x *QueueActionReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueueActionReply.ProtoReflect.Descriptor instead.
 func (*QueueActionReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{59}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *QueueActionReply) GetStatus() string {
@@ -4375,7 +6222,7 @@ type DKIMDomain struct {
 
 func (x *DKIMDomain) Reset() {
 	*x = DKIMDomain{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[60]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4387,7 +6234,7 @@ func (x *DKIMDomain) String() string {
 func (*DKIMDomain) ProtoMessage() {}
 
 func (x *DKIMDomain) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[60]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4400,7 +6247,7 @@ func (x *DKIMDomain) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DKIMDomain.ProtoReflect.Descriptor instead.
 func (*DKIMDomain) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{60}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *DKIMDomain) GetId() string {
@@ -4446,13 +6293,16 @@ type Suppression struct {
 	Reason        string                 `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
 	Source        string                 `protobuf:"bytes,5,opt,name=source,proto3" json:"source,omitempty"`
 	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	Mailclass     string                 `protobuf:"bytes,7,opt,name=mailclass,proto3" json:"mailclass,omitempty"`                  // class of the event that triggered it (empty if manual)
+	CreatedAt     string                 `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"` // RFC3339 — when the entry was recorded
+	ExpiresAt     string                 `protobuf:"bytes,9,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"` // RFC3339 — when it stops blocking; empty = permanent
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Suppression) Reset() {
 	*x = Suppression{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[61]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4464,7 +6314,7 @@ func (x *Suppression) String() string {
 func (*Suppression) ProtoMessage() {}
 
 func (x *Suppression) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[61]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4477,7 +6327,7 @@ func (x *Suppression) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Suppression.ProtoReflect.Descriptor instead.
 func (*Suppression) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{61}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *Suppression) GetId() string {
@@ -4522,6 +6372,27 @@ func (x *Suppression) GetStatus() string {
 	return ""
 }
 
+func (x *Suppression) GetMailclass() string {
+	if x != nil {
+		return x.Mailclass
+	}
+	return ""
+}
+
+func (x *Suppression) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *Suppression) GetExpiresAt() string {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return ""
+}
+
 type ListDKIMDomainsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Page          *PageRequest           `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
@@ -4531,7 +6402,7 @@ type ListDKIMDomainsRequest struct {
 
 func (x *ListDKIMDomainsRequest) Reset() {
 	*x = ListDKIMDomainsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[62]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4543,7 +6414,7 @@ func (x *ListDKIMDomainsRequest) String() string {
 func (*ListDKIMDomainsRequest) ProtoMessage() {}
 
 func (x *ListDKIMDomainsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[62]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4556,7 +6427,7 @@ func (x *ListDKIMDomainsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDKIMDomainsRequest.ProtoReflect.Descriptor instead.
 func (*ListDKIMDomainsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{62}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *ListDKIMDomainsRequest) GetPage() *PageRequest {
@@ -4576,7 +6447,7 @@ type ListDKIMDomainsReply struct {
 
 func (x *ListDKIMDomainsReply) Reset() {
 	*x = ListDKIMDomainsReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[63]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4588,7 +6459,7 @@ func (x *ListDKIMDomainsReply) String() string {
 func (*ListDKIMDomainsReply) ProtoMessage() {}
 
 func (x *ListDKIMDomainsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[63]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4601,7 +6472,7 @@ func (x *ListDKIMDomainsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDKIMDomainsReply.ProtoReflect.Descriptor instead.
 func (*ListDKIMDomainsReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{63}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *ListDKIMDomainsReply) GetItems() []*DKIMDomain {
@@ -4630,7 +6501,7 @@ type CreateDKIMDomainRequest struct {
 
 func (x *CreateDKIMDomainRequest) Reset() {
 	*x = CreateDKIMDomainRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[64]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4642,7 +6513,7 @@ func (x *CreateDKIMDomainRequest) String() string {
 func (*CreateDKIMDomainRequest) ProtoMessage() {}
 
 func (x *CreateDKIMDomainRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[64]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4655,7 +6526,7 @@ func (x *CreateDKIMDomainRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDKIMDomainRequest.ProtoReflect.Descriptor instead.
 func (*CreateDKIMDomainRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{64}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *CreateDKIMDomainRequest) GetDomain() string {
@@ -4700,7 +6571,7 @@ type UpdateDKIMDomainRequest struct {
 
 func (x *UpdateDKIMDomainRequest) Reset() {
 	*x = UpdateDKIMDomainRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[65]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4712,7 +6583,7 @@ func (x *UpdateDKIMDomainRequest) String() string {
 func (*UpdateDKIMDomainRequest) ProtoMessage() {}
 
 func (x *UpdateDKIMDomainRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[65]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4725,7 +6596,7 @@ func (x *UpdateDKIMDomainRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDKIMDomainRequest.ProtoReflect.Descriptor instead.
 func (*UpdateDKIMDomainRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{65}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *UpdateDKIMDomainRequest) GetId() string {
@@ -4773,7 +6644,7 @@ type GenerateDKIMKeyRequest struct {
 
 func (x *GenerateDKIMKeyRequest) Reset() {
 	*x = GenerateDKIMKeyRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[66]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4785,7 +6656,7 @@ func (x *GenerateDKIMKeyRequest) String() string {
 func (*GenerateDKIMKeyRequest) ProtoMessage() {}
 
 func (x *GenerateDKIMKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[66]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4798,7 +6669,7 @@ func (x *GenerateDKIMKeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateDKIMKeyRequest.ProtoReflect.Descriptor instead.
 func (*GenerateDKIMKeyRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{66}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *GenerateDKIMKeyRequest) GetDomain() string {
@@ -4829,7 +6700,7 @@ type GenerateDKIMKeyReply struct {
 
 func (x *GenerateDKIMKeyReply) Reset() {
 	*x = GenerateDKIMKeyReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[67]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4841,7 +6712,7 @@ func (x *GenerateDKIMKeyReply) String() string {
 func (*GenerateDKIMKeyReply) ProtoMessage() {}
 
 func (x *GenerateDKIMKeyReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[67]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4854,7 +6725,7 @@ func (x *GenerateDKIMKeyReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateDKIMKeyReply.ProtoReflect.Descriptor instead.
 func (*GenerateDKIMKeyReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{67}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *GenerateDKIMKeyReply) GetPrivateKeyPem() string {
@@ -4888,13 +6759,18 @@ func (x *GenerateDKIMKeyReply) GetPublicKeyFingerprint() string {
 type ListSuppressionsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Page          *PageRequest           `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
+	Search        string                 `protobuf:"bytes,2,opt,name=search,proto3" json:"search,omitempty"`       // case-insensitive substring match on the suppressed value
+	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`           // email | domain; empty = all
+	Status        string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`       // active | disabled | expired; empty = all
+	Source        string                 `protobuf:"bytes,5,opt,name=source,proto3" json:"source,omitempty"`       // manual | bounce | feedback | dsn; empty = all
+	Mailclass     string                 `protobuf:"bytes,6,opt,name=mailclass,proto3" json:"mailclass,omitempty"` // exact match; empty = all
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListSuppressionsRequest) Reset() {
 	*x = ListSuppressionsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[68]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4906,7 +6782,7 @@ func (x *ListSuppressionsRequest) String() string {
 func (*ListSuppressionsRequest) ProtoMessage() {}
 
 func (x *ListSuppressionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[68]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4919,7 +6795,7 @@ func (x *ListSuppressionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSuppressionsRequest.ProtoReflect.Descriptor instead.
 func (*ListSuppressionsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{68}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *ListSuppressionsRequest) GetPage() *PageRequest {
@@ -4927,6 +6803,41 @@ func (x *ListSuppressionsRequest) GetPage() *PageRequest {
 		return x.Page
 	}
 	return nil
+}
+
+func (x *ListSuppressionsRequest) GetSearch() string {
+	if x != nil {
+		return x.Search
+	}
+	return ""
+}
+
+func (x *ListSuppressionsRequest) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *ListSuppressionsRequest) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *ListSuppressionsRequest) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *ListSuppressionsRequest) GetMailclass() string {
+	if x != nil {
+		return x.Mailclass
+	}
+	return ""
 }
 
 type ListSuppressionsReply struct {
@@ -4939,7 +6850,7 @@ type ListSuppressionsReply struct {
 
 func (x *ListSuppressionsReply) Reset() {
 	*x = ListSuppressionsReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[69]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4951,7 +6862,7 @@ func (x *ListSuppressionsReply) String() string {
 func (*ListSuppressionsReply) ProtoMessage() {}
 
 func (x *ListSuppressionsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[69]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4964,7 +6875,7 @@ func (x *ListSuppressionsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSuppressionsReply.ProtoReflect.Descriptor instead.
 func (*ListSuppressionsReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{69}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *ListSuppressionsReply) GetItems() []*Suppression {
@@ -4992,7 +6903,7 @@ type CreateSuppressionRequest struct {
 
 func (x *CreateSuppressionRequest) Reset() {
 	*x = CreateSuppressionRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[70]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5004,7 +6915,7 @@ func (x *CreateSuppressionRequest) String() string {
 func (*CreateSuppressionRequest) ProtoMessage() {}
 
 func (x *CreateSuppressionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[70]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5017,7 +6928,7 @@ func (x *CreateSuppressionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSuppressionRequest.ProtoReflect.Descriptor instead.
 func (*CreateSuppressionRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{70}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *CreateSuppressionRequest) GetType() string {
@@ -5052,7 +6963,7 @@ type UpdateSuppressionRequest struct {
 
 func (x *UpdateSuppressionRequest) Reset() {
 	*x = UpdateSuppressionRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[71]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5064,7 +6975,7 @@ func (x *UpdateSuppressionRequest) String() string {
 func (*UpdateSuppressionRequest) ProtoMessage() {}
 
 func (x *UpdateSuppressionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[71]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5077,7 +6988,7 @@ func (x *UpdateSuppressionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSuppressionRequest.ProtoReflect.Descriptor instead.
 func (*UpdateSuppressionRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{71}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *UpdateSuppressionRequest) GetId() string {
@@ -5101,6 +7012,163 @@ func (x *UpdateSuppressionRequest) GetStatus() string {
 	return ""
 }
 
+// DsnMessage is a raw asynchronous bounce (DSN) archived at the bounce domain.
+type DsnMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	MessageId     string                 `protobuf:"bytes,2,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
+	RawMessage    string                 `protobuf:"bytes,3,opt,name=raw_message,json=rawMessage,proto3" json:"raw_message,omitempty"`
+	ReceivedAt    string                 `protobuf:"bytes,4,opt,name=received_at,json=receivedAt,proto3" json:"received_at,omitempty"` // RFC3339
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DsnMessage) Reset() {
+	*x = DsnMessage{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[96]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DsnMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DsnMessage) ProtoMessage() {}
+
+func (x *DsnMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[96]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DsnMessage.ProtoReflect.Descriptor instead.
+func (*DsnMessage) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{96}
+}
+
+func (x *DsnMessage) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *DsnMessage) GetMessageId() string {
+	if x != nil {
+		return x.MessageId
+	}
+	return ""
+}
+
+func (x *DsnMessage) GetRawMessage() string {
+	if x != nil {
+		return x.RawMessage
+	}
+	return ""
+}
+
+func (x *DsnMessage) GetReceivedAt() string {
+	if x != nil {
+		return x.ReceivedAt
+	}
+	return ""
+}
+
+type ListSuppressionDsnMessagesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSuppressionDsnMessagesRequest) Reset() {
+	*x = ListSuppressionDsnMessagesRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[97]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSuppressionDsnMessagesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSuppressionDsnMessagesRequest) ProtoMessage() {}
+
+func (x *ListSuppressionDsnMessagesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[97]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSuppressionDsnMessagesRequest.ProtoReflect.Descriptor instead.
+func (*ListSuppressionDsnMessagesRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{97}
+}
+
+func (x *ListSuppressionDsnMessagesRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type ListSuppressionDsnMessagesReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Items         []*DsnMessage          `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSuppressionDsnMessagesReply) Reset() {
+	*x = ListSuppressionDsnMessagesReply{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[98]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSuppressionDsnMessagesReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSuppressionDsnMessagesReply) ProtoMessage() {}
+
+func (x *ListSuppressionDsnMessagesReply) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[98]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSuppressionDsnMessagesReply.ProtoReflect.Descriptor instead.
+func (*ListSuppressionDsnMessagesReply) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{98}
+}
+
+func (x *ListSuppressionDsnMessagesReply) GetItems() []*DsnMessage {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
 // TLSPolicy requires TLS on outbound delivery to a destination domain. mode is
 // "required" (STARTTLS + valid cert) or "required_insecure" (STARTTLS, skip
 // cert validation).
@@ -5116,7 +7184,7 @@ type TLSPolicy struct {
 
 func (x *TLSPolicy) Reset() {
 	*x = TLSPolicy{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[72]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5128,7 +7196,7 @@ func (x *TLSPolicy) String() string {
 func (*TLSPolicy) ProtoMessage() {}
 
 func (x *TLSPolicy) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[72]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5141,7 +7209,7 @@ func (x *TLSPolicy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TLSPolicy.ProtoReflect.Descriptor instead.
 func (*TLSPolicy) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{72}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *TLSPolicy) GetId() string {
@@ -5181,7 +7249,7 @@ type ListTLSPoliciesRequest struct {
 
 func (x *ListTLSPoliciesRequest) Reset() {
 	*x = ListTLSPoliciesRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[73]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5193,7 +7261,7 @@ func (x *ListTLSPoliciesRequest) String() string {
 func (*ListTLSPoliciesRequest) ProtoMessage() {}
 
 func (x *ListTLSPoliciesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[73]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5206,7 +7274,7 @@ func (x *ListTLSPoliciesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTLSPoliciesRequest.ProtoReflect.Descriptor instead.
 func (*ListTLSPoliciesRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{73}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *ListTLSPoliciesRequest) GetPage() *PageRequest {
@@ -5226,7 +7294,7 @@ type ListTLSPoliciesReply struct {
 
 func (x *ListTLSPoliciesReply) Reset() {
 	*x = ListTLSPoliciesReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[74]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5238,7 +7306,7 @@ func (x *ListTLSPoliciesReply) String() string {
 func (*ListTLSPoliciesReply) ProtoMessage() {}
 
 func (x *ListTLSPoliciesReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[74]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5251,7 +7319,7 @@ func (x *ListTLSPoliciesReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTLSPoliciesReply.ProtoReflect.Descriptor instead.
 func (*ListTLSPoliciesReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{74}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *ListTLSPoliciesReply) GetItems() []*TLSPolicy {
@@ -5278,7 +7346,7 @@ type CreateTLSPolicyRequest struct {
 
 func (x *CreateTLSPolicyRequest) Reset() {
 	*x = CreateTLSPolicyRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[75]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5290,7 +7358,7 @@ func (x *CreateTLSPolicyRequest) String() string {
 func (*CreateTLSPolicyRequest) ProtoMessage() {}
 
 func (x *CreateTLSPolicyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[75]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5303,7 +7371,7 @@ func (x *CreateTLSPolicyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateTLSPolicyRequest.ProtoReflect.Descriptor instead.
 func (*CreateTLSPolicyRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{75}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *CreateTLSPolicyRequest) GetDomain() string {
@@ -5329,7 +7397,7 @@ type DeleteTLSPolicyRequest struct {
 
 func (x *DeleteTLSPolicyRequest) Reset() {
 	*x = DeleteTLSPolicyRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[76]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5341,7 +7409,7 @@ func (x *DeleteTLSPolicyRequest) String() string {
 func (*DeleteTLSPolicyRequest) ProtoMessage() {}
 
 func (x *DeleteTLSPolicyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[76]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5354,7 +7422,7 @@ func (x *DeleteTLSPolicyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteTLSPolicyRequest.ProtoReflect.Descriptor instead.
 func (*DeleteTLSPolicyRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{76}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *DeleteTLSPolicyRequest) GetId() string {
@@ -5372,7 +7440,7 @@ type DeleteTLSPolicyReply struct {
 
 func (x *DeleteTLSPolicyReply) Reset() {
 	*x = DeleteTLSPolicyReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[77]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5384,7 +7452,7 @@ func (x *DeleteTLSPolicyReply) String() string {
 func (*DeleteTLSPolicyReply) ProtoMessage() {}
 
 func (x *DeleteTLSPolicyReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[77]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5397,7 +7465,7 @@ func (x *DeleteTLSPolicyReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteTLSPolicyReply.ProtoReflect.Descriptor instead.
 func (*DeleteTLSPolicyReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{77}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{104}
 }
 
 // Inbound automation --------------------------------------------------------
@@ -5431,7 +7499,7 @@ type InboundRoute struct {
 
 func (x *InboundRoute) Reset() {
 	*x = InboundRoute{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[78]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5443,7 +7511,7 @@ func (x *InboundRoute) String() string {
 func (*InboundRoute) ProtoMessage() {}
 
 func (x *InboundRoute) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[78]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5456,7 +7524,7 @@ func (x *InboundRoute) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InboundRoute.ProtoReflect.Descriptor instead.
 func (*InboundRoute) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{78}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{105}
 }
 
 func (x *InboundRoute) GetId() string {
@@ -5573,7 +7641,7 @@ type ListInboundRoutesRequest struct {
 
 func (x *ListInboundRoutesRequest) Reset() {
 	*x = ListInboundRoutesRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[79]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5585,7 +7653,7 @@ func (x *ListInboundRoutesRequest) String() string {
 func (*ListInboundRoutesRequest) ProtoMessage() {}
 
 func (x *ListInboundRoutesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[79]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5598,7 +7666,7 @@ func (x *ListInboundRoutesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInboundRoutesRequest.ProtoReflect.Descriptor instead.
 func (*ListInboundRoutesRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{79}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *ListInboundRoutesRequest) GetPage() *PageRequest {
@@ -5618,7 +7686,7 @@ type ListInboundRoutesReply struct {
 
 func (x *ListInboundRoutesReply) Reset() {
 	*x = ListInboundRoutesReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[80]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5630,7 +7698,7 @@ func (x *ListInboundRoutesReply) String() string {
 func (*ListInboundRoutesReply) ProtoMessage() {}
 
 func (x *ListInboundRoutesReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[80]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5643,7 +7711,7 @@ func (x *ListInboundRoutesReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInboundRoutesReply.ProtoReflect.Descriptor instead.
 func (*ListInboundRoutesReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{80}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{107}
 }
 
 func (x *ListInboundRoutesReply) GetItems() []*InboundRoute {
@@ -5682,7 +7750,7 @@ type CreateInboundRouteRequest struct {
 
 func (x *CreateInboundRouteRequest) Reset() {
 	*x = CreateInboundRouteRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[81]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5694,7 +7762,7 @@ func (x *CreateInboundRouteRequest) String() string {
 func (*CreateInboundRouteRequest) ProtoMessage() {}
 
 func (x *CreateInboundRouteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[81]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5707,7 +7775,7 @@ func (x *CreateInboundRouteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateInboundRouteRequest.ProtoReflect.Descriptor instead.
 func (*CreateInboundRouteRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{81}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{108}
 }
 
 func (x *CreateInboundRouteRequest) GetName() string {
@@ -5831,7 +7899,7 @@ type UpdateInboundRouteRequest struct {
 
 func (x *UpdateInboundRouteRequest) Reset() {
 	*x = UpdateInboundRouteRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[82]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5843,7 +7911,7 @@ func (x *UpdateInboundRouteRequest) String() string {
 func (*UpdateInboundRouteRequest) ProtoMessage() {}
 
 func (x *UpdateInboundRouteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[82]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5856,7 +7924,7 @@ func (x *UpdateInboundRouteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateInboundRouteRequest.ProtoReflect.Descriptor instead.
 func (*UpdateInboundRouteRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{82}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{109}
 }
 
 func (x *UpdateInboundRouteRequest) GetId() string {
@@ -5973,7 +8041,7 @@ type DeleteInboundRouteRequest struct {
 
 func (x *DeleteInboundRouteRequest) Reset() {
 	*x = DeleteInboundRouteRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[83]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5985,7 +8053,7 @@ func (x *DeleteInboundRouteRequest) String() string {
 func (*DeleteInboundRouteRequest) ProtoMessage() {}
 
 func (x *DeleteInboundRouteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[83]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5998,7 +8066,7 @@ func (x *DeleteInboundRouteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteInboundRouteRequest.ProtoReflect.Descriptor instead.
 func (*DeleteInboundRouteRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{83}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{110}
 }
 
 func (x *DeleteInboundRouteRequest) GetId() string {
@@ -6017,7 +8085,7 @@ type DeleteInboundRouteReply struct {
 
 func (x *DeleteInboundRouteReply) Reset() {
 	*x = DeleteInboundRouteReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[84]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6029,7 +8097,7 @@ func (x *DeleteInboundRouteReply) String() string {
 func (*DeleteInboundRouteReply) ProtoMessage() {}
 
 func (x *DeleteInboundRouteReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[84]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6042,7 +8110,7 @@ func (x *DeleteInboundRouteReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteInboundRouteReply.ProtoReflect.Descriptor instead.
 func (*DeleteInboundRouteReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{84}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{111}
 }
 
 func (x *DeleteInboundRouteReply) GetOk() bool {
@@ -6069,7 +8137,7 @@ type RspamdResult struct {
 
 func (x *RspamdResult) Reset() {
 	*x = RspamdResult{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[85]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6081,7 +8149,7 @@ func (x *RspamdResult) String() string {
 func (*RspamdResult) ProtoMessage() {}
 
 func (x *RspamdResult) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[85]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6094,7 +8162,7 @@ func (x *RspamdResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RspamdResult.ProtoReflect.Descriptor instead.
 func (*RspamdResult) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{85}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{112}
 }
 
 func (x *RspamdResult) GetId() string {
@@ -6169,7 +8237,7 @@ type ListRspamdResultsRequest struct {
 
 func (x *ListRspamdResultsRequest) Reset() {
 	*x = ListRspamdResultsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[86]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6181,7 +8249,7 @@ func (x *ListRspamdResultsRequest) String() string {
 func (*ListRspamdResultsRequest) ProtoMessage() {}
 
 func (x *ListRspamdResultsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[86]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6194,7 +8262,7 @@ func (x *ListRspamdResultsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRspamdResultsRequest.ProtoReflect.Descriptor instead.
 func (*ListRspamdResultsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{86}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{113}
 }
 
 func (x *ListRspamdResultsRequest) GetPage() *PageRequest {
@@ -6214,7 +8282,7 @@ type ListRspamdResultsReply struct {
 
 func (x *ListRspamdResultsReply) Reset() {
 	*x = ListRspamdResultsReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[87]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[114]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6226,7 +8294,7 @@ func (x *ListRspamdResultsReply) String() string {
 func (*ListRspamdResultsReply) ProtoMessage() {}
 
 func (x *ListRspamdResultsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[87]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[114]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6239,7 +8307,7 @@ func (x *ListRspamdResultsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRspamdResultsReply.ProtoReflect.Descriptor instead.
 func (*ListRspamdResultsReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{87}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{114}
 }
 
 func (x *ListRspamdResultsReply) GetItems() []*RspamdResult {
@@ -6270,7 +8338,7 @@ type FeedbackLoop struct {
 
 func (x *FeedbackLoop) Reset() {
 	*x = FeedbackLoop{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[88]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[115]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6282,7 +8350,7 @@ func (x *FeedbackLoop) String() string {
 func (*FeedbackLoop) ProtoMessage() {}
 
 func (x *FeedbackLoop) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[88]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[115]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6295,7 +8363,7 @@ func (x *FeedbackLoop) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FeedbackLoop.ProtoReflect.Descriptor instead.
 func (*FeedbackLoop) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{88}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{115}
 }
 
 func (x *FeedbackLoop) GetId() string {
@@ -6342,7 +8410,7 @@ type ListFeedbackLoopsRequest struct {
 
 func (x *ListFeedbackLoopsRequest) Reset() {
 	*x = ListFeedbackLoopsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[89]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[116]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6354,7 +8422,7 @@ func (x *ListFeedbackLoopsRequest) String() string {
 func (*ListFeedbackLoopsRequest) ProtoMessage() {}
 
 func (x *ListFeedbackLoopsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[89]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[116]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6367,7 +8435,7 @@ func (x *ListFeedbackLoopsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFeedbackLoopsRequest.ProtoReflect.Descriptor instead.
 func (*ListFeedbackLoopsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{89}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{116}
 }
 
 func (x *ListFeedbackLoopsRequest) GetPage() *PageRequest {
@@ -6387,7 +8455,7 @@ type ListFeedbackLoopsReply struct {
 
 func (x *ListFeedbackLoopsReply) Reset() {
 	*x = ListFeedbackLoopsReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[90]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[117]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6399,7 +8467,7 @@ func (x *ListFeedbackLoopsReply) String() string {
 func (*ListFeedbackLoopsReply) ProtoMessage() {}
 
 func (x *ListFeedbackLoopsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[90]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[117]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6412,7 +8480,7 @@ func (x *ListFeedbackLoopsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFeedbackLoopsReply.ProtoReflect.Descriptor instead.
 func (*ListFeedbackLoopsReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{90}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{117}
 }
 
 func (x *ListFeedbackLoopsReply) GetItems() []*FeedbackLoop {
@@ -6441,7 +8509,7 @@ type CreateFeedbackLoopRequest struct {
 
 func (x *CreateFeedbackLoopRequest) Reset() {
 	*x = CreateFeedbackLoopRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[91]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[118]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6453,7 +8521,7 @@ func (x *CreateFeedbackLoopRequest) String() string {
 func (*CreateFeedbackLoopRequest) ProtoMessage() {}
 
 func (x *CreateFeedbackLoopRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[91]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[118]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6466,7 +8534,7 @@ func (x *CreateFeedbackLoopRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateFeedbackLoopRequest.ProtoReflect.Descriptor instead.
 func (*CreateFeedbackLoopRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{91}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{118}
 }
 
 func (x *CreateFeedbackLoopRequest) GetDomain() string {
@@ -6510,7 +8578,7 @@ type UpdateFeedbackLoopRequest struct {
 
 func (x *UpdateFeedbackLoopRequest) Reset() {
 	*x = UpdateFeedbackLoopRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[92]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[119]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6522,7 +8590,7 @@ func (x *UpdateFeedbackLoopRequest) String() string {
 func (*UpdateFeedbackLoopRequest) ProtoMessage() {}
 
 func (x *UpdateFeedbackLoopRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[92]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[119]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6535,7 +8603,7 @@ func (x *UpdateFeedbackLoopRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateFeedbackLoopRequest.ProtoReflect.Descriptor instead.
 func (*UpdateFeedbackLoopRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{92}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{119}
 }
 
 func (x *UpdateFeedbackLoopRequest) GetId() string {
@@ -6582,7 +8650,7 @@ type DeleteFeedbackLoopRequest struct {
 
 func (x *DeleteFeedbackLoopRequest) Reset() {
 	*x = DeleteFeedbackLoopRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[93]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[120]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6594,7 +8662,7 @@ func (x *DeleteFeedbackLoopRequest) String() string {
 func (*DeleteFeedbackLoopRequest) ProtoMessage() {}
 
 func (x *DeleteFeedbackLoopRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[93]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[120]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6607,7 +8675,7 @@ func (x *DeleteFeedbackLoopRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteFeedbackLoopRequest.ProtoReflect.Descriptor instead.
 func (*DeleteFeedbackLoopRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{93}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{120}
 }
 
 func (x *DeleteFeedbackLoopRequest) GetId() string {
@@ -6625,7 +8693,7 @@ type DeleteFeedbackLoopReply struct {
 
 func (x *DeleteFeedbackLoopReply) Reset() {
 	*x = DeleteFeedbackLoopReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[94]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[121]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6637,7 +8705,7 @@ func (x *DeleteFeedbackLoopReply) String() string {
 func (*DeleteFeedbackLoopReply) ProtoMessage() {}
 
 func (x *DeleteFeedbackLoopReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[94]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[121]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6650,7 +8718,7 @@ func (x *DeleteFeedbackLoopReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteFeedbackLoopReply.ProtoReflect.Descriptor instead.
 func (*DeleteFeedbackLoopReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{94}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{121}
 }
 
 // Security administration ---------------------------------------------------
@@ -6668,7 +8736,7 @@ type User struct {
 
 func (x *User) Reset() {
 	*x = User{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[95]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[122]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6680,7 +8748,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[95]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[122]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6693,7 +8761,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{95}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{122}
 }
 
 func (x *User) GetId() string {
@@ -6754,7 +8822,7 @@ type AuditEntry struct {
 
 func (x *AuditEntry) Reset() {
 	*x = AuditEntry{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[96]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[123]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6766,7 +8834,7 @@ func (x *AuditEntry) String() string {
 func (*AuditEntry) ProtoMessage() {}
 
 func (x *AuditEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[96]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[123]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6779,7 +8847,7 @@ func (x *AuditEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditEntry.ProtoReflect.Descriptor instead.
 func (*AuditEntry) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{96}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{123}
 }
 
 func (x *AuditEntry) GetId() string {
@@ -6855,7 +8923,7 @@ type LoginRequest struct {
 
 func (x *LoginRequest) Reset() {
 	*x = LoginRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[97]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[124]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6867,7 +8935,7 @@ func (x *LoginRequest) String() string {
 func (*LoginRequest) ProtoMessage() {}
 
 func (x *LoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[97]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[124]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6880,7 +8948,7 @@ func (x *LoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginRequest.ProtoReflect.Descriptor instead.
 func (*LoginRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{97}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{124}
 }
 
 func (x *LoginRequest) GetEmail() string {
@@ -6909,7 +8977,7 @@ type LoginReply struct {
 
 func (x *LoginReply) Reset() {
 	*x = LoginReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[98]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[125]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6921,7 +8989,7 @@ func (x *LoginReply) String() string {
 func (*LoginReply) ProtoMessage() {}
 
 func (x *LoginReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[98]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[125]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6934,7 +9002,7 @@ func (x *LoginReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginReply.ProtoReflect.Descriptor instead.
 func (*LoginReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{98}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{125}
 }
 
 func (x *LoginReply) GetToken() string {
@@ -6974,7 +9042,7 @@ type VerifyMFARequest struct {
 
 func (x *VerifyMFARequest) Reset() {
 	*x = VerifyMFARequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[99]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[126]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6986,7 +9054,7 @@ func (x *VerifyMFARequest) String() string {
 func (*VerifyMFARequest) ProtoMessage() {}
 
 func (x *VerifyMFARequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[99]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[126]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6999,7 +9067,7 @@ func (x *VerifyMFARequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifyMFARequest.ProtoReflect.Descriptor instead.
 func (*VerifyMFARequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{99}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{126}
 }
 
 func (x *VerifyMFARequest) GetCode() string {
@@ -7017,7 +9085,7 @@ type CurrentUserRequest struct {
 
 func (x *CurrentUserRequest) Reset() {
 	*x = CurrentUserRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[100]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[127]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7029,7 +9097,7 @@ func (x *CurrentUserRequest) String() string {
 func (*CurrentUserRequest) ProtoMessage() {}
 
 func (x *CurrentUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[100]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[127]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7042,7 +9110,7 @@ func (x *CurrentUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CurrentUserRequest.ProtoReflect.Descriptor instead.
 func (*CurrentUserRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{100}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{127}
 }
 
 type CurrentUserReply struct {
@@ -7055,7 +9123,7 @@ type CurrentUserReply struct {
 
 func (x *CurrentUserReply) Reset() {
 	*x = CurrentUserReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[101]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[128]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7067,7 +9135,7 @@ func (x *CurrentUserReply) String() string {
 func (*CurrentUserReply) ProtoMessage() {}
 
 func (x *CurrentUserReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[101]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[128]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7080,7 +9148,7 @@ func (x *CurrentUserReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CurrentUserReply.ProtoReflect.Descriptor instead.
 func (*CurrentUserReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{101}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{128}
 }
 
 func (x *CurrentUserReply) GetUser() *User {
@@ -7107,7 +9175,7 @@ type ChangePasswordRequest struct {
 
 func (x *ChangePasswordRequest) Reset() {
 	*x = ChangePasswordRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[102]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[129]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7119,7 +9187,7 @@ func (x *ChangePasswordRequest) String() string {
 func (*ChangePasswordRequest) ProtoMessage() {}
 
 func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[102]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[129]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7132,7 +9200,7 @@ func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangePasswordRequest.ProtoReflect.Descriptor instead.
 func (*ChangePasswordRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{102}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{129}
 }
 
 func (x *ChangePasswordRequest) GetCurrentPassword() string {
@@ -7157,7 +9225,7 @@ type ChangePasswordReply struct {
 
 func (x *ChangePasswordReply) Reset() {
 	*x = ChangePasswordReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[103]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[130]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7169,7 +9237,7 @@ func (x *ChangePasswordReply) String() string {
 func (*ChangePasswordReply) ProtoMessage() {}
 
 func (x *ChangePasswordReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[103]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[130]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7182,7 +9250,7 @@ func (x *ChangePasswordReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangePasswordReply.ProtoReflect.Descriptor instead.
 func (*ChangePasswordReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{103}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{130}
 }
 
 type LogoutRequest struct {
@@ -7193,7 +9261,7 @@ type LogoutRequest struct {
 
 func (x *LogoutRequest) Reset() {
 	*x = LogoutRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[104]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[131]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7205,7 +9273,7 @@ func (x *LogoutRequest) String() string {
 func (*LogoutRequest) ProtoMessage() {}
 
 func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[104]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[131]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7218,7 +9286,7 @@ func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutRequest.ProtoReflect.Descriptor instead.
 func (*LogoutRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{104}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{131}
 }
 
 type LogoutReply struct {
@@ -7229,7 +9297,7 @@ type LogoutReply struct {
 
 func (x *LogoutReply) Reset() {
 	*x = LogoutReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[105]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[132]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7241,7 +9309,7 @@ func (x *LogoutReply) String() string {
 func (*LogoutReply) ProtoMessage() {}
 
 func (x *LogoutReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[105]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[132]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7254,7 +9322,7 @@ func (x *LogoutReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutReply.ProtoReflect.Descriptor instead.
 func (*LogoutReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{105}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{132}
 }
 
 type EnrollMFARequest struct {
@@ -7265,7 +9333,7 @@ type EnrollMFARequest struct {
 
 func (x *EnrollMFARequest) Reset() {
 	*x = EnrollMFARequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[106]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[133]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7277,7 +9345,7 @@ func (x *EnrollMFARequest) String() string {
 func (*EnrollMFARequest) ProtoMessage() {}
 
 func (x *EnrollMFARequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[106]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[133]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7290,7 +9358,7 @@ func (x *EnrollMFARequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrollMFARequest.ProtoReflect.Descriptor instead.
 func (*EnrollMFARequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{106}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{133}
 }
 
 type EnrollMFAReply struct {
@@ -7304,7 +9372,7 @@ type EnrollMFAReply struct {
 
 func (x *EnrollMFAReply) Reset() {
 	*x = EnrollMFAReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[107]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[134]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7316,7 +9384,7 @@ func (x *EnrollMFAReply) String() string {
 func (*EnrollMFAReply) ProtoMessage() {}
 
 func (x *EnrollMFAReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[107]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[134]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7329,7 +9397,7 @@ func (x *EnrollMFAReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrollMFAReply.ProtoReflect.Descriptor instead.
 func (*EnrollMFAReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{107}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{134}
 }
 
 func (x *EnrollMFAReply) GetSecret() string {
@@ -7355,7 +9423,7 @@ type ConfirmMFARequest struct {
 
 func (x *ConfirmMFARequest) Reset() {
 	*x = ConfirmMFARequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[108]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[135]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7367,7 +9435,7 @@ func (x *ConfirmMFARequest) String() string {
 func (*ConfirmMFARequest) ProtoMessage() {}
 
 func (x *ConfirmMFARequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[108]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[135]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7380,7 +9448,7 @@ func (x *ConfirmMFARequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmMFARequest.ProtoReflect.Descriptor instead.
 func (*ConfirmMFARequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{108}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{135}
 }
 
 func (x *ConfirmMFARequest) GetCode() string {
@@ -7402,7 +9470,7 @@ type ConfirmMFAReply struct {
 
 func (x *ConfirmMFAReply) Reset() {
 	*x = ConfirmMFAReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[109]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[136]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7414,7 +9482,7 @@ func (x *ConfirmMFAReply) String() string {
 func (*ConfirmMFAReply) ProtoMessage() {}
 
 func (x *ConfirmMFAReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[109]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[136]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7427,7 +9495,7 @@ func (x *ConfirmMFAReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmMFAReply.ProtoReflect.Descriptor instead.
 func (*ConfirmMFAReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{109}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{136}
 }
 
 func (x *ConfirmMFAReply) GetEnrolled() bool {
@@ -7452,7 +9520,7 @@ type DisableMFARequest struct {
 
 func (x *DisableMFARequest) Reset() {
 	*x = DisableMFARequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[110]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[137]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7464,7 +9532,7 @@ func (x *DisableMFARequest) String() string {
 func (*DisableMFARequest) ProtoMessage() {}
 
 func (x *DisableMFARequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[110]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[137]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7477,7 +9545,7 @@ func (x *DisableMFARequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableMFARequest.ProtoReflect.Descriptor instead.
 func (*DisableMFARequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{110}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{137}
 }
 
 type DisableMFAReply struct {
@@ -7488,7 +9556,7 @@ type DisableMFAReply struct {
 
 func (x *DisableMFAReply) Reset() {
 	*x = DisableMFAReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[111]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[138]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7500,7 +9568,7 @@ func (x *DisableMFAReply) String() string {
 func (*DisableMFAReply) ProtoMessage() {}
 
 func (x *DisableMFAReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[111]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[138]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7513,7 +9581,7 @@ func (x *DisableMFAReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableMFAReply.ProtoReflect.Descriptor instead.
 func (*DisableMFAReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{111}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{138}
 }
 
 type ListUsersRequest struct {
@@ -7525,7 +9593,7 @@ type ListUsersRequest struct {
 
 func (x *ListUsersRequest) Reset() {
 	*x = ListUsersRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[112]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[139]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7537,7 +9605,7 @@ func (x *ListUsersRequest) String() string {
 func (*ListUsersRequest) ProtoMessage() {}
 
 func (x *ListUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[112]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[139]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7550,7 +9618,7 @@ func (x *ListUsersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUsersRequest.ProtoReflect.Descriptor instead.
 func (*ListUsersRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{112}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{139}
 }
 
 func (x *ListUsersRequest) GetPage() *PageRequest {
@@ -7570,7 +9638,7 @@ type ListUsersReply struct {
 
 func (x *ListUsersReply) Reset() {
 	*x = ListUsersReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[113]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[140]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7582,7 +9650,7 @@ func (x *ListUsersReply) String() string {
 func (*ListUsersReply) ProtoMessage() {}
 
 func (x *ListUsersReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[113]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[140]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7595,7 +9663,7 @@ func (x *ListUsersReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUsersReply.ProtoReflect.Descriptor instead.
 func (*ListUsersReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{113}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{140}
 }
 
 func (x *ListUsersReply) GetItems() []*User {
@@ -7627,7 +9695,7 @@ type CreateUserRequest struct {
 
 func (x *CreateUserRequest) Reset() {
 	*x = CreateUserRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[114]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[141]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7639,7 +9707,7 @@ func (x *CreateUserRequest) String() string {
 func (*CreateUserRequest) ProtoMessage() {}
 
 func (x *CreateUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[114]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[141]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7652,7 +9720,7 @@ func (x *CreateUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateUserRequest.ProtoReflect.Descriptor instead.
 func (*CreateUserRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{114}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{141}
 }
 
 func (x *CreateUserRequest) GetEmail() string {
@@ -7703,7 +9771,7 @@ type UpdateUserRequest struct {
 
 func (x *UpdateUserRequest) Reset() {
 	*x = UpdateUserRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[115]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[142]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7715,7 +9783,7 @@ func (x *UpdateUserRequest) String() string {
 func (*UpdateUserRequest) ProtoMessage() {}
 
 func (x *UpdateUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[115]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[142]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7728,7 +9796,7 @@ func (x *UpdateUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateUserRequest.ProtoReflect.Descriptor instead.
 func (*UpdateUserRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{115}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{142}
 }
 
 func (x *UpdateUserRequest) GetId() string {
@@ -7777,7 +9845,7 @@ type ResetUserPasswordRequest struct {
 
 func (x *ResetUserPasswordRequest) Reset() {
 	*x = ResetUserPasswordRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[116]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[143]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7789,7 +9857,7 @@ func (x *ResetUserPasswordRequest) String() string {
 func (*ResetUserPasswordRequest) ProtoMessage() {}
 
 func (x *ResetUserPasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[116]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[143]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7802,7 +9870,7 @@ func (x *ResetUserPasswordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetUserPasswordRequest.ProtoReflect.Descriptor instead.
 func (*ResetUserPasswordRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{116}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{143}
 }
 
 func (x *ResetUserPasswordRequest) GetId() string {
@@ -7827,7 +9895,7 @@ type ResetUserPasswordReply struct {
 
 func (x *ResetUserPasswordReply) Reset() {
 	*x = ResetUserPasswordReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[117]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[144]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7839,7 +9907,7 @@ func (x *ResetUserPasswordReply) String() string {
 func (*ResetUserPasswordReply) ProtoMessage() {}
 
 func (x *ResetUserPasswordReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[117]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[144]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7852,7 +9920,7 @@ func (x *ResetUserPasswordReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetUserPasswordReply.ProtoReflect.Descriptor instead.
 func (*ResetUserPasswordReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{117}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{144}
 }
 
 type ListAuditEntriesRequest struct {
@@ -7864,7 +9932,7 @@ type ListAuditEntriesRequest struct {
 
 func (x *ListAuditEntriesRequest) Reset() {
 	*x = ListAuditEntriesRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[118]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[145]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7876,7 +9944,7 @@ func (x *ListAuditEntriesRequest) String() string {
 func (*ListAuditEntriesRequest) ProtoMessage() {}
 
 func (x *ListAuditEntriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[118]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[145]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7889,7 +9957,7 @@ func (x *ListAuditEntriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAuditEntriesRequest.ProtoReflect.Descriptor instead.
 func (*ListAuditEntriesRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{118}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{145}
 }
 
 func (x *ListAuditEntriesRequest) GetPage() *PageRequest {
@@ -7909,7 +9977,7 @@ type ListAuditEntriesReply struct {
 
 func (x *ListAuditEntriesReply) Reset() {
 	*x = ListAuditEntriesReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[119]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[146]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7921,7 +9989,7 @@ func (x *ListAuditEntriesReply) String() string {
 func (*ListAuditEntriesReply) ProtoMessage() {}
 
 func (x *ListAuditEntriesReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[119]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[146]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7934,7 +10002,7 @@ func (x *ListAuditEntriesReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAuditEntriesReply.ProtoReflect.Descriptor instead.
 func (*ListAuditEntriesReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{119}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{146}
 }
 
 func (x *ListAuditEntriesReply) GetItems() []*AuditEntry {
@@ -7962,7 +10030,7 @@ type RequestServiceControlRequest struct {
 
 func (x *RequestServiceControlRequest) Reset() {
 	*x = RequestServiceControlRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[120]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[147]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7974,7 +10042,7 @@ func (x *RequestServiceControlRequest) String() string {
 func (*RequestServiceControlRequest) ProtoMessage() {}
 
 func (x *RequestServiceControlRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[120]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[147]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7987,7 +10055,7 @@ func (x *RequestServiceControlRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestServiceControlRequest.ProtoReflect.Descriptor instead.
 func (*RequestServiceControlRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{120}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{147}
 }
 
 func (x *RequestServiceControlRequest) GetOperation() string {
@@ -8015,7 +10083,7 @@ type ServiceControlRequest struct {
 
 func (x *ServiceControlRequest) Reset() {
 	*x = ServiceControlRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[121]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[148]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8027,7 +10095,7 @@ func (x *ServiceControlRequest) String() string {
 func (*ServiceControlRequest) ProtoMessage() {}
 
 func (x *ServiceControlRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[121]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[148]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8040,7 +10108,7 @@ func (x *ServiceControlRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceControlRequest.ProtoReflect.Descriptor instead.
 func (*ServiceControlRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{121}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{148}
 }
 
 func (x *ServiceControlRequest) GetId() string {
@@ -8072,7 +10140,7 @@ type GenerateKumoConfigRequest struct {
 
 func (x *GenerateKumoConfigRequest) Reset() {
 	*x = GenerateKumoConfigRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[122]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[149]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8084,7 +10152,7 @@ func (x *GenerateKumoConfigRequest) String() string {
 func (*GenerateKumoConfigRequest) ProtoMessage() {}
 
 func (x *GenerateKumoConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[122]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[149]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8097,7 +10165,7 @@ func (x *GenerateKumoConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateKumoConfigRequest.ProtoReflect.Descriptor instead.
 func (*GenerateKumoConfigRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{122}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{149}
 }
 
 type KumoConfig struct {
@@ -8122,7 +10190,7 @@ type KumoConfig struct {
 
 func (x *KumoConfig) Reset() {
 	*x = KumoConfig{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[123]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[150]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8134,7 +10202,7 @@ func (x *KumoConfig) String() string {
 func (*KumoConfig) ProtoMessage() {}
 
 func (x *KumoConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[123]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[150]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8147,7 +10215,7 @@ func (x *KumoConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KumoConfig.ProtoReflect.Descriptor instead.
 func (*KumoConfig) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{123}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{150}
 }
 
 func (x *KumoConfig) GetContent() string {
@@ -8222,7 +10290,7 @@ type ApplyKumoConfigRequest struct {
 
 func (x *ApplyKumoConfigRequest) Reset() {
 	*x = ApplyKumoConfigRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[124]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[151]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8234,7 +10302,7 @@ func (x *ApplyKumoConfigRequest) String() string {
 func (*ApplyKumoConfigRequest) ProtoMessage() {}
 
 func (x *ApplyKumoConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[124]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[151]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8247,7 +10315,7 @@ func (x *ApplyKumoConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplyKumoConfigRequest.ProtoReflect.Descriptor instead.
 func (*ApplyKumoConfigRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{124}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{151}
 }
 
 func (x *ApplyKumoConfigRequest) GetConfirmationId() string {
@@ -8272,7 +10340,7 @@ type ApplyKumoConfigReply struct {
 
 func (x *ApplyKumoConfigReply) Reset() {
 	*x = ApplyKumoConfigReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[125]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[152]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8284,7 +10352,7 @@ func (x *ApplyKumoConfigReply) String() string {
 func (*ApplyKumoConfigReply) ProtoMessage() {}
 
 func (x *ApplyKumoConfigReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[125]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[152]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8297,7 +10365,7 @@ func (x *ApplyKumoConfigReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplyKumoConfigReply.ProtoReflect.Descriptor instead.
 func (*ApplyKumoConfigReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{125}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{152}
 }
 
 func (x *ApplyKumoConfigReply) GetRequestId() string {
@@ -8350,7 +10418,7 @@ type GetAcmeAccountRequest struct {
 
 func (x *GetAcmeAccountRequest) Reset() {
 	*x = GetAcmeAccountRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[126]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[153]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8362,7 +10430,7 @@ func (x *GetAcmeAccountRequest) String() string {
 func (*GetAcmeAccountRequest) ProtoMessage() {}
 
 func (x *GetAcmeAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[126]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[153]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8375,7 +10443,7 @@ func (x *GetAcmeAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAcmeAccountRequest.ProtoReflect.Descriptor instead.
 func (*GetAcmeAccountRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{126}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{153}
 }
 
 type SaveAcmeAccountRequest struct {
@@ -8388,7 +10456,7 @@ type SaveAcmeAccountRequest struct {
 
 func (x *SaveAcmeAccountRequest) Reset() {
 	*x = SaveAcmeAccountRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[127]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[154]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8400,7 +10468,7 @@ func (x *SaveAcmeAccountRequest) String() string {
 func (*SaveAcmeAccountRequest) ProtoMessage() {}
 
 func (x *SaveAcmeAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[127]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[154]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8413,7 +10481,7 @@ func (x *SaveAcmeAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveAcmeAccountRequest.ProtoReflect.Descriptor instead.
 func (*SaveAcmeAccountRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{127}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{154}
 }
 
 func (x *SaveAcmeAccountRequest) GetEmail() string {
@@ -8443,7 +10511,7 @@ type AcmeAccount struct {
 
 func (x *AcmeAccount) Reset() {
 	*x = AcmeAccount{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[128]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[155]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8455,7 +10523,7 @@ func (x *AcmeAccount) String() string {
 func (*AcmeAccount) ProtoMessage() {}
 
 func (x *AcmeAccount) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[128]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[155]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8468,7 +10536,7 @@ func (x *AcmeAccount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcmeAccount.ProtoReflect.Descriptor instead.
 func (*AcmeAccount) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{128}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{155}
 }
 
 func (x *AcmeAccount) GetEmail() string {
@@ -8524,7 +10592,7 @@ type AcmeCertificate struct {
 
 func (x *AcmeCertificate) Reset() {
 	*x = AcmeCertificate{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[129]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[156]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8536,7 +10604,7 @@ func (x *AcmeCertificate) String() string {
 func (*AcmeCertificate) ProtoMessage() {}
 
 func (x *AcmeCertificate) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[129]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[156]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8549,7 +10617,7 @@ func (x *AcmeCertificate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcmeCertificate.ProtoReflect.Descriptor instead.
 func (*AcmeCertificate) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{129}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{156}
 }
 
 func (x *AcmeCertificate) GetId() string {
@@ -8630,7 +10698,7 @@ type ListAcmeCertificatesRequest struct {
 
 func (x *ListAcmeCertificatesRequest) Reset() {
 	*x = ListAcmeCertificatesRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[130]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[157]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8642,7 +10710,7 @@ func (x *ListAcmeCertificatesRequest) String() string {
 func (*ListAcmeCertificatesRequest) ProtoMessage() {}
 
 func (x *ListAcmeCertificatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[130]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[157]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8655,7 +10723,7 @@ func (x *ListAcmeCertificatesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAcmeCertificatesRequest.ProtoReflect.Descriptor instead.
 func (*ListAcmeCertificatesRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{130}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{157}
 }
 
 type ListAcmeCertificatesReply struct {
@@ -8667,7 +10735,7 @@ type ListAcmeCertificatesReply struct {
 
 func (x *ListAcmeCertificatesReply) Reset() {
 	*x = ListAcmeCertificatesReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[131]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[158]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8679,7 +10747,7 @@ func (x *ListAcmeCertificatesReply) String() string {
 func (*ListAcmeCertificatesReply) ProtoMessage() {}
 
 func (x *ListAcmeCertificatesReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[131]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[158]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8692,7 +10760,7 @@ func (x *ListAcmeCertificatesReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAcmeCertificatesReply.ProtoReflect.Descriptor instead.
 func (*ListAcmeCertificatesReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{131}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{158}
 }
 
 func (x *ListAcmeCertificatesReply) GetItems() []*AcmeCertificate {
@@ -8712,7 +10780,7 @@ type RequestAcmeCertificateRequest struct {
 
 func (x *RequestAcmeCertificateRequest) Reset() {
 	*x = RequestAcmeCertificateRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[132]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[159]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8724,7 +10792,7 @@ func (x *RequestAcmeCertificateRequest) String() string {
 func (*RequestAcmeCertificateRequest) ProtoMessage() {}
 
 func (x *RequestAcmeCertificateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[132]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[159]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8737,7 +10805,7 @@ func (x *RequestAcmeCertificateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestAcmeCertificateRequest.ProtoReflect.Descriptor instead.
 func (*RequestAcmeCertificateRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{132}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{159}
 }
 
 func (x *RequestAcmeCertificateRequest) GetDomain() string {
@@ -8763,7 +10831,7 @@ type DeleteAcmeCertificateRequest struct {
 
 func (x *DeleteAcmeCertificateRequest) Reset() {
 	*x = DeleteAcmeCertificateRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[133]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[160]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8775,7 +10843,7 @@ func (x *DeleteAcmeCertificateRequest) String() string {
 func (*DeleteAcmeCertificateRequest) ProtoMessage() {}
 
 func (x *DeleteAcmeCertificateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[133]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[160]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8788,7 +10856,7 @@ func (x *DeleteAcmeCertificateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAcmeCertificateRequest.ProtoReflect.Descriptor instead.
 func (*DeleteAcmeCertificateRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{133}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{160}
 }
 
 func (x *DeleteAcmeCertificateRequest) GetId() string {
@@ -8806,7 +10874,7 @@ type DeleteAcmeCertificateReply struct {
 
 func (x *DeleteAcmeCertificateReply) Reset() {
 	*x = DeleteAcmeCertificateReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[134]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[161]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8818,7 +10886,7 @@ func (x *DeleteAcmeCertificateReply) String() string {
 func (*DeleteAcmeCertificateReply) ProtoMessage() {}
 
 func (x *DeleteAcmeCertificateReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[134]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[161]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8831,7 +10899,7 @@ func (x *DeleteAcmeCertificateReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAcmeCertificateReply.ProtoReflect.Descriptor instead.
 func (*DeleteAcmeCertificateReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{134}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{161}
 }
 
 // DNS-01 provider registry metadata (drives the dynamic credentials form).
@@ -8847,7 +10915,7 @@ type AcmeDnsProviderInfo struct {
 
 func (x *AcmeDnsProviderInfo) Reset() {
 	*x = AcmeDnsProviderInfo{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[135]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[162]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8859,7 +10927,7 @@ func (x *AcmeDnsProviderInfo) String() string {
 func (*AcmeDnsProviderInfo) ProtoMessage() {}
 
 func (x *AcmeDnsProviderInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[135]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[162]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8872,7 +10940,7 @@ func (x *AcmeDnsProviderInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcmeDnsProviderInfo.ProtoReflect.Descriptor instead.
 func (*AcmeDnsProviderInfo) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{135}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{162}
 }
 
 func (x *AcmeDnsProviderInfo) GetName() string {
@@ -8911,7 +10979,7 @@ type ListAcmeDnsProvidersRequest struct {
 
 func (x *ListAcmeDnsProvidersRequest) Reset() {
 	*x = ListAcmeDnsProvidersRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[136]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[163]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8923,7 +10991,7 @@ func (x *ListAcmeDnsProvidersRequest) String() string {
 func (*ListAcmeDnsProvidersRequest) ProtoMessage() {}
 
 func (x *ListAcmeDnsProvidersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[136]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[163]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8936,7 +11004,7 @@ func (x *ListAcmeDnsProvidersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAcmeDnsProvidersRequest.ProtoReflect.Descriptor instead.
 func (*ListAcmeDnsProvidersRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{136}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{163}
 }
 
 type ListAcmeDnsProvidersReply struct {
@@ -8948,7 +11016,7 @@ type ListAcmeDnsProvidersReply struct {
 
 func (x *ListAcmeDnsProvidersReply) Reset() {
 	*x = ListAcmeDnsProvidersReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[137]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[164]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8960,7 +11028,7 @@ func (x *ListAcmeDnsProvidersReply) String() string {
 func (*ListAcmeDnsProvidersReply) ProtoMessage() {}
 
 func (x *ListAcmeDnsProvidersReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[137]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[164]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8973,7 +11041,7 @@ func (x *ListAcmeDnsProvidersReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAcmeDnsProvidersReply.ProtoReflect.Descriptor instead.
 func (*ListAcmeDnsProvidersReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{137}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{164}
 }
 
 func (x *ListAcmeDnsProvidersReply) GetItems() []*AcmeDnsProviderInfo {
@@ -8996,7 +11064,7 @@ type AcmeDnsProvider struct {
 
 func (x *AcmeDnsProvider) Reset() {
 	*x = AcmeDnsProvider{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[138]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[165]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9008,7 +11076,7 @@ func (x *AcmeDnsProvider) String() string {
 func (*AcmeDnsProvider) ProtoMessage() {}
 
 func (x *AcmeDnsProvider) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[138]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[165]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9021,7 +11089,7 @@ func (x *AcmeDnsProvider) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcmeDnsProvider.ProtoReflect.Descriptor instead.
 func (*AcmeDnsProvider) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{138}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{165}
 }
 
 func (x *AcmeDnsProvider) GetProvider() string {
@@ -9053,7 +11121,7 @@ type GetAcmeDnsProviderRequest struct {
 
 func (x *GetAcmeDnsProviderRequest) Reset() {
 	*x = GetAcmeDnsProviderRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[139]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[166]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9065,7 +11133,7 @@ func (x *GetAcmeDnsProviderRequest) String() string {
 func (*GetAcmeDnsProviderRequest) ProtoMessage() {}
 
 func (x *GetAcmeDnsProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[139]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[166]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9078,7 +11146,7 @@ func (x *GetAcmeDnsProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAcmeDnsProviderRequest.ProtoReflect.Descriptor instead.
 func (*GetAcmeDnsProviderRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{139}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{166}
 }
 
 type SetAcmeDnsProviderRequest struct {
@@ -9091,7 +11159,7 @@ type SetAcmeDnsProviderRequest struct {
 
 func (x *SetAcmeDnsProviderRequest) Reset() {
 	*x = SetAcmeDnsProviderRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[140]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[167]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9103,7 +11171,7 @@ func (x *SetAcmeDnsProviderRequest) String() string {
 func (*SetAcmeDnsProviderRequest) ProtoMessage() {}
 
 func (x *SetAcmeDnsProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[140]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[167]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9116,7 +11184,7 @@ func (x *SetAcmeDnsProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetAcmeDnsProviderRequest.ProtoReflect.Descriptor instead.
 func (*SetAcmeDnsProviderRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{140}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{167}
 }
 
 func (x *SetAcmeDnsProviderRequest) GetProvider() string {
@@ -9141,7 +11209,7 @@ type ClearAcmeDnsProviderRequest struct {
 
 func (x *ClearAcmeDnsProviderRequest) Reset() {
 	*x = ClearAcmeDnsProviderRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[141]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[168]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9153,7 +11221,7 @@ func (x *ClearAcmeDnsProviderRequest) String() string {
 func (*ClearAcmeDnsProviderRequest) ProtoMessage() {}
 
 func (x *ClearAcmeDnsProviderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[141]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[168]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9166,7 +11234,7 @@ func (x *ClearAcmeDnsProviderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClearAcmeDnsProviderRequest.ProtoReflect.Descriptor instead.
 func (*ClearAcmeDnsProviderRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{141}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{168}
 }
 
 type GetAppliedKumoConfigRequest struct {
@@ -9177,7 +11245,7 @@ type GetAppliedKumoConfigRequest struct {
 
 func (x *GetAppliedKumoConfigRequest) Reset() {
 	*x = GetAppliedKumoConfigRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[142]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[169]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9189,7 +11257,7 @@ func (x *GetAppliedKumoConfigRequest) String() string {
 func (*GetAppliedKumoConfigRequest) ProtoMessage() {}
 
 func (x *GetAppliedKumoConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[142]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[169]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9202,7 +11270,7 @@ func (x *GetAppliedKumoConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAppliedKumoConfigRequest.ProtoReflect.Descriptor instead.
 func (*GetAppliedKumoConfigRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{142}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{169}
 }
 
 // AppliedKumoConfig is the policy currently running on KumoMTA (last applied).
@@ -9218,7 +11286,7 @@ type AppliedKumoConfig struct {
 
 func (x *AppliedKumoConfig) Reset() {
 	*x = AppliedKumoConfig{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[143]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[170]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9230,7 +11298,7 @@ func (x *AppliedKumoConfig) String() string {
 func (*AppliedKumoConfig) ProtoMessage() {}
 
 func (x *AppliedKumoConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[143]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[170]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9243,7 +11311,7 @@ func (x *AppliedKumoConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppliedKumoConfig.ProtoReflect.Descriptor instead.
 func (*AppliedKumoConfig) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{143}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{170}
 }
 
 func (x *AppliedKumoConfig) GetContent() string {
@@ -9282,7 +11350,7 @@ type KumoConfigStatusRequest struct {
 
 func (x *KumoConfigStatusRequest) Reset() {
 	*x = KumoConfigStatusRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[144]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[171]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9294,7 +11362,7 @@ func (x *KumoConfigStatusRequest) String() string {
 func (*KumoConfigStatusRequest) ProtoMessage() {}
 
 func (x *KumoConfigStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[144]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[171]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9307,7 +11375,7 @@ func (x *KumoConfigStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KumoConfigStatusRequest.ProtoReflect.Descriptor instead.
 func (*KumoConfigStatusRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{144}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{171}
 }
 
 type KumoConfigStatusReply struct {
@@ -9329,7 +11397,7 @@ type KumoConfigStatusReply struct {
 
 func (x *KumoConfigStatusReply) Reset() {
 	*x = KumoConfigStatusReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[145]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[172]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9341,7 +11409,7 @@ func (x *KumoConfigStatusReply) String() string {
 func (*KumoConfigStatusReply) ProtoMessage() {}
 
 func (x *KumoConfigStatusReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[145]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[172]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9354,7 +11422,7 @@ func (x *KumoConfigStatusReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KumoConfigStatusReply.ProtoReflect.Descriptor instead.
 func (*KumoConfigStatusReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{145}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{172}
 }
 
 func (x *KumoConfigStatusReply) GetDrift() bool {
@@ -9408,7 +11476,7 @@ type CheckDomainBounceSetupRequest struct {
 
 func (x *CheckDomainBounceSetupRequest) Reset() {
 	*x = CheckDomainBounceSetupRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[146]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[173]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9420,7 +11488,7 @@ func (x *CheckDomainBounceSetupRequest) String() string {
 func (*CheckDomainBounceSetupRequest) ProtoMessage() {}
 
 func (x *CheckDomainBounceSetupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[146]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[173]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9433,7 +11501,7 @@ func (x *CheckDomainBounceSetupRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckDomainBounceSetupRequest.ProtoReflect.Descriptor instead.
 func (*CheckDomainBounceSetupRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{146}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{173}
 }
 
 func (x *CheckDomainBounceSetupRequest) GetDomain() string {
@@ -9455,7 +11523,7 @@ type DomainCheckItem struct {
 
 func (x *DomainCheckItem) Reset() {
 	*x = DomainCheckItem{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[147]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[174]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9467,7 +11535,7 @@ func (x *DomainCheckItem) String() string {
 func (*DomainCheckItem) ProtoMessage() {}
 
 func (x *DomainCheckItem) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[147]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[174]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9480,7 +11548,7 @@ func (x *DomainCheckItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DomainCheckItem.ProtoReflect.Descriptor instead.
 func (*DomainCheckItem) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{147}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{174}
 }
 
 func (x *DomainCheckItem) GetName() string {
@@ -9521,7 +11589,7 @@ type DomainBounceCheck struct {
 
 func (x *DomainBounceCheck) Reset() {
 	*x = DomainBounceCheck{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[148]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[175]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9533,7 +11601,7 @@ func (x *DomainBounceCheck) String() string {
 func (*DomainBounceCheck) ProtoMessage() {}
 
 func (x *DomainBounceCheck) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[148]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[175]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9546,7 +11614,7 @@ func (x *DomainBounceCheck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DomainBounceCheck.ProtoReflect.Descriptor instead.
 func (*DomainBounceCheck) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{148}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{175}
 }
 
 func (x *DomainBounceCheck) GetDomain() string {
@@ -9575,7 +11643,7 @@ type DiagnoseRequest struct {
 
 func (x *DiagnoseRequest) Reset() {
 	*x = DiagnoseRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[149]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[176]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9587,7 +11655,7 @@ func (x *DiagnoseRequest) String() string {
 func (*DiagnoseRequest) ProtoMessage() {}
 
 func (x *DiagnoseRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[149]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[176]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9600,7 +11668,7 @@ func (x *DiagnoseRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiagnoseRequest.ProtoReflect.Descriptor instead.
 func (*DiagnoseRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{149}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{176}
 }
 
 func (x *DiagnoseRequest) GetFromEmail() string {
@@ -9638,7 +11706,7 @@ type RoutingOutcome struct {
 
 func (x *RoutingOutcome) Reset() {
 	*x = RoutingOutcome{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[150]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[177]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9650,7 +11718,7 @@ func (x *RoutingOutcome) String() string {
 func (*RoutingOutcome) ProtoMessage() {}
 
 func (x *RoutingOutcome) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[150]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[177]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9663,7 +11731,7 @@ func (x *RoutingOutcome) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RoutingOutcome.ProtoReflect.Descriptor instead.
 func (*RoutingOutcome) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{150}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{177}
 }
 
 func (x *RoutingOutcome) GetMatchedRule() string {
@@ -9720,7 +11788,7 @@ type DiagnoseResult struct {
 
 func (x *DiagnoseResult) Reset() {
 	*x = DiagnoseResult{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[151]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[178]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9732,7 +11800,7 @@ func (x *DiagnoseResult) String() string {
 func (*DiagnoseResult) ProtoMessage() {}
 
 func (x *DiagnoseResult) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[151]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[178]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9745,7 +11813,7 @@ func (x *DiagnoseResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiagnoseResult.ProtoReflect.Descriptor instead.
 func (*DiagnoseResult) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{151}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{178}
 }
 
 func (x *DiagnoseResult) GetFromEmail() string {
@@ -9784,7 +11852,7 @@ type RblCheckRequest struct {
 
 func (x *RblCheckRequest) Reset() {
 	*x = RblCheckRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[152]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[179]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9796,7 +11864,7 @@ func (x *RblCheckRequest) String() string {
 func (*RblCheckRequest) ProtoMessage() {}
 
 func (x *RblCheckRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[152]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[179]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9809,7 +11877,7 @@ func (x *RblCheckRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RblCheckRequest.ProtoReflect.Descriptor instead.
 func (*RblCheckRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{152}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{179}
 }
 
 type RblListing struct {
@@ -9823,7 +11891,7 @@ type RblListing struct {
 
 func (x *RblListing) Reset() {
 	*x = RblListing{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[153]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[180]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9835,7 +11903,7 @@ func (x *RblListing) String() string {
 func (*RblListing) ProtoMessage() {}
 
 func (x *RblListing) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[153]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[180]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9848,7 +11916,7 @@ func (x *RblListing) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RblListing.ProtoReflect.Descriptor instead.
 func (*RblListing) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{153}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{180}
 }
 
 func (x *RblListing) GetZone() string {
@@ -9884,7 +11952,7 @@ type RblIpResult struct {
 
 func (x *RblIpResult) Reset() {
 	*x = RblIpResult{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[154]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[181]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9896,7 +11964,7 @@ func (x *RblIpResult) String() string {
 func (*RblIpResult) ProtoMessage() {}
 
 func (x *RblIpResult) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[154]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[181]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9909,7 +11977,7 @@ func (x *RblIpResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RblIpResult.ProtoReflect.Descriptor instead.
 func (*RblIpResult) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{154}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{181}
 }
 
 func (x *RblIpResult) GetIp() string {
@@ -9952,7 +12020,7 @@ type RblCheckReply struct {
 
 func (x *RblCheckReply) Reset() {
 	*x = RblCheckReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[155]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[182]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9964,7 +12032,7 @@ func (x *RblCheckReply) String() string {
 func (*RblCheckReply) ProtoMessage() {}
 
 func (x *RblCheckReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[155]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[182]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9977,7 +12045,7 @@ func (x *RblCheckReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RblCheckReply.ProtoReflect.Descriptor instead.
 func (*RblCheckReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{155}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{182}
 }
 
 func (x *RblCheckReply) GetResults() []*RblIpResult {
@@ -10021,7 +12089,7 @@ type GetDmarcStatsRequest struct {
 
 func (x *GetDmarcStatsRequest) Reset() {
 	*x = GetDmarcStatsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[156]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[183]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10033,7 +12101,7 @@ func (x *GetDmarcStatsRequest) String() string {
 func (*GetDmarcStatsRequest) ProtoMessage() {}
 
 func (x *GetDmarcStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[156]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[183]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10046,7 +12114,7 @@ func (x *GetDmarcStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDmarcStatsRequest.ProtoReflect.Descriptor instead.
 func (*GetDmarcStatsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{156}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{183}
 }
 
 func (x *GetDmarcStatsRequest) GetDomain() string {
@@ -10087,7 +12155,7 @@ type DmarcCount struct {
 
 func (x *DmarcCount) Reset() {
 	*x = DmarcCount{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[157]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[184]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10099,7 +12167,7 @@ func (x *DmarcCount) String() string {
 func (*DmarcCount) ProtoMessage() {}
 
 func (x *DmarcCount) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[157]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[184]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10112,7 +12180,7 @@ func (x *DmarcCount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DmarcCount.ProtoReflect.Descriptor instead.
 func (*DmarcCount) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{157}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{184}
 }
 
 func (x *DmarcCount) GetLabel() string {
@@ -10141,7 +12209,7 @@ type DmarcSource struct {
 
 func (x *DmarcSource) Reset() {
 	*x = DmarcSource{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[158]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[185]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10153,7 +12221,7 @@ func (x *DmarcSource) String() string {
 func (*DmarcSource) ProtoMessage() {}
 
 func (x *DmarcSource) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[158]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[185]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10166,7 +12234,7 @@ func (x *DmarcSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DmarcSource.ProtoReflect.Descriptor instead.
 func (*DmarcSource) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{158}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{185}
 }
 
 func (x *DmarcSource) GetIp() string {
@@ -10208,7 +12276,7 @@ type DmarcDomainStat struct {
 
 func (x *DmarcDomainStat) Reset() {
 	*x = DmarcDomainStat{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[159]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[186]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10220,7 +12288,7 @@ func (x *DmarcDomainStat) String() string {
 func (*DmarcDomainStat) ProtoMessage() {}
 
 func (x *DmarcDomainStat) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[159]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[186]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10233,7 +12301,7 @@ func (x *DmarcDomainStat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DmarcDomainStat.ProtoReflect.Descriptor instead.
 func (*DmarcDomainStat) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{159}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{186}
 }
 
 func (x *DmarcDomainStat) GetDomain() string {
@@ -10269,7 +12337,7 @@ type DmarcReporterStat struct {
 
 func (x *DmarcReporterStat) Reset() {
 	*x = DmarcReporterStat{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[160]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[187]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10281,7 +12349,7 @@ func (x *DmarcReporterStat) String() string {
 func (*DmarcReporterStat) ProtoMessage() {}
 
 func (x *DmarcReporterStat) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[160]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[187]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10294,7 +12362,7 @@ func (x *DmarcReporterStat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DmarcReporterStat.ProtoReflect.Descriptor instead.
 func (*DmarcReporterStat) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{160}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{187}
 }
 
 func (x *DmarcReporterStat) GetReporter() string {
@@ -10329,7 +12397,7 @@ type DmarcDay struct {
 
 func (x *DmarcDay) Reset() {
 	*x = DmarcDay{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[161]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[188]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10341,7 +12409,7 @@ func (x *DmarcDay) String() string {
 func (*DmarcDay) ProtoMessage() {}
 
 func (x *DmarcDay) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[161]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[188]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10354,7 +12422,7 @@ func (x *DmarcDay) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DmarcDay.ProtoReflect.Descriptor instead.
 func (*DmarcDay) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{161}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{188}
 }
 
 func (x *DmarcDay) GetDate() string {
@@ -10397,7 +12465,7 @@ type DmarcStats struct {
 
 func (x *DmarcStats) Reset() {
 	*x = DmarcStats{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[162]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[189]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10409,7 +12477,7 @@ func (x *DmarcStats) String() string {
 func (*DmarcStats) ProtoMessage() {}
 
 func (x *DmarcStats) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[162]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[189]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10422,7 +12490,7 @@ func (x *DmarcStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DmarcStats.ProtoReflect.Descriptor instead.
 func (*DmarcStats) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{162}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{189}
 }
 
 func (x *DmarcStats) GetTotalMessages() int32 {
@@ -10504,7 +12572,7 @@ type DmarcReport struct {
 
 func (x *DmarcReport) Reset() {
 	*x = DmarcReport{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[163]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[190]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10516,7 +12584,7 @@ func (x *DmarcReport) String() string {
 func (*DmarcReport) ProtoMessage() {}
 
 func (x *DmarcReport) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[163]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[190]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10529,7 +12597,7 @@ func (x *DmarcReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DmarcReport.ProtoReflect.Descriptor instead.
 func (*DmarcReport) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{163}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{190}
 }
 
 func (x *DmarcReport) GetOrgName() string {
@@ -10598,7 +12666,7 @@ type ListDmarcReportsRequest struct {
 
 func (x *ListDmarcReportsRequest) Reset() {
 	*x = ListDmarcReportsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[164]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[191]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10610,7 +12678,7 @@ func (x *ListDmarcReportsRequest) String() string {
 func (*ListDmarcReportsRequest) ProtoMessage() {}
 
 func (x *ListDmarcReportsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[164]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[191]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10623,7 +12691,7 @@ func (x *ListDmarcReportsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDmarcReportsRequest.ProtoReflect.Descriptor instead.
 func (*ListDmarcReportsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{164}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{191}
 }
 
 func (x *ListDmarcReportsRequest) GetDomain() string {
@@ -10650,7 +12718,7 @@ type ListDmarcReportsReply struct {
 
 func (x *ListDmarcReportsReply) Reset() {
 	*x = ListDmarcReportsReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[165]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[192]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10662,7 +12730,7 @@ func (x *ListDmarcReportsReply) String() string {
 func (*ListDmarcReportsReply) ProtoMessage() {}
 
 func (x *ListDmarcReportsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[165]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[192]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10675,7 +12743,7 @@ func (x *ListDmarcReportsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDmarcReportsReply.ProtoReflect.Descriptor instead.
 func (*ListDmarcReportsReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{165}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{192}
 }
 
 func (x *ListDmarcReportsReply) GetItems() []*DmarcReport {
@@ -10700,7 +12768,7 @@ type ListDmarcDomainsRequest struct {
 
 func (x *ListDmarcDomainsRequest) Reset() {
 	*x = ListDmarcDomainsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[166]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[193]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10712,7 +12780,7 @@ func (x *ListDmarcDomainsRequest) String() string {
 func (*ListDmarcDomainsRequest) ProtoMessage() {}
 
 func (x *ListDmarcDomainsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[166]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[193]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10725,7 +12793,7 @@ func (x *ListDmarcDomainsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDmarcDomainsRequest.ProtoReflect.Descriptor instead.
 func (*ListDmarcDomainsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{166}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{193}
 }
 
 type ListDmarcDomainsReply struct {
@@ -10737,7 +12805,7 @@ type ListDmarcDomainsReply struct {
 
 func (x *ListDmarcDomainsReply) Reset() {
 	*x = ListDmarcDomainsReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[167]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[194]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10749,7 +12817,7 @@ func (x *ListDmarcDomainsReply) String() string {
 func (*ListDmarcDomainsReply) ProtoMessage() {}
 
 func (x *ListDmarcDomainsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[167]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[194]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10762,7 +12830,7 @@ func (x *ListDmarcDomainsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDmarcDomainsReply.ProtoReflect.Descriptor instead.
 func (*ListDmarcDomainsReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{167}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{194}
 }
 
 func (x *ListDmarcDomainsReply) GetDomains() []string {
@@ -10787,7 +12855,7 @@ type WorkerErrorLog struct {
 
 func (x *WorkerErrorLog) Reset() {
 	*x = WorkerErrorLog{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[168]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[195]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10799,7 +12867,7 @@ func (x *WorkerErrorLog) String() string {
 func (*WorkerErrorLog) ProtoMessage() {}
 
 func (x *WorkerErrorLog) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[168]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[195]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10812,7 +12880,7 @@ func (x *WorkerErrorLog) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkerErrorLog.ProtoReflect.Descriptor instead.
 func (*WorkerErrorLog) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{168}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{195}
 }
 
 func (x *WorkerErrorLog) GetId() string {
@@ -10870,7 +12938,7 @@ type ListWorkerErrorLogsRequest struct {
 
 func (x *ListWorkerErrorLogsRequest) Reset() {
 	*x = ListWorkerErrorLogsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[169]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[196]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10882,7 +12950,7 @@ func (x *ListWorkerErrorLogsRequest) String() string {
 func (*ListWorkerErrorLogsRequest) ProtoMessage() {}
 
 func (x *ListWorkerErrorLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[169]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[196]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10895,7 +12963,7 @@ func (x *ListWorkerErrorLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorkerErrorLogsRequest.ProtoReflect.Descriptor instead.
 func (*ListWorkerErrorLogsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{169}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{196}
 }
 
 func (x *ListWorkerErrorLogsRequest) GetLevel() string {
@@ -10943,7 +13011,7 @@ type ListWorkerErrorLogsReply struct {
 
 func (x *ListWorkerErrorLogsReply) Reset() {
 	*x = ListWorkerErrorLogsReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[170]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[197]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10955,7 +13023,7 @@ func (x *ListWorkerErrorLogsReply) String() string {
 func (*ListWorkerErrorLogsReply) ProtoMessage() {}
 
 func (x *ListWorkerErrorLogsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[170]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[197]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10968,7 +13036,7 @@ func (x *ListWorkerErrorLogsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorkerErrorLogsReply.ProtoReflect.Descriptor instead.
 func (*ListWorkerErrorLogsReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{170}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{197}
 }
 
 func (x *ListWorkerErrorLogsReply) GetItems() []*WorkerErrorLog {
@@ -11000,7 +13068,7 @@ type RetentionPolicy struct {
 
 func (x *RetentionPolicy) Reset() {
 	*x = RetentionPolicy{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[171]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[198]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11012,7 +13080,7 @@ func (x *RetentionPolicy) String() string {
 func (*RetentionPolicy) ProtoMessage() {}
 
 func (x *RetentionPolicy) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[171]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[198]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11025,7 +13093,7 @@ func (x *RetentionPolicy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetentionPolicy.ProtoReflect.Descriptor instead.
 func (*RetentionPolicy) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{171}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{198}
 }
 
 func (x *RetentionPolicy) GetTableName() string {
@@ -11090,7 +13158,7 @@ type RetentionView struct {
 
 func (x *RetentionView) Reset() {
 	*x = RetentionView{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[172]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[199]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11102,7 +13170,7 @@ func (x *RetentionView) String() string {
 func (*RetentionView) ProtoMessage() {}
 
 func (x *RetentionView) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[172]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[199]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11115,7 +13183,7 @@ func (x *RetentionView) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetentionView.ProtoReflect.Descriptor instead.
 func (*RetentionView) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{172}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{199}
 }
 
 func (x *RetentionView) GetPolicy() *RetentionPolicy {
@@ -11212,7 +13280,7 @@ type RetentionRun struct {
 
 func (x *RetentionRun) Reset() {
 	*x = RetentionRun{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[173]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[200]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11224,7 +13292,7 @@ func (x *RetentionRun) String() string {
 func (*RetentionRun) ProtoMessage() {}
 
 func (x *RetentionRun) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[173]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[200]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11237,7 +13305,7 @@ func (x *RetentionRun) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetentionRun.ProtoReflect.Descriptor instead.
 func (*RetentionRun) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{173}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{200}
 }
 
 func (x *RetentionRun) GetId() string {
@@ -11311,7 +13379,7 @@ type ListRetentionPoliciesRequest struct {
 
 func (x *ListRetentionPoliciesRequest) Reset() {
 	*x = ListRetentionPoliciesRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[174]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[201]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11323,7 +13391,7 @@ func (x *ListRetentionPoliciesRequest) String() string {
 func (*ListRetentionPoliciesRequest) ProtoMessage() {}
 
 func (x *ListRetentionPoliciesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[174]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[201]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11336,7 +13404,7 @@ func (x *ListRetentionPoliciesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRetentionPoliciesRequest.ProtoReflect.Descriptor instead.
 func (*ListRetentionPoliciesRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{174}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{201}
 }
 
 type ListRetentionPoliciesReply struct {
@@ -11348,7 +13416,7 @@ type ListRetentionPoliciesReply struct {
 
 func (x *ListRetentionPoliciesReply) Reset() {
 	*x = ListRetentionPoliciesReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[175]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[202]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11360,7 +13428,7 @@ func (x *ListRetentionPoliciesReply) String() string {
 func (*ListRetentionPoliciesReply) ProtoMessage() {}
 
 func (x *ListRetentionPoliciesReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[175]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[202]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11373,7 +13441,7 @@ func (x *ListRetentionPoliciesReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRetentionPoliciesReply.ProtoReflect.Descriptor instead.
 func (*ListRetentionPoliciesReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{175}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{202}
 }
 
 func (x *ListRetentionPoliciesReply) GetItems() []*RetentionView {
@@ -11395,7 +13463,7 @@ type UpdateRetentionPolicyRequest struct {
 
 func (x *UpdateRetentionPolicyRequest) Reset() {
 	*x = UpdateRetentionPolicyRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[176]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[203]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11407,7 +13475,7 @@ func (x *UpdateRetentionPolicyRequest) String() string {
 func (*UpdateRetentionPolicyRequest) ProtoMessage() {}
 
 func (x *UpdateRetentionPolicyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[176]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[203]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11420,7 +13488,7 @@ func (x *UpdateRetentionPolicyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRetentionPolicyRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRetentionPolicyRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{176}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{203}
 }
 
 func (x *UpdateRetentionPolicyRequest) GetTableName() string {
@@ -11460,7 +13528,7 @@ type RunRetentionRequest struct {
 
 func (x *RunRetentionRequest) Reset() {
 	*x = RunRetentionRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[177]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[204]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11472,7 +13540,7 @@ func (x *RunRetentionRequest) String() string {
 func (*RunRetentionRequest) ProtoMessage() {}
 
 func (x *RunRetentionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[177]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[204]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11485,7 +13553,7 @@ func (x *RunRetentionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunRetentionRequest.ProtoReflect.Descriptor instead.
 func (*RunRetentionRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{177}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{204}
 }
 
 func (x *RunRetentionRequest) GetTableName() string {
@@ -11504,7 +13572,7 @@ type RunRetentionReply struct {
 
 func (x *RunRetentionReply) Reset() {
 	*x = RunRetentionReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[178]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[205]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11516,7 +13584,7 @@ func (x *RunRetentionReply) String() string {
 func (*RunRetentionReply) ProtoMessage() {}
 
 func (x *RunRetentionReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[178]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[205]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11529,7 +13597,7 @@ func (x *RunRetentionReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunRetentionReply.ProtoReflect.Descriptor instead.
 func (*RunRetentionReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{178}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{205}
 }
 
 func (x *RunRetentionReply) GetOk() bool {
@@ -11547,7 +13615,7 @@ type GetDashboardSummaryRequest struct {
 
 func (x *GetDashboardSummaryRequest) Reset() {
 	*x = GetDashboardSummaryRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[179]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[206]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11559,7 +13627,7 @@ func (x *GetDashboardSummaryRequest) String() string {
 func (*GetDashboardSummaryRequest) ProtoMessage() {}
 
 func (x *GetDashboardSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[179]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[206]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11572,7 +13640,7 @@ func (x *GetDashboardSummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDashboardSummaryRequest.ProtoReflect.Descriptor instead.
 func (*GetDashboardSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{179}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{206}
 }
 
 type DashboardSummary struct {
@@ -11591,7 +13659,7 @@ type DashboardSummary struct {
 
 func (x *DashboardSummary) Reset() {
 	*x = DashboardSummary{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[180]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[207]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11603,7 +13671,7 @@ func (x *DashboardSummary) String() string {
 func (*DashboardSummary) ProtoMessage() {}
 
 func (x *DashboardSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[180]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[207]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11616,7 +13684,7 @@ func (x *DashboardSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DashboardSummary.ProtoReflect.Descriptor instead.
 func (*DashboardSummary) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{180}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{207}
 }
 
 func (x *DashboardSummary) GetServiceState() string {
@@ -11665,7 +13733,7 @@ type GetMetricsTimeseriesRequest struct {
 
 func (x *GetMetricsTimeseriesRequest) Reset() {
 	*x = GetMetricsTimeseriesRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[181]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[208]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11677,7 +13745,7 @@ func (x *GetMetricsTimeseriesRequest) String() string {
 func (*GetMetricsTimeseriesRequest) ProtoMessage() {}
 
 func (x *GetMetricsTimeseriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[181]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[208]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11690,10 +13758,54 @@ func (x *GetMetricsTimeseriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMetricsTimeseriesRequest.ProtoReflect.Descriptor instead.
 func (*GetMetricsTimeseriesRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{181}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{208}
 }
 
 func (x *GetMetricsTimeseriesRequest) GetRange() string {
+	if x != nil {
+		return x.Range
+	}
+	return ""
+}
+
+type GetSystemMetricsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Range         string                 `protobuf:"bytes,1,opt,name=range,proto3" json:"range,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSystemMetricsRequest) Reset() {
+	*x = GetSystemMetricsRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[209]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSystemMetricsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSystemMetricsRequest) ProtoMessage() {}
+
+func (x *GetSystemMetricsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[209]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSystemMetricsRequest.ProtoReflect.Descriptor instead.
+func (*GetSystemMetricsRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{209}
+}
+
+func (x *GetSystemMetricsRequest) GetRange() string {
 	if x != nil {
 		return x.Range
 	}
@@ -11710,7 +13822,7 @@ type MetricPoint struct {
 
 func (x *MetricPoint) Reset() {
 	*x = MetricPoint{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[182]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[210]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11722,7 +13834,7 @@ func (x *MetricPoint) String() string {
 func (*MetricPoint) ProtoMessage() {}
 
 func (x *MetricPoint) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[182]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[210]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11735,7 +13847,7 @@ func (x *MetricPoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricPoint.ProtoReflect.Descriptor instead.
 func (*MetricPoint) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{182}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{210}
 }
 
 func (x *MetricPoint) GetTimestamp() int64 {
@@ -11763,7 +13875,7 @@ type MetricsSeries struct {
 
 func (x *MetricsSeries) Reset() {
 	*x = MetricsSeries{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[183]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[211]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11775,7 +13887,7 @@ func (x *MetricsSeries) String() string {
 func (*MetricsSeries) ProtoMessage() {}
 
 func (x *MetricsSeries) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[183]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[211]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11788,7 +13900,7 @@ func (x *MetricsSeries) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricsSeries.ProtoReflect.Descriptor instead.
 func (*MetricsSeries) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{183}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{211}
 }
 
 func (x *MetricsSeries) GetKey() string {
@@ -11824,7 +13936,7 @@ type MetricsTimeseries struct {
 
 func (x *MetricsTimeseries) Reset() {
 	*x = MetricsTimeseries{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[184]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[212]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11836,7 +13948,7 @@ func (x *MetricsTimeseries) String() string {
 func (*MetricsTimeseries) ProtoMessage() {}
 
 func (x *MetricsTimeseries) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[184]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[212]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11849,7 +13961,7 @@ func (x *MetricsTimeseries) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricsTimeseries.ProtoReflect.Descriptor instead.
 func (*MetricsTimeseries) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{184}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{212}
 }
 
 func (x *MetricsTimeseries) GetSeries() []*MetricsSeries {
@@ -11891,7 +14003,7 @@ type GetWarmupDeliveryStatsRequest struct {
 
 func (x *GetWarmupDeliveryStatsRequest) Reset() {
 	*x = GetWarmupDeliveryStatsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[185]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[213]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11903,7 +14015,7 @@ func (x *GetWarmupDeliveryStatsRequest) String() string {
 func (*GetWarmupDeliveryStatsRequest) ProtoMessage() {}
 
 func (x *GetWarmupDeliveryStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[185]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[213]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11916,7 +14028,7 @@ func (x *GetWarmupDeliveryStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWarmupDeliveryStatsRequest.ProtoReflect.Descriptor instead.
 func (*GetWarmupDeliveryStatsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{185}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{213}
 }
 
 func (x *GetWarmupDeliveryStatsRequest) GetRange() string {
@@ -11946,7 +14058,7 @@ type WarmupDeliveryStat struct {
 
 func (x *WarmupDeliveryStat) Reset() {
 	*x = WarmupDeliveryStat{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[186]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[214]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11958,7 +14070,7 @@ func (x *WarmupDeliveryStat) String() string {
 func (*WarmupDeliveryStat) ProtoMessage() {}
 
 func (x *WarmupDeliveryStat) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[186]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[214]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11971,7 +14083,7 @@ func (x *WarmupDeliveryStat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WarmupDeliveryStat.ProtoReflect.Descriptor instead.
 func (*WarmupDeliveryStat) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{186}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{214}
 }
 
 func (x *WarmupDeliveryStat) GetVmtaId() string {
@@ -12037,18 +14149,76 @@ func (x *WarmupDeliveryStat) GetBounceRate() float64 {
 	return 0
 }
 
+// DomainDeferredStat is the count of DISTINCT messages that deferred to one
+// recipient domain (deduped across VMTAs). Unlike the per-VMTA rows, these
+// numbers are summable — a message that retried across several IPs counts once.
+type DomainDeferredStat struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	RecipientDomain string                 `protobuf:"bytes,1,opt,name=recipient_domain,json=recipientDomain,proto3" json:"recipient_domain,omitempty"`
+	Messages        int64                  `protobuf:"varint,2,opt,name=messages,proto3" json:"messages,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *DomainDeferredStat) Reset() {
+	*x = DomainDeferredStat{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[215]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DomainDeferredStat) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DomainDeferredStat) ProtoMessage() {}
+
+func (x *DomainDeferredStat) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[215]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DomainDeferredStat.ProtoReflect.Descriptor instead.
+func (*DomainDeferredStat) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{215}
+}
+
+func (x *DomainDeferredStat) GetRecipientDomain() string {
+	if x != nil {
+		return x.RecipientDomain
+	}
+	return ""
+}
+
+func (x *DomainDeferredStat) GetMessages() int64 {
+	if x != nil {
+		return x.Messages
+	}
+	return 0
+}
+
 type WarmupDeliveryStats struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Rows          []*WarmupDeliveryStat  `protobuf:"bytes,1,rep,name=rows,proto3" json:"rows,omitempty"`
-	Range         string                 `protobuf:"bytes,2,opt,name=range,proto3" json:"range,omitempty"`  // echoed effective range
-	Since         int64                  `protobuf:"varint,3,opt,name=since,proto3" json:"since,omitempty"` // unix seconds: window start
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Rows  []*WarmupDeliveryStat  `protobuf:"bytes,1,rep,name=rows,proto3" json:"rows,omitempty"`
+	Range string                 `protobuf:"bytes,2,opt,name=range,proto3" json:"range,omitempty"`  // echoed effective range
+	Since int64                  `protobuf:"varint,3,opt,name=since,proto3" json:"since,omitempty"` // unix seconds: window start
+	// Distinct messages deferred per recipient domain (deduped across VMTAs), so
+	// the number reflects "messages deferred", not per-IP retry incidence.
+	DeferredByDomain []*DomainDeferredStat `protobuf:"bytes,4,rep,name=deferred_by_domain,json=deferredByDomain,proto3" json:"deferred_by_domain,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *WarmupDeliveryStats) Reset() {
 	*x = WarmupDeliveryStats{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[187]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[216]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12060,7 +14230,7 @@ func (x *WarmupDeliveryStats) String() string {
 func (*WarmupDeliveryStats) ProtoMessage() {}
 
 func (x *WarmupDeliveryStats) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[187]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[216]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12073,7 +14243,7 @@ func (x *WarmupDeliveryStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WarmupDeliveryStats.ProtoReflect.Descriptor instead.
 func (*WarmupDeliveryStats) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{187}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{216}
 }
 
 func (x *WarmupDeliveryStats) GetRows() []*WarmupDeliveryStat {
@@ -12097,6 +14267,13 @@ func (x *WarmupDeliveryStats) GetSince() int64 {
 	return 0
 }
 
+func (x *WarmupDeliveryStats) GetDeferredByDomain() []*DomainDeferredStat {
+	if x != nil {
+		return x.DeferredByDomain
+	}
+	return nil
+}
+
 // GetMailClassStats selects the lookback window: "1h" | "6h" | "24h" | "7d"
 // (empty defaults to "24h").
 type GetMailClassStatsRequest struct {
@@ -12108,7 +14285,7 @@ type GetMailClassStatsRequest struct {
 
 func (x *GetMailClassStatsRequest) Reset() {
 	*x = GetMailClassStatsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[188]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[217]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12120,7 +14297,7 @@ func (x *GetMailClassStatsRequest) String() string {
 func (*GetMailClassStatsRequest) ProtoMessage() {}
 
 func (x *GetMailClassStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[188]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[217]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12133,7 +14310,7 @@ func (x *GetMailClassStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMailClassStatsRequest.ProtoReflect.Descriptor instead.
 func (*GetMailClassStatsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{188}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{217}
 }
 
 func (x *GetMailClassStatsRequest) GetRange() string {
@@ -12159,7 +14336,7 @@ type MailClassStat struct {
 
 func (x *MailClassStat) Reset() {
 	*x = MailClassStat{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[189]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[218]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12171,7 +14348,7 @@ func (x *MailClassStat) String() string {
 func (*MailClassStat) ProtoMessage() {}
 
 func (x *MailClassStat) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[189]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[218]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12184,7 +14361,7 @@ func (x *MailClassStat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MailClassStat.ProtoReflect.Descriptor instead.
 func (*MailClassStat) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{189}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{218}
 }
 
 func (x *MailClassStat) GetMailclass() string {
@@ -12233,7 +14410,7 @@ type MailClassStats struct {
 
 func (x *MailClassStats) Reset() {
 	*x = MailClassStats{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[190]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[219]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12245,7 +14422,7 @@ func (x *MailClassStats) String() string {
 func (*MailClassStats) ProtoMessage() {}
 
 func (x *MailClassStats) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[190]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[219]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12258,7 +14435,7 @@ func (x *MailClassStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MailClassStats.ProtoReflect.Descriptor instead.
 func (*MailClassStats) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{190}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{219}
 }
 
 func (x *MailClassStats) GetRows() []*MailClassStat {
@@ -12293,7 +14470,7 @@ type GetRecipientDomainStatsRequest struct {
 
 func (x *GetRecipientDomainStatsRequest) Reset() {
 	*x = GetRecipientDomainStatsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[191]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[220]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12305,7 +14482,7 @@ func (x *GetRecipientDomainStatsRequest) String() string {
 func (*GetRecipientDomainStatsRequest) ProtoMessage() {}
 
 func (x *GetRecipientDomainStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[191]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[220]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12318,7 +14495,7 @@ func (x *GetRecipientDomainStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRecipientDomainStatsRequest.ProtoReflect.Descriptor instead.
 func (*GetRecipientDomainStatsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{191}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{220}
 }
 
 func (x *GetRecipientDomainStatsRequest) GetRange() string {
@@ -12343,7 +14520,7 @@ type RecipientDomainStat struct {
 
 func (x *RecipientDomainStat) Reset() {
 	*x = RecipientDomainStat{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[192]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[221]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12355,7 +14532,7 @@ func (x *RecipientDomainStat) String() string {
 func (*RecipientDomainStat) ProtoMessage() {}
 
 func (x *RecipientDomainStat) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[192]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[221]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12368,7 +14545,7 @@ func (x *RecipientDomainStat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecipientDomainStat.ProtoReflect.Descriptor instead.
 func (*RecipientDomainStat) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{192}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{221}
 }
 
 func (x *RecipientDomainStat) GetRecipientDomain() string {
@@ -12417,7 +14594,7 @@ type RecipientDomainStats struct {
 
 func (x *RecipientDomainStats) Reset() {
 	*x = RecipientDomainStats{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[193]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[222]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12429,7 +14606,7 @@ func (x *RecipientDomainStats) String() string {
 func (*RecipientDomainStats) ProtoMessage() {}
 
 func (x *RecipientDomainStats) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[193]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[222]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12442,7 +14619,7 @@ func (x *RecipientDomainStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecipientDomainStats.ProtoReflect.Descriptor instead.
 func (*RecipientDomainStats) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{193}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{222}
 }
 
 func (x *RecipientDomainStats) GetRows() []*RecipientDomainStat {
@@ -12478,7 +14655,7 @@ type GetQueueTimeHistogramRequest struct {
 
 func (x *GetQueueTimeHistogramRequest) Reset() {
 	*x = GetQueueTimeHistogramRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[194]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[223]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12490,7 +14667,7 @@ func (x *GetQueueTimeHistogramRequest) String() string {
 func (*GetQueueTimeHistogramRequest) ProtoMessage() {}
 
 func (x *GetQueueTimeHistogramRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[194]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[223]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12503,7 +14680,7 @@ func (x *GetQueueTimeHistogramRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetQueueTimeHistogramRequest.ProtoReflect.Descriptor instead.
 func (*GetQueueTimeHistogramRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{194}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{223}
 }
 
 func (x *GetQueueTimeHistogramRequest) GetRange() string {
@@ -12533,7 +14710,7 @@ type QueueTimeBucket struct {
 
 func (x *QueueTimeBucket) Reset() {
 	*x = QueueTimeBucket{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[195]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[224]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12545,7 +14722,7 @@ func (x *QueueTimeBucket) String() string {
 func (*QueueTimeBucket) ProtoMessage() {}
 
 func (x *QueueTimeBucket) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[195]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[224]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12558,7 +14735,7 @@ func (x *QueueTimeBucket) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueueTimeBucket.ProtoReflect.Descriptor instead.
 func (*QueueTimeBucket) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{195}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{224}
 }
 
 func (x *QueueTimeBucket) GetLe() string {
@@ -12595,7 +14772,7 @@ type QueueTimeHistogram struct {
 
 func (x *QueueTimeHistogram) Reset() {
 	*x = QueueTimeHistogram{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[196]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[225]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12607,7 +14784,7 @@ func (x *QueueTimeHistogram) String() string {
 func (*QueueTimeHistogram) ProtoMessage() {}
 
 func (x *QueueTimeHistogram) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[196]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[225]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12620,7 +14797,7 @@ func (x *QueueTimeHistogram) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueueTimeHistogram.ProtoReflect.Descriptor instead.
 func (*QueueTimeHistogram) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{196}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{225}
 }
 
 func (x *QueueTimeHistogram) GetBuckets() []*QueueTimeBucket {
@@ -12716,13 +14893,26 @@ type GlobalSettings struct {
 	ClassifyModel     string  `protobuf:"bytes,28,opt,name=classify_model,json=classifyModel,proto3" json:"classify_model,omitempty"`
 	ClassifyThreshold float64 `protobuf:"fixed64,29,opt,name=classify_threshold,json=classifyThreshold,proto3" json:"classify_threshold,omitempty"`
 	ClassifyApiBase   string  `protobuf:"bytes,30,opt,name=classify_api_base,json=classifyApiBase,proto3" json:"classify_api_base,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Pin a message to one egress IP across retries (deterministic per-message
+	// source selection) instead of KumoMTA's per-attempt weighted round-robin.
+	PinEgressPerMessage bool `protobuf:"varint,31,opt,name=pin_egress_per_message,json=pinEgressPerMessage,proto3" json:"pin_egress_per_message,omitempty"`
+	// Injection listener (GreenArrow-compatible mail-injection API). Applied on
+	// restart. injection_enabled turns the dedicated listener on;
+	// injection_listen_addr / injection_path set where it binds and answers;
+	// injection_tls_enabled serves HTTPS using the issued cert whose domain is
+	// injection_tls_cert_domain.
+	InjectionEnabled       bool   `protobuf:"varint,32,opt,name=injection_enabled,json=injectionEnabled,proto3" json:"injection_enabled,omitempty"`
+	InjectionListenAddr    string `protobuf:"bytes,33,opt,name=injection_listen_addr,json=injectionListenAddr,proto3" json:"injection_listen_addr,omitempty"`
+	InjectionPath          string `protobuf:"bytes,34,opt,name=injection_path,json=injectionPath,proto3" json:"injection_path,omitempty"`
+	InjectionTlsEnabled    bool   `protobuf:"varint,35,opt,name=injection_tls_enabled,json=injectionTlsEnabled,proto3" json:"injection_tls_enabled,omitempty"`
+	InjectionTlsCertDomain string `protobuf:"bytes,36,opt,name=injection_tls_cert_domain,json=injectionTlsCertDomain,proto3" json:"injection_tls_cert_domain,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GlobalSettings) Reset() {
 	*x = GlobalSettings{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[197]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[226]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12734,7 +14924,7 @@ func (x *GlobalSettings) String() string {
 func (*GlobalSettings) ProtoMessage() {}
 
 func (x *GlobalSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[197]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[226]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12747,7 +14937,7 @@ func (x *GlobalSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GlobalSettings.ProtoReflect.Descriptor instead.
 func (*GlobalSettings) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{197}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{226}
 }
 
 func (x *GlobalSettings) GetRspamdMode() string {
@@ -12953,6 +15143,48 @@ func (x *GlobalSettings) GetClassifyApiBase() string {
 	return ""
 }
 
+func (x *GlobalSettings) GetPinEgressPerMessage() bool {
+	if x != nil {
+		return x.PinEgressPerMessage
+	}
+	return false
+}
+
+func (x *GlobalSettings) GetInjectionEnabled() bool {
+	if x != nil {
+		return x.InjectionEnabled
+	}
+	return false
+}
+
+func (x *GlobalSettings) GetInjectionListenAddr() string {
+	if x != nil {
+		return x.InjectionListenAddr
+	}
+	return ""
+}
+
+func (x *GlobalSettings) GetInjectionPath() string {
+	if x != nil {
+		return x.InjectionPath
+	}
+	return ""
+}
+
+func (x *GlobalSettings) GetInjectionTlsEnabled() bool {
+	if x != nil {
+		return x.InjectionTlsEnabled
+	}
+	return false
+}
+
+func (x *GlobalSettings) GetInjectionTlsCertDomain() string {
+	if x != nil {
+		return x.InjectionTlsCertDomain
+	}
+	return ""
+}
+
 type GetGlobalSettingsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -12961,7 +15193,7 @@ type GetGlobalSettingsRequest struct {
 
 func (x *GetGlobalSettingsRequest) Reset() {
 	*x = GetGlobalSettingsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[198]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[227]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12973,7 +15205,7 @@ func (x *GetGlobalSettingsRequest) String() string {
 func (*GetGlobalSettingsRequest) ProtoMessage() {}
 
 func (x *GetGlobalSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[198]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[227]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12986,7 +15218,7 @@ func (x *GetGlobalSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetGlobalSettingsRequest.ProtoReflect.Descriptor instead.
 func (*GetGlobalSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{198}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{227}
 }
 
 type UpdateGlobalSettingsRequest struct {
@@ -13020,13 +15252,21 @@ type UpdateGlobalSettingsRequest struct {
 	ClassifyModel     string  `protobuf:"bytes,26,opt,name=classify_model,json=classifyModel,proto3" json:"classify_model,omitempty"`
 	ClassifyThreshold float64 `protobuf:"fixed64,27,opt,name=classify_threshold,json=classifyThreshold,proto3" json:"classify_threshold,omitempty"`
 	ClassifyApiBase   string  `protobuf:"bytes,28,opt,name=classify_api_base,json=classifyApiBase,proto3" json:"classify_api_base,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Pin egress IP per message across retries (see GlobalSettings).
+	PinEgressPerMessage bool `protobuf:"varint,29,opt,name=pin_egress_per_message,json=pinEgressPerMessage,proto3" json:"pin_egress_per_message,omitempty"`
+	// Injection listener knobs (see GlobalSettings).
+	InjectionEnabled       bool   `protobuf:"varint,30,opt,name=injection_enabled,json=injectionEnabled,proto3" json:"injection_enabled,omitempty"`
+	InjectionListenAddr    string `protobuf:"bytes,31,opt,name=injection_listen_addr,json=injectionListenAddr,proto3" json:"injection_listen_addr,omitempty"`
+	InjectionPath          string `protobuf:"bytes,32,opt,name=injection_path,json=injectionPath,proto3" json:"injection_path,omitempty"`
+	InjectionTlsEnabled    bool   `protobuf:"varint,33,opt,name=injection_tls_enabled,json=injectionTlsEnabled,proto3" json:"injection_tls_enabled,omitempty"`
+	InjectionTlsCertDomain string `protobuf:"bytes,34,opt,name=injection_tls_cert_domain,json=injectionTlsCertDomain,proto3" json:"injection_tls_cert_domain,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UpdateGlobalSettingsRequest) Reset() {
 	*x = UpdateGlobalSettingsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[199]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[228]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13038,7 +15278,7 @@ func (x *UpdateGlobalSettingsRequest) String() string {
 func (*UpdateGlobalSettingsRequest) ProtoMessage() {}
 
 func (x *UpdateGlobalSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[199]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[228]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13051,7 +15291,7 @@ func (x *UpdateGlobalSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGlobalSettingsRequest.ProtoReflect.Descriptor instead.
 func (*UpdateGlobalSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{199}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{228}
 }
 
 func (x *UpdateGlobalSettingsRequest) GetRspamdMode() string {
@@ -13243,6 +15483,48 @@ func (x *UpdateGlobalSettingsRequest) GetClassifyApiBase() string {
 	return ""
 }
 
+func (x *UpdateGlobalSettingsRequest) GetPinEgressPerMessage() bool {
+	if x != nil {
+		return x.PinEgressPerMessage
+	}
+	return false
+}
+
+func (x *UpdateGlobalSettingsRequest) GetInjectionEnabled() bool {
+	if x != nil {
+		return x.InjectionEnabled
+	}
+	return false
+}
+
+func (x *UpdateGlobalSettingsRequest) GetInjectionListenAddr() string {
+	if x != nil {
+		return x.InjectionListenAddr
+	}
+	return ""
+}
+
+func (x *UpdateGlobalSettingsRequest) GetInjectionPath() string {
+	if x != nil {
+		return x.InjectionPath
+	}
+	return ""
+}
+
+func (x *UpdateGlobalSettingsRequest) GetInjectionTlsEnabled() bool {
+	if x != nil {
+		return x.InjectionTlsEnabled
+	}
+	return false
+}
+
+func (x *UpdateGlobalSettingsRequest) GetInjectionTlsCertDomain() string {
+	if x != nil {
+		return x.InjectionTlsCertDomain
+	}
+	return ""
+}
+
 // A subject → label classification rule. source is "manual" (operator-authored)
 // or "ai" (generated by the LLM fallback and cached). hit_count is how many
 // messages matched it. subject_normalized is the trigram matching key.
@@ -13256,13 +15538,19 @@ type SubjectClassification struct {
 	HitCount          int64                  `protobuf:"varint,6,opt,name=hit_count,json=hitCount,proto3" json:"hit_count,omitempty"`
 	CreatedAt         string                 `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt         string                 `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// match_type is "similarity" (trigram, default) or "regex" (subject holds a
+	// regular expression matched against the raw subject).
+	MatchType string `protobuf:"bytes,9,opt,name=match_type,json=matchType,proto3" json:"match_type,omitempty"`
+	// priority orders evaluation: higher priority is matched first, first match
+	// wins. Default 0.
+	Priority      int32 `protobuf:"varint,10,opt,name=priority,proto3" json:"priority,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SubjectClassification) Reset() {
 	*x = SubjectClassification{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[200]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[229]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13274,7 +15562,7 @@ func (x *SubjectClassification) String() string {
 func (*SubjectClassification) ProtoMessage() {}
 
 func (x *SubjectClassification) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[200]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[229]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13287,7 +15575,7 @@ func (x *SubjectClassification) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubjectClassification.ProtoReflect.Descriptor instead.
 func (*SubjectClassification) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{200}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{229}
 }
 
 func (x *SubjectClassification) GetId() string {
@@ -13346,6 +15634,20 @@ func (x *SubjectClassification) GetUpdatedAt() string {
 	return ""
 }
 
+func (x *SubjectClassification) GetMatchType() string {
+	if x != nil {
+		return x.MatchType
+	}
+	return ""
+}
+
+func (x *SubjectClassification) GetPriority() int32 {
+	if x != nil {
+		return x.Priority
+	}
+	return 0
+}
+
 type ListSubjectClassificationsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -13354,7 +15656,7 @@ type ListSubjectClassificationsRequest struct {
 
 func (x *ListSubjectClassificationsRequest) Reset() {
 	*x = ListSubjectClassificationsRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[201]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[230]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13366,7 +15668,7 @@ func (x *ListSubjectClassificationsRequest) String() string {
 func (*ListSubjectClassificationsRequest) ProtoMessage() {}
 
 func (x *ListSubjectClassificationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[201]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[230]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13379,7 +15681,7 @@ func (x *ListSubjectClassificationsRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use ListSubjectClassificationsRequest.ProtoReflect.Descriptor instead.
 func (*ListSubjectClassificationsRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{201}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{230}
 }
 
 type ListSubjectClassificationsReply struct {
@@ -13391,7 +15693,7 @@ type ListSubjectClassificationsReply struct {
 
 func (x *ListSubjectClassificationsReply) Reset() {
 	*x = ListSubjectClassificationsReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[202]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[231]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13403,7 +15705,7 @@ func (x *ListSubjectClassificationsReply) String() string {
 func (*ListSubjectClassificationsReply) ProtoMessage() {}
 
 func (x *ListSubjectClassificationsReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[202]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[231]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13416,7 +15718,7 @@ func (x *ListSubjectClassificationsReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSubjectClassificationsReply.ProtoReflect.Descriptor instead.
 func (*ListSubjectClassificationsReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{202}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{231}
 }
 
 func (x *ListSubjectClassificationsReply) GetItems() []*SubjectClassification {
@@ -13430,13 +15732,15 @@ type CreateSubjectClassificationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Subject       string                 `protobuf:"bytes,1,opt,name=subject,proto3" json:"subject,omitempty"`
 	Label         string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	MatchType     string                 `protobuf:"bytes,3,opt,name=match_type,json=matchType,proto3" json:"match_type,omitempty"`
+	Priority      int32                  `protobuf:"varint,4,opt,name=priority,proto3" json:"priority,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateSubjectClassificationRequest) Reset() {
 	*x = CreateSubjectClassificationRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[203]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[232]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13448,7 +15752,7 @@ func (x *CreateSubjectClassificationRequest) String() string {
 func (*CreateSubjectClassificationRequest) ProtoMessage() {}
 
 func (x *CreateSubjectClassificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[203]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[232]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13461,7 +15765,7 @@ func (x *CreateSubjectClassificationRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use CreateSubjectClassificationRequest.ProtoReflect.Descriptor instead.
 func (*CreateSubjectClassificationRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{203}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{232}
 }
 
 func (x *CreateSubjectClassificationRequest) GetSubject() string {
@@ -13478,18 +15782,34 @@ func (x *CreateSubjectClassificationRequest) GetLabel() string {
 	return ""
 }
 
+func (x *CreateSubjectClassificationRequest) GetMatchType() string {
+	if x != nil {
+		return x.MatchType
+	}
+	return ""
+}
+
+func (x *CreateSubjectClassificationRequest) GetPriority() int32 {
+	if x != nil {
+		return x.Priority
+	}
+	return 0
+}
+
 type UpdateSubjectClassificationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Subject       string                 `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
 	Label         string                 `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	MatchType     string                 `protobuf:"bytes,4,opt,name=match_type,json=matchType,proto3" json:"match_type,omitempty"`
+	Priority      int32                  `protobuf:"varint,5,opt,name=priority,proto3" json:"priority,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpdateSubjectClassificationRequest) Reset() {
 	*x = UpdateSubjectClassificationRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[204]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[233]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13501,7 +15821,7 @@ func (x *UpdateSubjectClassificationRequest) String() string {
 func (*UpdateSubjectClassificationRequest) ProtoMessage() {}
 
 func (x *UpdateSubjectClassificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[204]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[233]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13514,7 +15834,7 @@ func (x *UpdateSubjectClassificationRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use UpdateSubjectClassificationRequest.ProtoReflect.Descriptor instead.
 func (*UpdateSubjectClassificationRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{204}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{233}
 }
 
 func (x *UpdateSubjectClassificationRequest) GetId() string {
@@ -13538,6 +15858,20 @@ func (x *UpdateSubjectClassificationRequest) GetLabel() string {
 	return ""
 }
 
+func (x *UpdateSubjectClassificationRequest) GetMatchType() string {
+	if x != nil {
+		return x.MatchType
+	}
+	return ""
+}
+
+func (x *UpdateSubjectClassificationRequest) GetPriority() int32 {
+	if x != nil {
+		return x.Priority
+	}
+	return 0
+}
+
 type DeleteSubjectClassificationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -13547,7 +15881,7 @@ type DeleteSubjectClassificationRequest struct {
 
 func (x *DeleteSubjectClassificationRequest) Reset() {
 	*x = DeleteSubjectClassificationRequest{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[205]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[234]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13559,7 +15893,7 @@ func (x *DeleteSubjectClassificationRequest) String() string {
 func (*DeleteSubjectClassificationRequest) ProtoMessage() {}
 
 func (x *DeleteSubjectClassificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[205]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[234]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13572,7 +15906,7 @@ func (x *DeleteSubjectClassificationRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use DeleteSubjectClassificationRequest.ProtoReflect.Descriptor instead.
 func (*DeleteSubjectClassificationRequest) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{205}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{234}
 }
 
 func (x *DeleteSubjectClassificationRequest) GetId() string {
@@ -13591,7 +15925,7 @@ type DeleteSubjectClassificationReply struct {
 
 func (x *DeleteSubjectClassificationReply) Reset() {
 	*x = DeleteSubjectClassificationReply{}
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[206]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[235]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13603,7 +15937,7 @@ func (x *DeleteSubjectClassificationReply) String() string {
 func (*DeleteSubjectClassificationReply) ProtoMessage() {}
 
 func (x *DeleteSubjectClassificationReply) ProtoReflect() protoreflect.Message {
-	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[206]
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[235]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13616,7 +15950,7 @@ func (x *DeleteSubjectClassificationReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSubjectClassificationReply.ProtoReflect.Descriptor instead.
 func (*DeleteSubjectClassificationReply) Descriptor() ([]byte, []int) {
-	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{206}
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{235}
 }
 
 func (x *DeleteSubjectClassificationReply) GetOk() bool {
@@ -13624,6 +15958,1197 @@ func (x *DeleteSubjectClassificationReply) GetOk() bool {
 		return x.Ok
 	}
 	return false
+}
+
+// InjectionCredential is one API login for the injection listener. The password
+// is write-only: it is never returned.
+type InjectionCredential struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Id       string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Username string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
+	Label    string                 `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	Enabled  bool                   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// allowed_mailclasses restricts which mailclasses the key may inject; empty
+	// means any.
+	AllowedMailclasses []string `protobuf:"bytes,5,rep,name=allowed_mailclasses,json=allowedMailclasses,proto3" json:"allowed_mailclasses,omitempty"`
+	LastUsedAt         string   `protobuf:"bytes,6,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
+	CreatedAt          string   `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt          string   `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *InjectionCredential) Reset() {
+	*x = InjectionCredential{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[236]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InjectionCredential) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InjectionCredential) ProtoMessage() {}
+
+func (x *InjectionCredential) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[236]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InjectionCredential.ProtoReflect.Descriptor instead.
+func (*InjectionCredential) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{236}
+}
+
+func (x *InjectionCredential) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *InjectionCredential) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *InjectionCredential) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *InjectionCredential) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *InjectionCredential) GetAllowedMailclasses() []string {
+	if x != nil {
+		return x.AllowedMailclasses
+	}
+	return nil
+}
+
+func (x *InjectionCredential) GetLastUsedAt() string {
+	if x != nil {
+		return x.LastUsedAt
+	}
+	return ""
+}
+
+func (x *InjectionCredential) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *InjectionCredential) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+type ListInjectionCredentialsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListInjectionCredentialsRequest) Reset() {
+	*x = ListInjectionCredentialsRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[237]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListInjectionCredentialsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListInjectionCredentialsRequest) ProtoMessage() {}
+
+func (x *ListInjectionCredentialsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[237]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListInjectionCredentialsRequest.ProtoReflect.Descriptor instead.
+func (*ListInjectionCredentialsRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{237}
+}
+
+type ListInjectionCredentialsReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Items         []*InjectionCredential `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListInjectionCredentialsReply) Reset() {
+	*x = ListInjectionCredentialsReply{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[238]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListInjectionCredentialsReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListInjectionCredentialsReply) ProtoMessage() {}
+
+func (x *ListInjectionCredentialsReply) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[238]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListInjectionCredentialsReply.ProtoReflect.Descriptor instead.
+func (*ListInjectionCredentialsReply) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{238}
+}
+
+func (x *ListInjectionCredentialsReply) GetItems() []*InjectionCredential {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+type CreateInjectionCredentialRequest struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Username           string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Password           string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	Label              string                 `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	Enabled            bool                   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	AllowedMailclasses []string               `protobuf:"bytes,5,rep,name=allowed_mailclasses,json=allowedMailclasses,proto3" json:"allowed_mailclasses,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *CreateInjectionCredentialRequest) Reset() {
+	*x = CreateInjectionCredentialRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[239]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateInjectionCredentialRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateInjectionCredentialRequest) ProtoMessage() {}
+
+func (x *CreateInjectionCredentialRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[239]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateInjectionCredentialRequest.ProtoReflect.Descriptor instead.
+func (*CreateInjectionCredentialRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{239}
+}
+
+func (x *CreateInjectionCredentialRequest) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *CreateInjectionCredentialRequest) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
+func (x *CreateInjectionCredentialRequest) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *CreateInjectionCredentialRequest) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *CreateInjectionCredentialRequest) GetAllowedMailclasses() []string {
+	if x != nil {
+		return x.AllowedMailclasses
+	}
+	return nil
+}
+
+type UpdateInjectionCredentialRequest struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Id                 string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Label              string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	Enabled            bool                   `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	AllowedMailclasses []string               `protobuf:"bytes,4,rep,name=allowed_mailclasses,json=allowedMailclasses,proto3" json:"allowed_mailclasses,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *UpdateInjectionCredentialRequest) Reset() {
+	*x = UpdateInjectionCredentialRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[240]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateInjectionCredentialRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateInjectionCredentialRequest) ProtoMessage() {}
+
+func (x *UpdateInjectionCredentialRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[240]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateInjectionCredentialRequest.ProtoReflect.Descriptor instead.
+func (*UpdateInjectionCredentialRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{240}
+}
+
+func (x *UpdateInjectionCredentialRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateInjectionCredentialRequest) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *UpdateInjectionCredentialRequest) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *UpdateInjectionCredentialRequest) GetAllowedMailclasses() []string {
+	if x != nil {
+		return x.AllowedMailclasses
+	}
+	return nil
+}
+
+type SetInjectionCredentialPasswordRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetInjectionCredentialPasswordRequest) Reset() {
+	*x = SetInjectionCredentialPasswordRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[241]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetInjectionCredentialPasswordRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetInjectionCredentialPasswordRequest) ProtoMessage() {}
+
+func (x *SetInjectionCredentialPasswordRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[241]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetInjectionCredentialPasswordRequest.ProtoReflect.Descriptor instead.
+func (*SetInjectionCredentialPasswordRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{241}
+}
+
+func (x *SetInjectionCredentialPasswordRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *SetInjectionCredentialPasswordRequest) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
+type DeleteInjectionCredentialRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteInjectionCredentialRequest) Reset() {
+	*x = DeleteInjectionCredentialRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[242]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteInjectionCredentialRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteInjectionCredentialRequest) ProtoMessage() {}
+
+func (x *DeleteInjectionCredentialRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[242]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteInjectionCredentialRequest.ProtoReflect.Descriptor instead.
+func (*DeleteInjectionCredentialRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{242}
+}
+
+func (x *DeleteInjectionCredentialRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DeleteInjectionCredentialReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteInjectionCredentialReply) Reset() {
+	*x = DeleteInjectionCredentialReply{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[243]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteInjectionCredentialReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteInjectionCredentialReply) ProtoMessage() {}
+
+func (x *DeleteInjectionCredentialReply) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[243]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteInjectionCredentialReply.ProtoReflect.Descriptor instead.
+func (*DeleteInjectionCredentialReply) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{243}
+}
+
+func (x *DeleteInjectionCredentialReply) GetOk() bool {
+	if x != nil {
+		return x.Ok
+	}
+	return false
+}
+
+// ---- System self-monitoring ----
+type DiskUsage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	UsedPercent   float64                `protobuf:"fixed64,2,opt,name=used_percent,json=usedPercent,proto3" json:"used_percent,omitempty"`
+	UsedBytes     uint64                 `protobuf:"varint,3,opt,name=used_bytes,json=usedBytes,proto3" json:"used_bytes,omitempty"`
+	TotalBytes    uint64                 `protobuf:"varint,4,opt,name=total_bytes,json=totalBytes,proto3" json:"total_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiskUsage) Reset() {
+	*x = DiskUsage{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[244]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiskUsage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiskUsage) ProtoMessage() {}
+
+func (x *DiskUsage) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[244]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiskUsage.ProtoReflect.Descriptor instead.
+func (*DiskUsage) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{244}
+}
+
+func (x *DiskUsage) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *DiskUsage) GetUsedPercent() float64 {
+	if x != nil {
+		return x.UsedPercent
+	}
+	return 0
+}
+
+func (x *DiskUsage) GetUsedBytes() uint64 {
+	if x != nil {
+		return x.UsedBytes
+	}
+	return 0
+}
+
+func (x *DiskUsage) GetTotalBytes() uint64 {
+	if x != nil {
+		return x.TotalBytes
+	}
+	return 0
+}
+
+type SystemSnapshot struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CollectedAt   string                 `protobuf:"bytes,1,opt,name=collected_at,json=collectedAt,proto3" json:"collected_at,omitempty"` // RFC3339, empty before the first sample
+	CpuPercent    float64                `protobuf:"fixed64,2,opt,name=cpu_percent,json=cpuPercent,proto3" json:"cpu_percent,omitempty"`
+	MemPercent    float64                `protobuf:"fixed64,3,opt,name=mem_percent,json=memPercent,proto3" json:"mem_percent,omitempty"`
+	MemUsedBytes  uint64                 `protobuf:"varint,4,opt,name=mem_used_bytes,json=memUsedBytes,proto3" json:"mem_used_bytes,omitempty"`
+	MemTotalBytes uint64                 `protobuf:"varint,5,opt,name=mem_total_bytes,json=memTotalBytes,proto3" json:"mem_total_bytes,omitempty"`
+	Disks         []*DiskUsage           `protobuf:"bytes,6,rep,name=disks,proto3" json:"disks,omitempty"`
+	Available     bool                   `protobuf:"varint,7,opt,name=available,proto3" json:"available,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SystemSnapshot) Reset() {
+	*x = SystemSnapshot{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[245]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SystemSnapshot) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SystemSnapshot) ProtoMessage() {}
+
+func (x *SystemSnapshot) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[245]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SystemSnapshot.ProtoReflect.Descriptor instead.
+func (*SystemSnapshot) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{245}
+}
+
+func (x *SystemSnapshot) GetCollectedAt() string {
+	if x != nil {
+		return x.CollectedAt
+	}
+	return ""
+}
+
+func (x *SystemSnapshot) GetCpuPercent() float64 {
+	if x != nil {
+		return x.CpuPercent
+	}
+	return 0
+}
+
+func (x *SystemSnapshot) GetMemPercent() float64 {
+	if x != nil {
+		return x.MemPercent
+	}
+	return 0
+}
+
+func (x *SystemSnapshot) GetMemUsedBytes() uint64 {
+	if x != nil {
+		return x.MemUsedBytes
+	}
+	return 0
+}
+
+func (x *SystemSnapshot) GetMemTotalBytes() uint64 {
+	if x != nil {
+		return x.MemTotalBytes
+	}
+	return 0
+}
+
+func (x *SystemSnapshot) GetDisks() []*DiskUsage {
+	if x != nil {
+		return x.Disks
+	}
+	return nil
+}
+
+func (x *SystemSnapshot) GetAvailable() bool {
+	if x != nil {
+		return x.Available
+	}
+	return false
+}
+
+type MonitorSettings struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Enabled         bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	CpuThreshold    int32                  `protobuf:"varint,2,opt,name=cpu_threshold,json=cpuThreshold,proto3" json:"cpu_threshold,omitempty"` // percent; 0 disables the check
+	MemThreshold    int32                  `protobuf:"varint,3,opt,name=mem_threshold,json=memThreshold,proto3" json:"mem_threshold,omitempty"`
+	DiskThreshold   int32                  `protobuf:"varint,4,opt,name=disk_threshold,json=diskThreshold,proto3" json:"disk_threshold,omitempty"`
+	DiskPaths       []string               `protobuf:"bytes,5,rep,name=disk_paths,json=diskPaths,proto3" json:"disk_paths,omitempty"`
+	NotifyEmails    []string               `protobuf:"bytes,6,rep,name=notify_emails,json=notifyEmails,proto3" json:"notify_emails,omitempty"`
+	FromEmail       string                 `protobuf:"bytes,7,opt,name=from_email,json=fromEmail,proto3" json:"from_email,omitempty"`
+	SmtpHost        string                 `protobuf:"bytes,8,opt,name=smtp_host,json=smtpHost,proto3" json:"smtp_host,omitempty"` // host:port (default localhost:25)
+	CooldownMinutes int32                  `protobuf:"varint,9,opt,name=cooldown_minutes,json=cooldownMinutes,proto3" json:"cooldown_minutes,omitempty"`
+	SampleSeconds   int32                  `protobuf:"varint,10,opt,name=sample_seconds,json=sampleSeconds,proto3" json:"sample_seconds,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *MonitorSettings) Reset() {
+	*x = MonitorSettings{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[246]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MonitorSettings) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MonitorSettings) ProtoMessage() {}
+
+func (x *MonitorSettings) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[246]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MonitorSettings.ProtoReflect.Descriptor instead.
+func (*MonitorSettings) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{246}
+}
+
+func (x *MonitorSettings) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *MonitorSettings) GetCpuThreshold() int32 {
+	if x != nil {
+		return x.CpuThreshold
+	}
+	return 0
+}
+
+func (x *MonitorSettings) GetMemThreshold() int32 {
+	if x != nil {
+		return x.MemThreshold
+	}
+	return 0
+}
+
+func (x *MonitorSettings) GetDiskThreshold() int32 {
+	if x != nil {
+		return x.DiskThreshold
+	}
+	return 0
+}
+
+func (x *MonitorSettings) GetDiskPaths() []string {
+	if x != nil {
+		return x.DiskPaths
+	}
+	return nil
+}
+
+func (x *MonitorSettings) GetNotifyEmails() []string {
+	if x != nil {
+		return x.NotifyEmails
+	}
+	return nil
+}
+
+func (x *MonitorSettings) GetFromEmail() string {
+	if x != nil {
+		return x.FromEmail
+	}
+	return ""
+}
+
+func (x *MonitorSettings) GetSmtpHost() string {
+	if x != nil {
+		return x.SmtpHost
+	}
+	return ""
+}
+
+func (x *MonitorSettings) GetCooldownMinutes() int32 {
+	if x != nil {
+		return x.CooldownMinutes
+	}
+	return 0
+}
+
+func (x *MonitorSettings) GetSampleSeconds() int32 {
+	if x != nil {
+		return x.SampleSeconds
+	}
+	return 0
+}
+
+type MonitorAlert struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Resource      string                 `protobuf:"bytes,2,opt,name=resource,proto3" json:"resource,omitempty"` // cpu | memory | disk
+	Detail        string                 `protobuf:"bytes,3,opt,name=detail,proto3" json:"detail,omitempty"`     // disk path (empty for cpu/memory)
+	Level         string                 `protobuf:"bytes,4,opt,name=level,proto3" json:"level,omitempty"`       // breached | recovered
+	Value         float64                `protobuf:"fixed64,5,opt,name=value,proto3" json:"value,omitempty"`
+	Threshold     int32                  `protobuf:"varint,6,opt,name=threshold,proto3" json:"threshold,omitempty"`
+	Message       string                 `protobuf:"bytes,7,opt,name=message,proto3" json:"message,omitempty"`
+	Notified      bool                   `protobuf:"varint,8,opt,name=notified,proto3" json:"notified,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MonitorAlert) Reset() {
+	*x = MonitorAlert{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[247]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MonitorAlert) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MonitorAlert) ProtoMessage() {}
+
+func (x *MonitorAlert) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[247]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MonitorAlert.ProtoReflect.Descriptor instead.
+func (*MonitorAlert) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{247}
+}
+
+func (x *MonitorAlert) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *MonitorAlert) GetResource() string {
+	if x != nil {
+		return x.Resource
+	}
+	return ""
+}
+
+func (x *MonitorAlert) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+func (x *MonitorAlert) GetLevel() string {
+	if x != nil {
+		return x.Level
+	}
+	return ""
+}
+
+func (x *MonitorAlert) GetValue() float64 {
+	if x != nil {
+		return x.Value
+	}
+	return 0
+}
+
+func (x *MonitorAlert) GetThreshold() int32 {
+	if x != nil {
+		return x.Threshold
+	}
+	return 0
+}
+
+func (x *MonitorAlert) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *MonitorAlert) GetNotified() bool {
+	if x != nil {
+		return x.Notified
+	}
+	return false
+}
+
+func (x *MonitorAlert) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+// Mount is a real filesystem detected on the host (for the "which disks to
+// monitor" picker).
+type Mount struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Device        string                 `protobuf:"bytes,2,opt,name=device,proto3" json:"device,omitempty"`
+	Fstype        string                 `protobuf:"bytes,3,opt,name=fstype,proto3" json:"fstype,omitempty"`
+	UsedPercent   float64                `protobuf:"fixed64,4,opt,name=used_percent,json=usedPercent,proto3" json:"used_percent,omitempty"`
+	UsedBytes     uint64                 `protobuf:"varint,5,opt,name=used_bytes,json=usedBytes,proto3" json:"used_bytes,omitempty"`
+	TotalBytes    uint64                 `protobuf:"varint,6,opt,name=total_bytes,json=totalBytes,proto3" json:"total_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Mount) Reset() {
+	*x = Mount{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[248]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Mount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Mount) ProtoMessage() {}
+
+func (x *Mount) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[248]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Mount.ProtoReflect.Descriptor instead.
+func (*Mount) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{248}
+}
+
+func (x *Mount) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *Mount) GetDevice() string {
+	if x != nil {
+		return x.Device
+	}
+	return ""
+}
+
+func (x *Mount) GetFstype() string {
+	if x != nil {
+		return x.Fstype
+	}
+	return ""
+}
+
+func (x *Mount) GetUsedPercent() float64 {
+	if x != nil {
+		return x.UsedPercent
+	}
+	return 0
+}
+
+func (x *Mount) GetUsedBytes() uint64 {
+	if x != nil {
+		return x.UsedBytes
+	}
+	return 0
+}
+
+func (x *Mount) GetTotalBytes() uint64 {
+	if x != nil {
+		return x.TotalBytes
+	}
+	return 0
+}
+
+type SystemMonitor struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Snapshot      *SystemSnapshot        `protobuf:"bytes,1,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+	Settings      *MonitorSettings       `protobuf:"bytes,2,opt,name=settings,proto3" json:"settings,omitempty"`
+	RecentAlerts  []*MonitorAlert        `protobuf:"bytes,3,rep,name=recent_alerts,json=recentAlerts,proto3" json:"recent_alerts,omitempty"`
+	Mounts        []*Mount               `protobuf:"bytes,4,rep,name=mounts,proto3" json:"mounts,omitempty"`                        // detected filesystems the operator can pick
+	SpoolPath     string                 `protobuf:"bytes,5,opt,name=spool_path,json=spoolPath,proto3" json:"spool_path,omitempty"` // KumoMTA spool root (suggested monitor path)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SystemMonitor) Reset() {
+	*x = SystemMonitor{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[249]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SystemMonitor) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SystemMonitor) ProtoMessage() {}
+
+func (x *SystemMonitor) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[249]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SystemMonitor.ProtoReflect.Descriptor instead.
+func (*SystemMonitor) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{249}
+}
+
+func (x *SystemMonitor) GetSnapshot() *SystemSnapshot {
+	if x != nil {
+		return x.Snapshot
+	}
+	return nil
+}
+
+func (x *SystemMonitor) GetSettings() *MonitorSettings {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
+func (x *SystemMonitor) GetRecentAlerts() []*MonitorAlert {
+	if x != nil {
+		return x.RecentAlerts
+	}
+	return nil
+}
+
+func (x *SystemMonitor) GetMounts() []*Mount {
+	if x != nil {
+		return x.Mounts
+	}
+	return nil
+}
+
+func (x *SystemMonitor) GetSpoolPath() string {
+	if x != nil {
+		return x.SpoolPath
+	}
+	return ""
+}
+
+type GetSystemMonitorRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSystemMonitorRequest) Reset() {
+	*x = GetSystemMonitorRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[250]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSystemMonitorRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSystemMonitorRequest) ProtoMessage() {}
+
+func (x *GetSystemMonitorRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[250]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSystemMonitorRequest.ProtoReflect.Descriptor instead.
+func (*GetSystemMonitorRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{250}
+}
+
+type UpdateMonitorSettingsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Settings      *MonitorSettings       `protobuf:"bytes,1,opt,name=settings,proto3" json:"settings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateMonitorSettingsRequest) Reset() {
+	*x = UpdateMonitorSettingsRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[251]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateMonitorSettingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateMonitorSettingsRequest) ProtoMessage() {}
+
+func (x *UpdateMonitorSettingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[251]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateMonitorSettingsRequest.ProtoReflect.Descriptor instead.
+func (*UpdateMonitorSettingsRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{251}
+}
+
+func (x *UpdateMonitorSettingsRequest) GetSettings() *MonitorSettings {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
+type TestMonitorNotificationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Settings      *MonitorSettings       `protobuf:"bytes,1,opt,name=settings,proto3" json:"settings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestMonitorNotificationRequest) Reset() {
+	*x = TestMonitorNotificationRequest{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[252]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestMonitorNotificationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestMonitorNotificationRequest) ProtoMessage() {}
+
+func (x *TestMonitorNotificationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[252]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestMonitorNotificationRequest.ProtoReflect.Descriptor instead.
+func (*TestMonitorNotificationRequest) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{252}
+}
+
+func (x *TestMonitorNotificationRequest) GetSettings() *MonitorSettings {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
+type TestMonitorNotificationReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	Error         string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestMonitorNotificationReply) Reset() {
+	*x = TestMonitorNotificationReply{}
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[253]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestMonitorNotificationReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestMonitorNotificationReply) ProtoMessage() {}
+
+func (x *TestMonitorNotificationReply) ProtoReflect() protoreflect.Message {
+	mi := &file_iris_admin_v1_iris_admin_api_proto_msgTypes[253]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestMonitorNotificationReply.ProtoReflect.Descriptor instead.
+func (*TestMonitorNotificationReply) Descriptor() ([]byte, []int) {
+	return file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP(), []int{253}
+}
+
+func (x *TestMonitorNotificationReply) GetOk() bool {
+	if x != nil {
+		return x.Ok
+	}
+	return false
+}
+
+func (x *TestMonitorNotificationReply) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
 }
 
 var File_iris_admin_v1_iris_admin_api_proto protoreflect.FileDescriptor
@@ -13716,7 +17241,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\amembers\x18\x04 \x03(\v2\x1e.iris.admin.v1.VMTAGroupMemberR\amembers\"B\n" +
 	"\x0fVMTAGroupMember\x12\x17\n" +
 	"\avmta_id\x18\x01 \x01(\tR\x06vmtaId\x12\x16\n" +
-	"\x06weight\x18\x02 \x01(\x05R\x06weight\"\xb1\x02\n" +
+	"\x06weight\x18\x02 \x01(\x05R\x06weight\"\xf7\x02\n" +
 	"\vRoutingRule\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
@@ -13731,7 +17256,13 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06status\x18\b \x01(\tR\x06status\x12!\n" +
 	"\fmatch_header\x18\t \x01(\tR\vmatchHeader\x12)\n" +
 	"\x10assign_mailclass\x18\n" +
-	" \x01(\tR\x0fassignMailclass\"\xb2\x01\n" +
+	" \x01(\tR\x0fassignMailclass\x12D\n" +
+	"\n" +
+	"conditions\x18\v \x03(\v2$.iris.admin.v1.RoutingMatchConditionR\n" +
+	"conditions\"E\n" +
+	"\x15RoutingMatchCondition\x12\x16\n" +
+	"\x06header\x18\x01 \x01(\tR\x06header\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\xb2\x01\n" +
 	"\vWarmupStage\x12\x19\n" +
 	"\bday_from\x18\x01 \x01(\x05R\adayFrom\x12\x15\n" +
 	"\x06day_to\x18\x02 \x01(\x05R\x05dayTo\x128\n" +
@@ -13868,7 +17399,151 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06status\x18\t \x01(\tR\x06status\"H\n" +
 	"\x1eSetAutomationRuleStatusRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\"Z\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\"\xfe\x03\n" +
+	"\n" +
+	"BounceRule\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
+	"\tsmtp_code\x18\x02 \x01(\tR\bsmtpCode\x12#\n" +
+	"\renhanced_code\x18\x03 \x01(\tR\fenhancedCode\x12\x1a\n" +
+	"\bprovider\x18\x04 \x01(\tR\bprovider\x12\x18\n" +
+	"\apattern\x18\x05 \x01(\tR\apattern\x12\x14\n" +
+	"\x05class\x18\x06 \x01(\tR\x05class\x12\x1a\n" +
+	"\bcategory\x18\a \x01(\tR\bcategory\x12\x16\n" +
+	"\x06action\x18\b \x01(\tR\x06action\x12#\n" +
+	"\raction_config\x18\t \x01(\tR\factionConfig\x12)\n" +
+	"\x10suggested_action\x18\n" +
+	" \x01(\tR\x0fsuggestedAction\x12\x1a\n" +
+	"\bpriority\x18\v \x01(\x05R\bpriority\x12\x16\n" +
+	"\x06source\x18\f \x01(\tR\x06source\x12\x16\n" +
+	"\x06status\x18\r \x01(\tR\x06status\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x0e \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x0f \x01(\tR\tupdatedAt\x12!\n" +
+	"\fmin_attempts\x18\x10 \x01(\x05R\vminAttempts\x12!\n" +
+	"\fsuppress_ttl\x18\x11 \x01(\tR\vsuppressTtl\"\x18\n" +
+	"\x16ListBounceRulesRequest\"G\n" +
+	"\x14ListBounceRulesReply\x12/\n" +
+	"\x05items\x18\x01 \x03(\v2\x19.iris.admin.v1.BounceRuleR\x05items\"\x8d\x03\n" +
+	"\x17CreateBounceRuleRequest\x12\x1b\n" +
+	"\tsmtp_code\x18\x01 \x01(\tR\bsmtpCode\x12#\n" +
+	"\renhanced_code\x18\x02 \x01(\tR\fenhancedCode\x12\x1a\n" +
+	"\bprovider\x18\x03 \x01(\tR\bprovider\x12\x18\n" +
+	"\apattern\x18\x04 \x01(\tR\apattern\x12\x14\n" +
+	"\x05class\x18\x05 \x01(\tR\x05class\x12\x1a\n" +
+	"\bcategory\x18\x06 \x01(\tR\bcategory\x12\x16\n" +
+	"\x06action\x18\a \x01(\tR\x06action\x12#\n" +
+	"\raction_config\x18\b \x01(\tR\factionConfig\x12)\n" +
+	"\x10suggested_action\x18\t \x01(\tR\x0fsuggestedAction\x12\x1a\n" +
+	"\bpriority\x18\n" +
+	" \x01(\x05R\bpriority\x12!\n" +
+	"\fmin_attempts\x18\v \x01(\x05R\vminAttempts\x12!\n" +
+	"\fsuppress_ttl\x18\f \x01(\tR\vsuppressTtl\"\xb5\x03\n" +
+	"\x17UpdateBounceRuleRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
+	"\tsmtp_code\x18\x02 \x01(\tR\bsmtpCode\x12#\n" +
+	"\renhanced_code\x18\x03 \x01(\tR\fenhancedCode\x12\x1a\n" +
+	"\bprovider\x18\x04 \x01(\tR\bprovider\x12\x18\n" +
+	"\apattern\x18\x05 \x01(\tR\apattern\x12\x14\n" +
+	"\x05class\x18\x06 \x01(\tR\x05class\x12\x1a\n" +
+	"\bcategory\x18\a \x01(\tR\bcategory\x12\x16\n" +
+	"\x06action\x18\b \x01(\tR\x06action\x12#\n" +
+	"\raction_config\x18\t \x01(\tR\factionConfig\x12)\n" +
+	"\x10suggested_action\x18\n" +
+	" \x01(\tR\x0fsuggestedAction\x12\x1a\n" +
+	"\bpriority\x18\v \x01(\x05R\bpriority\x12\x16\n" +
+	"\x06status\x18\f \x01(\tR\x06status\x12!\n" +
+	"\fmin_attempts\x18\r \x01(\x05R\vminAttempts\x12!\n" +
+	"\fsuppress_ttl\x18\x0e \x01(\tR\vsuppressTtl\")\n" +
+	"\x17DeleteBounceRuleRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x17\n" +
+	"\x15DeleteBounceRuleReply\"\x19\n" +
+	"\x17ResetBounceRulesRequest\"\x8e\x01\n" +
+	"\x1bTestBounceDiagnosticRequest\x12\x1b\n" +
+	"\tsmtp_code\x18\x01 \x01(\tR\bsmtpCode\x12\x16\n" +
+	"\x06domain\x18\x02 \x01(\tR\x06domain\x12\x1e\n" +
+	"\n" +
+	"diagnostic\x18\x03 \x01(\tR\n" +
+	"diagnostic\x12\x1a\n" +
+	"\battempts\x18\x04 \x01(\x05R\battempts\"\xed\x01\n" +
+	"\x19TestBounceDiagnosticReply\x12\x1b\n" +
+	"\tsmtp_code\x18\x01 \x01(\tR\bsmtpCode\x12#\n" +
+	"\renhanced_code\x18\x02 \x01(\tR\fenhancedCode\x12\x1a\n" +
+	"\bprovider\x18\x03 \x01(\tR\bprovider\x12\x18\n" +
+	"\amatched\x18\x04 \x01(\bR\amatched\x12-\n" +
+	"\x04rule\x18\x05 \x01(\v2\x19.iris.admin.v1.BounceRuleR\x04rule\x12)\n" +
+	"\x10effective_action\x18\x06 \x01(\tR\x0feffectiveAction\"\xdc\x03\n" +
+	"\x0eEventProcessor\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
+	"\vevent_types\x18\x03 \x03(\tR\n" +
+	"eventTypes\x12 \n" +
+	"\vmailclasses\x18\x04 \x03(\tR\vmailclasses\x12\x16\n" +
+	"\x06driver\x18\x05 \x01(\tR\x06driver\x12T\n" +
+	"\rdriver_config\x18\x06 \x03(\v2/.iris.admin.v1.EventProcessor.DriverConfigEntryR\fdriverConfig\x12\x12\n" +
+	"\x04mode\x18\a \x01(\tR\x04mode\x12$\n" +
+	"\x0ebatch_max_size\x18\b \x01(\x05R\fbatchMaxSize\x12$\n" +
+	"\x0ebatch_max_wait\x18\t \x01(\tR\fbatchMaxWait\x12\x16\n" +
+	"\x06status\x18\n" +
+	" \x01(\tR\x06status\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\v \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\f \x01(\tR\tupdatedAt\x1a?\n" +
+	"\x11DriverConfigEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x1c\n" +
+	"\x1aListEventProcessorsRequest\"O\n" +
+	"\x18ListEventProcessorsReply\x123\n" +
+	"\x05items\x18\x01 \x03(\v2\x1d.iris.admin.v1.EventProcessorR\x05items\"\x90\x03\n" +
+	"\x1bCreateEventProcessorRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
+	"\vevent_types\x18\x02 \x03(\tR\n" +
+	"eventTypes\x12 \n" +
+	"\vmailclasses\x18\x03 \x03(\tR\vmailclasses\x12\x16\n" +
+	"\x06driver\x18\x04 \x01(\tR\x06driver\x12a\n" +
+	"\rdriver_config\x18\x05 \x03(\v2<.iris.admin.v1.CreateEventProcessorRequest.DriverConfigEntryR\fdriverConfig\x12\x12\n" +
+	"\x04mode\x18\x06 \x01(\tR\x04mode\x12$\n" +
+	"\x0ebatch_max_size\x18\a \x01(\x05R\fbatchMaxSize\x12$\n" +
+	"\x0ebatch_max_wait\x18\b \x01(\tR\fbatchMaxWait\x1a?\n" +
+	"\x11DriverConfigEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb8\x03\n" +
+	"\x1bUpdateEventProcessorRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
+	"\vevent_types\x18\x03 \x03(\tR\n" +
+	"eventTypes\x12 \n" +
+	"\vmailclasses\x18\x04 \x03(\tR\vmailclasses\x12\x16\n" +
+	"\x06driver\x18\x05 \x01(\tR\x06driver\x12a\n" +
+	"\rdriver_config\x18\x06 \x03(\v2<.iris.admin.v1.UpdateEventProcessorRequest.DriverConfigEntryR\fdriverConfig\x12\x12\n" +
+	"\x04mode\x18\a \x01(\tR\x04mode\x12$\n" +
+	"\x0ebatch_max_size\x18\b \x01(\x05R\fbatchMaxSize\x12$\n" +
+	"\x0ebatch_max_wait\x18\t \x01(\tR\fbatchMaxWait\x12\x16\n" +
+	"\x06status\x18\n" +
+	" \x01(\tR\x06status\x1a?\n" +
+	"\x11DriverConfigEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"-\n" +
+	"\x1bDeleteEventProcessorRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x1b\n" +
+	"\x19DeleteEventProcessorReply\"\x8c\x03\n" +
+	"\x19TestEventProcessorRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
+	"\vevent_types\x18\x02 \x03(\tR\n" +
+	"eventTypes\x12 \n" +
+	"\vmailclasses\x18\x03 \x03(\tR\vmailclasses\x12\x16\n" +
+	"\x06driver\x18\x04 \x01(\tR\x06driver\x12_\n" +
+	"\rdriver_config\x18\x05 \x03(\v2:.iris.admin.v1.TestEventProcessorRequest.DriverConfigEntryR\fdriverConfig\x12\x12\n" +
+	"\x04mode\x18\x06 \x01(\tR\x04mode\x12$\n" +
+	"\x0ebatch_max_size\x18\a \x01(\x05R\fbatchMaxSize\x12$\n" +
+	"\x0ebatch_max_wait\x18\b \x01(\tR\fbatchMaxWait\x1a?\n" +
+	"\x11DriverConfigEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"?\n" +
+	"\x17TestEventProcessorReply\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"Z\n" +
 	"\x10ListVMTAsRequest\x12.\n" +
 	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\"i\n" +
@@ -13915,7 +17590,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"matchValue\"w\n" +
 	"\x15ListRoutingRulesReply\x120\n" +
 	"\x05items\x18\x01 \x03(\v2\x1a.iris.admin.v1.RoutingRuleR\x05items\x12,\n" +
-	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\x96\x02\n" +
+	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\xdc\x02\n" +
 	"\x18CreateRoutingRuleRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
@@ -13927,7 +17602,10 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"targetType\x12\x1b\n" +
 	"\ttarget_id\x18\x06 \x01(\tR\btargetId\x12!\n" +
 	"\fmatch_header\x18\a \x01(\tR\vmatchHeader\x12)\n" +
-	"\x10assign_mailclass\x18\b \x01(\tR\x0fassignMailclass\"\xbe\x02\n" +
+	"\x10assign_mailclass\x18\b \x01(\tR\x0fassignMailclass\x12D\n" +
+	"\n" +
+	"conditions\x18\t \x03(\v2$.iris.admin.v1.RoutingMatchConditionR\n" +
+	"conditions\"\x84\x03\n" +
 	"\x18UpdateRoutingRuleRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
@@ -13942,7 +17620,10 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06status\x18\b \x01(\tR\x06status\x12!\n" +
 	"\fmatch_header\x18\t \x01(\tR\vmatchHeader\x12)\n" +
 	"\x10assign_mailclass\x18\n" +
-	" \x01(\tR\x0fassignMailclass\"\xf6\x03\n" +
+	" \x01(\tR\x0fassignMailclass\x12D\n" +
+	"\n" +
+	"conditions\x18\v \x03(\v2$.iris.admin.v1.RoutingMatchConditionR\n" +
+	"conditions\"\xf6\x03\n" +
 	"\n" +
 	"MailRecord\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
@@ -14012,12 +17693,39 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"recordType\"u\n" +
 	"\x14ListMailRecordsReply\x12/\n" +
 	"\x05items\x18\x01 \x03(\v2\x19.iris.admin.v1.MailRecordR\x05items\x12,\n" +
-	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"D\n" +
+	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\">\n" +
+	"\x1dGetNextDeliveryAttemptRequest\x12\x1d\n" +
+	"\n" +
+	"message_id\x18\x01 \x01(\tR\tmessageId\"\xc3\x02\n" +
+	"\x13NextDeliveryAttempt\x12\x1a\n" +
+	"\bdeferred\x18\x01 \x01(\bR\bdeferred\x12\x1a\n" +
+	"\battempts\x18\x02 \x01(\x05R\battempts\x12!\n" +
+	"\flast_attempt\x18\x03 \x01(\tR\vlastAttempt\x12!\n" +
+	"\fnext_attempt\x18\x04 \x01(\tR\vnextAttempt\x12-\n" +
+	"\x12remaining_attempts\x18\x05 \x01(\x05R\x11remainingAttempts\x12#\n" +
+	"\rfinal_attempt\x18\x06 \x01(\tR\ffinalAttempt\x12\x1f\n" +
+	"\vwill_expire\x18\a \x01(\bR\n" +
+	"willExpire\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\b \x01(\tR\texpiresAt\x12\x1a\n" +
+	"\binterval\x18\t \x01(\tR\binterval\"\xe2\x02\n" +
 	"\x12ListBouncesRequest\x12.\n" +
-	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\"m\n" +
+	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\x12\x1c\n" +
+	"\trecipient\x18\x02 \x01(\tR\trecipient\x12\x1c\n" +
+	"\tmailclass\x18\x03 \x01(\tR\tmailclass\x12\x1f\n" +
+	"\vbounce_type\x18\x04 \x01(\tR\n" +
+	"bounceType\x12&\n" +
+	"\x0eclassification\x18\x05 \x01(\tR\x0eclassification\x12)\n" +
+	"\x10processing_state\x18\x06 \x01(\tR\x0fprocessingState\x127\n" +
+	"\tfrom_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\bfromTime\x123\n" +
+	"\ato_time\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\x06toTime\"m\n" +
 	"\x10ListBouncesReply\x12+\n" +
 	"\x05items\x18\x01 \x03(\v2\x15.iris.admin.v1.BounceR\x05items\x12,\n" +
-	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"L\n" +
+	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"6\n" +
+	"\x16ListDsnMessagesRequest\x12\x1c\n" +
+	"\trecipient\x18\x01 \x01(\tR\trecipient\"G\n" +
+	"\x14ListDsnMessagesReply\x12/\n" +
+	"\x05items\x18\x01 \x03(\v2\x19.iris.admin.v1.DsnMessageR\x05items\"L\n" +
 	"\x1aListFeedbackReportsRequest\x12.\n" +
 	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\"}\n" +
 	"\x18ListFeedbackReportsReply\x123\n" +
@@ -14042,14 +17750,19 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06domain\x18\x02 \x01(\tR\x06domain\x12\x1a\n" +
 	"\bselector\x18\x03 \x01(\tR\bselector\x124\n" +
 	"\x16public_key_fingerprint\x18\x04 \x01(\tR\x14publicKeyFingerprint\x12\x16\n" +
-	"\x06status\x18\x05 \x01(\tR\x06status\"\x8f\x01\n" +
+	"\x06status\x18\x05 \x01(\tR\x06status\"\xeb\x01\n" +
 	"\vSuppression\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x14\n" +
 	"\x05value\x18\x03 \x01(\tR\x05value\x12\x16\n" +
 	"\x06reason\x18\x04 \x01(\tR\x06reason\x12\x16\n" +
 	"\x06source\x18\x05 \x01(\tR\x06source\x12\x16\n" +
-	"\x06status\x18\x06 \x01(\tR\x06status\"H\n" +
+	"\x06status\x18\x06 \x01(\tR\x06status\x12\x1c\n" +
+	"\tmailclass\x18\a \x01(\tR\tmailclass\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\b \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\t \x01(\tR\texpiresAt\"H\n" +
 	"\x16ListDKIMDomainsRequest\x12.\n" +
 	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\"u\n" +
 	"\x14ListDKIMDomainsReply\x12/\n" +
@@ -14074,9 +17787,14 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\vrecord_name\x18\x02 \x01(\tR\n" +
 	"recordName\x12!\n" +
 	"\frecord_value\x18\x03 \x01(\tR\vrecordValue\x124\n" +
-	"\x16public_key_fingerprint\x18\x04 \x01(\tR\x14publicKeyFingerprint\"I\n" +
+	"\x16public_key_fingerprint\x18\x04 \x01(\tR\x14publicKeyFingerprint\"\xc3\x01\n" +
 	"\x17ListSuppressionsRequest\x12.\n" +
-	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\"w\n" +
+	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\x12\x16\n" +
+	"\x06search\x18\x02 \x01(\tR\x06search\x12\x12\n" +
+	"\x04type\x18\x03 \x01(\tR\x04type\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\x12\x16\n" +
+	"\x06source\x18\x05 \x01(\tR\x06source\x12\x1c\n" +
+	"\tmailclass\x18\x06 \x01(\tR\tmailclass\"w\n" +
 	"\x15ListSuppressionsReply\x120\n" +
 	"\x05items\x18\x01 \x03(\v2\x1a.iris.admin.v1.SuppressionR\x05items\x12,\n" +
 	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\\\n" +
@@ -14087,7 +17805,20 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x18UpdateSuppressionRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\x12\x16\n" +
-	"\x06status\x18\x03 \x01(\tR\x06status\"_\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\"}\n" +
+	"\n" +
+	"DsnMessage\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\n" +
+	"message_id\x18\x02 \x01(\tR\tmessageId\x12\x1f\n" +
+	"\vraw_message\x18\x03 \x01(\tR\n" +
+	"rawMessage\x12\x1f\n" +
+	"\vreceived_at\x18\x04 \x01(\tR\n" +
+	"receivedAt\"3\n" +
+	"!ListSuppressionDsnMessagesRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"R\n" +
+	"\x1fListSuppressionDsnMessagesReply\x12/\n" +
+	"\x05items\x18\x01 \x03(\v2\x19.iris.admin.v1.DsnMessageR\x05items\"_\n" +
 	"\tTLSPolicy\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06domain\x18\x02 \x01(\tR\x06domain\x12\x12\n" +
@@ -14599,6 +18330,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x13recent_audit_events\x18\x04 \x01(\x03R\x11recentAuditEvents\x12*\n" +
 	"\x11deferred_in_queue\x18\x05 \x01(\x03R\x0fdeferredInQueue\"3\n" +
 	"\x1bGetMetricsTimeseriesRequest\x12\x14\n" +
+	"\x05range\x18\x01 \x01(\tR\x05range\"/\n" +
+	"\x17GetSystemMetricsRequest\x12\x14\n" +
 	"\x05range\x18\x01 \x01(\tR\x05range\"A\n" +
 	"\vMetricPoint\x12\x1c\n" +
 	"\ttimestamp\x18\x01 \x01(\x03R\ttimestamp\x12\x14\n" +
@@ -14624,11 +18357,15 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\tattempted\x18\a \x01(\x03R\tattempted\x12#\n" +
 	"\rdelivery_rate\x18\b \x01(\x01R\fdeliveryRate\x12\x1f\n" +
 	"\vbounce_rate\x18\t \x01(\x01R\n" +
-	"bounceRate\"x\n" +
+	"bounceRate\"[\n" +
+	"\x12DomainDeferredStat\x12)\n" +
+	"\x10recipient_domain\x18\x01 \x01(\tR\x0frecipientDomain\x12\x1a\n" +
+	"\bmessages\x18\x02 \x01(\x03R\bmessages\"\xc9\x01\n" +
 	"\x13WarmupDeliveryStats\x125\n" +
 	"\x04rows\x18\x01 \x03(\v2!.iris.admin.v1.WarmupDeliveryStatR\x04rows\x12\x14\n" +
 	"\x05range\x18\x02 \x01(\tR\x05range\x12\x14\n" +
-	"\x05since\x18\x03 \x01(\x03R\x05since\"0\n" +
+	"\x05since\x18\x03 \x01(\x03R\x05since\x12O\n" +
+	"\x12deferred_by_domain\x18\x04 \x03(\v2!.iris.admin.v1.DomainDeferredStatR\x10deferredByDomain\"0\n" +
 	"\x18GetMailClassStatsRequest\x12\x14\n" +
 	"\x05range\x18\x01 \x01(\tR\x05range\"\x97\x01\n" +
 	"\rMailClassStat\x12\x1c\n" +
@@ -14667,8 +18404,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\vtotal_count\x18\x03 \x01(\x03R\n" +
 	"totalCount\x12\x14\n" +
 	"\x05range\x18\x04 \x01(\tR\x05range\x121\n" +
-	"\x14prometheus_available\x18\x05 \x01(\bR\x13prometheusAvailable\"\x9d\n" +
-	"\n" +
+	"\x14prometheus_available\x18\x05 \x01(\bR\x13prometheusAvailable\"\xc9\f\n" +
 	"\x0eGlobalSettings\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -14704,8 +18440,14 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x11classify_subjects\x18\x1b \x01(\bR\x10classifySubjects\x12%\n" +
 	"\x0eclassify_model\x18\x1c \x01(\tR\rclassifyModel\x12-\n" +
 	"\x12classify_threshold\x18\x1d \x01(\x01R\x11classifyThreshold\x12*\n" +
-	"\x11classify_api_base\x18\x1e \x01(\tR\x0fclassifyApiBaseJ\x04\b\r\x10\x0e\"\x1a\n" +
-	"\x18GetGlobalSettingsRequest\"\xec\t\n" +
+	"\x11classify_api_base\x18\x1e \x01(\tR\x0fclassifyApiBase\x123\n" +
+	"\x16pin_egress_per_message\x18\x1f \x01(\bR\x13pinEgressPerMessage\x12+\n" +
+	"\x11injection_enabled\x18  \x01(\bR\x10injectionEnabled\x122\n" +
+	"\x15injection_listen_addr\x18! \x01(\tR\x13injectionListenAddr\x12%\n" +
+	"\x0einjection_path\x18\" \x01(\tR\rinjectionPath\x122\n" +
+	"\x15injection_tls_enabled\x18# \x01(\bR\x13injectionTlsEnabled\x129\n" +
+	"\x19injection_tls_cert_domain\x18$ \x01(\tR\x16injectionTlsCertDomainJ\x04\b\r\x10\x0e\"\x1a\n" +
+	"\x18GetGlobalSettingsRequest\"\x98\f\n" +
 	"\x1bUpdateGlobalSettingsRequest\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -14737,7 +18479,13 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x11classify_subjects\x18\x19 \x01(\bR\x10classifySubjects\x12%\n" +
 	"\x0eclassify_model\x18\x1a \x01(\tR\rclassifyModel\x12-\n" +
 	"\x12classify_threshold\x18\x1b \x01(\x01R\x11classifyThreshold\x12*\n" +
-	"\x11classify_api_base\x18\x1c \x01(\tR\x0fclassifyApiBaseJ\x04\b\r\x10\x0e\"\xf9\x01\n" +
+	"\x11classify_api_base\x18\x1c \x01(\tR\x0fclassifyApiBase\x123\n" +
+	"\x16pin_egress_per_message\x18\x1d \x01(\bR\x13pinEgressPerMessage\x12+\n" +
+	"\x11injection_enabled\x18\x1e \x01(\bR\x10injectionEnabled\x122\n" +
+	"\x15injection_listen_addr\x18\x1f \x01(\tR\x13injectionListenAddr\x12%\n" +
+	"\x0einjection_path\x18  \x01(\tR\rinjectionPath\x122\n" +
+	"\x15injection_tls_enabled\x18! \x01(\bR\x13injectionTlsEnabled\x129\n" +
+	"\x19injection_tls_cert_domain\x18\" \x01(\tR\x16injectionTlsCertDomainJ\x04\b\r\x10\x0e\"\xb4\x02\n" +
 	"\x15SubjectClassification\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12-\n" +
@@ -14748,21 +18496,130 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\a \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\b \x01(\tR\tupdatedAt\"#\n" +
+	"updated_at\x18\b \x01(\tR\tupdatedAt\x12\x1d\n" +
+	"\n" +
+	"match_type\x18\t \x01(\tR\tmatchType\x12\x1a\n" +
+	"\bpriority\x18\n" +
+	" \x01(\x05R\bpriority\"#\n" +
 	"!ListSubjectClassificationsRequest\"]\n" +
 	"\x1fListSubjectClassificationsReply\x12:\n" +
-	"\x05items\x18\x01 \x03(\v2$.iris.admin.v1.SubjectClassificationR\x05items\"T\n" +
+	"\x05items\x18\x01 \x03(\v2$.iris.admin.v1.SubjectClassificationR\x05items\"\x8f\x01\n" +
 	"\"CreateSubjectClassificationRequest\x12\x18\n" +
 	"\asubject\x18\x01 \x01(\tR\asubject\x12\x14\n" +
-	"\x05label\x18\x02 \x01(\tR\x05label\"d\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12\x1d\n" +
+	"\n" +
+	"match_type\x18\x03 \x01(\tR\tmatchType\x12\x1a\n" +
+	"\bpriority\x18\x04 \x01(\x05R\bpriority\"\x9f\x01\n" +
 	"\"UpdateSubjectClassificationRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12\x14\n" +
-	"\x05label\x18\x03 \x01(\tR\x05label\"4\n" +
+	"\x05label\x18\x03 \x01(\tR\x05label\x12\x1d\n" +
+	"\n" +
+	"match_type\x18\x04 \x01(\tR\tmatchType\x12\x1a\n" +
+	"\bpriority\x18\x05 \x01(\x05R\bpriority\"4\n" +
 	"\"DeleteSubjectClassificationRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"2\n" +
 	" DeleteSubjectClassificationReply\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok2\xd9b\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"\x82\x02\n" +
+	"\x13InjectionCredential\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
+	"\busername\x18\x02 \x01(\tR\busername\x12\x14\n" +
+	"\x05label\x18\x03 \x01(\tR\x05label\x12\x18\n" +
+	"\aenabled\x18\x04 \x01(\bR\aenabled\x12/\n" +
+	"\x13allowed_mailclasses\x18\x05 \x03(\tR\x12allowedMailclasses\x12 \n" +
+	"\flast_used_at\x18\x06 \x01(\tR\n" +
+	"lastUsedAt\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\a \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\b \x01(\tR\tupdatedAt\"!\n" +
+	"\x1fListInjectionCredentialsRequest\"Y\n" +
+	"\x1dListInjectionCredentialsReply\x128\n" +
+	"\x05items\x18\x01 \x03(\v2\".iris.admin.v1.InjectionCredentialR\x05items\"\xbb\x01\n" +
+	" CreateInjectionCredentialRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x14\n" +
+	"\x05label\x18\x03 \x01(\tR\x05label\x12\x18\n" +
+	"\aenabled\x18\x04 \x01(\bR\aenabled\x12/\n" +
+	"\x13allowed_mailclasses\x18\x05 \x03(\tR\x12allowedMailclasses\"\x93\x01\n" +
+	" UpdateInjectionCredentialRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12\x18\n" +
+	"\aenabled\x18\x03 \x01(\bR\aenabled\x12/\n" +
+	"\x13allowed_mailclasses\x18\x04 \x03(\tR\x12allowedMailclasses\"S\n" +
+	"%SetInjectionCredentialPasswordRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"2\n" +
+	" DeleteInjectionCredentialRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"0\n" +
+	"\x1eDeleteInjectionCredentialReply\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"\x82\x01\n" +
+	"\tDiskUsage\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12!\n" +
+	"\fused_percent\x18\x02 \x01(\x01R\vusedPercent\x12\x1d\n" +
+	"\n" +
+	"used_bytes\x18\x03 \x01(\x04R\tusedBytes\x12\x1f\n" +
+	"\vtotal_bytes\x18\x04 \x01(\x04R\n" +
+	"totalBytes\"\x91\x02\n" +
+	"\x0eSystemSnapshot\x12!\n" +
+	"\fcollected_at\x18\x01 \x01(\tR\vcollectedAt\x12\x1f\n" +
+	"\vcpu_percent\x18\x02 \x01(\x01R\n" +
+	"cpuPercent\x12\x1f\n" +
+	"\vmem_percent\x18\x03 \x01(\x01R\n" +
+	"memPercent\x12$\n" +
+	"\x0emem_used_bytes\x18\x04 \x01(\x04R\fmemUsedBytes\x12&\n" +
+	"\x0fmem_total_bytes\x18\x05 \x01(\x04R\rmemTotalBytes\x12.\n" +
+	"\x05disks\x18\x06 \x03(\v2\x18.iris.admin.v1.DiskUsageR\x05disks\x12\x1c\n" +
+	"\tavailable\x18\a \x01(\bR\tavailable\"\xee\x02\n" +
+	"\x0fMonitorSettings\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x12#\n" +
+	"\rcpu_threshold\x18\x02 \x01(\x05R\fcpuThreshold\x12#\n" +
+	"\rmem_threshold\x18\x03 \x01(\x05R\fmemThreshold\x12%\n" +
+	"\x0edisk_threshold\x18\x04 \x01(\x05R\rdiskThreshold\x12\x1d\n" +
+	"\n" +
+	"disk_paths\x18\x05 \x03(\tR\tdiskPaths\x12#\n" +
+	"\rnotify_emails\x18\x06 \x03(\tR\fnotifyEmails\x12\x1d\n" +
+	"\n" +
+	"from_email\x18\a \x01(\tR\tfromEmail\x12\x1b\n" +
+	"\tsmtp_host\x18\b \x01(\tR\bsmtpHost\x12)\n" +
+	"\x10cooldown_minutes\x18\t \x01(\x05R\x0fcooldownMinutes\x12%\n" +
+	"\x0esample_seconds\x18\n" +
+	" \x01(\x05R\rsampleSeconds\"\xf1\x01\n" +
+	"\fMonitorAlert\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
+	"\bresource\x18\x02 \x01(\tR\bresource\x12\x16\n" +
+	"\x06detail\x18\x03 \x01(\tR\x06detail\x12\x14\n" +
+	"\x05level\x18\x04 \x01(\tR\x05level\x12\x14\n" +
+	"\x05value\x18\x05 \x01(\x01R\x05value\x12\x1c\n" +
+	"\tthreshold\x18\x06 \x01(\x05R\tthreshold\x12\x18\n" +
+	"\amessage\x18\a \x01(\tR\amessage\x12\x1a\n" +
+	"\bnotified\x18\b \x01(\bR\bnotified\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\t \x01(\tR\tcreatedAt\"\xae\x01\n" +
+	"\x05Mount\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
+	"\x06device\x18\x02 \x01(\tR\x06device\x12\x16\n" +
+	"\x06fstype\x18\x03 \x01(\tR\x06fstype\x12!\n" +
+	"\fused_percent\x18\x04 \x01(\x01R\vusedPercent\x12\x1d\n" +
+	"\n" +
+	"used_bytes\x18\x05 \x01(\x04R\tusedBytes\x12\x1f\n" +
+	"\vtotal_bytes\x18\x06 \x01(\x04R\n" +
+	"totalBytes\"\x95\x02\n" +
+	"\rSystemMonitor\x129\n" +
+	"\bsnapshot\x18\x01 \x01(\v2\x1d.iris.admin.v1.SystemSnapshotR\bsnapshot\x12:\n" +
+	"\bsettings\x18\x02 \x01(\v2\x1e.iris.admin.v1.MonitorSettingsR\bsettings\x12@\n" +
+	"\rrecent_alerts\x18\x03 \x03(\v2\x1b.iris.admin.v1.MonitorAlertR\frecentAlerts\x12,\n" +
+	"\x06mounts\x18\x04 \x03(\v2\x14.iris.admin.v1.MountR\x06mounts\x12\x1d\n" +
+	"\n" +
+	"spool_path\x18\x05 \x01(\tR\tspoolPath\"\x19\n" +
+	"\x17GetSystemMonitorRequest\"Z\n" +
+	"\x1cUpdateMonitorSettingsRequest\x12:\n" +
+	"\bsettings\x18\x01 \x01(\v2\x1e.iris.admin.v1.MonitorSettingsR\bsettings\"\\\n" +
+	"\x1eTestMonitorNotificationRequest\x12:\n" +
+	"\bsettings\x18\x01 \x01(\v2\x1e.iris.admin.v1.MonitorSettingsR\bsettings\"D\n" +
+	"\x1cTestMonitorNotificationReply\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error2\xa7|\n" +
 	"\x10IrisAdminService\x12n\n" +
 	"\rListListeners\x12#.iris.admin.v1.ListListenersRequest\x1a!.iris.admin.v1.ListListenersReply\"\x15\x82\xd3\xe4\x93\x02\x0f\x12\r/v1/listeners\x12i\n" +
 	"\x0eCreateListener\x12$.iris.admin.v1.CreateListenerRequest\x1a\x17.iris.admin.v1.Listener\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/v1/listeners\x12n\n" +
@@ -14788,11 +18645,24 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x13ListAutomationRules\x12).iris.admin.v1.ListAutomationRulesRequest\x1a'.iris.admin.v1.ListAutomationRulesReply\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/v1/automation-rules\x12\x82\x01\n" +
 	"\x14CreateAutomationRule\x12*.iris.admin.v1.CreateAutomationRuleRequest\x1a\x1d.iris.admin.v1.AutomationRule\"\x1f\x82\xd3\xe4\x93\x02\x19:\x01*\"\x14/v1/automation-rules\x12\x87\x01\n" +
 	"\x14UpdateAutomationRule\x12*.iris.admin.v1.UpdateAutomationRuleRequest\x1a\x1d.iris.admin.v1.AutomationRule\"$\x82\xd3\xe4\x93\x02\x1e:\x01*\x1a\x19/v1/automation-rules/{id}\x12\x94\x01\n" +
-	"\x17SetAutomationRuleStatus\x12-.iris.admin.v1.SetAutomationRuleStatusRequest\x1a\x1d.iris.admin.v1.AutomationRule\"+\x82\xd3\xe4\x93\x02%:\x01*\" /v1/automation-rules/{id}:status\x12{\n" +
+	"\x17SetAutomationRuleStatus\x12-.iris.admin.v1.SetAutomationRuleStatusRequest\x1a\x1d.iris.admin.v1.AutomationRule\"+\x82\xd3\xe4\x93\x02%:\x01*\" /v1/automation-rules/{id}:status\x12w\n" +
+	"\x0fListBounceRules\x12%.iris.admin.v1.ListBounceRulesRequest\x1a#.iris.admin.v1.ListBounceRulesReply\"\x18\x82\xd3\xe4\x93\x02\x12\x12\x10/v1/bounce-rules\x12r\n" +
+	"\x10CreateBounceRule\x12&.iris.admin.v1.CreateBounceRuleRequest\x1a\x19.iris.admin.v1.BounceRule\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/v1/bounce-rules\x12w\n" +
+	"\x10UpdateBounceRule\x12&.iris.admin.v1.UpdateBounceRuleRequest\x1a\x19.iris.admin.v1.BounceRule\" \x82\xd3\xe4\x93\x02\x1a:\x01*\x1a\x15/v1/bounce-rules/{id}\x12\x7f\n" +
+	"\x10DeleteBounceRule\x12&.iris.admin.v1.DeleteBounceRuleRequest\x1a$.iris.admin.v1.DeleteBounceRuleReply\"\x1d\x82\xd3\xe4\x93\x02\x17*\x15/v1/bounce-rules/{id}\x12\x82\x01\n" +
+	"\x10ResetBounceRules\x12&.iris.admin.v1.ResetBounceRulesRequest\x1a#.iris.admin.v1.ListBounceRulesReply\"!\x82\xd3\xe4\x93\x02\x1b:\x01*\"\x16/v1/bounce-rules:reset\x12\x8e\x01\n" +
+	"\x14TestBounceDiagnostic\x12*.iris.admin.v1.TestBounceDiagnosticRequest\x1a(.iris.admin.v1.TestBounceDiagnosticReply\" \x82\xd3\xe4\x93\x02\x1a:\x01*\"\x15/v1/bounce-rules:test\x12\x87\x01\n" +
+	"\x13ListEventProcessors\x12).iris.admin.v1.ListEventProcessorsRequest\x1a'.iris.admin.v1.ListEventProcessorsReply\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/v1/event-processors\x12\x82\x01\n" +
+	"\x14CreateEventProcessor\x12*.iris.admin.v1.CreateEventProcessorRequest\x1a\x1d.iris.admin.v1.EventProcessor\"\x1f\x82\xd3\xe4\x93\x02\x19:\x01*\"\x14/v1/event-processors\x12\x87\x01\n" +
+	"\x14UpdateEventProcessor\x12*.iris.admin.v1.UpdateEventProcessorRequest\x1a\x1d.iris.admin.v1.EventProcessor\"$\x82\xd3\xe4\x93\x02\x1e:\x01*\x1a\x19/v1/event-processors/{id}\x12\x8f\x01\n" +
+	"\x14DeleteEventProcessor\x12*.iris.admin.v1.DeleteEventProcessorRequest\x1a(.iris.admin.v1.DeleteEventProcessorReply\"!\x82\xd3\xe4\x93\x02\x1b*\x19/v1/event-processors/{id}\x12\x8c\x01\n" +
+	"\x12TestEventProcessor\x12(.iris.admin.v1.TestEventProcessorRequest\x1a&.iris.admin.v1.TestEventProcessorReply\"$\x82\xd3\xe4\x93\x02\x1e:\x01*\"\x19/v1/event-processors:test\x12{\n" +
 	"\x10ListRoutingRules\x12&.iris.admin.v1.ListRoutingRulesRequest\x1a$.iris.admin.v1.ListRoutingRulesReply\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/v1/routing-rules\x12v\n" +
 	"\x11CreateRoutingRule\x12'.iris.admin.v1.CreateRoutingRuleRequest\x1a\x1a.iris.admin.v1.RoutingRule\"\x1c\x82\xd3\xe4\x93\x02\x16:\x01*\"\x11/v1/routing-rules\x12{\n" +
 	"\x11UpdateRoutingRule\x12'.iris.admin.v1.UpdateRoutingRuleRequest\x1a\x1a.iris.admin.v1.RoutingRule\"!\x82\xd3\xe4\x93\x02\x1b:\x01*\x1a\x16/v1/routing-rules/{id}\x12w\n" +
-	"\x0fListMailRecords\x12%.iris.admin.v1.ListMailRecordsRequest\x1a#.iris.admin.v1.ListMailRecordsReply\"\x18\x82\xd3\xe4\x93\x02\x12\x12\x10/v1/mail-records\x12f\n" +
+	"\x0fListMailRecords\x12%.iris.admin.v1.ListMailRecordsRequest\x1a#.iris.admin.v1.ListMailRecordsReply\"\x18\x82\xd3\xe4\x93\x02\x12\x12\x10/v1/mail-records\x12\x9e\x01\n" +
+	"\x16GetNextDeliveryAttempt\x12,.iris.admin.v1.GetNextDeliveryAttemptRequest\x1a\".iris.admin.v1.NextDeliveryAttempt\"2\x82\xd3\xe4\x93\x02,\x12*/v1/mail-records/{message_id}/next-attempt\x12w\n" +
+	"\x0fListDsnMessages\x12%.iris.admin.v1.ListDsnMessagesRequest\x1a#.iris.admin.v1.ListDsnMessagesReply\"\x18\x82\xd3\xe4\x93\x02\x12\x12\x10/v1/dsn-messages\x12f\n" +
 	"\vListBounces\x12!.iris.admin.v1.ListBouncesRequest\x1a\x1f.iris.admin.v1.ListBouncesReply\"\x13\x82\xd3\xe4\x93\x02\r\x12\v/v1/bounces\x12\x87\x01\n" +
 	"\x13ListFeedbackReports\x12).iris.admin.v1.ListFeedbackReportsRequest\x1a'.iris.admin.v1.ListFeedbackReportsReply\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/v1/feedback-reports\x12b\n" +
 	"\n" +
@@ -14805,7 +18675,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x0fGenerateDKIMKey\x12%.iris.admin.v1.GenerateDKIMKeyRequest\x1a#.iris.admin.v1.GenerateDKIMKeyReply\"(\x82\xd3\xe4\x93\x02\":\x01*\"\x1d/v1/dkim-domains:generate-key\x12z\n" +
 	"\x10ListSuppressions\x12&.iris.admin.v1.ListSuppressionsRequest\x1a$.iris.admin.v1.ListSuppressionsReply\"\x18\x82\xd3\xe4\x93\x02\x12\x12\x10/v1/suppressions\x12u\n" +
 	"\x11CreateSuppression\x12'.iris.admin.v1.CreateSuppressionRequest\x1a\x1a.iris.admin.v1.Suppression\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/v1/suppressions\x12z\n" +
-	"\x11UpdateSuppression\x12'.iris.admin.v1.UpdateSuppressionRequest\x1a\x1a.iris.admin.v1.Suppression\" \x82\xd3\xe4\x93\x02\x1a:\x01*\x1a\x15/v1/suppressions/{id}\x12w\n" +
+	"\x11UpdateSuppression\x12'.iris.admin.v1.UpdateSuppressionRequest\x1a\x1a.iris.admin.v1.Suppression\" \x82\xd3\xe4\x93\x02\x1a:\x01*\x1a\x15/v1/suppressions/{id}\x12\xaa\x01\n" +
+	"\x1aListSuppressionDsnMessages\x120.iris.admin.v1.ListSuppressionDsnMessagesRequest\x1a..iris.admin.v1.ListSuppressionDsnMessagesReply\"*\x82\xd3\xe4\x93\x02$\x12\"/v1/suppressions/{id}/dsn-messages\x12w\n" +
 	"\x0fListTLSPolicies\x12%.iris.admin.v1.ListTLSPoliciesRequest\x1a#.iris.admin.v1.ListTLSPoliciesReply\"\x18\x82\xd3\xe4\x93\x02\x12\x12\x10/v1/tls-policies\x12o\n" +
 	"\x0fCreateTLSPolicy\x12%.iris.admin.v1.CreateTLSPolicyRequest\x1a\x18.iris.admin.v1.TLSPolicy\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/v1/tls-policies\x12|\n" +
 	"\x0fDeleteTLSPolicy\x12%.iris.admin.v1.DeleteTLSPolicyRequest\x1a#.iris.admin.v1.DeleteTLSPolicyReply\"\x1d\x82\xd3\xe4\x93\x02\x17*\x15/v1/tls-policies/{id}\x12\x7f\n" +
@@ -14850,7 +18721,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x12SetAcmeDnsProvider\x12(.iris.admin.v1.SetAcmeDnsProviderRequest\x1a\x1e.iris.admin.v1.AcmeDnsProvider\" \x82\xd3\xe4\x93\x02\x1a:\x01*\x1a\x15/v1/acme/dns-provider\x12\x81\x01\n" +
 	"\x14ClearAcmeDnsProvider\x12*.iris.admin.v1.ClearAcmeDnsProviderRequest\x1a\x1e.iris.admin.v1.AcmeDnsProvider\"\x1d\x82\xd3\xe4\x93\x02\x17*\x15/v1/acme/dns-provider\x12\x80\x01\n" +
 	"\x13GetDashboardSummary\x12).iris.admin.v1.GetDashboardSummaryRequest\x1a\x1f.iris.admin.v1.DashboardSummary\"\x1d\x82\xd3\xe4\x93\x02\x17\x12\x15/v1/dashboard/summary\x12\x83\x01\n" +
-	"\x14GetMetricsTimeseries\x12*.iris.admin.v1.GetMetricsTimeseriesRequest\x1a .iris.admin.v1.MetricsTimeseries\"\x1d\x82\xd3\xe4\x93\x02\x17\x12\x15/v1/dashboard/metrics\x12\x8e\x01\n" +
+	"\x14GetMetricsTimeseries\x12*.iris.admin.v1.GetMetricsTimeseriesRequest\x1a .iris.admin.v1.MetricsTimeseries\"\x1d\x82\xd3\xe4\x93\x02\x17\x12\x15/v1/dashboard/metrics\x12\x80\x01\n" +
+	"\x10GetSystemMetrics\x12&.iris.admin.v1.GetSystemMetricsRequest\x1a .iris.admin.v1.MetricsTimeseries\"\"\x82\xd3\xe4\x93\x02\x1c\x12\x1a/v1/system-monitor/metrics\x12\x8e\x01\n" +
 	"\x16GetWarmupDeliveryStats\x12,.iris.admin.v1.GetWarmupDeliveryStatsRequest\x1a\".iris.admin.v1.WarmupDeliveryStats\"\"\x82\xd3\xe4\x93\x02\x1c\x12\x1a/v1/dashboard/warmup-stats\x12\x93\x01\n" +
 	"\x15GetQueueTimeHistogram\x12+.iris.admin.v1.GetQueueTimeHistogramRequest\x1a!.iris.admin.v1.QueueTimeHistogram\"*\x82\xd3\xe4\x93\x02$\x12\"/v1/dashboard/queue-time-histogram\x12\x82\x01\n" +
 	"\x11GetMailClassStats\x12'.iris.admin.v1.GetMailClassStatsRequest\x1a\x1d.iris.admin.v1.MailClassStats\"%\x82\xd3\xe4\x93\x02\x1f\x12\x1d/v1/dashboard/mailclass-stats\x12\x9b\x01\n" +
@@ -14870,7 +18742,15 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x1aListSubjectClassifications\x120.iris.admin.v1.ListSubjectClassificationsRequest\x1a..iris.admin.v1.ListSubjectClassificationsReply\"#\x82\xd3\xe4\x93\x02\x1d\x12\x1b/v1/subject-classifications\x12\x9e\x01\n" +
 	"\x1bCreateSubjectClassification\x121.iris.admin.v1.CreateSubjectClassificationRequest\x1a$.iris.admin.v1.SubjectClassification\"&\x82\xd3\xe4\x93\x02 :\x01*\"\x1b/v1/subject-classifications\x12\xa3\x01\n" +
 	"\x1bUpdateSubjectClassification\x121.iris.admin.v1.UpdateSubjectClassificationRequest\x1a$.iris.admin.v1.SubjectClassification\"+\x82\xd3\xe4\x93\x02%:\x01*\x1a /v1/subject-classifications/{id}\x12\xab\x01\n" +
-	"\x1bDeleteSubjectClassification\x121.iris.admin.v1.DeleteSubjectClassificationRequest\x1a/.iris.admin.v1.DeleteSubjectClassificationReply\"(\x82\xd3\xe4\x93\x02\"* /v1/subject-classifications/{id}B;Z9github.com/menta2k/iris/backend/api/iris/admin/v1;adminv1b\x06proto3"
+	"\x1bDeleteSubjectClassification\x121.iris.admin.v1.DeleteSubjectClassificationRequest\x1a/.iris.admin.v1.DeleteSubjectClassificationReply\"(\x82\xd3\xe4\x93\x02\"* /v1/subject-classifications/{id}\x12\x9b\x01\n" +
+	"\x18ListInjectionCredentials\x12..iris.admin.v1.ListInjectionCredentialsRequest\x1a,.iris.admin.v1.ListInjectionCredentialsReply\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/v1/injection-credentials\x12\x96\x01\n" +
+	"\x19CreateInjectionCredential\x12/.iris.admin.v1.CreateInjectionCredentialRequest\x1a\".iris.admin.v1.InjectionCredential\"$\x82\xd3\xe4\x93\x02\x1e:\x01*\"\x19/v1/injection-credentials\x12\x9b\x01\n" +
+	"\x19UpdateInjectionCredential\x12/.iris.admin.v1.UpdateInjectionCredentialRequest\x1a\".iris.admin.v1.InjectionCredential\")\x82\xd3\xe4\x93\x02#:\x01*\x1a\x1e/v1/injection-credentials/{id}\x12\xae\x01\n" +
+	"\x1eSetInjectionCredentialPassword\x124.iris.admin.v1.SetInjectionCredentialPasswordRequest\x1a\".iris.admin.v1.InjectionCredential\"2\x82\xd3\xe4\x93\x02,:\x01*\"'/v1/injection-credentials/{id}/password\x12\xa3\x01\n" +
+	"\x19DeleteInjectionCredential\x12/.iris.admin.v1.DeleteInjectionCredentialRequest\x1a-.iris.admin.v1.DeleteInjectionCredentialReply\"&\x82\xd3\xe4\x93\x02 *\x1e/v1/injection-credentials/{id}\x12t\n" +
+	"\x10GetSystemMonitor\x12&.iris.admin.v1.GetSystemMonitorRequest\x1a\x1c.iris.admin.v1.SystemMonitor\"\x1a\x82\xd3\xe4\x93\x02\x14\x12\x12/v1/system-monitor\x12\x8c\x01\n" +
+	"\x15UpdateMonitorSettings\x12+.iris.admin.v1.UpdateMonitorSettingsRequest\x1a\x1e.iris.admin.v1.MonitorSettings\"&\x82\xd3\xe4\x93\x02 :\x01*\x1a\x1b/v1/system-monitor/settings\x12\x99\x01\n" +
+	"\x17TestMonitorNotification\x12-.iris.admin.v1.TestMonitorNotificationRequest\x1a+.iris.admin.v1.TestMonitorNotificationReply\"\"\x82\xd3\xe4\x93\x02\x1c:\x01*\"\x17/v1/system-monitor:testB;Z9github.com/menta2k/iris/backend/api/iris/admin/v1;adminv1b\x06proto3"
 
 var (
 	file_iris_admin_v1_iris_admin_api_proto_rawDescOnce sync.Once
@@ -14884,524 +18764,644 @@ func file_iris_admin_v1_iris_admin_api_proto_rawDescGZIP() []byte {
 	return file_iris_admin_v1_iris_admin_api_proto_rawDescData
 }
 
-var file_iris_admin_v1_iris_admin_api_proto_msgTypes = make([]protoimpl.MessageInfo, 210)
+var file_iris_admin_v1_iris_admin_api_proto_msgTypes = make([]protoimpl.MessageInfo, 261)
 var file_iris_admin_v1_iris_admin_api_proto_goTypes = []any{
-	(*PageRequest)(nil),                        // 0: iris.admin.v1.PageRequest
-	(*PageReply)(nil),                          // 1: iris.admin.v1.PageReply
-	(*Listener)(nil),                           // 2: iris.admin.v1.Listener
-	(*ListListenersRequest)(nil),               // 3: iris.admin.v1.ListListenersRequest
-	(*ListListenersReply)(nil),                 // 4: iris.admin.v1.ListListenersReply
-	(*CreateListenerRequest)(nil),              // 5: iris.admin.v1.CreateListenerRequest
-	(*UpdateListenerRequest)(nil),              // 6: iris.admin.v1.UpdateListenerRequest
-	(*VMTA)(nil),                               // 7: iris.admin.v1.VMTA
-	(*VMTAGroup)(nil),                          // 8: iris.admin.v1.VMTAGroup
-	(*VMTAGroupMember)(nil),                    // 9: iris.admin.v1.VMTAGroupMember
-	(*RoutingRule)(nil),                        // 10: iris.admin.v1.RoutingRule
-	(*WarmupStage)(nil),                        // 11: iris.admin.v1.WarmupStage
-	(*WarmupSchedule)(nil),                     // 12: iris.admin.v1.WarmupSchedule
-	(*WarmupCurve)(nil),                        // 13: iris.admin.v1.WarmupCurve
-	(*ListWarmupSchedulesRequest)(nil),         // 14: iris.admin.v1.ListWarmupSchedulesRequest
-	(*ListWarmupSchedulesReply)(nil),           // 15: iris.admin.v1.ListWarmupSchedulesReply
-	(*CreateWarmupScheduleRequest)(nil),        // 16: iris.admin.v1.CreateWarmupScheduleRequest
-	(*UpdateWarmupScheduleRequest)(nil),        // 17: iris.admin.v1.UpdateWarmupScheduleRequest
-	(*PauseWarmupScheduleRequest)(nil),         // 18: iris.admin.v1.PauseWarmupScheduleRequest
-	(*ResumeWarmupScheduleRequest)(nil),        // 19: iris.admin.v1.ResumeWarmupScheduleRequest
-	(*DeliveryBlueprint)(nil),                  // 20: iris.admin.v1.DeliveryBlueprint
-	(*ListDeliveryBlueprintsRequest)(nil),      // 21: iris.admin.v1.ListDeliveryBlueprintsRequest
-	(*ListDeliveryBlueprintsReply)(nil),        // 22: iris.admin.v1.ListDeliveryBlueprintsReply
-	(*CreateDeliveryBlueprintRequest)(nil),     // 23: iris.admin.v1.CreateDeliveryBlueprintRequest
-	(*UpdateDeliveryBlueprintRequest)(nil),     // 24: iris.admin.v1.UpdateDeliveryBlueprintRequest
-	(*SetDeliveryBlueprintStatusRequest)(nil),  // 25: iris.admin.v1.SetDeliveryBlueprintStatusRequest
-	(*SeedDeliveryBlueprintsRequest)(nil),      // 26: iris.admin.v1.SeedDeliveryBlueprintsRequest
-	(*SeedDeliveryBlueprintsReply)(nil),        // 27: iris.admin.v1.SeedDeliveryBlueprintsReply
-	(*AutomationRule)(nil),                     // 28: iris.admin.v1.AutomationRule
-	(*ListAutomationRulesRequest)(nil),         // 29: iris.admin.v1.ListAutomationRulesRequest
-	(*ListAutomationRulesReply)(nil),           // 30: iris.admin.v1.ListAutomationRulesReply
-	(*CreateAutomationRuleRequest)(nil),        // 31: iris.admin.v1.CreateAutomationRuleRequest
-	(*UpdateAutomationRuleRequest)(nil),        // 32: iris.admin.v1.UpdateAutomationRuleRequest
-	(*SetAutomationRuleStatusRequest)(nil),     // 33: iris.admin.v1.SetAutomationRuleStatusRequest
-	(*ListVMTAsRequest)(nil),                   // 34: iris.admin.v1.ListVMTAsRequest
-	(*ListVMTAsReply)(nil),                     // 35: iris.admin.v1.ListVMTAsReply
-	(*CreateVMTARequest)(nil),                  // 36: iris.admin.v1.CreateVMTARequest
-	(*UpdateVMTARequest)(nil),                  // 37: iris.admin.v1.UpdateVMTARequest
-	(*ListVMTAGroupsRequest)(nil),              // 38: iris.admin.v1.ListVMTAGroupsRequest
-	(*ListVMTAGroupsReply)(nil),                // 39: iris.admin.v1.ListVMTAGroupsReply
-	(*CreateVMTAGroupRequest)(nil),             // 40: iris.admin.v1.CreateVMTAGroupRequest
-	(*UpdateVMTAGroupRequest)(nil),             // 41: iris.admin.v1.UpdateVMTAGroupRequest
-	(*ListRoutingRulesRequest)(nil),            // 42: iris.admin.v1.ListRoutingRulesRequest
-	(*ListRoutingRulesReply)(nil),              // 43: iris.admin.v1.ListRoutingRulesReply
-	(*CreateRoutingRuleRequest)(nil),           // 44: iris.admin.v1.CreateRoutingRuleRequest
-	(*UpdateRoutingRuleRequest)(nil),           // 45: iris.admin.v1.UpdateRoutingRuleRequest
-	(*MailRecord)(nil),                         // 46: iris.admin.v1.MailRecord
-	(*Bounce)(nil),                             // 47: iris.admin.v1.Bounce
-	(*FeedbackReport)(nil),                     // 48: iris.admin.v1.FeedbackReport
-	(*Queue)(nil),                              // 49: iris.admin.v1.Queue
-	(*ListMailRecordsRequest)(nil),             // 50: iris.admin.v1.ListMailRecordsRequest
-	(*ListMailRecordsReply)(nil),               // 51: iris.admin.v1.ListMailRecordsReply
-	(*ListBouncesRequest)(nil),                 // 52: iris.admin.v1.ListBouncesRequest
-	(*ListBouncesReply)(nil),                   // 53: iris.admin.v1.ListBouncesReply
-	(*ListFeedbackReportsRequest)(nil),         // 54: iris.admin.v1.ListFeedbackReportsRequest
-	(*ListFeedbackReportsReply)(nil),           // 55: iris.admin.v1.ListFeedbackReportsReply
-	(*ListQueuesRequest)(nil),                  // 56: iris.admin.v1.ListQueuesRequest
-	(*ListQueuesReply)(nil),                    // 57: iris.admin.v1.ListQueuesReply
-	(*RequestQueueActionRequest)(nil),          // 58: iris.admin.v1.RequestQueueActionRequest
-	(*QueueActionReply)(nil),                   // 59: iris.admin.v1.QueueActionReply
-	(*DKIMDomain)(nil),                         // 60: iris.admin.v1.DKIMDomain
-	(*Suppression)(nil),                        // 61: iris.admin.v1.Suppression
-	(*ListDKIMDomainsRequest)(nil),             // 62: iris.admin.v1.ListDKIMDomainsRequest
-	(*ListDKIMDomainsReply)(nil),               // 63: iris.admin.v1.ListDKIMDomainsReply
-	(*CreateDKIMDomainRequest)(nil),            // 64: iris.admin.v1.CreateDKIMDomainRequest
-	(*UpdateDKIMDomainRequest)(nil),            // 65: iris.admin.v1.UpdateDKIMDomainRequest
-	(*GenerateDKIMKeyRequest)(nil),             // 66: iris.admin.v1.GenerateDKIMKeyRequest
-	(*GenerateDKIMKeyReply)(nil),               // 67: iris.admin.v1.GenerateDKIMKeyReply
-	(*ListSuppressionsRequest)(nil),            // 68: iris.admin.v1.ListSuppressionsRequest
-	(*ListSuppressionsReply)(nil),              // 69: iris.admin.v1.ListSuppressionsReply
-	(*CreateSuppressionRequest)(nil),           // 70: iris.admin.v1.CreateSuppressionRequest
-	(*UpdateSuppressionRequest)(nil),           // 71: iris.admin.v1.UpdateSuppressionRequest
-	(*TLSPolicy)(nil),                          // 72: iris.admin.v1.TLSPolicy
-	(*ListTLSPoliciesRequest)(nil),             // 73: iris.admin.v1.ListTLSPoliciesRequest
-	(*ListTLSPoliciesReply)(nil),               // 74: iris.admin.v1.ListTLSPoliciesReply
-	(*CreateTLSPolicyRequest)(nil),             // 75: iris.admin.v1.CreateTLSPolicyRequest
-	(*DeleteTLSPolicyRequest)(nil),             // 76: iris.admin.v1.DeleteTLSPolicyRequest
-	(*DeleteTLSPolicyReply)(nil),               // 77: iris.admin.v1.DeleteTLSPolicyReply
-	(*InboundRoute)(nil),                       // 78: iris.admin.v1.InboundRoute
-	(*ListInboundRoutesRequest)(nil),           // 79: iris.admin.v1.ListInboundRoutesRequest
-	(*ListInboundRoutesReply)(nil),             // 80: iris.admin.v1.ListInboundRoutesReply
-	(*CreateInboundRouteRequest)(nil),          // 81: iris.admin.v1.CreateInboundRouteRequest
-	(*UpdateInboundRouteRequest)(nil),          // 82: iris.admin.v1.UpdateInboundRouteRequest
-	(*DeleteInboundRouteRequest)(nil),          // 83: iris.admin.v1.DeleteInboundRouteRequest
-	(*DeleteInboundRouteReply)(nil),            // 84: iris.admin.v1.DeleteInboundRouteReply
-	(*RspamdResult)(nil),                       // 85: iris.admin.v1.RspamdResult
-	(*ListRspamdResultsRequest)(nil),           // 86: iris.admin.v1.ListRspamdResultsRequest
-	(*ListRspamdResultsReply)(nil),             // 87: iris.admin.v1.ListRspamdResultsReply
-	(*FeedbackLoop)(nil),                       // 88: iris.admin.v1.FeedbackLoop
-	(*ListFeedbackLoopsRequest)(nil),           // 89: iris.admin.v1.ListFeedbackLoopsRequest
-	(*ListFeedbackLoopsReply)(nil),             // 90: iris.admin.v1.ListFeedbackLoopsReply
-	(*CreateFeedbackLoopRequest)(nil),          // 91: iris.admin.v1.CreateFeedbackLoopRequest
-	(*UpdateFeedbackLoopRequest)(nil),          // 92: iris.admin.v1.UpdateFeedbackLoopRequest
-	(*DeleteFeedbackLoopRequest)(nil),          // 93: iris.admin.v1.DeleteFeedbackLoopRequest
-	(*DeleteFeedbackLoopReply)(nil),            // 94: iris.admin.v1.DeleteFeedbackLoopReply
-	(*User)(nil),                               // 95: iris.admin.v1.User
-	(*AuditEntry)(nil),                         // 96: iris.admin.v1.AuditEntry
-	(*LoginRequest)(nil),                       // 97: iris.admin.v1.LoginRequest
-	(*LoginReply)(nil),                         // 98: iris.admin.v1.LoginReply
-	(*VerifyMFARequest)(nil),                   // 99: iris.admin.v1.VerifyMFARequest
-	(*CurrentUserRequest)(nil),                 // 100: iris.admin.v1.CurrentUserRequest
-	(*CurrentUserReply)(nil),                   // 101: iris.admin.v1.CurrentUserReply
-	(*ChangePasswordRequest)(nil),              // 102: iris.admin.v1.ChangePasswordRequest
-	(*ChangePasswordReply)(nil),                // 103: iris.admin.v1.ChangePasswordReply
-	(*LogoutRequest)(nil),                      // 104: iris.admin.v1.LogoutRequest
-	(*LogoutReply)(nil),                        // 105: iris.admin.v1.LogoutReply
-	(*EnrollMFARequest)(nil),                   // 106: iris.admin.v1.EnrollMFARequest
-	(*EnrollMFAReply)(nil),                     // 107: iris.admin.v1.EnrollMFAReply
-	(*ConfirmMFARequest)(nil),                  // 108: iris.admin.v1.ConfirmMFARequest
-	(*ConfirmMFAReply)(nil),                    // 109: iris.admin.v1.ConfirmMFAReply
-	(*DisableMFARequest)(nil),                  // 110: iris.admin.v1.DisableMFARequest
-	(*DisableMFAReply)(nil),                    // 111: iris.admin.v1.DisableMFAReply
-	(*ListUsersRequest)(nil),                   // 112: iris.admin.v1.ListUsersRequest
-	(*ListUsersReply)(nil),                     // 113: iris.admin.v1.ListUsersReply
-	(*CreateUserRequest)(nil),                  // 114: iris.admin.v1.CreateUserRequest
-	(*UpdateUserRequest)(nil),                  // 115: iris.admin.v1.UpdateUserRequest
-	(*ResetUserPasswordRequest)(nil),           // 116: iris.admin.v1.ResetUserPasswordRequest
-	(*ResetUserPasswordReply)(nil),             // 117: iris.admin.v1.ResetUserPasswordReply
-	(*ListAuditEntriesRequest)(nil),            // 118: iris.admin.v1.ListAuditEntriesRequest
-	(*ListAuditEntriesReply)(nil),              // 119: iris.admin.v1.ListAuditEntriesReply
-	(*RequestServiceControlRequest)(nil),       // 120: iris.admin.v1.RequestServiceControlRequest
-	(*ServiceControlRequest)(nil),              // 121: iris.admin.v1.ServiceControlRequest
-	(*GenerateKumoConfigRequest)(nil),          // 122: iris.admin.v1.GenerateKumoConfigRequest
-	(*KumoConfig)(nil),                         // 123: iris.admin.v1.KumoConfig
-	(*ApplyKumoConfigRequest)(nil),             // 124: iris.admin.v1.ApplyKumoConfigRequest
-	(*ApplyKumoConfigReply)(nil),               // 125: iris.admin.v1.ApplyKumoConfigReply
-	(*GetAcmeAccountRequest)(nil),              // 126: iris.admin.v1.GetAcmeAccountRequest
-	(*SaveAcmeAccountRequest)(nil),             // 127: iris.admin.v1.SaveAcmeAccountRequest
-	(*AcmeAccount)(nil),                        // 128: iris.admin.v1.AcmeAccount
-	(*AcmeCertificate)(nil),                    // 129: iris.admin.v1.AcmeCertificate
-	(*ListAcmeCertificatesRequest)(nil),        // 130: iris.admin.v1.ListAcmeCertificatesRequest
-	(*ListAcmeCertificatesReply)(nil),          // 131: iris.admin.v1.ListAcmeCertificatesReply
-	(*RequestAcmeCertificateRequest)(nil),      // 132: iris.admin.v1.RequestAcmeCertificateRequest
-	(*DeleteAcmeCertificateRequest)(nil),       // 133: iris.admin.v1.DeleteAcmeCertificateRequest
-	(*DeleteAcmeCertificateReply)(nil),         // 134: iris.admin.v1.DeleteAcmeCertificateReply
-	(*AcmeDnsProviderInfo)(nil),                // 135: iris.admin.v1.AcmeDnsProviderInfo
-	(*ListAcmeDnsProvidersRequest)(nil),        // 136: iris.admin.v1.ListAcmeDnsProvidersRequest
-	(*ListAcmeDnsProvidersReply)(nil),          // 137: iris.admin.v1.ListAcmeDnsProvidersReply
-	(*AcmeDnsProvider)(nil),                    // 138: iris.admin.v1.AcmeDnsProvider
-	(*GetAcmeDnsProviderRequest)(nil),          // 139: iris.admin.v1.GetAcmeDnsProviderRequest
-	(*SetAcmeDnsProviderRequest)(nil),          // 140: iris.admin.v1.SetAcmeDnsProviderRequest
-	(*ClearAcmeDnsProviderRequest)(nil),        // 141: iris.admin.v1.ClearAcmeDnsProviderRequest
-	(*GetAppliedKumoConfigRequest)(nil),        // 142: iris.admin.v1.GetAppliedKumoConfigRequest
-	(*AppliedKumoConfig)(nil),                  // 143: iris.admin.v1.AppliedKumoConfig
-	(*KumoConfigStatusRequest)(nil),            // 144: iris.admin.v1.KumoConfigStatusRequest
-	(*KumoConfigStatusReply)(nil),              // 145: iris.admin.v1.KumoConfigStatusReply
-	(*CheckDomainBounceSetupRequest)(nil),      // 146: iris.admin.v1.CheckDomainBounceSetupRequest
-	(*DomainCheckItem)(nil),                    // 147: iris.admin.v1.DomainCheckItem
-	(*DomainBounceCheck)(nil),                  // 148: iris.admin.v1.DomainBounceCheck
-	(*DiagnoseRequest)(nil),                    // 149: iris.admin.v1.DiagnoseRequest
-	(*RoutingOutcome)(nil),                     // 150: iris.admin.v1.RoutingOutcome
-	(*DiagnoseResult)(nil),                     // 151: iris.admin.v1.DiagnoseResult
-	(*RblCheckRequest)(nil),                    // 152: iris.admin.v1.RblCheckRequest
-	(*RblListing)(nil),                         // 153: iris.admin.v1.RblListing
-	(*RblIpResult)(nil),                        // 154: iris.admin.v1.RblIpResult
-	(*RblCheckReply)(nil),                      // 155: iris.admin.v1.RblCheckReply
-	(*GetDmarcStatsRequest)(nil),               // 156: iris.admin.v1.GetDmarcStatsRequest
-	(*DmarcCount)(nil),                         // 157: iris.admin.v1.DmarcCount
-	(*DmarcSource)(nil),                        // 158: iris.admin.v1.DmarcSource
-	(*DmarcDomainStat)(nil),                    // 159: iris.admin.v1.DmarcDomainStat
-	(*DmarcReporterStat)(nil),                  // 160: iris.admin.v1.DmarcReporterStat
-	(*DmarcDay)(nil),                           // 161: iris.admin.v1.DmarcDay
-	(*DmarcStats)(nil),                         // 162: iris.admin.v1.DmarcStats
-	(*DmarcReport)(nil),                        // 163: iris.admin.v1.DmarcReport
-	(*ListDmarcReportsRequest)(nil),            // 164: iris.admin.v1.ListDmarcReportsRequest
-	(*ListDmarcReportsReply)(nil),              // 165: iris.admin.v1.ListDmarcReportsReply
-	(*ListDmarcDomainsRequest)(nil),            // 166: iris.admin.v1.ListDmarcDomainsRequest
-	(*ListDmarcDomainsReply)(nil),              // 167: iris.admin.v1.ListDmarcDomainsReply
-	(*WorkerErrorLog)(nil),                     // 168: iris.admin.v1.WorkerErrorLog
-	(*ListWorkerErrorLogsRequest)(nil),         // 169: iris.admin.v1.ListWorkerErrorLogsRequest
-	(*ListWorkerErrorLogsReply)(nil),           // 170: iris.admin.v1.ListWorkerErrorLogsReply
-	(*RetentionPolicy)(nil),                    // 171: iris.admin.v1.RetentionPolicy
-	(*RetentionView)(nil),                      // 172: iris.admin.v1.RetentionView
-	(*RetentionRun)(nil),                       // 173: iris.admin.v1.RetentionRun
-	(*ListRetentionPoliciesRequest)(nil),       // 174: iris.admin.v1.ListRetentionPoliciesRequest
-	(*ListRetentionPoliciesReply)(nil),         // 175: iris.admin.v1.ListRetentionPoliciesReply
-	(*UpdateRetentionPolicyRequest)(nil),       // 176: iris.admin.v1.UpdateRetentionPolicyRequest
-	(*RunRetentionRequest)(nil),                // 177: iris.admin.v1.RunRetentionRequest
-	(*RunRetentionReply)(nil),                  // 178: iris.admin.v1.RunRetentionReply
-	(*GetDashboardSummaryRequest)(nil),         // 179: iris.admin.v1.GetDashboardSummaryRequest
-	(*DashboardSummary)(nil),                   // 180: iris.admin.v1.DashboardSummary
-	(*GetMetricsTimeseriesRequest)(nil),        // 181: iris.admin.v1.GetMetricsTimeseriesRequest
-	(*MetricPoint)(nil),                        // 182: iris.admin.v1.MetricPoint
-	(*MetricsSeries)(nil),                      // 183: iris.admin.v1.MetricsSeries
-	(*MetricsTimeseries)(nil),                  // 184: iris.admin.v1.MetricsTimeseries
-	(*GetWarmupDeliveryStatsRequest)(nil),      // 185: iris.admin.v1.GetWarmupDeliveryStatsRequest
-	(*WarmupDeliveryStat)(nil),                 // 186: iris.admin.v1.WarmupDeliveryStat
-	(*WarmupDeliveryStats)(nil),                // 187: iris.admin.v1.WarmupDeliveryStats
-	(*GetMailClassStatsRequest)(nil),           // 188: iris.admin.v1.GetMailClassStatsRequest
-	(*MailClassStat)(nil),                      // 189: iris.admin.v1.MailClassStat
-	(*MailClassStats)(nil),                     // 190: iris.admin.v1.MailClassStats
-	(*GetRecipientDomainStatsRequest)(nil),     // 191: iris.admin.v1.GetRecipientDomainStatsRequest
-	(*RecipientDomainStat)(nil),                // 192: iris.admin.v1.RecipientDomainStat
-	(*RecipientDomainStats)(nil),               // 193: iris.admin.v1.RecipientDomainStats
-	(*GetQueueTimeHistogramRequest)(nil),       // 194: iris.admin.v1.GetQueueTimeHistogramRequest
-	(*QueueTimeBucket)(nil),                    // 195: iris.admin.v1.QueueTimeBucket
-	(*QueueTimeHistogram)(nil),                 // 196: iris.admin.v1.QueueTimeHistogram
-	(*GlobalSettings)(nil),                     // 197: iris.admin.v1.GlobalSettings
-	(*GetGlobalSettingsRequest)(nil),           // 198: iris.admin.v1.GetGlobalSettingsRequest
-	(*UpdateGlobalSettingsRequest)(nil),        // 199: iris.admin.v1.UpdateGlobalSettingsRequest
-	(*SubjectClassification)(nil),              // 200: iris.admin.v1.SubjectClassification
-	(*ListSubjectClassificationsRequest)(nil),  // 201: iris.admin.v1.ListSubjectClassificationsRequest
-	(*ListSubjectClassificationsReply)(nil),    // 202: iris.admin.v1.ListSubjectClassificationsReply
-	(*CreateSubjectClassificationRequest)(nil), // 203: iris.admin.v1.CreateSubjectClassificationRequest
-	(*UpdateSubjectClassificationRequest)(nil), // 204: iris.admin.v1.UpdateSubjectClassificationRequest
-	(*DeleteSubjectClassificationRequest)(nil), // 205: iris.admin.v1.DeleteSubjectClassificationRequest
-	(*DeleteSubjectClassificationReply)(nil),   // 206: iris.admin.v1.DeleteSubjectClassificationReply
-	nil,                                        // 207: iris.admin.v1.WarmupStage.CapsEntry
-	nil,                                        // 208: iris.admin.v1.AcmeDnsProvider.ConfigEntry
-	nil,                                        // 209: iris.admin.v1.SetAcmeDnsProviderRequest.ConfigEntry
-	(*timestamppb.Timestamp)(nil),              // 210: google.protobuf.Timestamp
+	(*PageRequest)(nil),                           // 0: iris.admin.v1.PageRequest
+	(*PageReply)(nil),                             // 1: iris.admin.v1.PageReply
+	(*Listener)(nil),                              // 2: iris.admin.v1.Listener
+	(*ListListenersRequest)(nil),                  // 3: iris.admin.v1.ListListenersRequest
+	(*ListListenersReply)(nil),                    // 4: iris.admin.v1.ListListenersReply
+	(*CreateListenerRequest)(nil),                 // 5: iris.admin.v1.CreateListenerRequest
+	(*UpdateListenerRequest)(nil),                 // 6: iris.admin.v1.UpdateListenerRequest
+	(*VMTA)(nil),                                  // 7: iris.admin.v1.VMTA
+	(*VMTAGroup)(nil),                             // 8: iris.admin.v1.VMTAGroup
+	(*VMTAGroupMember)(nil),                       // 9: iris.admin.v1.VMTAGroupMember
+	(*RoutingRule)(nil),                           // 10: iris.admin.v1.RoutingRule
+	(*RoutingMatchCondition)(nil),                 // 11: iris.admin.v1.RoutingMatchCondition
+	(*WarmupStage)(nil),                           // 12: iris.admin.v1.WarmupStage
+	(*WarmupSchedule)(nil),                        // 13: iris.admin.v1.WarmupSchedule
+	(*WarmupCurve)(nil),                           // 14: iris.admin.v1.WarmupCurve
+	(*ListWarmupSchedulesRequest)(nil),            // 15: iris.admin.v1.ListWarmupSchedulesRequest
+	(*ListWarmupSchedulesReply)(nil),              // 16: iris.admin.v1.ListWarmupSchedulesReply
+	(*CreateWarmupScheduleRequest)(nil),           // 17: iris.admin.v1.CreateWarmupScheduleRequest
+	(*UpdateWarmupScheduleRequest)(nil),           // 18: iris.admin.v1.UpdateWarmupScheduleRequest
+	(*PauseWarmupScheduleRequest)(nil),            // 19: iris.admin.v1.PauseWarmupScheduleRequest
+	(*ResumeWarmupScheduleRequest)(nil),           // 20: iris.admin.v1.ResumeWarmupScheduleRequest
+	(*DeliveryBlueprint)(nil),                     // 21: iris.admin.v1.DeliveryBlueprint
+	(*ListDeliveryBlueprintsRequest)(nil),         // 22: iris.admin.v1.ListDeliveryBlueprintsRequest
+	(*ListDeliveryBlueprintsReply)(nil),           // 23: iris.admin.v1.ListDeliveryBlueprintsReply
+	(*CreateDeliveryBlueprintRequest)(nil),        // 24: iris.admin.v1.CreateDeliveryBlueprintRequest
+	(*UpdateDeliveryBlueprintRequest)(nil),        // 25: iris.admin.v1.UpdateDeliveryBlueprintRequest
+	(*SetDeliveryBlueprintStatusRequest)(nil),     // 26: iris.admin.v1.SetDeliveryBlueprintStatusRequest
+	(*SeedDeliveryBlueprintsRequest)(nil),         // 27: iris.admin.v1.SeedDeliveryBlueprintsRequest
+	(*SeedDeliveryBlueprintsReply)(nil),           // 28: iris.admin.v1.SeedDeliveryBlueprintsReply
+	(*AutomationRule)(nil),                        // 29: iris.admin.v1.AutomationRule
+	(*ListAutomationRulesRequest)(nil),            // 30: iris.admin.v1.ListAutomationRulesRequest
+	(*ListAutomationRulesReply)(nil),              // 31: iris.admin.v1.ListAutomationRulesReply
+	(*CreateAutomationRuleRequest)(nil),           // 32: iris.admin.v1.CreateAutomationRuleRequest
+	(*UpdateAutomationRuleRequest)(nil),           // 33: iris.admin.v1.UpdateAutomationRuleRequest
+	(*SetAutomationRuleStatusRequest)(nil),        // 34: iris.admin.v1.SetAutomationRuleStatusRequest
+	(*BounceRule)(nil),                            // 35: iris.admin.v1.BounceRule
+	(*ListBounceRulesRequest)(nil),                // 36: iris.admin.v1.ListBounceRulesRequest
+	(*ListBounceRulesReply)(nil),                  // 37: iris.admin.v1.ListBounceRulesReply
+	(*CreateBounceRuleRequest)(nil),               // 38: iris.admin.v1.CreateBounceRuleRequest
+	(*UpdateBounceRuleRequest)(nil),               // 39: iris.admin.v1.UpdateBounceRuleRequest
+	(*DeleteBounceRuleRequest)(nil),               // 40: iris.admin.v1.DeleteBounceRuleRequest
+	(*DeleteBounceRuleReply)(nil),                 // 41: iris.admin.v1.DeleteBounceRuleReply
+	(*ResetBounceRulesRequest)(nil),               // 42: iris.admin.v1.ResetBounceRulesRequest
+	(*TestBounceDiagnosticRequest)(nil),           // 43: iris.admin.v1.TestBounceDiagnosticRequest
+	(*TestBounceDiagnosticReply)(nil),             // 44: iris.admin.v1.TestBounceDiagnosticReply
+	(*EventProcessor)(nil),                        // 45: iris.admin.v1.EventProcessor
+	(*ListEventProcessorsRequest)(nil),            // 46: iris.admin.v1.ListEventProcessorsRequest
+	(*ListEventProcessorsReply)(nil),              // 47: iris.admin.v1.ListEventProcessorsReply
+	(*CreateEventProcessorRequest)(nil),           // 48: iris.admin.v1.CreateEventProcessorRequest
+	(*UpdateEventProcessorRequest)(nil),           // 49: iris.admin.v1.UpdateEventProcessorRequest
+	(*DeleteEventProcessorRequest)(nil),           // 50: iris.admin.v1.DeleteEventProcessorRequest
+	(*DeleteEventProcessorReply)(nil),             // 51: iris.admin.v1.DeleteEventProcessorReply
+	(*TestEventProcessorRequest)(nil),             // 52: iris.admin.v1.TestEventProcessorRequest
+	(*TestEventProcessorReply)(nil),               // 53: iris.admin.v1.TestEventProcessorReply
+	(*ListVMTAsRequest)(nil),                      // 54: iris.admin.v1.ListVMTAsRequest
+	(*ListVMTAsReply)(nil),                        // 55: iris.admin.v1.ListVMTAsReply
+	(*CreateVMTARequest)(nil),                     // 56: iris.admin.v1.CreateVMTARequest
+	(*UpdateVMTARequest)(nil),                     // 57: iris.admin.v1.UpdateVMTARequest
+	(*ListVMTAGroupsRequest)(nil),                 // 58: iris.admin.v1.ListVMTAGroupsRequest
+	(*ListVMTAGroupsReply)(nil),                   // 59: iris.admin.v1.ListVMTAGroupsReply
+	(*CreateVMTAGroupRequest)(nil),                // 60: iris.admin.v1.CreateVMTAGroupRequest
+	(*UpdateVMTAGroupRequest)(nil),                // 61: iris.admin.v1.UpdateVMTAGroupRequest
+	(*ListRoutingRulesRequest)(nil),               // 62: iris.admin.v1.ListRoutingRulesRequest
+	(*ListRoutingRulesReply)(nil),                 // 63: iris.admin.v1.ListRoutingRulesReply
+	(*CreateRoutingRuleRequest)(nil),              // 64: iris.admin.v1.CreateRoutingRuleRequest
+	(*UpdateRoutingRuleRequest)(nil),              // 65: iris.admin.v1.UpdateRoutingRuleRequest
+	(*MailRecord)(nil),                            // 66: iris.admin.v1.MailRecord
+	(*Bounce)(nil),                                // 67: iris.admin.v1.Bounce
+	(*FeedbackReport)(nil),                        // 68: iris.admin.v1.FeedbackReport
+	(*Queue)(nil),                                 // 69: iris.admin.v1.Queue
+	(*ListMailRecordsRequest)(nil),                // 70: iris.admin.v1.ListMailRecordsRequest
+	(*ListMailRecordsReply)(nil),                  // 71: iris.admin.v1.ListMailRecordsReply
+	(*GetNextDeliveryAttemptRequest)(nil),         // 72: iris.admin.v1.GetNextDeliveryAttemptRequest
+	(*NextDeliveryAttempt)(nil),                   // 73: iris.admin.v1.NextDeliveryAttempt
+	(*ListBouncesRequest)(nil),                    // 74: iris.admin.v1.ListBouncesRequest
+	(*ListBouncesReply)(nil),                      // 75: iris.admin.v1.ListBouncesReply
+	(*ListDsnMessagesRequest)(nil),                // 76: iris.admin.v1.ListDsnMessagesRequest
+	(*ListDsnMessagesReply)(nil),                  // 77: iris.admin.v1.ListDsnMessagesReply
+	(*ListFeedbackReportsRequest)(nil),            // 78: iris.admin.v1.ListFeedbackReportsRequest
+	(*ListFeedbackReportsReply)(nil),              // 79: iris.admin.v1.ListFeedbackReportsReply
+	(*ListQueuesRequest)(nil),                     // 80: iris.admin.v1.ListQueuesRequest
+	(*ListQueuesReply)(nil),                       // 81: iris.admin.v1.ListQueuesReply
+	(*RequestQueueActionRequest)(nil),             // 82: iris.admin.v1.RequestQueueActionRequest
+	(*QueueActionReply)(nil),                      // 83: iris.admin.v1.QueueActionReply
+	(*DKIMDomain)(nil),                            // 84: iris.admin.v1.DKIMDomain
+	(*Suppression)(nil),                           // 85: iris.admin.v1.Suppression
+	(*ListDKIMDomainsRequest)(nil),                // 86: iris.admin.v1.ListDKIMDomainsRequest
+	(*ListDKIMDomainsReply)(nil),                  // 87: iris.admin.v1.ListDKIMDomainsReply
+	(*CreateDKIMDomainRequest)(nil),               // 88: iris.admin.v1.CreateDKIMDomainRequest
+	(*UpdateDKIMDomainRequest)(nil),               // 89: iris.admin.v1.UpdateDKIMDomainRequest
+	(*GenerateDKIMKeyRequest)(nil),                // 90: iris.admin.v1.GenerateDKIMKeyRequest
+	(*GenerateDKIMKeyReply)(nil),                  // 91: iris.admin.v1.GenerateDKIMKeyReply
+	(*ListSuppressionsRequest)(nil),               // 92: iris.admin.v1.ListSuppressionsRequest
+	(*ListSuppressionsReply)(nil),                 // 93: iris.admin.v1.ListSuppressionsReply
+	(*CreateSuppressionRequest)(nil),              // 94: iris.admin.v1.CreateSuppressionRequest
+	(*UpdateSuppressionRequest)(nil),              // 95: iris.admin.v1.UpdateSuppressionRequest
+	(*DsnMessage)(nil),                            // 96: iris.admin.v1.DsnMessage
+	(*ListSuppressionDsnMessagesRequest)(nil),     // 97: iris.admin.v1.ListSuppressionDsnMessagesRequest
+	(*ListSuppressionDsnMessagesReply)(nil),       // 98: iris.admin.v1.ListSuppressionDsnMessagesReply
+	(*TLSPolicy)(nil),                             // 99: iris.admin.v1.TLSPolicy
+	(*ListTLSPoliciesRequest)(nil),                // 100: iris.admin.v1.ListTLSPoliciesRequest
+	(*ListTLSPoliciesReply)(nil),                  // 101: iris.admin.v1.ListTLSPoliciesReply
+	(*CreateTLSPolicyRequest)(nil),                // 102: iris.admin.v1.CreateTLSPolicyRequest
+	(*DeleteTLSPolicyRequest)(nil),                // 103: iris.admin.v1.DeleteTLSPolicyRequest
+	(*DeleteTLSPolicyReply)(nil),                  // 104: iris.admin.v1.DeleteTLSPolicyReply
+	(*InboundRoute)(nil),                          // 105: iris.admin.v1.InboundRoute
+	(*ListInboundRoutesRequest)(nil),              // 106: iris.admin.v1.ListInboundRoutesRequest
+	(*ListInboundRoutesReply)(nil),                // 107: iris.admin.v1.ListInboundRoutesReply
+	(*CreateInboundRouteRequest)(nil),             // 108: iris.admin.v1.CreateInboundRouteRequest
+	(*UpdateInboundRouteRequest)(nil),             // 109: iris.admin.v1.UpdateInboundRouteRequest
+	(*DeleteInboundRouteRequest)(nil),             // 110: iris.admin.v1.DeleteInboundRouteRequest
+	(*DeleteInboundRouteReply)(nil),               // 111: iris.admin.v1.DeleteInboundRouteReply
+	(*RspamdResult)(nil),                          // 112: iris.admin.v1.RspamdResult
+	(*ListRspamdResultsRequest)(nil),              // 113: iris.admin.v1.ListRspamdResultsRequest
+	(*ListRspamdResultsReply)(nil),                // 114: iris.admin.v1.ListRspamdResultsReply
+	(*FeedbackLoop)(nil),                          // 115: iris.admin.v1.FeedbackLoop
+	(*ListFeedbackLoopsRequest)(nil),              // 116: iris.admin.v1.ListFeedbackLoopsRequest
+	(*ListFeedbackLoopsReply)(nil),                // 117: iris.admin.v1.ListFeedbackLoopsReply
+	(*CreateFeedbackLoopRequest)(nil),             // 118: iris.admin.v1.CreateFeedbackLoopRequest
+	(*UpdateFeedbackLoopRequest)(nil),             // 119: iris.admin.v1.UpdateFeedbackLoopRequest
+	(*DeleteFeedbackLoopRequest)(nil),             // 120: iris.admin.v1.DeleteFeedbackLoopRequest
+	(*DeleteFeedbackLoopReply)(nil),               // 121: iris.admin.v1.DeleteFeedbackLoopReply
+	(*User)(nil),                                  // 122: iris.admin.v1.User
+	(*AuditEntry)(nil),                            // 123: iris.admin.v1.AuditEntry
+	(*LoginRequest)(nil),                          // 124: iris.admin.v1.LoginRequest
+	(*LoginReply)(nil),                            // 125: iris.admin.v1.LoginReply
+	(*VerifyMFARequest)(nil),                      // 126: iris.admin.v1.VerifyMFARequest
+	(*CurrentUserRequest)(nil),                    // 127: iris.admin.v1.CurrentUserRequest
+	(*CurrentUserReply)(nil),                      // 128: iris.admin.v1.CurrentUserReply
+	(*ChangePasswordRequest)(nil),                 // 129: iris.admin.v1.ChangePasswordRequest
+	(*ChangePasswordReply)(nil),                   // 130: iris.admin.v1.ChangePasswordReply
+	(*LogoutRequest)(nil),                         // 131: iris.admin.v1.LogoutRequest
+	(*LogoutReply)(nil),                           // 132: iris.admin.v1.LogoutReply
+	(*EnrollMFARequest)(nil),                      // 133: iris.admin.v1.EnrollMFARequest
+	(*EnrollMFAReply)(nil),                        // 134: iris.admin.v1.EnrollMFAReply
+	(*ConfirmMFARequest)(nil),                     // 135: iris.admin.v1.ConfirmMFARequest
+	(*ConfirmMFAReply)(nil),                       // 136: iris.admin.v1.ConfirmMFAReply
+	(*DisableMFARequest)(nil),                     // 137: iris.admin.v1.DisableMFARequest
+	(*DisableMFAReply)(nil),                       // 138: iris.admin.v1.DisableMFAReply
+	(*ListUsersRequest)(nil),                      // 139: iris.admin.v1.ListUsersRequest
+	(*ListUsersReply)(nil),                        // 140: iris.admin.v1.ListUsersReply
+	(*CreateUserRequest)(nil),                     // 141: iris.admin.v1.CreateUserRequest
+	(*UpdateUserRequest)(nil),                     // 142: iris.admin.v1.UpdateUserRequest
+	(*ResetUserPasswordRequest)(nil),              // 143: iris.admin.v1.ResetUserPasswordRequest
+	(*ResetUserPasswordReply)(nil),                // 144: iris.admin.v1.ResetUserPasswordReply
+	(*ListAuditEntriesRequest)(nil),               // 145: iris.admin.v1.ListAuditEntriesRequest
+	(*ListAuditEntriesReply)(nil),                 // 146: iris.admin.v1.ListAuditEntriesReply
+	(*RequestServiceControlRequest)(nil),          // 147: iris.admin.v1.RequestServiceControlRequest
+	(*ServiceControlRequest)(nil),                 // 148: iris.admin.v1.ServiceControlRequest
+	(*GenerateKumoConfigRequest)(nil),             // 149: iris.admin.v1.GenerateKumoConfigRequest
+	(*KumoConfig)(nil),                            // 150: iris.admin.v1.KumoConfig
+	(*ApplyKumoConfigRequest)(nil),                // 151: iris.admin.v1.ApplyKumoConfigRequest
+	(*ApplyKumoConfigReply)(nil),                  // 152: iris.admin.v1.ApplyKumoConfigReply
+	(*GetAcmeAccountRequest)(nil),                 // 153: iris.admin.v1.GetAcmeAccountRequest
+	(*SaveAcmeAccountRequest)(nil),                // 154: iris.admin.v1.SaveAcmeAccountRequest
+	(*AcmeAccount)(nil),                           // 155: iris.admin.v1.AcmeAccount
+	(*AcmeCertificate)(nil),                       // 156: iris.admin.v1.AcmeCertificate
+	(*ListAcmeCertificatesRequest)(nil),           // 157: iris.admin.v1.ListAcmeCertificatesRequest
+	(*ListAcmeCertificatesReply)(nil),             // 158: iris.admin.v1.ListAcmeCertificatesReply
+	(*RequestAcmeCertificateRequest)(nil),         // 159: iris.admin.v1.RequestAcmeCertificateRequest
+	(*DeleteAcmeCertificateRequest)(nil),          // 160: iris.admin.v1.DeleteAcmeCertificateRequest
+	(*DeleteAcmeCertificateReply)(nil),            // 161: iris.admin.v1.DeleteAcmeCertificateReply
+	(*AcmeDnsProviderInfo)(nil),                   // 162: iris.admin.v1.AcmeDnsProviderInfo
+	(*ListAcmeDnsProvidersRequest)(nil),           // 163: iris.admin.v1.ListAcmeDnsProvidersRequest
+	(*ListAcmeDnsProvidersReply)(nil),             // 164: iris.admin.v1.ListAcmeDnsProvidersReply
+	(*AcmeDnsProvider)(nil),                       // 165: iris.admin.v1.AcmeDnsProvider
+	(*GetAcmeDnsProviderRequest)(nil),             // 166: iris.admin.v1.GetAcmeDnsProviderRequest
+	(*SetAcmeDnsProviderRequest)(nil),             // 167: iris.admin.v1.SetAcmeDnsProviderRequest
+	(*ClearAcmeDnsProviderRequest)(nil),           // 168: iris.admin.v1.ClearAcmeDnsProviderRequest
+	(*GetAppliedKumoConfigRequest)(nil),           // 169: iris.admin.v1.GetAppliedKumoConfigRequest
+	(*AppliedKumoConfig)(nil),                     // 170: iris.admin.v1.AppliedKumoConfig
+	(*KumoConfigStatusRequest)(nil),               // 171: iris.admin.v1.KumoConfigStatusRequest
+	(*KumoConfigStatusReply)(nil),                 // 172: iris.admin.v1.KumoConfigStatusReply
+	(*CheckDomainBounceSetupRequest)(nil),         // 173: iris.admin.v1.CheckDomainBounceSetupRequest
+	(*DomainCheckItem)(nil),                       // 174: iris.admin.v1.DomainCheckItem
+	(*DomainBounceCheck)(nil),                     // 175: iris.admin.v1.DomainBounceCheck
+	(*DiagnoseRequest)(nil),                       // 176: iris.admin.v1.DiagnoseRequest
+	(*RoutingOutcome)(nil),                        // 177: iris.admin.v1.RoutingOutcome
+	(*DiagnoseResult)(nil),                        // 178: iris.admin.v1.DiagnoseResult
+	(*RblCheckRequest)(nil),                       // 179: iris.admin.v1.RblCheckRequest
+	(*RblListing)(nil),                            // 180: iris.admin.v1.RblListing
+	(*RblIpResult)(nil),                           // 181: iris.admin.v1.RblIpResult
+	(*RblCheckReply)(nil),                         // 182: iris.admin.v1.RblCheckReply
+	(*GetDmarcStatsRequest)(nil),                  // 183: iris.admin.v1.GetDmarcStatsRequest
+	(*DmarcCount)(nil),                            // 184: iris.admin.v1.DmarcCount
+	(*DmarcSource)(nil),                           // 185: iris.admin.v1.DmarcSource
+	(*DmarcDomainStat)(nil),                       // 186: iris.admin.v1.DmarcDomainStat
+	(*DmarcReporterStat)(nil),                     // 187: iris.admin.v1.DmarcReporterStat
+	(*DmarcDay)(nil),                              // 188: iris.admin.v1.DmarcDay
+	(*DmarcStats)(nil),                            // 189: iris.admin.v1.DmarcStats
+	(*DmarcReport)(nil),                           // 190: iris.admin.v1.DmarcReport
+	(*ListDmarcReportsRequest)(nil),               // 191: iris.admin.v1.ListDmarcReportsRequest
+	(*ListDmarcReportsReply)(nil),                 // 192: iris.admin.v1.ListDmarcReportsReply
+	(*ListDmarcDomainsRequest)(nil),               // 193: iris.admin.v1.ListDmarcDomainsRequest
+	(*ListDmarcDomainsReply)(nil),                 // 194: iris.admin.v1.ListDmarcDomainsReply
+	(*WorkerErrorLog)(nil),                        // 195: iris.admin.v1.WorkerErrorLog
+	(*ListWorkerErrorLogsRequest)(nil),            // 196: iris.admin.v1.ListWorkerErrorLogsRequest
+	(*ListWorkerErrorLogsReply)(nil),              // 197: iris.admin.v1.ListWorkerErrorLogsReply
+	(*RetentionPolicy)(nil),                       // 198: iris.admin.v1.RetentionPolicy
+	(*RetentionView)(nil),                         // 199: iris.admin.v1.RetentionView
+	(*RetentionRun)(nil),                          // 200: iris.admin.v1.RetentionRun
+	(*ListRetentionPoliciesRequest)(nil),          // 201: iris.admin.v1.ListRetentionPoliciesRequest
+	(*ListRetentionPoliciesReply)(nil),            // 202: iris.admin.v1.ListRetentionPoliciesReply
+	(*UpdateRetentionPolicyRequest)(nil),          // 203: iris.admin.v1.UpdateRetentionPolicyRequest
+	(*RunRetentionRequest)(nil),                   // 204: iris.admin.v1.RunRetentionRequest
+	(*RunRetentionReply)(nil),                     // 205: iris.admin.v1.RunRetentionReply
+	(*GetDashboardSummaryRequest)(nil),            // 206: iris.admin.v1.GetDashboardSummaryRequest
+	(*DashboardSummary)(nil),                      // 207: iris.admin.v1.DashboardSummary
+	(*GetMetricsTimeseriesRequest)(nil),           // 208: iris.admin.v1.GetMetricsTimeseriesRequest
+	(*GetSystemMetricsRequest)(nil),               // 209: iris.admin.v1.GetSystemMetricsRequest
+	(*MetricPoint)(nil),                           // 210: iris.admin.v1.MetricPoint
+	(*MetricsSeries)(nil),                         // 211: iris.admin.v1.MetricsSeries
+	(*MetricsTimeseries)(nil),                     // 212: iris.admin.v1.MetricsTimeseries
+	(*GetWarmupDeliveryStatsRequest)(nil),         // 213: iris.admin.v1.GetWarmupDeliveryStatsRequest
+	(*WarmupDeliveryStat)(nil),                    // 214: iris.admin.v1.WarmupDeliveryStat
+	(*DomainDeferredStat)(nil),                    // 215: iris.admin.v1.DomainDeferredStat
+	(*WarmupDeliveryStats)(nil),                   // 216: iris.admin.v1.WarmupDeliveryStats
+	(*GetMailClassStatsRequest)(nil),              // 217: iris.admin.v1.GetMailClassStatsRequest
+	(*MailClassStat)(nil),                         // 218: iris.admin.v1.MailClassStat
+	(*MailClassStats)(nil),                        // 219: iris.admin.v1.MailClassStats
+	(*GetRecipientDomainStatsRequest)(nil),        // 220: iris.admin.v1.GetRecipientDomainStatsRequest
+	(*RecipientDomainStat)(nil),                   // 221: iris.admin.v1.RecipientDomainStat
+	(*RecipientDomainStats)(nil),                  // 222: iris.admin.v1.RecipientDomainStats
+	(*GetQueueTimeHistogramRequest)(nil),          // 223: iris.admin.v1.GetQueueTimeHistogramRequest
+	(*QueueTimeBucket)(nil),                       // 224: iris.admin.v1.QueueTimeBucket
+	(*QueueTimeHistogram)(nil),                    // 225: iris.admin.v1.QueueTimeHistogram
+	(*GlobalSettings)(nil),                        // 226: iris.admin.v1.GlobalSettings
+	(*GetGlobalSettingsRequest)(nil),              // 227: iris.admin.v1.GetGlobalSettingsRequest
+	(*UpdateGlobalSettingsRequest)(nil),           // 228: iris.admin.v1.UpdateGlobalSettingsRequest
+	(*SubjectClassification)(nil),                 // 229: iris.admin.v1.SubjectClassification
+	(*ListSubjectClassificationsRequest)(nil),     // 230: iris.admin.v1.ListSubjectClassificationsRequest
+	(*ListSubjectClassificationsReply)(nil),       // 231: iris.admin.v1.ListSubjectClassificationsReply
+	(*CreateSubjectClassificationRequest)(nil),    // 232: iris.admin.v1.CreateSubjectClassificationRequest
+	(*UpdateSubjectClassificationRequest)(nil),    // 233: iris.admin.v1.UpdateSubjectClassificationRequest
+	(*DeleteSubjectClassificationRequest)(nil),    // 234: iris.admin.v1.DeleteSubjectClassificationRequest
+	(*DeleteSubjectClassificationReply)(nil),      // 235: iris.admin.v1.DeleteSubjectClassificationReply
+	(*InjectionCredential)(nil),                   // 236: iris.admin.v1.InjectionCredential
+	(*ListInjectionCredentialsRequest)(nil),       // 237: iris.admin.v1.ListInjectionCredentialsRequest
+	(*ListInjectionCredentialsReply)(nil),         // 238: iris.admin.v1.ListInjectionCredentialsReply
+	(*CreateInjectionCredentialRequest)(nil),      // 239: iris.admin.v1.CreateInjectionCredentialRequest
+	(*UpdateInjectionCredentialRequest)(nil),      // 240: iris.admin.v1.UpdateInjectionCredentialRequest
+	(*SetInjectionCredentialPasswordRequest)(nil), // 241: iris.admin.v1.SetInjectionCredentialPasswordRequest
+	(*DeleteInjectionCredentialRequest)(nil),      // 242: iris.admin.v1.DeleteInjectionCredentialRequest
+	(*DeleteInjectionCredentialReply)(nil),        // 243: iris.admin.v1.DeleteInjectionCredentialReply
+	(*DiskUsage)(nil),                             // 244: iris.admin.v1.DiskUsage
+	(*SystemSnapshot)(nil),                        // 245: iris.admin.v1.SystemSnapshot
+	(*MonitorSettings)(nil),                       // 246: iris.admin.v1.MonitorSettings
+	(*MonitorAlert)(nil),                          // 247: iris.admin.v1.MonitorAlert
+	(*Mount)(nil),                                 // 248: iris.admin.v1.Mount
+	(*SystemMonitor)(nil),                         // 249: iris.admin.v1.SystemMonitor
+	(*GetSystemMonitorRequest)(nil),               // 250: iris.admin.v1.GetSystemMonitorRequest
+	(*UpdateMonitorSettingsRequest)(nil),          // 251: iris.admin.v1.UpdateMonitorSettingsRequest
+	(*TestMonitorNotificationRequest)(nil),        // 252: iris.admin.v1.TestMonitorNotificationRequest
+	(*TestMonitorNotificationReply)(nil),          // 253: iris.admin.v1.TestMonitorNotificationReply
+	nil,                                           // 254: iris.admin.v1.WarmupStage.CapsEntry
+	nil,                                           // 255: iris.admin.v1.EventProcessor.DriverConfigEntry
+	nil,                                           // 256: iris.admin.v1.CreateEventProcessorRequest.DriverConfigEntry
+	nil,                                           // 257: iris.admin.v1.UpdateEventProcessorRequest.DriverConfigEntry
+	nil,                                           // 258: iris.admin.v1.TestEventProcessorRequest.DriverConfigEntry
+	nil,                                           // 259: iris.admin.v1.AcmeDnsProvider.ConfigEntry
+	nil,                                           // 260: iris.admin.v1.SetAcmeDnsProviderRequest.ConfigEntry
+	(*timestamppb.Timestamp)(nil),                 // 261: google.protobuf.Timestamp
 }
 var file_iris_admin_v1_iris_admin_api_proto_depIdxs = []int32{
 	0,   // 0: iris.admin.v1.ListListenersRequest.page:type_name -> iris.admin.v1.PageRequest
 	2,   // 1: iris.admin.v1.ListListenersReply.items:type_name -> iris.admin.v1.Listener
 	1,   // 2: iris.admin.v1.ListListenersReply.page:type_name -> iris.admin.v1.PageReply
 	9,   // 3: iris.admin.v1.VMTAGroup.members:type_name -> iris.admin.v1.VMTAGroupMember
-	207, // 4: iris.admin.v1.WarmupStage.caps:type_name -> iris.admin.v1.WarmupStage.CapsEntry
-	11,  // 5: iris.admin.v1.WarmupSchedule.stages:type_name -> iris.admin.v1.WarmupStage
-	11,  // 6: iris.admin.v1.WarmupCurve.stages:type_name -> iris.admin.v1.WarmupStage
-	0,   // 7: iris.admin.v1.ListWarmupSchedulesRequest.page:type_name -> iris.admin.v1.PageRequest
-	12,  // 8: iris.admin.v1.ListWarmupSchedulesReply.items:type_name -> iris.admin.v1.WarmupSchedule
-	1,   // 9: iris.admin.v1.ListWarmupSchedulesReply.page:type_name -> iris.admin.v1.PageReply
-	13,  // 10: iris.admin.v1.ListWarmupSchedulesReply.curves:type_name -> iris.admin.v1.WarmupCurve
-	11,  // 11: iris.admin.v1.CreateWarmupScheduleRequest.stages:type_name -> iris.admin.v1.WarmupStage
-	11,  // 12: iris.admin.v1.UpdateWarmupScheduleRequest.stages:type_name -> iris.admin.v1.WarmupStage
-	20,  // 13: iris.admin.v1.ListDeliveryBlueprintsReply.items:type_name -> iris.admin.v1.DeliveryBlueprint
-	28,  // 14: iris.admin.v1.ListAutomationRulesReply.items:type_name -> iris.admin.v1.AutomationRule
-	0,   // 15: iris.admin.v1.ListVMTAsRequest.page:type_name -> iris.admin.v1.PageRequest
-	7,   // 16: iris.admin.v1.ListVMTAsReply.items:type_name -> iris.admin.v1.VMTA
-	1,   // 17: iris.admin.v1.ListVMTAsReply.page:type_name -> iris.admin.v1.PageReply
-	0,   // 18: iris.admin.v1.ListVMTAGroupsRequest.page:type_name -> iris.admin.v1.PageRequest
-	8,   // 19: iris.admin.v1.ListVMTAGroupsReply.items:type_name -> iris.admin.v1.VMTAGroup
-	1,   // 20: iris.admin.v1.ListVMTAGroupsReply.page:type_name -> iris.admin.v1.PageReply
-	9,   // 21: iris.admin.v1.CreateVMTAGroupRequest.members:type_name -> iris.admin.v1.VMTAGroupMember
-	9,   // 22: iris.admin.v1.UpdateVMTAGroupRequest.members:type_name -> iris.admin.v1.VMTAGroupMember
-	0,   // 23: iris.admin.v1.ListRoutingRulesRequest.page:type_name -> iris.admin.v1.PageRequest
-	10,  // 24: iris.admin.v1.ListRoutingRulesReply.items:type_name -> iris.admin.v1.RoutingRule
-	1,   // 25: iris.admin.v1.ListRoutingRulesReply.page:type_name -> iris.admin.v1.PageReply
-	210, // 26: iris.admin.v1.MailRecord.event_time:type_name -> google.protobuf.Timestamp
-	210, // 27: iris.admin.v1.Bounce.event_time:type_name -> google.protobuf.Timestamp
-	210, // 28: iris.admin.v1.FeedbackReport.received_at:type_name -> google.protobuf.Timestamp
-	0,   // 29: iris.admin.v1.ListMailRecordsRequest.page:type_name -> iris.admin.v1.PageRequest
-	210, // 30: iris.admin.v1.ListMailRecordsRequest.from_time:type_name -> google.protobuf.Timestamp
-	210, // 31: iris.admin.v1.ListMailRecordsRequest.to_time:type_name -> google.protobuf.Timestamp
-	46,  // 32: iris.admin.v1.ListMailRecordsReply.items:type_name -> iris.admin.v1.MailRecord
-	1,   // 33: iris.admin.v1.ListMailRecordsReply.page:type_name -> iris.admin.v1.PageReply
-	0,   // 34: iris.admin.v1.ListBouncesRequest.page:type_name -> iris.admin.v1.PageRequest
-	47,  // 35: iris.admin.v1.ListBouncesReply.items:type_name -> iris.admin.v1.Bounce
-	1,   // 36: iris.admin.v1.ListBouncesReply.page:type_name -> iris.admin.v1.PageReply
-	0,   // 37: iris.admin.v1.ListFeedbackReportsRequest.page:type_name -> iris.admin.v1.PageRequest
-	48,  // 38: iris.admin.v1.ListFeedbackReportsReply.items:type_name -> iris.admin.v1.FeedbackReport
-	1,   // 39: iris.admin.v1.ListFeedbackReportsReply.page:type_name -> iris.admin.v1.PageReply
-	0,   // 40: iris.admin.v1.ListQueuesRequest.page:type_name -> iris.admin.v1.PageRequest
-	49,  // 41: iris.admin.v1.ListQueuesReply.items:type_name -> iris.admin.v1.Queue
-	1,   // 42: iris.admin.v1.ListQueuesReply.page:type_name -> iris.admin.v1.PageReply
-	0,   // 43: iris.admin.v1.ListDKIMDomainsRequest.page:type_name -> iris.admin.v1.PageRequest
-	60,  // 44: iris.admin.v1.ListDKIMDomainsReply.items:type_name -> iris.admin.v1.DKIMDomain
-	1,   // 45: iris.admin.v1.ListDKIMDomainsReply.page:type_name -> iris.admin.v1.PageReply
-	0,   // 46: iris.admin.v1.ListSuppressionsRequest.page:type_name -> iris.admin.v1.PageRequest
-	61,  // 47: iris.admin.v1.ListSuppressionsReply.items:type_name -> iris.admin.v1.Suppression
-	1,   // 48: iris.admin.v1.ListSuppressionsReply.page:type_name -> iris.admin.v1.PageReply
-	0,   // 49: iris.admin.v1.ListTLSPoliciesRequest.page:type_name -> iris.admin.v1.PageRequest
-	72,  // 50: iris.admin.v1.ListTLSPoliciesReply.items:type_name -> iris.admin.v1.TLSPolicy
-	1,   // 51: iris.admin.v1.ListTLSPoliciesReply.page:type_name -> iris.admin.v1.PageReply
-	0,   // 52: iris.admin.v1.ListInboundRoutesRequest.page:type_name -> iris.admin.v1.PageRequest
-	78,  // 53: iris.admin.v1.ListInboundRoutesReply.items:type_name -> iris.admin.v1.InboundRoute
-	1,   // 54: iris.admin.v1.ListInboundRoutesReply.page:type_name -> iris.admin.v1.PageReply
-	210, // 55: iris.admin.v1.RspamdResult.event_time:type_name -> google.protobuf.Timestamp
-	0,   // 56: iris.admin.v1.ListRspamdResultsRequest.page:type_name -> iris.admin.v1.PageRequest
-	85,  // 57: iris.admin.v1.ListRspamdResultsReply.items:type_name -> iris.admin.v1.RspamdResult
-	1,   // 58: iris.admin.v1.ListRspamdResultsReply.page:type_name -> iris.admin.v1.PageReply
-	0,   // 59: iris.admin.v1.ListFeedbackLoopsRequest.page:type_name -> iris.admin.v1.PageRequest
-	88,  // 60: iris.admin.v1.ListFeedbackLoopsReply.items:type_name -> iris.admin.v1.FeedbackLoop
-	1,   // 61: iris.admin.v1.ListFeedbackLoopsReply.page:type_name -> iris.admin.v1.PageReply
-	95,  // 62: iris.admin.v1.LoginReply.user:type_name -> iris.admin.v1.User
-	95,  // 63: iris.admin.v1.CurrentUserReply.user:type_name -> iris.admin.v1.User
-	0,   // 64: iris.admin.v1.ListUsersRequest.page:type_name -> iris.admin.v1.PageRequest
-	95,  // 65: iris.admin.v1.ListUsersReply.items:type_name -> iris.admin.v1.User
-	1,   // 66: iris.admin.v1.ListUsersReply.page:type_name -> iris.admin.v1.PageReply
-	0,   // 67: iris.admin.v1.ListAuditEntriesRequest.page:type_name -> iris.admin.v1.PageRequest
-	96,  // 68: iris.admin.v1.ListAuditEntriesReply.items:type_name -> iris.admin.v1.AuditEntry
-	1,   // 69: iris.admin.v1.ListAuditEntriesReply.page:type_name -> iris.admin.v1.PageReply
-	129, // 70: iris.admin.v1.ListAcmeCertificatesReply.items:type_name -> iris.admin.v1.AcmeCertificate
-	135, // 71: iris.admin.v1.ListAcmeDnsProvidersReply.items:type_name -> iris.admin.v1.AcmeDnsProviderInfo
-	208, // 72: iris.admin.v1.AcmeDnsProvider.config:type_name -> iris.admin.v1.AcmeDnsProvider.ConfigEntry
-	209, // 73: iris.admin.v1.SetAcmeDnsProviderRequest.config:type_name -> iris.admin.v1.SetAcmeDnsProviderRequest.ConfigEntry
-	147, // 74: iris.admin.v1.DomainBounceCheck.items:type_name -> iris.admin.v1.DomainCheckItem
-	147, // 75: iris.admin.v1.DiagnoseResult.items:type_name -> iris.admin.v1.DomainCheckItem
-	150, // 76: iris.admin.v1.DiagnoseResult.routing:type_name -> iris.admin.v1.RoutingOutcome
-	153, // 77: iris.admin.v1.RblIpResult.listings:type_name -> iris.admin.v1.RblListing
-	154, // 78: iris.admin.v1.RblCheckReply.results:type_name -> iris.admin.v1.RblIpResult
-	157, // 79: iris.admin.v1.DmarcStats.dispositions:type_name -> iris.admin.v1.DmarcCount
-	158, // 80: iris.admin.v1.DmarcStats.top_sources:type_name -> iris.admin.v1.DmarcSource
-	159, // 81: iris.admin.v1.DmarcStats.domains:type_name -> iris.admin.v1.DmarcDomainStat
-	161, // 82: iris.admin.v1.DmarcStats.series:type_name -> iris.admin.v1.DmarcDay
-	160, // 83: iris.admin.v1.DmarcStats.reporters:type_name -> iris.admin.v1.DmarcReporterStat
-	0,   // 84: iris.admin.v1.ListDmarcReportsRequest.page:type_name -> iris.admin.v1.PageRequest
-	163, // 85: iris.admin.v1.ListDmarcReportsReply.items:type_name -> iris.admin.v1.DmarcReport
-	1,   // 86: iris.admin.v1.ListDmarcReportsReply.page:type_name -> iris.admin.v1.PageReply
-	0,   // 87: iris.admin.v1.ListWorkerErrorLogsRequest.page:type_name -> iris.admin.v1.PageRequest
-	168, // 88: iris.admin.v1.ListWorkerErrorLogsReply.items:type_name -> iris.admin.v1.WorkerErrorLog
-	1,   // 89: iris.admin.v1.ListWorkerErrorLogsReply.page:type_name -> iris.admin.v1.PageReply
-	171, // 90: iris.admin.v1.RetentionView.policy:type_name -> iris.admin.v1.RetentionPolicy
-	173, // 91: iris.admin.v1.RetentionView.last_run:type_name -> iris.admin.v1.RetentionRun
-	172, // 92: iris.admin.v1.ListRetentionPoliciesReply.items:type_name -> iris.admin.v1.RetentionView
-	182, // 93: iris.admin.v1.MetricsSeries.points:type_name -> iris.admin.v1.MetricPoint
-	183, // 94: iris.admin.v1.MetricsTimeseries.series:type_name -> iris.admin.v1.MetricsSeries
-	186, // 95: iris.admin.v1.WarmupDeliveryStats.rows:type_name -> iris.admin.v1.WarmupDeliveryStat
-	189, // 96: iris.admin.v1.MailClassStats.rows:type_name -> iris.admin.v1.MailClassStat
-	192, // 97: iris.admin.v1.RecipientDomainStats.rows:type_name -> iris.admin.v1.RecipientDomainStat
-	195, // 98: iris.admin.v1.QueueTimeHistogram.buckets:type_name -> iris.admin.v1.QueueTimeBucket
-	200, // 99: iris.admin.v1.ListSubjectClassificationsReply.items:type_name -> iris.admin.v1.SubjectClassification
-	3,   // 100: iris.admin.v1.IrisAdminService.ListListeners:input_type -> iris.admin.v1.ListListenersRequest
-	5,   // 101: iris.admin.v1.IrisAdminService.CreateListener:input_type -> iris.admin.v1.CreateListenerRequest
-	6,   // 102: iris.admin.v1.IrisAdminService.UpdateListener:input_type -> iris.admin.v1.UpdateListenerRequest
-	34,  // 103: iris.admin.v1.IrisAdminService.ListVMTAs:input_type -> iris.admin.v1.ListVMTAsRequest
-	36,  // 104: iris.admin.v1.IrisAdminService.CreateVMTA:input_type -> iris.admin.v1.CreateVMTARequest
-	37,  // 105: iris.admin.v1.IrisAdminService.UpdateVMTA:input_type -> iris.admin.v1.UpdateVMTARequest
-	38,  // 106: iris.admin.v1.IrisAdminService.ListVMTAGroups:input_type -> iris.admin.v1.ListVMTAGroupsRequest
-	40,  // 107: iris.admin.v1.IrisAdminService.CreateVMTAGroups:input_type -> iris.admin.v1.CreateVMTAGroupRequest
-	41,  // 108: iris.admin.v1.IrisAdminService.UpdateVMTAGroup:input_type -> iris.admin.v1.UpdateVMTAGroupRequest
-	14,  // 109: iris.admin.v1.IrisAdminService.ListWarmupSchedules:input_type -> iris.admin.v1.ListWarmupSchedulesRequest
-	16,  // 110: iris.admin.v1.IrisAdminService.CreateWarmupSchedule:input_type -> iris.admin.v1.CreateWarmupScheduleRequest
-	17,  // 111: iris.admin.v1.IrisAdminService.UpdateWarmupSchedule:input_type -> iris.admin.v1.UpdateWarmupScheduleRequest
-	18,  // 112: iris.admin.v1.IrisAdminService.PauseWarmupSchedule:input_type -> iris.admin.v1.PauseWarmupScheduleRequest
-	19,  // 113: iris.admin.v1.IrisAdminService.ResumeWarmupSchedule:input_type -> iris.admin.v1.ResumeWarmupScheduleRequest
-	21,  // 114: iris.admin.v1.IrisAdminService.ListDeliveryBlueprints:input_type -> iris.admin.v1.ListDeliveryBlueprintsRequest
-	23,  // 115: iris.admin.v1.IrisAdminService.CreateDeliveryBlueprint:input_type -> iris.admin.v1.CreateDeliveryBlueprintRequest
-	24,  // 116: iris.admin.v1.IrisAdminService.UpdateDeliveryBlueprint:input_type -> iris.admin.v1.UpdateDeliveryBlueprintRequest
-	25,  // 117: iris.admin.v1.IrisAdminService.SetDeliveryBlueprintStatus:input_type -> iris.admin.v1.SetDeliveryBlueprintStatusRequest
-	26,  // 118: iris.admin.v1.IrisAdminService.SeedDeliveryBlueprints:input_type -> iris.admin.v1.SeedDeliveryBlueprintsRequest
-	29,  // 119: iris.admin.v1.IrisAdminService.ListAutomationRules:input_type -> iris.admin.v1.ListAutomationRulesRequest
-	31,  // 120: iris.admin.v1.IrisAdminService.CreateAutomationRule:input_type -> iris.admin.v1.CreateAutomationRuleRequest
-	32,  // 121: iris.admin.v1.IrisAdminService.UpdateAutomationRule:input_type -> iris.admin.v1.UpdateAutomationRuleRequest
-	33,  // 122: iris.admin.v1.IrisAdminService.SetAutomationRuleStatus:input_type -> iris.admin.v1.SetAutomationRuleStatusRequest
-	42,  // 123: iris.admin.v1.IrisAdminService.ListRoutingRules:input_type -> iris.admin.v1.ListRoutingRulesRequest
-	44,  // 124: iris.admin.v1.IrisAdminService.CreateRoutingRule:input_type -> iris.admin.v1.CreateRoutingRuleRequest
-	45,  // 125: iris.admin.v1.IrisAdminService.UpdateRoutingRule:input_type -> iris.admin.v1.UpdateRoutingRuleRequest
-	50,  // 126: iris.admin.v1.IrisAdminService.ListMailRecords:input_type -> iris.admin.v1.ListMailRecordsRequest
-	52,  // 127: iris.admin.v1.IrisAdminService.ListBounces:input_type -> iris.admin.v1.ListBouncesRequest
-	54,  // 128: iris.admin.v1.IrisAdminService.ListFeedbackReports:input_type -> iris.admin.v1.ListFeedbackReportsRequest
-	56,  // 129: iris.admin.v1.IrisAdminService.ListQueues:input_type -> iris.admin.v1.ListQueuesRequest
-	58,  // 130: iris.admin.v1.IrisAdminService.RequestQueueAction:input_type -> iris.admin.v1.RequestQueueActionRequest
-	62,  // 131: iris.admin.v1.IrisAdminService.ListDKIMDomains:input_type -> iris.admin.v1.ListDKIMDomainsRequest
-	64,  // 132: iris.admin.v1.IrisAdminService.CreateDKIMDomain:input_type -> iris.admin.v1.CreateDKIMDomainRequest
-	65,  // 133: iris.admin.v1.IrisAdminService.UpdateDKIMDomain:input_type -> iris.admin.v1.UpdateDKIMDomainRequest
-	66,  // 134: iris.admin.v1.IrisAdminService.GenerateDKIMKey:input_type -> iris.admin.v1.GenerateDKIMKeyRequest
-	68,  // 135: iris.admin.v1.IrisAdminService.ListSuppressions:input_type -> iris.admin.v1.ListSuppressionsRequest
-	70,  // 136: iris.admin.v1.IrisAdminService.CreateSuppression:input_type -> iris.admin.v1.CreateSuppressionRequest
-	71,  // 137: iris.admin.v1.IrisAdminService.UpdateSuppression:input_type -> iris.admin.v1.UpdateSuppressionRequest
-	73,  // 138: iris.admin.v1.IrisAdminService.ListTLSPolicies:input_type -> iris.admin.v1.ListTLSPoliciesRequest
-	75,  // 139: iris.admin.v1.IrisAdminService.CreateTLSPolicy:input_type -> iris.admin.v1.CreateTLSPolicyRequest
-	76,  // 140: iris.admin.v1.IrisAdminService.DeleteTLSPolicy:input_type -> iris.admin.v1.DeleteTLSPolicyRequest
-	79,  // 141: iris.admin.v1.IrisAdminService.ListInboundRoutes:input_type -> iris.admin.v1.ListInboundRoutesRequest
-	81,  // 142: iris.admin.v1.IrisAdminService.CreateInboundRoute:input_type -> iris.admin.v1.CreateInboundRouteRequest
-	82,  // 143: iris.admin.v1.IrisAdminService.UpdateInboundRoute:input_type -> iris.admin.v1.UpdateInboundRouteRequest
-	83,  // 144: iris.admin.v1.IrisAdminService.DeleteInboundRoute:input_type -> iris.admin.v1.DeleteInboundRouteRequest
-	86,  // 145: iris.admin.v1.IrisAdminService.ListRspamdResults:input_type -> iris.admin.v1.ListRspamdResultsRequest
-	89,  // 146: iris.admin.v1.IrisAdminService.ListFeedbackLoops:input_type -> iris.admin.v1.ListFeedbackLoopsRequest
-	91,  // 147: iris.admin.v1.IrisAdminService.CreateFeedbackLoop:input_type -> iris.admin.v1.CreateFeedbackLoopRequest
-	92,  // 148: iris.admin.v1.IrisAdminService.UpdateFeedbackLoop:input_type -> iris.admin.v1.UpdateFeedbackLoopRequest
-	93,  // 149: iris.admin.v1.IrisAdminService.DeleteFeedbackLoop:input_type -> iris.admin.v1.DeleteFeedbackLoopRequest
-	97,  // 150: iris.admin.v1.IrisAdminService.Login:input_type -> iris.admin.v1.LoginRequest
-	99,  // 151: iris.admin.v1.IrisAdminService.VerifyMFA:input_type -> iris.admin.v1.VerifyMFARequest
-	100, // 152: iris.admin.v1.IrisAdminService.CurrentUser:input_type -> iris.admin.v1.CurrentUserRequest
-	102, // 153: iris.admin.v1.IrisAdminService.ChangePassword:input_type -> iris.admin.v1.ChangePasswordRequest
-	104, // 154: iris.admin.v1.IrisAdminService.Logout:input_type -> iris.admin.v1.LogoutRequest
-	112, // 155: iris.admin.v1.IrisAdminService.ListUsers:input_type -> iris.admin.v1.ListUsersRequest
-	114, // 156: iris.admin.v1.IrisAdminService.CreateUser:input_type -> iris.admin.v1.CreateUserRequest
-	115, // 157: iris.admin.v1.IrisAdminService.UpdateUser:input_type -> iris.admin.v1.UpdateUserRequest
-	116, // 158: iris.admin.v1.IrisAdminService.ResetUserPassword:input_type -> iris.admin.v1.ResetUserPasswordRequest
-	106, // 159: iris.admin.v1.IrisAdminService.EnrollMFA:input_type -> iris.admin.v1.EnrollMFARequest
-	108, // 160: iris.admin.v1.IrisAdminService.ConfirmMFA:input_type -> iris.admin.v1.ConfirmMFARequest
-	110, // 161: iris.admin.v1.IrisAdminService.DisableMFA:input_type -> iris.admin.v1.DisableMFARequest
-	118, // 162: iris.admin.v1.IrisAdminService.ListAuditEntries:input_type -> iris.admin.v1.ListAuditEntriesRequest
-	120, // 163: iris.admin.v1.IrisAdminService.RequestServiceControl:input_type -> iris.admin.v1.RequestServiceControlRequest
-	122, // 164: iris.admin.v1.IrisAdminService.GenerateKumoConfig:input_type -> iris.admin.v1.GenerateKumoConfigRequest
-	124, // 165: iris.admin.v1.IrisAdminService.ApplyKumoConfig:input_type -> iris.admin.v1.ApplyKumoConfigRequest
-	142, // 166: iris.admin.v1.IrisAdminService.GetAppliedKumoConfig:input_type -> iris.admin.v1.GetAppliedKumoConfigRequest
-	144, // 167: iris.admin.v1.IrisAdminService.KumoConfigStatus:input_type -> iris.admin.v1.KumoConfigStatusRequest
-	126, // 168: iris.admin.v1.IrisAdminService.GetAcmeAccount:input_type -> iris.admin.v1.GetAcmeAccountRequest
-	127, // 169: iris.admin.v1.IrisAdminService.SaveAcmeAccount:input_type -> iris.admin.v1.SaveAcmeAccountRequest
-	130, // 170: iris.admin.v1.IrisAdminService.ListAcmeCertificates:input_type -> iris.admin.v1.ListAcmeCertificatesRequest
-	132, // 171: iris.admin.v1.IrisAdminService.RequestAcmeCertificate:input_type -> iris.admin.v1.RequestAcmeCertificateRequest
-	133, // 172: iris.admin.v1.IrisAdminService.DeleteAcmeCertificate:input_type -> iris.admin.v1.DeleteAcmeCertificateRequest
-	136, // 173: iris.admin.v1.IrisAdminService.ListAcmeDnsProviders:input_type -> iris.admin.v1.ListAcmeDnsProvidersRequest
-	139, // 174: iris.admin.v1.IrisAdminService.GetAcmeDnsProvider:input_type -> iris.admin.v1.GetAcmeDnsProviderRequest
-	140, // 175: iris.admin.v1.IrisAdminService.SetAcmeDnsProvider:input_type -> iris.admin.v1.SetAcmeDnsProviderRequest
-	141, // 176: iris.admin.v1.IrisAdminService.ClearAcmeDnsProvider:input_type -> iris.admin.v1.ClearAcmeDnsProviderRequest
-	179, // 177: iris.admin.v1.IrisAdminService.GetDashboardSummary:input_type -> iris.admin.v1.GetDashboardSummaryRequest
-	181, // 178: iris.admin.v1.IrisAdminService.GetMetricsTimeseries:input_type -> iris.admin.v1.GetMetricsTimeseriesRequest
-	185, // 179: iris.admin.v1.IrisAdminService.GetWarmupDeliveryStats:input_type -> iris.admin.v1.GetWarmupDeliveryStatsRequest
-	194, // 180: iris.admin.v1.IrisAdminService.GetQueueTimeHistogram:input_type -> iris.admin.v1.GetQueueTimeHistogramRequest
-	188, // 181: iris.admin.v1.IrisAdminService.GetMailClassStats:input_type -> iris.admin.v1.GetMailClassStatsRequest
-	191, // 182: iris.admin.v1.IrisAdminService.GetRecipientDomainStats:input_type -> iris.admin.v1.GetRecipientDomainStatsRequest
-	146, // 183: iris.admin.v1.IrisAdminService.CheckDomainBounceSetup:input_type -> iris.admin.v1.CheckDomainBounceSetupRequest
-	149, // 184: iris.admin.v1.IrisAdminService.Diagnose:input_type -> iris.admin.v1.DiagnoseRequest
-	152, // 185: iris.admin.v1.IrisAdminService.RblCheck:input_type -> iris.admin.v1.RblCheckRequest
-	156, // 186: iris.admin.v1.IrisAdminService.GetDmarcStats:input_type -> iris.admin.v1.GetDmarcStatsRequest
-	164, // 187: iris.admin.v1.IrisAdminService.ListDmarcReports:input_type -> iris.admin.v1.ListDmarcReportsRequest
-	166, // 188: iris.admin.v1.IrisAdminService.ListDmarcDomains:input_type -> iris.admin.v1.ListDmarcDomainsRequest
-	169, // 189: iris.admin.v1.IrisAdminService.ListWorkerErrorLogs:input_type -> iris.admin.v1.ListWorkerErrorLogsRequest
-	174, // 190: iris.admin.v1.IrisAdminService.ListRetentionPolicies:input_type -> iris.admin.v1.ListRetentionPoliciesRequest
-	176, // 191: iris.admin.v1.IrisAdminService.UpdateRetentionPolicy:input_type -> iris.admin.v1.UpdateRetentionPolicyRequest
-	177, // 192: iris.admin.v1.IrisAdminService.RunRetention:input_type -> iris.admin.v1.RunRetentionRequest
-	198, // 193: iris.admin.v1.IrisAdminService.GetGlobalSettings:input_type -> iris.admin.v1.GetGlobalSettingsRequest
-	199, // 194: iris.admin.v1.IrisAdminService.UpdateGlobalSettings:input_type -> iris.admin.v1.UpdateGlobalSettingsRequest
-	201, // 195: iris.admin.v1.IrisAdminService.ListSubjectClassifications:input_type -> iris.admin.v1.ListSubjectClassificationsRequest
-	203, // 196: iris.admin.v1.IrisAdminService.CreateSubjectClassification:input_type -> iris.admin.v1.CreateSubjectClassificationRequest
-	204, // 197: iris.admin.v1.IrisAdminService.UpdateSubjectClassification:input_type -> iris.admin.v1.UpdateSubjectClassificationRequest
-	205, // 198: iris.admin.v1.IrisAdminService.DeleteSubjectClassification:input_type -> iris.admin.v1.DeleteSubjectClassificationRequest
-	4,   // 199: iris.admin.v1.IrisAdminService.ListListeners:output_type -> iris.admin.v1.ListListenersReply
-	2,   // 200: iris.admin.v1.IrisAdminService.CreateListener:output_type -> iris.admin.v1.Listener
-	2,   // 201: iris.admin.v1.IrisAdminService.UpdateListener:output_type -> iris.admin.v1.Listener
-	35,  // 202: iris.admin.v1.IrisAdminService.ListVMTAs:output_type -> iris.admin.v1.ListVMTAsReply
-	7,   // 203: iris.admin.v1.IrisAdminService.CreateVMTA:output_type -> iris.admin.v1.VMTA
-	7,   // 204: iris.admin.v1.IrisAdminService.UpdateVMTA:output_type -> iris.admin.v1.VMTA
-	39,  // 205: iris.admin.v1.IrisAdminService.ListVMTAGroups:output_type -> iris.admin.v1.ListVMTAGroupsReply
-	8,   // 206: iris.admin.v1.IrisAdminService.CreateVMTAGroups:output_type -> iris.admin.v1.VMTAGroup
-	8,   // 207: iris.admin.v1.IrisAdminService.UpdateVMTAGroup:output_type -> iris.admin.v1.VMTAGroup
-	15,  // 208: iris.admin.v1.IrisAdminService.ListWarmupSchedules:output_type -> iris.admin.v1.ListWarmupSchedulesReply
-	12,  // 209: iris.admin.v1.IrisAdminService.CreateWarmupSchedule:output_type -> iris.admin.v1.WarmupSchedule
-	12,  // 210: iris.admin.v1.IrisAdminService.UpdateWarmupSchedule:output_type -> iris.admin.v1.WarmupSchedule
-	12,  // 211: iris.admin.v1.IrisAdminService.PauseWarmupSchedule:output_type -> iris.admin.v1.WarmupSchedule
-	12,  // 212: iris.admin.v1.IrisAdminService.ResumeWarmupSchedule:output_type -> iris.admin.v1.WarmupSchedule
-	22,  // 213: iris.admin.v1.IrisAdminService.ListDeliveryBlueprints:output_type -> iris.admin.v1.ListDeliveryBlueprintsReply
-	20,  // 214: iris.admin.v1.IrisAdminService.CreateDeliveryBlueprint:output_type -> iris.admin.v1.DeliveryBlueprint
-	20,  // 215: iris.admin.v1.IrisAdminService.UpdateDeliveryBlueprint:output_type -> iris.admin.v1.DeliveryBlueprint
-	20,  // 216: iris.admin.v1.IrisAdminService.SetDeliveryBlueprintStatus:output_type -> iris.admin.v1.DeliveryBlueprint
-	27,  // 217: iris.admin.v1.IrisAdminService.SeedDeliveryBlueprints:output_type -> iris.admin.v1.SeedDeliveryBlueprintsReply
-	30,  // 218: iris.admin.v1.IrisAdminService.ListAutomationRules:output_type -> iris.admin.v1.ListAutomationRulesReply
-	28,  // 219: iris.admin.v1.IrisAdminService.CreateAutomationRule:output_type -> iris.admin.v1.AutomationRule
-	28,  // 220: iris.admin.v1.IrisAdminService.UpdateAutomationRule:output_type -> iris.admin.v1.AutomationRule
-	28,  // 221: iris.admin.v1.IrisAdminService.SetAutomationRuleStatus:output_type -> iris.admin.v1.AutomationRule
-	43,  // 222: iris.admin.v1.IrisAdminService.ListRoutingRules:output_type -> iris.admin.v1.ListRoutingRulesReply
-	10,  // 223: iris.admin.v1.IrisAdminService.CreateRoutingRule:output_type -> iris.admin.v1.RoutingRule
-	10,  // 224: iris.admin.v1.IrisAdminService.UpdateRoutingRule:output_type -> iris.admin.v1.RoutingRule
-	51,  // 225: iris.admin.v1.IrisAdminService.ListMailRecords:output_type -> iris.admin.v1.ListMailRecordsReply
-	53,  // 226: iris.admin.v1.IrisAdminService.ListBounces:output_type -> iris.admin.v1.ListBouncesReply
-	55,  // 227: iris.admin.v1.IrisAdminService.ListFeedbackReports:output_type -> iris.admin.v1.ListFeedbackReportsReply
-	57,  // 228: iris.admin.v1.IrisAdminService.ListQueues:output_type -> iris.admin.v1.ListQueuesReply
-	59,  // 229: iris.admin.v1.IrisAdminService.RequestQueueAction:output_type -> iris.admin.v1.QueueActionReply
-	63,  // 230: iris.admin.v1.IrisAdminService.ListDKIMDomains:output_type -> iris.admin.v1.ListDKIMDomainsReply
-	60,  // 231: iris.admin.v1.IrisAdminService.CreateDKIMDomain:output_type -> iris.admin.v1.DKIMDomain
-	60,  // 232: iris.admin.v1.IrisAdminService.UpdateDKIMDomain:output_type -> iris.admin.v1.DKIMDomain
-	67,  // 233: iris.admin.v1.IrisAdminService.GenerateDKIMKey:output_type -> iris.admin.v1.GenerateDKIMKeyReply
-	69,  // 234: iris.admin.v1.IrisAdminService.ListSuppressions:output_type -> iris.admin.v1.ListSuppressionsReply
-	61,  // 235: iris.admin.v1.IrisAdminService.CreateSuppression:output_type -> iris.admin.v1.Suppression
-	61,  // 236: iris.admin.v1.IrisAdminService.UpdateSuppression:output_type -> iris.admin.v1.Suppression
-	74,  // 237: iris.admin.v1.IrisAdminService.ListTLSPolicies:output_type -> iris.admin.v1.ListTLSPoliciesReply
-	72,  // 238: iris.admin.v1.IrisAdminService.CreateTLSPolicy:output_type -> iris.admin.v1.TLSPolicy
-	77,  // 239: iris.admin.v1.IrisAdminService.DeleteTLSPolicy:output_type -> iris.admin.v1.DeleteTLSPolicyReply
-	80,  // 240: iris.admin.v1.IrisAdminService.ListInboundRoutes:output_type -> iris.admin.v1.ListInboundRoutesReply
-	78,  // 241: iris.admin.v1.IrisAdminService.CreateInboundRoute:output_type -> iris.admin.v1.InboundRoute
-	78,  // 242: iris.admin.v1.IrisAdminService.UpdateInboundRoute:output_type -> iris.admin.v1.InboundRoute
-	84,  // 243: iris.admin.v1.IrisAdminService.DeleteInboundRoute:output_type -> iris.admin.v1.DeleteInboundRouteReply
-	87,  // 244: iris.admin.v1.IrisAdminService.ListRspamdResults:output_type -> iris.admin.v1.ListRspamdResultsReply
-	90,  // 245: iris.admin.v1.IrisAdminService.ListFeedbackLoops:output_type -> iris.admin.v1.ListFeedbackLoopsReply
-	88,  // 246: iris.admin.v1.IrisAdminService.CreateFeedbackLoop:output_type -> iris.admin.v1.FeedbackLoop
-	88,  // 247: iris.admin.v1.IrisAdminService.UpdateFeedbackLoop:output_type -> iris.admin.v1.FeedbackLoop
-	94,  // 248: iris.admin.v1.IrisAdminService.DeleteFeedbackLoop:output_type -> iris.admin.v1.DeleteFeedbackLoopReply
-	98,  // 249: iris.admin.v1.IrisAdminService.Login:output_type -> iris.admin.v1.LoginReply
-	98,  // 250: iris.admin.v1.IrisAdminService.VerifyMFA:output_type -> iris.admin.v1.LoginReply
-	101, // 251: iris.admin.v1.IrisAdminService.CurrentUser:output_type -> iris.admin.v1.CurrentUserReply
-	103, // 252: iris.admin.v1.IrisAdminService.ChangePassword:output_type -> iris.admin.v1.ChangePasswordReply
-	105, // 253: iris.admin.v1.IrisAdminService.Logout:output_type -> iris.admin.v1.LogoutReply
-	113, // 254: iris.admin.v1.IrisAdminService.ListUsers:output_type -> iris.admin.v1.ListUsersReply
-	95,  // 255: iris.admin.v1.IrisAdminService.CreateUser:output_type -> iris.admin.v1.User
-	95,  // 256: iris.admin.v1.IrisAdminService.UpdateUser:output_type -> iris.admin.v1.User
-	117, // 257: iris.admin.v1.IrisAdminService.ResetUserPassword:output_type -> iris.admin.v1.ResetUserPasswordReply
-	107, // 258: iris.admin.v1.IrisAdminService.EnrollMFA:output_type -> iris.admin.v1.EnrollMFAReply
-	109, // 259: iris.admin.v1.IrisAdminService.ConfirmMFA:output_type -> iris.admin.v1.ConfirmMFAReply
-	111, // 260: iris.admin.v1.IrisAdminService.DisableMFA:output_type -> iris.admin.v1.DisableMFAReply
-	119, // 261: iris.admin.v1.IrisAdminService.ListAuditEntries:output_type -> iris.admin.v1.ListAuditEntriesReply
-	121, // 262: iris.admin.v1.IrisAdminService.RequestServiceControl:output_type -> iris.admin.v1.ServiceControlRequest
-	123, // 263: iris.admin.v1.IrisAdminService.GenerateKumoConfig:output_type -> iris.admin.v1.KumoConfig
-	125, // 264: iris.admin.v1.IrisAdminService.ApplyKumoConfig:output_type -> iris.admin.v1.ApplyKumoConfigReply
-	143, // 265: iris.admin.v1.IrisAdminService.GetAppliedKumoConfig:output_type -> iris.admin.v1.AppliedKumoConfig
-	145, // 266: iris.admin.v1.IrisAdminService.KumoConfigStatus:output_type -> iris.admin.v1.KumoConfigStatusReply
-	128, // 267: iris.admin.v1.IrisAdminService.GetAcmeAccount:output_type -> iris.admin.v1.AcmeAccount
-	128, // 268: iris.admin.v1.IrisAdminService.SaveAcmeAccount:output_type -> iris.admin.v1.AcmeAccount
-	131, // 269: iris.admin.v1.IrisAdminService.ListAcmeCertificates:output_type -> iris.admin.v1.ListAcmeCertificatesReply
-	129, // 270: iris.admin.v1.IrisAdminService.RequestAcmeCertificate:output_type -> iris.admin.v1.AcmeCertificate
-	134, // 271: iris.admin.v1.IrisAdminService.DeleteAcmeCertificate:output_type -> iris.admin.v1.DeleteAcmeCertificateReply
-	137, // 272: iris.admin.v1.IrisAdminService.ListAcmeDnsProviders:output_type -> iris.admin.v1.ListAcmeDnsProvidersReply
-	138, // 273: iris.admin.v1.IrisAdminService.GetAcmeDnsProvider:output_type -> iris.admin.v1.AcmeDnsProvider
-	138, // 274: iris.admin.v1.IrisAdminService.SetAcmeDnsProvider:output_type -> iris.admin.v1.AcmeDnsProvider
-	138, // 275: iris.admin.v1.IrisAdminService.ClearAcmeDnsProvider:output_type -> iris.admin.v1.AcmeDnsProvider
-	180, // 276: iris.admin.v1.IrisAdminService.GetDashboardSummary:output_type -> iris.admin.v1.DashboardSummary
-	184, // 277: iris.admin.v1.IrisAdminService.GetMetricsTimeseries:output_type -> iris.admin.v1.MetricsTimeseries
-	187, // 278: iris.admin.v1.IrisAdminService.GetWarmupDeliveryStats:output_type -> iris.admin.v1.WarmupDeliveryStats
-	196, // 279: iris.admin.v1.IrisAdminService.GetQueueTimeHistogram:output_type -> iris.admin.v1.QueueTimeHistogram
-	190, // 280: iris.admin.v1.IrisAdminService.GetMailClassStats:output_type -> iris.admin.v1.MailClassStats
-	193, // 281: iris.admin.v1.IrisAdminService.GetRecipientDomainStats:output_type -> iris.admin.v1.RecipientDomainStats
-	148, // 282: iris.admin.v1.IrisAdminService.CheckDomainBounceSetup:output_type -> iris.admin.v1.DomainBounceCheck
-	151, // 283: iris.admin.v1.IrisAdminService.Diagnose:output_type -> iris.admin.v1.DiagnoseResult
-	155, // 284: iris.admin.v1.IrisAdminService.RblCheck:output_type -> iris.admin.v1.RblCheckReply
-	162, // 285: iris.admin.v1.IrisAdminService.GetDmarcStats:output_type -> iris.admin.v1.DmarcStats
-	165, // 286: iris.admin.v1.IrisAdminService.ListDmarcReports:output_type -> iris.admin.v1.ListDmarcReportsReply
-	167, // 287: iris.admin.v1.IrisAdminService.ListDmarcDomains:output_type -> iris.admin.v1.ListDmarcDomainsReply
-	170, // 288: iris.admin.v1.IrisAdminService.ListWorkerErrorLogs:output_type -> iris.admin.v1.ListWorkerErrorLogsReply
-	175, // 289: iris.admin.v1.IrisAdminService.ListRetentionPolicies:output_type -> iris.admin.v1.ListRetentionPoliciesReply
-	171, // 290: iris.admin.v1.IrisAdminService.UpdateRetentionPolicy:output_type -> iris.admin.v1.RetentionPolicy
-	178, // 291: iris.admin.v1.IrisAdminService.RunRetention:output_type -> iris.admin.v1.RunRetentionReply
-	197, // 292: iris.admin.v1.IrisAdminService.GetGlobalSettings:output_type -> iris.admin.v1.GlobalSettings
-	197, // 293: iris.admin.v1.IrisAdminService.UpdateGlobalSettings:output_type -> iris.admin.v1.GlobalSettings
-	202, // 294: iris.admin.v1.IrisAdminService.ListSubjectClassifications:output_type -> iris.admin.v1.ListSubjectClassificationsReply
-	200, // 295: iris.admin.v1.IrisAdminService.CreateSubjectClassification:output_type -> iris.admin.v1.SubjectClassification
-	200, // 296: iris.admin.v1.IrisAdminService.UpdateSubjectClassification:output_type -> iris.admin.v1.SubjectClassification
-	206, // 297: iris.admin.v1.IrisAdminService.DeleteSubjectClassification:output_type -> iris.admin.v1.DeleteSubjectClassificationReply
-	199, // [199:298] is the sub-list for method output_type
-	100, // [100:199] is the sub-list for method input_type
-	100, // [100:100] is the sub-list for extension type_name
-	100, // [100:100] is the sub-list for extension extendee
-	0,   // [0:100] is the sub-list for field type_name
+	11,  // 4: iris.admin.v1.RoutingRule.conditions:type_name -> iris.admin.v1.RoutingMatchCondition
+	254, // 5: iris.admin.v1.WarmupStage.caps:type_name -> iris.admin.v1.WarmupStage.CapsEntry
+	12,  // 6: iris.admin.v1.WarmupSchedule.stages:type_name -> iris.admin.v1.WarmupStage
+	12,  // 7: iris.admin.v1.WarmupCurve.stages:type_name -> iris.admin.v1.WarmupStage
+	0,   // 8: iris.admin.v1.ListWarmupSchedulesRequest.page:type_name -> iris.admin.v1.PageRequest
+	13,  // 9: iris.admin.v1.ListWarmupSchedulesReply.items:type_name -> iris.admin.v1.WarmupSchedule
+	1,   // 10: iris.admin.v1.ListWarmupSchedulesReply.page:type_name -> iris.admin.v1.PageReply
+	14,  // 11: iris.admin.v1.ListWarmupSchedulesReply.curves:type_name -> iris.admin.v1.WarmupCurve
+	12,  // 12: iris.admin.v1.CreateWarmupScheduleRequest.stages:type_name -> iris.admin.v1.WarmupStage
+	12,  // 13: iris.admin.v1.UpdateWarmupScheduleRequest.stages:type_name -> iris.admin.v1.WarmupStage
+	21,  // 14: iris.admin.v1.ListDeliveryBlueprintsReply.items:type_name -> iris.admin.v1.DeliveryBlueprint
+	29,  // 15: iris.admin.v1.ListAutomationRulesReply.items:type_name -> iris.admin.v1.AutomationRule
+	35,  // 16: iris.admin.v1.ListBounceRulesReply.items:type_name -> iris.admin.v1.BounceRule
+	35,  // 17: iris.admin.v1.TestBounceDiagnosticReply.rule:type_name -> iris.admin.v1.BounceRule
+	255, // 18: iris.admin.v1.EventProcessor.driver_config:type_name -> iris.admin.v1.EventProcessor.DriverConfigEntry
+	45,  // 19: iris.admin.v1.ListEventProcessorsReply.items:type_name -> iris.admin.v1.EventProcessor
+	256, // 20: iris.admin.v1.CreateEventProcessorRequest.driver_config:type_name -> iris.admin.v1.CreateEventProcessorRequest.DriverConfigEntry
+	257, // 21: iris.admin.v1.UpdateEventProcessorRequest.driver_config:type_name -> iris.admin.v1.UpdateEventProcessorRequest.DriverConfigEntry
+	258, // 22: iris.admin.v1.TestEventProcessorRequest.driver_config:type_name -> iris.admin.v1.TestEventProcessorRequest.DriverConfigEntry
+	0,   // 23: iris.admin.v1.ListVMTAsRequest.page:type_name -> iris.admin.v1.PageRequest
+	7,   // 24: iris.admin.v1.ListVMTAsReply.items:type_name -> iris.admin.v1.VMTA
+	1,   // 25: iris.admin.v1.ListVMTAsReply.page:type_name -> iris.admin.v1.PageReply
+	0,   // 26: iris.admin.v1.ListVMTAGroupsRequest.page:type_name -> iris.admin.v1.PageRequest
+	8,   // 27: iris.admin.v1.ListVMTAGroupsReply.items:type_name -> iris.admin.v1.VMTAGroup
+	1,   // 28: iris.admin.v1.ListVMTAGroupsReply.page:type_name -> iris.admin.v1.PageReply
+	9,   // 29: iris.admin.v1.CreateVMTAGroupRequest.members:type_name -> iris.admin.v1.VMTAGroupMember
+	9,   // 30: iris.admin.v1.UpdateVMTAGroupRequest.members:type_name -> iris.admin.v1.VMTAGroupMember
+	0,   // 31: iris.admin.v1.ListRoutingRulesRequest.page:type_name -> iris.admin.v1.PageRequest
+	10,  // 32: iris.admin.v1.ListRoutingRulesReply.items:type_name -> iris.admin.v1.RoutingRule
+	1,   // 33: iris.admin.v1.ListRoutingRulesReply.page:type_name -> iris.admin.v1.PageReply
+	11,  // 34: iris.admin.v1.CreateRoutingRuleRequest.conditions:type_name -> iris.admin.v1.RoutingMatchCondition
+	11,  // 35: iris.admin.v1.UpdateRoutingRuleRequest.conditions:type_name -> iris.admin.v1.RoutingMatchCondition
+	261, // 36: iris.admin.v1.MailRecord.event_time:type_name -> google.protobuf.Timestamp
+	261, // 37: iris.admin.v1.Bounce.event_time:type_name -> google.protobuf.Timestamp
+	261, // 38: iris.admin.v1.FeedbackReport.received_at:type_name -> google.protobuf.Timestamp
+	0,   // 39: iris.admin.v1.ListMailRecordsRequest.page:type_name -> iris.admin.v1.PageRequest
+	261, // 40: iris.admin.v1.ListMailRecordsRequest.from_time:type_name -> google.protobuf.Timestamp
+	261, // 41: iris.admin.v1.ListMailRecordsRequest.to_time:type_name -> google.protobuf.Timestamp
+	66,  // 42: iris.admin.v1.ListMailRecordsReply.items:type_name -> iris.admin.v1.MailRecord
+	1,   // 43: iris.admin.v1.ListMailRecordsReply.page:type_name -> iris.admin.v1.PageReply
+	0,   // 44: iris.admin.v1.ListBouncesRequest.page:type_name -> iris.admin.v1.PageRequest
+	261, // 45: iris.admin.v1.ListBouncesRequest.from_time:type_name -> google.protobuf.Timestamp
+	261, // 46: iris.admin.v1.ListBouncesRequest.to_time:type_name -> google.protobuf.Timestamp
+	67,  // 47: iris.admin.v1.ListBouncesReply.items:type_name -> iris.admin.v1.Bounce
+	1,   // 48: iris.admin.v1.ListBouncesReply.page:type_name -> iris.admin.v1.PageReply
+	96,  // 49: iris.admin.v1.ListDsnMessagesReply.items:type_name -> iris.admin.v1.DsnMessage
+	0,   // 50: iris.admin.v1.ListFeedbackReportsRequest.page:type_name -> iris.admin.v1.PageRequest
+	68,  // 51: iris.admin.v1.ListFeedbackReportsReply.items:type_name -> iris.admin.v1.FeedbackReport
+	1,   // 52: iris.admin.v1.ListFeedbackReportsReply.page:type_name -> iris.admin.v1.PageReply
+	0,   // 53: iris.admin.v1.ListQueuesRequest.page:type_name -> iris.admin.v1.PageRequest
+	69,  // 54: iris.admin.v1.ListQueuesReply.items:type_name -> iris.admin.v1.Queue
+	1,   // 55: iris.admin.v1.ListQueuesReply.page:type_name -> iris.admin.v1.PageReply
+	0,   // 56: iris.admin.v1.ListDKIMDomainsRequest.page:type_name -> iris.admin.v1.PageRequest
+	84,  // 57: iris.admin.v1.ListDKIMDomainsReply.items:type_name -> iris.admin.v1.DKIMDomain
+	1,   // 58: iris.admin.v1.ListDKIMDomainsReply.page:type_name -> iris.admin.v1.PageReply
+	0,   // 59: iris.admin.v1.ListSuppressionsRequest.page:type_name -> iris.admin.v1.PageRequest
+	85,  // 60: iris.admin.v1.ListSuppressionsReply.items:type_name -> iris.admin.v1.Suppression
+	1,   // 61: iris.admin.v1.ListSuppressionsReply.page:type_name -> iris.admin.v1.PageReply
+	96,  // 62: iris.admin.v1.ListSuppressionDsnMessagesReply.items:type_name -> iris.admin.v1.DsnMessage
+	0,   // 63: iris.admin.v1.ListTLSPoliciesRequest.page:type_name -> iris.admin.v1.PageRequest
+	99,  // 64: iris.admin.v1.ListTLSPoliciesReply.items:type_name -> iris.admin.v1.TLSPolicy
+	1,   // 65: iris.admin.v1.ListTLSPoliciesReply.page:type_name -> iris.admin.v1.PageReply
+	0,   // 66: iris.admin.v1.ListInboundRoutesRequest.page:type_name -> iris.admin.v1.PageRequest
+	105, // 67: iris.admin.v1.ListInboundRoutesReply.items:type_name -> iris.admin.v1.InboundRoute
+	1,   // 68: iris.admin.v1.ListInboundRoutesReply.page:type_name -> iris.admin.v1.PageReply
+	261, // 69: iris.admin.v1.RspamdResult.event_time:type_name -> google.protobuf.Timestamp
+	0,   // 70: iris.admin.v1.ListRspamdResultsRequest.page:type_name -> iris.admin.v1.PageRequest
+	112, // 71: iris.admin.v1.ListRspamdResultsReply.items:type_name -> iris.admin.v1.RspamdResult
+	1,   // 72: iris.admin.v1.ListRspamdResultsReply.page:type_name -> iris.admin.v1.PageReply
+	0,   // 73: iris.admin.v1.ListFeedbackLoopsRequest.page:type_name -> iris.admin.v1.PageRequest
+	115, // 74: iris.admin.v1.ListFeedbackLoopsReply.items:type_name -> iris.admin.v1.FeedbackLoop
+	1,   // 75: iris.admin.v1.ListFeedbackLoopsReply.page:type_name -> iris.admin.v1.PageReply
+	122, // 76: iris.admin.v1.LoginReply.user:type_name -> iris.admin.v1.User
+	122, // 77: iris.admin.v1.CurrentUserReply.user:type_name -> iris.admin.v1.User
+	0,   // 78: iris.admin.v1.ListUsersRequest.page:type_name -> iris.admin.v1.PageRequest
+	122, // 79: iris.admin.v1.ListUsersReply.items:type_name -> iris.admin.v1.User
+	1,   // 80: iris.admin.v1.ListUsersReply.page:type_name -> iris.admin.v1.PageReply
+	0,   // 81: iris.admin.v1.ListAuditEntriesRequest.page:type_name -> iris.admin.v1.PageRequest
+	123, // 82: iris.admin.v1.ListAuditEntriesReply.items:type_name -> iris.admin.v1.AuditEntry
+	1,   // 83: iris.admin.v1.ListAuditEntriesReply.page:type_name -> iris.admin.v1.PageReply
+	156, // 84: iris.admin.v1.ListAcmeCertificatesReply.items:type_name -> iris.admin.v1.AcmeCertificate
+	162, // 85: iris.admin.v1.ListAcmeDnsProvidersReply.items:type_name -> iris.admin.v1.AcmeDnsProviderInfo
+	259, // 86: iris.admin.v1.AcmeDnsProvider.config:type_name -> iris.admin.v1.AcmeDnsProvider.ConfigEntry
+	260, // 87: iris.admin.v1.SetAcmeDnsProviderRequest.config:type_name -> iris.admin.v1.SetAcmeDnsProviderRequest.ConfigEntry
+	174, // 88: iris.admin.v1.DomainBounceCheck.items:type_name -> iris.admin.v1.DomainCheckItem
+	174, // 89: iris.admin.v1.DiagnoseResult.items:type_name -> iris.admin.v1.DomainCheckItem
+	177, // 90: iris.admin.v1.DiagnoseResult.routing:type_name -> iris.admin.v1.RoutingOutcome
+	180, // 91: iris.admin.v1.RblIpResult.listings:type_name -> iris.admin.v1.RblListing
+	181, // 92: iris.admin.v1.RblCheckReply.results:type_name -> iris.admin.v1.RblIpResult
+	184, // 93: iris.admin.v1.DmarcStats.dispositions:type_name -> iris.admin.v1.DmarcCount
+	185, // 94: iris.admin.v1.DmarcStats.top_sources:type_name -> iris.admin.v1.DmarcSource
+	186, // 95: iris.admin.v1.DmarcStats.domains:type_name -> iris.admin.v1.DmarcDomainStat
+	188, // 96: iris.admin.v1.DmarcStats.series:type_name -> iris.admin.v1.DmarcDay
+	187, // 97: iris.admin.v1.DmarcStats.reporters:type_name -> iris.admin.v1.DmarcReporterStat
+	0,   // 98: iris.admin.v1.ListDmarcReportsRequest.page:type_name -> iris.admin.v1.PageRequest
+	190, // 99: iris.admin.v1.ListDmarcReportsReply.items:type_name -> iris.admin.v1.DmarcReport
+	1,   // 100: iris.admin.v1.ListDmarcReportsReply.page:type_name -> iris.admin.v1.PageReply
+	0,   // 101: iris.admin.v1.ListWorkerErrorLogsRequest.page:type_name -> iris.admin.v1.PageRequest
+	195, // 102: iris.admin.v1.ListWorkerErrorLogsReply.items:type_name -> iris.admin.v1.WorkerErrorLog
+	1,   // 103: iris.admin.v1.ListWorkerErrorLogsReply.page:type_name -> iris.admin.v1.PageReply
+	198, // 104: iris.admin.v1.RetentionView.policy:type_name -> iris.admin.v1.RetentionPolicy
+	200, // 105: iris.admin.v1.RetentionView.last_run:type_name -> iris.admin.v1.RetentionRun
+	199, // 106: iris.admin.v1.ListRetentionPoliciesReply.items:type_name -> iris.admin.v1.RetentionView
+	210, // 107: iris.admin.v1.MetricsSeries.points:type_name -> iris.admin.v1.MetricPoint
+	211, // 108: iris.admin.v1.MetricsTimeseries.series:type_name -> iris.admin.v1.MetricsSeries
+	214, // 109: iris.admin.v1.WarmupDeliveryStats.rows:type_name -> iris.admin.v1.WarmupDeliveryStat
+	215, // 110: iris.admin.v1.WarmupDeliveryStats.deferred_by_domain:type_name -> iris.admin.v1.DomainDeferredStat
+	218, // 111: iris.admin.v1.MailClassStats.rows:type_name -> iris.admin.v1.MailClassStat
+	221, // 112: iris.admin.v1.RecipientDomainStats.rows:type_name -> iris.admin.v1.RecipientDomainStat
+	224, // 113: iris.admin.v1.QueueTimeHistogram.buckets:type_name -> iris.admin.v1.QueueTimeBucket
+	229, // 114: iris.admin.v1.ListSubjectClassificationsReply.items:type_name -> iris.admin.v1.SubjectClassification
+	236, // 115: iris.admin.v1.ListInjectionCredentialsReply.items:type_name -> iris.admin.v1.InjectionCredential
+	244, // 116: iris.admin.v1.SystemSnapshot.disks:type_name -> iris.admin.v1.DiskUsage
+	245, // 117: iris.admin.v1.SystemMonitor.snapshot:type_name -> iris.admin.v1.SystemSnapshot
+	246, // 118: iris.admin.v1.SystemMonitor.settings:type_name -> iris.admin.v1.MonitorSettings
+	247, // 119: iris.admin.v1.SystemMonitor.recent_alerts:type_name -> iris.admin.v1.MonitorAlert
+	248, // 120: iris.admin.v1.SystemMonitor.mounts:type_name -> iris.admin.v1.Mount
+	246, // 121: iris.admin.v1.UpdateMonitorSettingsRequest.settings:type_name -> iris.admin.v1.MonitorSettings
+	246, // 122: iris.admin.v1.TestMonitorNotificationRequest.settings:type_name -> iris.admin.v1.MonitorSettings
+	3,   // 123: iris.admin.v1.IrisAdminService.ListListeners:input_type -> iris.admin.v1.ListListenersRequest
+	5,   // 124: iris.admin.v1.IrisAdminService.CreateListener:input_type -> iris.admin.v1.CreateListenerRequest
+	6,   // 125: iris.admin.v1.IrisAdminService.UpdateListener:input_type -> iris.admin.v1.UpdateListenerRequest
+	54,  // 126: iris.admin.v1.IrisAdminService.ListVMTAs:input_type -> iris.admin.v1.ListVMTAsRequest
+	56,  // 127: iris.admin.v1.IrisAdminService.CreateVMTA:input_type -> iris.admin.v1.CreateVMTARequest
+	57,  // 128: iris.admin.v1.IrisAdminService.UpdateVMTA:input_type -> iris.admin.v1.UpdateVMTARequest
+	58,  // 129: iris.admin.v1.IrisAdminService.ListVMTAGroups:input_type -> iris.admin.v1.ListVMTAGroupsRequest
+	60,  // 130: iris.admin.v1.IrisAdminService.CreateVMTAGroups:input_type -> iris.admin.v1.CreateVMTAGroupRequest
+	61,  // 131: iris.admin.v1.IrisAdminService.UpdateVMTAGroup:input_type -> iris.admin.v1.UpdateVMTAGroupRequest
+	15,  // 132: iris.admin.v1.IrisAdminService.ListWarmupSchedules:input_type -> iris.admin.v1.ListWarmupSchedulesRequest
+	17,  // 133: iris.admin.v1.IrisAdminService.CreateWarmupSchedule:input_type -> iris.admin.v1.CreateWarmupScheduleRequest
+	18,  // 134: iris.admin.v1.IrisAdminService.UpdateWarmupSchedule:input_type -> iris.admin.v1.UpdateWarmupScheduleRequest
+	19,  // 135: iris.admin.v1.IrisAdminService.PauseWarmupSchedule:input_type -> iris.admin.v1.PauseWarmupScheduleRequest
+	20,  // 136: iris.admin.v1.IrisAdminService.ResumeWarmupSchedule:input_type -> iris.admin.v1.ResumeWarmupScheduleRequest
+	22,  // 137: iris.admin.v1.IrisAdminService.ListDeliveryBlueprints:input_type -> iris.admin.v1.ListDeliveryBlueprintsRequest
+	24,  // 138: iris.admin.v1.IrisAdminService.CreateDeliveryBlueprint:input_type -> iris.admin.v1.CreateDeliveryBlueprintRequest
+	25,  // 139: iris.admin.v1.IrisAdminService.UpdateDeliveryBlueprint:input_type -> iris.admin.v1.UpdateDeliveryBlueprintRequest
+	26,  // 140: iris.admin.v1.IrisAdminService.SetDeliveryBlueprintStatus:input_type -> iris.admin.v1.SetDeliveryBlueprintStatusRequest
+	27,  // 141: iris.admin.v1.IrisAdminService.SeedDeliveryBlueprints:input_type -> iris.admin.v1.SeedDeliveryBlueprintsRequest
+	30,  // 142: iris.admin.v1.IrisAdminService.ListAutomationRules:input_type -> iris.admin.v1.ListAutomationRulesRequest
+	32,  // 143: iris.admin.v1.IrisAdminService.CreateAutomationRule:input_type -> iris.admin.v1.CreateAutomationRuleRequest
+	33,  // 144: iris.admin.v1.IrisAdminService.UpdateAutomationRule:input_type -> iris.admin.v1.UpdateAutomationRuleRequest
+	34,  // 145: iris.admin.v1.IrisAdminService.SetAutomationRuleStatus:input_type -> iris.admin.v1.SetAutomationRuleStatusRequest
+	36,  // 146: iris.admin.v1.IrisAdminService.ListBounceRules:input_type -> iris.admin.v1.ListBounceRulesRequest
+	38,  // 147: iris.admin.v1.IrisAdminService.CreateBounceRule:input_type -> iris.admin.v1.CreateBounceRuleRequest
+	39,  // 148: iris.admin.v1.IrisAdminService.UpdateBounceRule:input_type -> iris.admin.v1.UpdateBounceRuleRequest
+	40,  // 149: iris.admin.v1.IrisAdminService.DeleteBounceRule:input_type -> iris.admin.v1.DeleteBounceRuleRequest
+	42,  // 150: iris.admin.v1.IrisAdminService.ResetBounceRules:input_type -> iris.admin.v1.ResetBounceRulesRequest
+	43,  // 151: iris.admin.v1.IrisAdminService.TestBounceDiagnostic:input_type -> iris.admin.v1.TestBounceDiagnosticRequest
+	46,  // 152: iris.admin.v1.IrisAdminService.ListEventProcessors:input_type -> iris.admin.v1.ListEventProcessorsRequest
+	48,  // 153: iris.admin.v1.IrisAdminService.CreateEventProcessor:input_type -> iris.admin.v1.CreateEventProcessorRequest
+	49,  // 154: iris.admin.v1.IrisAdminService.UpdateEventProcessor:input_type -> iris.admin.v1.UpdateEventProcessorRequest
+	50,  // 155: iris.admin.v1.IrisAdminService.DeleteEventProcessor:input_type -> iris.admin.v1.DeleteEventProcessorRequest
+	52,  // 156: iris.admin.v1.IrisAdminService.TestEventProcessor:input_type -> iris.admin.v1.TestEventProcessorRequest
+	62,  // 157: iris.admin.v1.IrisAdminService.ListRoutingRules:input_type -> iris.admin.v1.ListRoutingRulesRequest
+	64,  // 158: iris.admin.v1.IrisAdminService.CreateRoutingRule:input_type -> iris.admin.v1.CreateRoutingRuleRequest
+	65,  // 159: iris.admin.v1.IrisAdminService.UpdateRoutingRule:input_type -> iris.admin.v1.UpdateRoutingRuleRequest
+	70,  // 160: iris.admin.v1.IrisAdminService.ListMailRecords:input_type -> iris.admin.v1.ListMailRecordsRequest
+	72,  // 161: iris.admin.v1.IrisAdminService.GetNextDeliveryAttempt:input_type -> iris.admin.v1.GetNextDeliveryAttemptRequest
+	76,  // 162: iris.admin.v1.IrisAdminService.ListDsnMessages:input_type -> iris.admin.v1.ListDsnMessagesRequest
+	74,  // 163: iris.admin.v1.IrisAdminService.ListBounces:input_type -> iris.admin.v1.ListBouncesRequest
+	78,  // 164: iris.admin.v1.IrisAdminService.ListFeedbackReports:input_type -> iris.admin.v1.ListFeedbackReportsRequest
+	80,  // 165: iris.admin.v1.IrisAdminService.ListQueues:input_type -> iris.admin.v1.ListQueuesRequest
+	82,  // 166: iris.admin.v1.IrisAdminService.RequestQueueAction:input_type -> iris.admin.v1.RequestQueueActionRequest
+	86,  // 167: iris.admin.v1.IrisAdminService.ListDKIMDomains:input_type -> iris.admin.v1.ListDKIMDomainsRequest
+	88,  // 168: iris.admin.v1.IrisAdminService.CreateDKIMDomain:input_type -> iris.admin.v1.CreateDKIMDomainRequest
+	89,  // 169: iris.admin.v1.IrisAdminService.UpdateDKIMDomain:input_type -> iris.admin.v1.UpdateDKIMDomainRequest
+	90,  // 170: iris.admin.v1.IrisAdminService.GenerateDKIMKey:input_type -> iris.admin.v1.GenerateDKIMKeyRequest
+	92,  // 171: iris.admin.v1.IrisAdminService.ListSuppressions:input_type -> iris.admin.v1.ListSuppressionsRequest
+	94,  // 172: iris.admin.v1.IrisAdminService.CreateSuppression:input_type -> iris.admin.v1.CreateSuppressionRequest
+	95,  // 173: iris.admin.v1.IrisAdminService.UpdateSuppression:input_type -> iris.admin.v1.UpdateSuppressionRequest
+	97,  // 174: iris.admin.v1.IrisAdminService.ListSuppressionDsnMessages:input_type -> iris.admin.v1.ListSuppressionDsnMessagesRequest
+	100, // 175: iris.admin.v1.IrisAdminService.ListTLSPolicies:input_type -> iris.admin.v1.ListTLSPoliciesRequest
+	102, // 176: iris.admin.v1.IrisAdminService.CreateTLSPolicy:input_type -> iris.admin.v1.CreateTLSPolicyRequest
+	103, // 177: iris.admin.v1.IrisAdminService.DeleteTLSPolicy:input_type -> iris.admin.v1.DeleteTLSPolicyRequest
+	106, // 178: iris.admin.v1.IrisAdminService.ListInboundRoutes:input_type -> iris.admin.v1.ListInboundRoutesRequest
+	108, // 179: iris.admin.v1.IrisAdminService.CreateInboundRoute:input_type -> iris.admin.v1.CreateInboundRouteRequest
+	109, // 180: iris.admin.v1.IrisAdminService.UpdateInboundRoute:input_type -> iris.admin.v1.UpdateInboundRouteRequest
+	110, // 181: iris.admin.v1.IrisAdminService.DeleteInboundRoute:input_type -> iris.admin.v1.DeleteInboundRouteRequest
+	113, // 182: iris.admin.v1.IrisAdminService.ListRspamdResults:input_type -> iris.admin.v1.ListRspamdResultsRequest
+	116, // 183: iris.admin.v1.IrisAdminService.ListFeedbackLoops:input_type -> iris.admin.v1.ListFeedbackLoopsRequest
+	118, // 184: iris.admin.v1.IrisAdminService.CreateFeedbackLoop:input_type -> iris.admin.v1.CreateFeedbackLoopRequest
+	119, // 185: iris.admin.v1.IrisAdminService.UpdateFeedbackLoop:input_type -> iris.admin.v1.UpdateFeedbackLoopRequest
+	120, // 186: iris.admin.v1.IrisAdminService.DeleteFeedbackLoop:input_type -> iris.admin.v1.DeleteFeedbackLoopRequest
+	124, // 187: iris.admin.v1.IrisAdminService.Login:input_type -> iris.admin.v1.LoginRequest
+	126, // 188: iris.admin.v1.IrisAdminService.VerifyMFA:input_type -> iris.admin.v1.VerifyMFARequest
+	127, // 189: iris.admin.v1.IrisAdminService.CurrentUser:input_type -> iris.admin.v1.CurrentUserRequest
+	129, // 190: iris.admin.v1.IrisAdminService.ChangePassword:input_type -> iris.admin.v1.ChangePasswordRequest
+	131, // 191: iris.admin.v1.IrisAdminService.Logout:input_type -> iris.admin.v1.LogoutRequest
+	139, // 192: iris.admin.v1.IrisAdminService.ListUsers:input_type -> iris.admin.v1.ListUsersRequest
+	141, // 193: iris.admin.v1.IrisAdminService.CreateUser:input_type -> iris.admin.v1.CreateUserRequest
+	142, // 194: iris.admin.v1.IrisAdminService.UpdateUser:input_type -> iris.admin.v1.UpdateUserRequest
+	143, // 195: iris.admin.v1.IrisAdminService.ResetUserPassword:input_type -> iris.admin.v1.ResetUserPasswordRequest
+	133, // 196: iris.admin.v1.IrisAdminService.EnrollMFA:input_type -> iris.admin.v1.EnrollMFARequest
+	135, // 197: iris.admin.v1.IrisAdminService.ConfirmMFA:input_type -> iris.admin.v1.ConfirmMFARequest
+	137, // 198: iris.admin.v1.IrisAdminService.DisableMFA:input_type -> iris.admin.v1.DisableMFARequest
+	145, // 199: iris.admin.v1.IrisAdminService.ListAuditEntries:input_type -> iris.admin.v1.ListAuditEntriesRequest
+	147, // 200: iris.admin.v1.IrisAdminService.RequestServiceControl:input_type -> iris.admin.v1.RequestServiceControlRequest
+	149, // 201: iris.admin.v1.IrisAdminService.GenerateKumoConfig:input_type -> iris.admin.v1.GenerateKumoConfigRequest
+	151, // 202: iris.admin.v1.IrisAdminService.ApplyKumoConfig:input_type -> iris.admin.v1.ApplyKumoConfigRequest
+	169, // 203: iris.admin.v1.IrisAdminService.GetAppliedKumoConfig:input_type -> iris.admin.v1.GetAppliedKumoConfigRequest
+	171, // 204: iris.admin.v1.IrisAdminService.KumoConfigStatus:input_type -> iris.admin.v1.KumoConfigStatusRequest
+	153, // 205: iris.admin.v1.IrisAdminService.GetAcmeAccount:input_type -> iris.admin.v1.GetAcmeAccountRequest
+	154, // 206: iris.admin.v1.IrisAdminService.SaveAcmeAccount:input_type -> iris.admin.v1.SaveAcmeAccountRequest
+	157, // 207: iris.admin.v1.IrisAdminService.ListAcmeCertificates:input_type -> iris.admin.v1.ListAcmeCertificatesRequest
+	159, // 208: iris.admin.v1.IrisAdminService.RequestAcmeCertificate:input_type -> iris.admin.v1.RequestAcmeCertificateRequest
+	160, // 209: iris.admin.v1.IrisAdminService.DeleteAcmeCertificate:input_type -> iris.admin.v1.DeleteAcmeCertificateRequest
+	163, // 210: iris.admin.v1.IrisAdminService.ListAcmeDnsProviders:input_type -> iris.admin.v1.ListAcmeDnsProvidersRequest
+	166, // 211: iris.admin.v1.IrisAdminService.GetAcmeDnsProvider:input_type -> iris.admin.v1.GetAcmeDnsProviderRequest
+	167, // 212: iris.admin.v1.IrisAdminService.SetAcmeDnsProvider:input_type -> iris.admin.v1.SetAcmeDnsProviderRequest
+	168, // 213: iris.admin.v1.IrisAdminService.ClearAcmeDnsProvider:input_type -> iris.admin.v1.ClearAcmeDnsProviderRequest
+	206, // 214: iris.admin.v1.IrisAdminService.GetDashboardSummary:input_type -> iris.admin.v1.GetDashboardSummaryRequest
+	208, // 215: iris.admin.v1.IrisAdminService.GetMetricsTimeseries:input_type -> iris.admin.v1.GetMetricsTimeseriesRequest
+	209, // 216: iris.admin.v1.IrisAdminService.GetSystemMetrics:input_type -> iris.admin.v1.GetSystemMetricsRequest
+	213, // 217: iris.admin.v1.IrisAdminService.GetWarmupDeliveryStats:input_type -> iris.admin.v1.GetWarmupDeliveryStatsRequest
+	223, // 218: iris.admin.v1.IrisAdminService.GetQueueTimeHistogram:input_type -> iris.admin.v1.GetQueueTimeHistogramRequest
+	217, // 219: iris.admin.v1.IrisAdminService.GetMailClassStats:input_type -> iris.admin.v1.GetMailClassStatsRequest
+	220, // 220: iris.admin.v1.IrisAdminService.GetRecipientDomainStats:input_type -> iris.admin.v1.GetRecipientDomainStatsRequest
+	173, // 221: iris.admin.v1.IrisAdminService.CheckDomainBounceSetup:input_type -> iris.admin.v1.CheckDomainBounceSetupRequest
+	176, // 222: iris.admin.v1.IrisAdminService.Diagnose:input_type -> iris.admin.v1.DiagnoseRequest
+	179, // 223: iris.admin.v1.IrisAdminService.RblCheck:input_type -> iris.admin.v1.RblCheckRequest
+	183, // 224: iris.admin.v1.IrisAdminService.GetDmarcStats:input_type -> iris.admin.v1.GetDmarcStatsRequest
+	191, // 225: iris.admin.v1.IrisAdminService.ListDmarcReports:input_type -> iris.admin.v1.ListDmarcReportsRequest
+	193, // 226: iris.admin.v1.IrisAdminService.ListDmarcDomains:input_type -> iris.admin.v1.ListDmarcDomainsRequest
+	196, // 227: iris.admin.v1.IrisAdminService.ListWorkerErrorLogs:input_type -> iris.admin.v1.ListWorkerErrorLogsRequest
+	201, // 228: iris.admin.v1.IrisAdminService.ListRetentionPolicies:input_type -> iris.admin.v1.ListRetentionPoliciesRequest
+	203, // 229: iris.admin.v1.IrisAdminService.UpdateRetentionPolicy:input_type -> iris.admin.v1.UpdateRetentionPolicyRequest
+	204, // 230: iris.admin.v1.IrisAdminService.RunRetention:input_type -> iris.admin.v1.RunRetentionRequest
+	227, // 231: iris.admin.v1.IrisAdminService.GetGlobalSettings:input_type -> iris.admin.v1.GetGlobalSettingsRequest
+	228, // 232: iris.admin.v1.IrisAdminService.UpdateGlobalSettings:input_type -> iris.admin.v1.UpdateGlobalSettingsRequest
+	230, // 233: iris.admin.v1.IrisAdminService.ListSubjectClassifications:input_type -> iris.admin.v1.ListSubjectClassificationsRequest
+	232, // 234: iris.admin.v1.IrisAdminService.CreateSubjectClassification:input_type -> iris.admin.v1.CreateSubjectClassificationRequest
+	233, // 235: iris.admin.v1.IrisAdminService.UpdateSubjectClassification:input_type -> iris.admin.v1.UpdateSubjectClassificationRequest
+	234, // 236: iris.admin.v1.IrisAdminService.DeleteSubjectClassification:input_type -> iris.admin.v1.DeleteSubjectClassificationRequest
+	237, // 237: iris.admin.v1.IrisAdminService.ListInjectionCredentials:input_type -> iris.admin.v1.ListInjectionCredentialsRequest
+	239, // 238: iris.admin.v1.IrisAdminService.CreateInjectionCredential:input_type -> iris.admin.v1.CreateInjectionCredentialRequest
+	240, // 239: iris.admin.v1.IrisAdminService.UpdateInjectionCredential:input_type -> iris.admin.v1.UpdateInjectionCredentialRequest
+	241, // 240: iris.admin.v1.IrisAdminService.SetInjectionCredentialPassword:input_type -> iris.admin.v1.SetInjectionCredentialPasswordRequest
+	242, // 241: iris.admin.v1.IrisAdminService.DeleteInjectionCredential:input_type -> iris.admin.v1.DeleteInjectionCredentialRequest
+	250, // 242: iris.admin.v1.IrisAdminService.GetSystemMonitor:input_type -> iris.admin.v1.GetSystemMonitorRequest
+	251, // 243: iris.admin.v1.IrisAdminService.UpdateMonitorSettings:input_type -> iris.admin.v1.UpdateMonitorSettingsRequest
+	252, // 244: iris.admin.v1.IrisAdminService.TestMonitorNotification:input_type -> iris.admin.v1.TestMonitorNotificationRequest
+	4,   // 245: iris.admin.v1.IrisAdminService.ListListeners:output_type -> iris.admin.v1.ListListenersReply
+	2,   // 246: iris.admin.v1.IrisAdminService.CreateListener:output_type -> iris.admin.v1.Listener
+	2,   // 247: iris.admin.v1.IrisAdminService.UpdateListener:output_type -> iris.admin.v1.Listener
+	55,  // 248: iris.admin.v1.IrisAdminService.ListVMTAs:output_type -> iris.admin.v1.ListVMTAsReply
+	7,   // 249: iris.admin.v1.IrisAdminService.CreateVMTA:output_type -> iris.admin.v1.VMTA
+	7,   // 250: iris.admin.v1.IrisAdminService.UpdateVMTA:output_type -> iris.admin.v1.VMTA
+	59,  // 251: iris.admin.v1.IrisAdminService.ListVMTAGroups:output_type -> iris.admin.v1.ListVMTAGroupsReply
+	8,   // 252: iris.admin.v1.IrisAdminService.CreateVMTAGroups:output_type -> iris.admin.v1.VMTAGroup
+	8,   // 253: iris.admin.v1.IrisAdminService.UpdateVMTAGroup:output_type -> iris.admin.v1.VMTAGroup
+	16,  // 254: iris.admin.v1.IrisAdminService.ListWarmupSchedules:output_type -> iris.admin.v1.ListWarmupSchedulesReply
+	13,  // 255: iris.admin.v1.IrisAdminService.CreateWarmupSchedule:output_type -> iris.admin.v1.WarmupSchedule
+	13,  // 256: iris.admin.v1.IrisAdminService.UpdateWarmupSchedule:output_type -> iris.admin.v1.WarmupSchedule
+	13,  // 257: iris.admin.v1.IrisAdminService.PauseWarmupSchedule:output_type -> iris.admin.v1.WarmupSchedule
+	13,  // 258: iris.admin.v1.IrisAdminService.ResumeWarmupSchedule:output_type -> iris.admin.v1.WarmupSchedule
+	23,  // 259: iris.admin.v1.IrisAdminService.ListDeliveryBlueprints:output_type -> iris.admin.v1.ListDeliveryBlueprintsReply
+	21,  // 260: iris.admin.v1.IrisAdminService.CreateDeliveryBlueprint:output_type -> iris.admin.v1.DeliveryBlueprint
+	21,  // 261: iris.admin.v1.IrisAdminService.UpdateDeliveryBlueprint:output_type -> iris.admin.v1.DeliveryBlueprint
+	21,  // 262: iris.admin.v1.IrisAdminService.SetDeliveryBlueprintStatus:output_type -> iris.admin.v1.DeliveryBlueprint
+	28,  // 263: iris.admin.v1.IrisAdminService.SeedDeliveryBlueprints:output_type -> iris.admin.v1.SeedDeliveryBlueprintsReply
+	31,  // 264: iris.admin.v1.IrisAdminService.ListAutomationRules:output_type -> iris.admin.v1.ListAutomationRulesReply
+	29,  // 265: iris.admin.v1.IrisAdminService.CreateAutomationRule:output_type -> iris.admin.v1.AutomationRule
+	29,  // 266: iris.admin.v1.IrisAdminService.UpdateAutomationRule:output_type -> iris.admin.v1.AutomationRule
+	29,  // 267: iris.admin.v1.IrisAdminService.SetAutomationRuleStatus:output_type -> iris.admin.v1.AutomationRule
+	37,  // 268: iris.admin.v1.IrisAdminService.ListBounceRules:output_type -> iris.admin.v1.ListBounceRulesReply
+	35,  // 269: iris.admin.v1.IrisAdminService.CreateBounceRule:output_type -> iris.admin.v1.BounceRule
+	35,  // 270: iris.admin.v1.IrisAdminService.UpdateBounceRule:output_type -> iris.admin.v1.BounceRule
+	41,  // 271: iris.admin.v1.IrisAdminService.DeleteBounceRule:output_type -> iris.admin.v1.DeleteBounceRuleReply
+	37,  // 272: iris.admin.v1.IrisAdminService.ResetBounceRules:output_type -> iris.admin.v1.ListBounceRulesReply
+	44,  // 273: iris.admin.v1.IrisAdminService.TestBounceDiagnostic:output_type -> iris.admin.v1.TestBounceDiagnosticReply
+	47,  // 274: iris.admin.v1.IrisAdminService.ListEventProcessors:output_type -> iris.admin.v1.ListEventProcessorsReply
+	45,  // 275: iris.admin.v1.IrisAdminService.CreateEventProcessor:output_type -> iris.admin.v1.EventProcessor
+	45,  // 276: iris.admin.v1.IrisAdminService.UpdateEventProcessor:output_type -> iris.admin.v1.EventProcessor
+	51,  // 277: iris.admin.v1.IrisAdminService.DeleteEventProcessor:output_type -> iris.admin.v1.DeleteEventProcessorReply
+	53,  // 278: iris.admin.v1.IrisAdminService.TestEventProcessor:output_type -> iris.admin.v1.TestEventProcessorReply
+	63,  // 279: iris.admin.v1.IrisAdminService.ListRoutingRules:output_type -> iris.admin.v1.ListRoutingRulesReply
+	10,  // 280: iris.admin.v1.IrisAdminService.CreateRoutingRule:output_type -> iris.admin.v1.RoutingRule
+	10,  // 281: iris.admin.v1.IrisAdminService.UpdateRoutingRule:output_type -> iris.admin.v1.RoutingRule
+	71,  // 282: iris.admin.v1.IrisAdminService.ListMailRecords:output_type -> iris.admin.v1.ListMailRecordsReply
+	73,  // 283: iris.admin.v1.IrisAdminService.GetNextDeliveryAttempt:output_type -> iris.admin.v1.NextDeliveryAttempt
+	77,  // 284: iris.admin.v1.IrisAdminService.ListDsnMessages:output_type -> iris.admin.v1.ListDsnMessagesReply
+	75,  // 285: iris.admin.v1.IrisAdminService.ListBounces:output_type -> iris.admin.v1.ListBouncesReply
+	79,  // 286: iris.admin.v1.IrisAdminService.ListFeedbackReports:output_type -> iris.admin.v1.ListFeedbackReportsReply
+	81,  // 287: iris.admin.v1.IrisAdminService.ListQueues:output_type -> iris.admin.v1.ListQueuesReply
+	83,  // 288: iris.admin.v1.IrisAdminService.RequestQueueAction:output_type -> iris.admin.v1.QueueActionReply
+	87,  // 289: iris.admin.v1.IrisAdminService.ListDKIMDomains:output_type -> iris.admin.v1.ListDKIMDomainsReply
+	84,  // 290: iris.admin.v1.IrisAdminService.CreateDKIMDomain:output_type -> iris.admin.v1.DKIMDomain
+	84,  // 291: iris.admin.v1.IrisAdminService.UpdateDKIMDomain:output_type -> iris.admin.v1.DKIMDomain
+	91,  // 292: iris.admin.v1.IrisAdminService.GenerateDKIMKey:output_type -> iris.admin.v1.GenerateDKIMKeyReply
+	93,  // 293: iris.admin.v1.IrisAdminService.ListSuppressions:output_type -> iris.admin.v1.ListSuppressionsReply
+	85,  // 294: iris.admin.v1.IrisAdminService.CreateSuppression:output_type -> iris.admin.v1.Suppression
+	85,  // 295: iris.admin.v1.IrisAdminService.UpdateSuppression:output_type -> iris.admin.v1.Suppression
+	98,  // 296: iris.admin.v1.IrisAdminService.ListSuppressionDsnMessages:output_type -> iris.admin.v1.ListSuppressionDsnMessagesReply
+	101, // 297: iris.admin.v1.IrisAdminService.ListTLSPolicies:output_type -> iris.admin.v1.ListTLSPoliciesReply
+	99,  // 298: iris.admin.v1.IrisAdminService.CreateTLSPolicy:output_type -> iris.admin.v1.TLSPolicy
+	104, // 299: iris.admin.v1.IrisAdminService.DeleteTLSPolicy:output_type -> iris.admin.v1.DeleteTLSPolicyReply
+	107, // 300: iris.admin.v1.IrisAdminService.ListInboundRoutes:output_type -> iris.admin.v1.ListInboundRoutesReply
+	105, // 301: iris.admin.v1.IrisAdminService.CreateInboundRoute:output_type -> iris.admin.v1.InboundRoute
+	105, // 302: iris.admin.v1.IrisAdminService.UpdateInboundRoute:output_type -> iris.admin.v1.InboundRoute
+	111, // 303: iris.admin.v1.IrisAdminService.DeleteInboundRoute:output_type -> iris.admin.v1.DeleteInboundRouteReply
+	114, // 304: iris.admin.v1.IrisAdminService.ListRspamdResults:output_type -> iris.admin.v1.ListRspamdResultsReply
+	117, // 305: iris.admin.v1.IrisAdminService.ListFeedbackLoops:output_type -> iris.admin.v1.ListFeedbackLoopsReply
+	115, // 306: iris.admin.v1.IrisAdminService.CreateFeedbackLoop:output_type -> iris.admin.v1.FeedbackLoop
+	115, // 307: iris.admin.v1.IrisAdminService.UpdateFeedbackLoop:output_type -> iris.admin.v1.FeedbackLoop
+	121, // 308: iris.admin.v1.IrisAdminService.DeleteFeedbackLoop:output_type -> iris.admin.v1.DeleteFeedbackLoopReply
+	125, // 309: iris.admin.v1.IrisAdminService.Login:output_type -> iris.admin.v1.LoginReply
+	125, // 310: iris.admin.v1.IrisAdminService.VerifyMFA:output_type -> iris.admin.v1.LoginReply
+	128, // 311: iris.admin.v1.IrisAdminService.CurrentUser:output_type -> iris.admin.v1.CurrentUserReply
+	130, // 312: iris.admin.v1.IrisAdminService.ChangePassword:output_type -> iris.admin.v1.ChangePasswordReply
+	132, // 313: iris.admin.v1.IrisAdminService.Logout:output_type -> iris.admin.v1.LogoutReply
+	140, // 314: iris.admin.v1.IrisAdminService.ListUsers:output_type -> iris.admin.v1.ListUsersReply
+	122, // 315: iris.admin.v1.IrisAdminService.CreateUser:output_type -> iris.admin.v1.User
+	122, // 316: iris.admin.v1.IrisAdminService.UpdateUser:output_type -> iris.admin.v1.User
+	144, // 317: iris.admin.v1.IrisAdminService.ResetUserPassword:output_type -> iris.admin.v1.ResetUserPasswordReply
+	134, // 318: iris.admin.v1.IrisAdminService.EnrollMFA:output_type -> iris.admin.v1.EnrollMFAReply
+	136, // 319: iris.admin.v1.IrisAdminService.ConfirmMFA:output_type -> iris.admin.v1.ConfirmMFAReply
+	138, // 320: iris.admin.v1.IrisAdminService.DisableMFA:output_type -> iris.admin.v1.DisableMFAReply
+	146, // 321: iris.admin.v1.IrisAdminService.ListAuditEntries:output_type -> iris.admin.v1.ListAuditEntriesReply
+	148, // 322: iris.admin.v1.IrisAdminService.RequestServiceControl:output_type -> iris.admin.v1.ServiceControlRequest
+	150, // 323: iris.admin.v1.IrisAdminService.GenerateKumoConfig:output_type -> iris.admin.v1.KumoConfig
+	152, // 324: iris.admin.v1.IrisAdminService.ApplyKumoConfig:output_type -> iris.admin.v1.ApplyKumoConfigReply
+	170, // 325: iris.admin.v1.IrisAdminService.GetAppliedKumoConfig:output_type -> iris.admin.v1.AppliedKumoConfig
+	172, // 326: iris.admin.v1.IrisAdminService.KumoConfigStatus:output_type -> iris.admin.v1.KumoConfigStatusReply
+	155, // 327: iris.admin.v1.IrisAdminService.GetAcmeAccount:output_type -> iris.admin.v1.AcmeAccount
+	155, // 328: iris.admin.v1.IrisAdminService.SaveAcmeAccount:output_type -> iris.admin.v1.AcmeAccount
+	158, // 329: iris.admin.v1.IrisAdminService.ListAcmeCertificates:output_type -> iris.admin.v1.ListAcmeCertificatesReply
+	156, // 330: iris.admin.v1.IrisAdminService.RequestAcmeCertificate:output_type -> iris.admin.v1.AcmeCertificate
+	161, // 331: iris.admin.v1.IrisAdminService.DeleteAcmeCertificate:output_type -> iris.admin.v1.DeleteAcmeCertificateReply
+	164, // 332: iris.admin.v1.IrisAdminService.ListAcmeDnsProviders:output_type -> iris.admin.v1.ListAcmeDnsProvidersReply
+	165, // 333: iris.admin.v1.IrisAdminService.GetAcmeDnsProvider:output_type -> iris.admin.v1.AcmeDnsProvider
+	165, // 334: iris.admin.v1.IrisAdminService.SetAcmeDnsProvider:output_type -> iris.admin.v1.AcmeDnsProvider
+	165, // 335: iris.admin.v1.IrisAdminService.ClearAcmeDnsProvider:output_type -> iris.admin.v1.AcmeDnsProvider
+	207, // 336: iris.admin.v1.IrisAdminService.GetDashboardSummary:output_type -> iris.admin.v1.DashboardSummary
+	212, // 337: iris.admin.v1.IrisAdminService.GetMetricsTimeseries:output_type -> iris.admin.v1.MetricsTimeseries
+	212, // 338: iris.admin.v1.IrisAdminService.GetSystemMetrics:output_type -> iris.admin.v1.MetricsTimeseries
+	216, // 339: iris.admin.v1.IrisAdminService.GetWarmupDeliveryStats:output_type -> iris.admin.v1.WarmupDeliveryStats
+	225, // 340: iris.admin.v1.IrisAdminService.GetQueueTimeHistogram:output_type -> iris.admin.v1.QueueTimeHistogram
+	219, // 341: iris.admin.v1.IrisAdminService.GetMailClassStats:output_type -> iris.admin.v1.MailClassStats
+	222, // 342: iris.admin.v1.IrisAdminService.GetRecipientDomainStats:output_type -> iris.admin.v1.RecipientDomainStats
+	175, // 343: iris.admin.v1.IrisAdminService.CheckDomainBounceSetup:output_type -> iris.admin.v1.DomainBounceCheck
+	178, // 344: iris.admin.v1.IrisAdminService.Diagnose:output_type -> iris.admin.v1.DiagnoseResult
+	182, // 345: iris.admin.v1.IrisAdminService.RblCheck:output_type -> iris.admin.v1.RblCheckReply
+	189, // 346: iris.admin.v1.IrisAdminService.GetDmarcStats:output_type -> iris.admin.v1.DmarcStats
+	192, // 347: iris.admin.v1.IrisAdminService.ListDmarcReports:output_type -> iris.admin.v1.ListDmarcReportsReply
+	194, // 348: iris.admin.v1.IrisAdminService.ListDmarcDomains:output_type -> iris.admin.v1.ListDmarcDomainsReply
+	197, // 349: iris.admin.v1.IrisAdminService.ListWorkerErrorLogs:output_type -> iris.admin.v1.ListWorkerErrorLogsReply
+	202, // 350: iris.admin.v1.IrisAdminService.ListRetentionPolicies:output_type -> iris.admin.v1.ListRetentionPoliciesReply
+	198, // 351: iris.admin.v1.IrisAdminService.UpdateRetentionPolicy:output_type -> iris.admin.v1.RetentionPolicy
+	205, // 352: iris.admin.v1.IrisAdminService.RunRetention:output_type -> iris.admin.v1.RunRetentionReply
+	226, // 353: iris.admin.v1.IrisAdminService.GetGlobalSettings:output_type -> iris.admin.v1.GlobalSettings
+	226, // 354: iris.admin.v1.IrisAdminService.UpdateGlobalSettings:output_type -> iris.admin.v1.GlobalSettings
+	231, // 355: iris.admin.v1.IrisAdminService.ListSubjectClassifications:output_type -> iris.admin.v1.ListSubjectClassificationsReply
+	229, // 356: iris.admin.v1.IrisAdminService.CreateSubjectClassification:output_type -> iris.admin.v1.SubjectClassification
+	229, // 357: iris.admin.v1.IrisAdminService.UpdateSubjectClassification:output_type -> iris.admin.v1.SubjectClassification
+	235, // 358: iris.admin.v1.IrisAdminService.DeleteSubjectClassification:output_type -> iris.admin.v1.DeleteSubjectClassificationReply
+	238, // 359: iris.admin.v1.IrisAdminService.ListInjectionCredentials:output_type -> iris.admin.v1.ListInjectionCredentialsReply
+	236, // 360: iris.admin.v1.IrisAdminService.CreateInjectionCredential:output_type -> iris.admin.v1.InjectionCredential
+	236, // 361: iris.admin.v1.IrisAdminService.UpdateInjectionCredential:output_type -> iris.admin.v1.InjectionCredential
+	236, // 362: iris.admin.v1.IrisAdminService.SetInjectionCredentialPassword:output_type -> iris.admin.v1.InjectionCredential
+	243, // 363: iris.admin.v1.IrisAdminService.DeleteInjectionCredential:output_type -> iris.admin.v1.DeleteInjectionCredentialReply
+	249, // 364: iris.admin.v1.IrisAdminService.GetSystemMonitor:output_type -> iris.admin.v1.SystemMonitor
+	246, // 365: iris.admin.v1.IrisAdminService.UpdateMonitorSettings:output_type -> iris.admin.v1.MonitorSettings
+	253, // 366: iris.admin.v1.IrisAdminService.TestMonitorNotification:output_type -> iris.admin.v1.TestMonitorNotificationReply
+	245, // [245:367] is the sub-list for method output_type
+	123, // [123:245] is the sub-list for method input_type
+	123, // [123:123] is the sub-list for extension type_name
+	123, // [123:123] is the sub-list for extension extendee
+	0,   // [0:123] is the sub-list for field type_name
 }
 
 func init() { file_iris_admin_v1_iris_admin_api_proto_init() }
@@ -15415,7 +19415,7 @@ func file_iris_admin_v1_iris_admin_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_iris_admin_v1_iris_admin_api_proto_rawDesc), len(file_iris_admin_v1_iris_admin_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   210,
+			NumMessages:   261,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

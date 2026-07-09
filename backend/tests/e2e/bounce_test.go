@@ -70,7 +70,7 @@ func TestAsyncHardBounceSuppresses(t *testing.T) {
 	deadline := time.Now().Add(40 * time.Second)
 	var gotBounce, gotSuppress bool
 	for time.Now().Before(deadline) {
-		bounces, err := mailRepo.ListBounces(ctx, biz.NormalizePage(0, ""))
+		bounces, err := mailRepo.ListBounces(ctx, biz.BounceFilter{}, biz.NormalizePage(0, ""))
 		if err != nil {
 			t.Fatalf("list bounces: %v", err)
 		}
@@ -153,7 +153,7 @@ func TestInboundDSNSuppresses(t *testing.T) {
 	deadline := time.Now().Add(40 * time.Second)
 	var gotBounce, gotSuppress bool
 	for time.Now().Before(deadline) {
-		bounces, err := mailRepo.ListBounces(ctx, biz.NormalizePage(0, ""))
+		bounces, err := mailRepo.ListBounces(ctx, biz.BounceFilter{}, biz.NormalizePage(0, ""))
 		if err != nil {
 			t.Fatalf("list bounces: %v", err)
 		}

@@ -16,6 +16,106 @@ var testDKIMKeyPEM = func() string {
 	return pem
 }()
 
+// TestRoutingMultiConditionOR verifies a mailclass rule with several
+// header/value conditions renders one ROUTES row + MAIL_CLASSES entry per
+// condition (all sharing the rule's pool/priority), giving OR match semantics.
+func TestRoutingMultiConditionOR(t *testing.T) {
+	snap := ConfigSnapshot{
+		VMTAs:  []*VMTA{{ID: "v1", Name: "vmta-a", ListenerID: "l1", IPAddress: "203.0.113.10", EHLOName: "a.example.com", Status: VMTAStatusActive}},
+		Groups: []*VMTAGroup{{ID: "g1", Name: "bulk-pool", Status: VMTAGroupStatusActive, Members: []VMTAGroupMember{{VMTAID: "v1", Weight: 100}}}},
+		Routes: []*RoutingRule{
+			{ID: "r1", Name: "multi", MatchType: MatchMailclass, Priority: 100, TargetType: TargetVMTAGroup, TargetID: "g1", Status: RoutingStatusActive,
+				MatchHeader: "X-Mail-Class", MatchValue: "bulk",
+				Conditions: []RoutingMatchCondition{
+					{Header: "X-Mail-Class", Value: "bulk"},
+					{Header: "X-Mail-Class", Value: "promo"},
+					{Header: "X-Campaign", Value: "spring"},
+				}},
+		},
+		DKIM: []*DKIMDomain{{ID: "d1", Domain: "example.com", Selector: "s1", PrivateKeyRef: testDKIMKeyPEM, Status: DKIMReady}},
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	if !r.Valid {
+		t.Fatalf("policy failed lint: %v\n%s", r.LintIssues, r.Content)
+	}
+	// One ROUTES row per condition, all pointing at bulk-pool.
+	for _, want := range []string{
+		`match_header = "X-Mail-Class", match_value = "bulk", priority = 100, egress_pool = "bulk-pool"`,
+		`match_header = "X-Mail-Class", match_value = "promo", priority = 100, egress_pool = "bulk-pool"`,
+		`match_header = "X-Campaign", match_value = "spring", priority = 100, egress_pool = "bulk-pool"`,
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Errorf("missing ROUTES row: %s\n%s", want, r.Content)
+		}
+	}
+	// RouteCount counts rules, not rows.
+	if r.RouteCount != 1 {
+		t.Errorf("RouteCount = %d, want 1 (one rule)", r.RouteCount)
+	}
+	// All three values classify (MAIL_CLASSES).
+	for _, v := range []string{`["bulk"] = "bulk"`, `["promo"] = "promo"`, `["spring"] = "spring"`} {
+		if !strings.Contains(r.Content, v) {
+			t.Errorf("missing MAIL_CLASSES value: %s", v)
+		}
+	}
+}
+
+// TestHTTPInjectionHookOutbound verifies that HTTP-injected mail gets the same
+// outbound processing as SMTP: mailclass classification, the VERP envelope
+// rewrite, and egress-pool routing — not just DKIM signing.
+func TestHTTPInjectionHookOutbound(t *testing.T) {
+	snap := ConfigSnapshot{
+		VMTAs: []*VMTA{
+			{ID: "v1", Name: "vmta-a", ListenerID: "lst-1", IPAddress: "203.0.113.10", EHLOName: "a.example.com", Status: VMTAStatusActive},
+		},
+		Groups: []*VMTAGroup{
+			{ID: "g1", Name: "bulk-pool", Status: VMTAGroupStatusActive, Members: []VMTAGroupMember{{VMTAID: "v1", Weight: 100}}},
+		},
+		Routes: []*RoutingRule{
+			{ID: "r1", Name: "bulk", MatchType: MatchMailclass, MatchValue: "bulk", Priority: 100, TargetType: TargetVMTAGroup, TargetID: "g1", Status: RoutingStatusActive},
+		},
+		DKIM: []*DKIMDomain{
+			{ID: "d1", Domain: "example.com", Selector: "s1", PrivateKeyRef: testDKIMKeyPEM, Status: DKIMReady},
+		},
+		// Enable VERP: bounce domain + redis log stream + verp secret.
+		BounceDomain:      "bounce.example.com",
+		LogStreamRedisURL: "redis://localhost:6379",
+		BounceVerpSecret:  "s3cret-verp-key",
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	if !r.Valid {
+		t.Fatalf("rendered policy failed lint: %v\n%s", r.LintIssues, r.Content)
+	}
+	// Isolate the http_message_generated hook body.
+	start := strings.Index(r.Content, "kumo.on('http_message_generated'")
+	if start < 0 {
+		t.Fatalf("policy missing http_message_generated hook:\n%s", r.Content)
+	}
+	hook := r.Content[start:]
+	if end := strings.Index(hook, "end)"); end >= 0 {
+		hook = hook[:end]
+	}
+	for _, want := range []string{
+		"classify_mail(msg)",           // mailclass classification
+		"msg:set_meta('mailclass'",     // records the class
+		"msg:set_sender(",              // VERP envelope rewrite
+		"iris_bounce_domain(msg)",      // bounce-domain derivation
+		"iris_dkim_sign(msg)",          // DKIM
+		"select_pool(msg,",             // egress-pool routing
+		"msg:set_meta('tenant', pool)", // records the pool
+	} {
+		if !strings.Contains(hook, want) {
+			t.Errorf("http_message_generated hook missing %q; got:\n%s", want, hook)
+		}
+	}
+}
+
 func TestRenderKumoConfig(t *testing.T) {
 	snap := ConfigSnapshot{
 		VMTAs: []*VMTA{
@@ -176,6 +276,102 @@ func TestRenderDefinesSpoolsAndLocalLogs(t *testing.T) {
 		if !strings.Contains(r.Content, want) {
 			t.Fatalf("generated init must contain %q:\n%s", want, r.Content)
 		}
+	}
+}
+
+func TestRenderEgressPinning(t *testing.T) {
+	base := ConfigSnapshot{
+		VMTAs: []*VMTA{
+			{ID: "v1", Name: "vmta-a", ListenerID: "l1", IPAddress: "203.0.113.10", EHLOName: "a.example.com", Status: VMTAStatusActive},
+			{ID: "v2", Name: "vmta-b", ListenerID: "l1", IPAddress: "203.0.113.11", EHLOName: "b.example.com", Status: VMTAStatusActive},
+		},
+		Groups: []*VMTAGroup{
+			{ID: "g1", Name: "bulk-pool", Status: VMTAGroupStatusActive, Members: []VMTAGroupMember{
+				{VMTAID: "v1", Weight: 1}, {VMTAID: "v2", Weight: 1},
+			}},
+		},
+		Routes: []*RoutingRule{
+			{ID: "r1", Name: "bulk", MatchType: MatchMailclass, MatchValue: "bulk", Priority: 100, TargetType: TargetVMTAGroup, TargetID: "g1", Status: RoutingStatusActive},
+		},
+	}
+
+	// Off (default): byte-for-byte free of any pinning artifacts.
+	off, err := RenderKumoConfig(base)
+	if err != nil || !off.Valid {
+		t.Fatalf("render off: err=%v valid=%v", err, off.Valid)
+	}
+	if strings.Contains(off.Content, "iris_pin_egress_pool") || strings.Contains(off.Content, "-pin-") {
+		t.Fatalf("pinning must not appear when disabled:\n%s", off.Content)
+	}
+
+	// On: still valid Lua, with the helper, the reception-hook call, and the
+	// "<pool>-pin-<source>" resolution in get_egress_pool.
+	on := base
+	on.PinEgressPerMessage = true
+	r, err := RenderKumoConfig(on)
+	if err != nil || !r.Valid {
+		t.Fatalf("render on: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	for _, want := range []string{
+		"local function iris_pin_egress_pool(pool, msg)",
+		"pool = iris_pin_egress_pool(pool, msg)",
+		`string.match(name, '.*%-pin%-(.+)$')`,
+		`return pool .. '-pin-' .. e.name`,
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Fatalf("pinning-on policy must contain %q:\n%s", want, r.Content)
+		}
+	}
+
+	// The pinned pool name must NOT contain '@' or ':' — those are KumoMTA
+	// queue-name delimiters (tenant@domain), and an '@' here corrupted the queue
+	// name in v5.5.0 (regular-mails@vmta-04@domain → "Malformed label").
+	if strings.Contains(r.Content, `.. '@' ..`) || strings.Contains(r.Content, `.. '@'..`) {
+		t.Fatalf("pinned pool name must not join with '@' (collides with tenant@domain):\n%s", r.Content)
+	}
+}
+
+func TestRenderChecksumIgnoresGeneratedBy(t *testing.T) {
+	// The generated_by comment records who rendered the policy; it must NOT change
+	// the checksum, or drift detection nags "changes pending" whenever a different
+	// user regenerates an identical policy. The comment must still ship in Content.
+	base := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "l1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+	}
+	a := base
+	a.GeneratedBy = "alice@example.com"
+	b := base
+	b.GeneratedBy = "bob@example.com"
+
+	ra, err := RenderKumoConfig(a)
+	if err != nil {
+		t.Fatalf("render a: %v", err)
+	}
+	rb, err := RenderKumoConfig(b)
+	if err != nil {
+		t.Fatalf("render b: %v", err)
+	}
+	if ra.Checksum != rb.Checksum {
+		t.Fatalf("checksum must ignore generated_by: %s != %s", ra.Checksum, rb.Checksum)
+	}
+	if ra.InitChecksum != rb.InitChecksum {
+		t.Fatalf("init checksum must ignore generated_by")
+	}
+	// The audit comment still ships in the rendered content.
+	if !strings.Contains(ra.Content, "-- generated_by = alice@example.com") {
+		t.Fatalf("generated_by comment must remain in content:\n%s", ra.Content)
+	}
+	// A real policy change (an extra VMTA) MUST still change the checksum.
+	c := base
+	c.GeneratedBy = "alice@example.com"
+	c.VMTAs = append(append([]*VMTA{}, base.VMTAs...),
+		&VMTA{ID: "v2", Name: "v2", ListenerID: "l1", IPAddress: "203.0.113.2", EHLOName: "v2.example.com", Status: VMTAStatusActive})
+	rc, err := RenderKumoConfig(c)
+	if err != nil {
+		t.Fatalf("render c: %v", err)
+	}
+	if rc.Checksum == ra.Checksum {
+		t.Fatal("a real policy change must change the checksum")
 	}
 }
 

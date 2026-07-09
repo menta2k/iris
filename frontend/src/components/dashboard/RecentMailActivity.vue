@@ -17,12 +17,10 @@ defineProps<{ events?: MailRecord[]; count?: string }>()
 </script>
 
 <template>
-  <Card data-testid="recent-mail-activity">
+  <Card data-testid="recent-mail-activity" class="h-100">
     <CardHeader>
-      <CardTitle class="d-flex align-center justify-space-between">
-        <span>Recent Mail Activity</span>
-        <span v-if="count" class="text-body-2 font-weight-regular text-medium-emphasis">{{ count }} in last hour</span>
-      </CardTitle>
+      <CardTitle>Recent Mail Activity</CardTitle>
+      <p v-if="count" class="text-caption text-medium-emphasis mb-0">{{ count }} events in the last hour</p>
     </CardHeader>
     <CardContent>
       <Table>

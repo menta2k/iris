@@ -40,6 +40,7 @@ export const navItems: NavItem[] = [
     children: [
       { label: 'Mail Logs', to: '/operations/mail-logs', permission: 'operations:read' },
       { label: 'Bounces', to: '/operations/bounces', permission: 'operations:read' },
+      { label: 'Bounce Actions', to: '/operations/bounce-actions', permission: 'operations:read' },
       { label: 'Feedback', to: '/operations/feedback', permission: 'operations:read' },
       { label: 'DMARC Reports', to: '/operations/dmarc', permission: 'operations:read' },
       { label: 'Queues', to: '/operations/queues', permission: 'operations:read' },
@@ -58,6 +59,8 @@ export const navItems: NavItem[] = [
         permission: 'service:control',
       },
       { label: 'Feedback Loops', to: '/settings/feedback-loops', permission: 'service:control' },
+      { label: 'Event Processors', to: '/settings/event-processors', permission: 'service:control' },
+      { label: 'System Monitor', to: '/settings/system-monitor', permission: 'service:control' },
       { label: 'Retention', to: '/operations/retention', permission: 'service:control' },
       {
         label: 'Service Control',
@@ -107,6 +110,7 @@ export const navItems: NavItem[] = [
     children: [
       { label: 'Users', to: '/security/users', permission: 'security:read' },
       { label: 'MFA & Permissions', to: '/security/access', permission: 'security:read' },
+      { label: 'Injection API', to: '/security/injection-credentials', permission: 'security:write' },
       { label: 'Audit Log', to: '/security/audit', permission: 'security:read' },
     ],
   },

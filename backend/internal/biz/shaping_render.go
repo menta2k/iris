@@ -2,6 +2,7 @@ package biz
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -128,6 +129,117 @@ func RenderAutomation(rules []*AutomationRule) string {
 	return b.String()
 }
 
+// mergeAutomation concatenates operator-authored automation rules with the ones
+// compiled from bounce rules into a fresh slice (never mutating either input).
+func mergeAutomation(operator, compiled []*AutomationRule) []*AutomationRule {
+	out := make([]*AutomationRule, 0, len(operator)+len(compiled))
+	out = append(out, operator...)
+	out = append(out, compiled...)
+	return out
+}
+
+// BounceRulesToAutomation compiles active throttle / suspend_domain bounce-action
+// rules into TSA automation rules so the config generator renders them into
+// iris-automation.toml and the TSA daemon enforces them reactively. Every
+// compiled rule carries a threshold trigger and a bounded duration, so a single
+// bounce never indefinitely halts a provider. retry / suppress rules produce no
+// shaping (they are enforced elsewhere).
+func BounceRulesToAutomation(rules []*BounceActionRule) []*AutomationRule {
+	var out []*AutomationRule
+	for _, r := range rules {
+		if r == nil || (r.Status != "" && r.Status != "active") {
+			continue
+		}
+		var action, cfgName, cfgValue, duration string
+		switch r.Action {
+		case BounceActionSuspendDomain:
+			action = AutomationSuspend
+			duration = firstNonEmpty(r.ActionConfig, "1h")
+		case BounceActionThrottle:
+			action = AutomationSetConfig
+			cfgName, cfgValue = parseThrottleConfig(r.ActionConfig)
+			duration = "1h"
+		default:
+			continue // retry / suppress → no shaping
+		}
+		regex := bounceRuleRegex(r)
+		if regex == "" {
+			continue
+		}
+		for _, domain := range bounceProviderDomains(r.Provider) {
+			out = append(out, &AutomationRule{
+				Domain:      domain,
+				Regex:       regex,
+				Action:      action,
+				ConfigName:  cfgName,
+				ConfigValue: cfgValue,
+				Trigger:     "2/hr", // safety: act only after repeated hits
+				Duration:    duration,
+				Status:      AutomationActive,
+			})
+		}
+	}
+	return out
+}
+
+// bounceRuleRegex builds a Rust-regex that matches the SMTP response for a bounce
+// rule, preferring the most specific available signal. Literal text is escaped so
+// the operator's plain pattern/code is matched verbatim.
+func bounceRuleRegex(r *BounceActionRule) string {
+	switch {
+	case r.Pattern != "":
+		return regexp.QuoteMeta(r.Pattern)
+	case r.EnhancedCode != "":
+		return regexp.QuoteMeta(r.EnhancedCode)
+	case r.SMTPCode != "":
+		return r.SMTPCode
+	default:
+		return ""
+	}
+}
+
+// parseThrottleConfig splits a throttle ActionConfig ("name=value", e.g.
+// "max_message_rate=100/h") into a SetConfig name/value, defaulting to a
+// conservative message-rate cap when unset or malformed.
+func parseThrottleConfig(cfg string) (name, value string) {
+	if i := strings.Index(cfg, "="); i >= 0 {
+		name = strings.TrimSpace(cfg[:i])
+		value = strings.TrimSpace(cfg[i+1:])
+	}
+	if name == "" {
+		name = "max_message_rate"
+	}
+	if value == "" {
+		value = "100/h"
+	}
+	return name, value
+}
+
+// bounceProviderDomains maps a bounce-rule provider bucket to the receiving-MX
+// domain patterns a TSA automation rule keys on. "" (all providers) maps to the
+// "default" block; an unknown bucket is used verbatim as a best-effort domain.
+func bounceProviderDomains(provider string) []string {
+	switch provider {
+	case "gmail":
+		return providerMXPatterns(MBPGmail)
+	case "microsoft":
+		return providerMXPatterns(MBPMicrosoft)
+	case "yahoo":
+		return providerMXPatterns(MBPYahoo)
+	case "":
+		return []string{"default"}
+	default:
+		return []string{provider}
+	}
+}
+
+func firstNonEmpty(a, b string) string {
+	if strings.TrimSpace(a) != "" {
+		return a
+	}
+	return b
+}
+
 func automationActionExpr(r *AutomationRule) string {
 	switch r.Action {
 	case AutomationSuspend:
@@ -147,7 +259,11 @@ func automationActionExpr(r *AutomationRule) string {
 func providerMXPatterns(bucket string) []string {
 	switch bucket {
 	case MBPGmail:
-		return []string{"google.com", "googlemail.com"}
+		// gmail.com is the domain the overwhelming majority of Gmail recipients
+		// use; google.com/googlemail.com are corporate/legacy. With mx_rollup=false
+		// the block matches the literal recipient domain, so gmail.com MUST be here
+		// or real Gmail traffic escapes the warmup ceiling entirely.
+		return []string{"gmail.com", "google.com", "googlemail.com"}
 	case MBPMicrosoft:
 		return []string{"outlook.com", "hotmail.com", "live.com", "office365.com", "msn.com"}
 	case MBPYahoo:

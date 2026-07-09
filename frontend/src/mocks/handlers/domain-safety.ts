@@ -55,7 +55,35 @@ export const domainSafetyRoutes: Route[] = [
   },
 
   // ---- Suppressions ----
-  { method: 'GET', pattern: '/suppressions', handler: (ctx) => ok(paged(all('suppressions'), ctx.query)) },
+  {
+    method: 'GET',
+    pattern: '/suppressions',
+    handler: (ctx) => {
+      // Mirrors the backend's ListSuppressions filters.
+      const q = (name: string) => (ctx.query[name] || '').toString().toLowerCase()
+      const search = q('search')
+      const type = q('type')
+      const status = q('status')
+      const source = q('source')
+      const mailclass = (ctx.query.mailclass || '').toString()
+      const rows = all('suppressions').filter((row) => {
+        const s = row as {
+          value: string
+          type?: string
+          status?: string
+          source?: string
+          mailclass?: string
+        }
+        if (search && !s.value.toLowerCase().includes(search)) return false
+        if (type && (s.type ?? '').toLowerCase() !== type) return false
+        if (status && (s.status ?? '').toLowerCase() !== status) return false
+        if (source && (s.source ?? '').toLowerCase() !== source) return false
+        if (mailclass && !(s.mailclass ?? '').toLowerCase().includes(mailclass.toLowerCase())) return false
+        return true
+      })
+      return ok(paged(rows, ctx.query))
+    },
+  },
   {
     method: 'POST',
     pattern: '/suppressions',
@@ -68,6 +96,7 @@ export const domainSafetyRoutes: Route[] = [
         reason: body.reason,
         source: 'manual',
         status: 'active',
+        createdAt: new Date().toISOString(),
       }))
     },
   },
@@ -78,6 +107,46 @@ export const domainSafetyRoutes: Route[] = [
       const body = ctx.body as { reason: string; status: string }
       const updated = updateRow('suppressions', ctx.params.id, { reason: body.reason, status: body.status })
       return updated ? ok(updated) : notFound('Suppression not found')
+    },
+  },
+  {
+    method: 'GET',
+    pattern: '/suppressions/:id/dsn-messages',
+    handler: (ctx) => {
+      const sup = all('suppressions').find((s) => (s as { id: string }).id === ctx.params.id) as
+        | { value: string; source: string }
+        | undefined
+      if (!sup || sup.source !== 'dsn') return ok({ items: [] })
+      return ok({
+        items: [
+          {
+            id: `dsn_${ctx.params.id}`,
+            messageId: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+            receivedAt: new Date().toISOString(),
+            rawMessage: [
+              'Return-Path: <>',
+              'From: Mail Delivery System <MAILER-DAEMON@mx.example.com>',
+              `To: <${sup.value}>`,
+              'Subject: Undelivered Mail Returned to Sender',
+              'Content-Type: multipart/report; report-type=delivery-status;',
+              '',
+              'This is the mail system at host mx.example.com.',
+              '',
+              'I\'m sorry to have to inform you that your message could not',
+              'be delivered to one or more recipients.',
+              '',
+              '--- The following addresses had permanent fatal errors ---',
+              `<${sup.value}>`,
+              '    (reason: 550 5.1.1 <user> User unknown; rejecting)',
+              '',
+              '--- Delivery report ---',
+              'Action: failed',
+              'Status: 5.1.1',
+              'Diagnostic-Code: smtp; 550 5.1.1 recipient rejected',
+            ].join('\n'),
+          },
+        ],
+      })
     },
   },
 

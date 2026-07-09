@@ -13,6 +13,14 @@ import (
 
 const dsnGroup = "iris-dsn"
 
+// DSNStore both auto-suppresses a recipient and archives the raw DSN message —
+// both backed by the domain-safety repo. Archiving lets an operator later
+// inspect the full asynchronous bounce behind a dsn-sourced suppression.
+type DSNStore interface {
+	Suppressor
+	InsertDSNMessage(ctx context.Context, m *biz.DSNMessage) error
+}
+
 // DSNWorker consumes inbound DSN (asynchronous bounce) messages captured at the
 // configured bounce domain. Each entry carries the original recipient; the
 // worker records a bounce and auto-suppresses the recipient (async bounces are
@@ -20,7 +28,7 @@ const dsnGroup = "iris-dsn"
 type DSNWorker struct {
 	streams    *data.Streams
 	store      MailEventStore
-	suppressor Suppressor
+	suppressor DSNStore
 	verpSecret string
 	stream     string
 	log        *slog.Logger
@@ -29,7 +37,7 @@ type DSNWorker struct {
 // NewDSNWorker constructs the worker. streamName must match the policy's DSN
 // stream (defaults to biz.DSNStreamName). verpSecret decodes the VERP envelope
 // return-path to the original recipient (empty = VERP off).
-func NewDSNWorker(streams *data.Streams, store MailEventStore, suppressor Suppressor, verpSecret, streamName string, log *slog.Logger) *DSNWorker {
+func NewDSNWorker(streams *data.Streams, store MailEventStore, suppressor DSNStore, verpSecret, streamName string, log *slog.Logger) *DSNWorker {
 	if streamName == "" {
 		streamName = biz.DSNStreamName
 	}
@@ -78,7 +86,9 @@ func (w *DSNWorker) handle(ctx context.Context, m data.StreamMessage) {
 	// record/suppress the real address — not the bounce-domain address.
 	recipient := envelope
 	resolved := false
-	if msgID, signed, ok := biz.ParseBounceVERP(w.verpSecret, envelope); ok {
+	msgID := ""
+	if id, signed, ok := biz.ParseBounceVERP(w.verpSecret, envelope); ok {
+		msgID = id
 		if !signed {
 			w.log.Warn("dsn verp signature mismatch", "envelope", envelope)
 		}
@@ -107,8 +117,20 @@ func (w *DSNWorker) handle(ctx context.Context, m data.StreamMessage) {
 	// Only auto-suppress when we resolved a real recipient (or VERP was off and
 	// the envelope is the actual recipient). Never suppress a bare VERP address.
 	if w.suppressor != nil && (resolved || w.verpSecret == "") {
-		if err := w.suppressor.SuppressRecipient(ctx, recipient, "dsn", "asynchronous bounce (DSN)"); err != nil {
+		if err := w.suppressor.SuppressRecipient(ctx, recipient, "dsn", "asynchronous bounce (DSN)", ""); err != nil {
 			w.log.Error("auto-suppress dsn recipient", "recipient", recipient, "error", err.Error())
+		}
+		// Archive the full DSN so the suppression detail can show it. Keyed by the
+		// same recipient used for the suppression so the two line up.
+		if raw := stringValue(m.Values["data"]); raw != "" {
+			if err := w.suppressor.InsertDSNMessage(ctx, &biz.DSNMessage{
+				Recipient:  recipient,
+				MessageID:  msgID,
+				RawMessage: raw,
+				ReceivedAt: time.Now().UTC(),
+			}); err != nil {
+				w.log.Error("archive dsn message", "recipient", recipient, "error", err.Error())
+			}
 		}
 	}
 }

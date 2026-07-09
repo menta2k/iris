@@ -9,19 +9,20 @@ import (
 // KumoConfigRepo assembles the full active configuration snapshot used to render
 // a KumoMTA policy. It composes the outbound, domain-safety, and inbound repos.
 type KumoConfigRepo struct {
-	outbound   *OutboundConfigRepo
-	safety     *DomainSafetyRepo
-	inbound    *InboundRepo
-	routes     *InboundRouteRepo
-	fbl        *FBLRepo
-	warmup     *WarmupRepo
-	blueprint  *BlueprintRepo
-	automation *AutomationRepo
+	outbound    *OutboundConfigRepo
+	safety      *DomainSafetyRepo
+	inbound     *InboundRepo
+	routes      *InboundRouteRepo
+	fbl         *FBLRepo
+	warmup      *WarmupRepo
+	blueprint   *BlueprintRepo
+	automation  *AutomationRepo
+	bounceRules *BounceRuleRepo
 }
 
 // NewKumoConfigRepo constructs the snapshot loader.
-func NewKumoConfigRepo(outbound *OutboundConfigRepo, safety *DomainSafetyRepo, inbound *InboundRepo, routes *InboundRouteRepo, fbl *FBLRepo, warmup *WarmupRepo, blueprint *BlueprintRepo, automation *AutomationRepo) *KumoConfigRepo {
-	return &KumoConfigRepo{outbound: outbound, safety: safety, inbound: inbound, routes: routes, fbl: fbl, warmup: warmup, blueprint: blueprint, automation: automation}
+func NewKumoConfigRepo(outbound *OutboundConfigRepo, safety *DomainSafetyRepo, inbound *InboundRepo, routes *InboundRouteRepo, fbl *FBLRepo, warmup *WarmupRepo, blueprint *BlueprintRepo, automation *AutomationRepo, bounceRules *BounceRuleRepo) *KumoConfigRepo {
+	return &KumoConfigRepo{outbound: outbound, safety: safety, inbound: inbound, routes: routes, fbl: fbl, warmup: warmup, blueprint: blueprint, automation: automation, bounceRules: bounceRules}
 }
 
 var _ biz.ConfigSnapshotLoader = (*KumoConfigRepo)(nil)
@@ -75,6 +76,11 @@ func (r *KumoConfigRepo) Snapshot(ctx context.Context) (biz.ConfigSnapshot, erro
 	}
 	if r.automation != nil {
 		if snap.AutomationRules, err = r.automation.ListActiveAutomationForPolicy(ctx); err != nil {
+			return snap, err
+		}
+	}
+	if r.bounceRules != nil {
+		if snap.BounceRules, err = r.bounceRules.ListActiveBounceRules(ctx); err != nil {
 			return snap, err
 		}
 	}

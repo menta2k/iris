@@ -80,6 +80,7 @@ type DMARCRepo interface {
 type DMARCUsecase struct {
 	repo    DMARCRepo
 	auditor *Auditor
+	events  EventEmitter
 }
 
 // NewDMARCUsecase constructs the use case.
@@ -87,10 +88,28 @@ func NewDMARCUsecase(repo DMARCRepo, auditor *Auditor) *DMARCUsecase {
 	return &DMARCUsecase{repo: repo, auditor: auditor}
 }
 
+// WithEventEmitter forwards dmarc-received events to the Event Processor.
+func (uc *DMARCUsecase) WithEventEmitter(e EventEmitter) *DMARCUsecase {
+	uc.events = e
+	return uc
+}
+
 // Ingest persists a parsed report. Called by the worker (no permission check —
 // it runs on an internal context).
 func (uc *DMARCUsecase) Ingest(ctx context.Context, report *DMARCReport, records []DMARCRecord) error {
-	return uc.repo.InsertReport(ctx, report, records)
+	if err := uc.repo.InsertReport(ctx, report, records); err != nil {
+		return err
+	}
+	if uc.events != nil {
+		uc.events.Emit(DispatchEvent{
+			Type: EventDMARCReceived, OccurredAt: report.ReceivedAt,
+			Data: map[string]any{
+				"domain": report.Domain, "org_name": report.OrgName,
+				"report_id": report.ReportID, "records": len(records),
+			},
+		})
+	}
+	return nil
 }
 
 // Stats returns the aggregated view after an authorization check. reporter

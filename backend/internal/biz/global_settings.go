@@ -34,6 +34,11 @@ type GlobalSettings struct {
 	EgressMaxRetryInterval string
 	EgressMaxAge           string
 
+	// PinEgressPerMessage keeps a message on one egress IP across retries
+	// (deterministic per-message source selection, hashed by message id) instead
+	// of KumoMTA's per-attempt weighted round-robin. Default false = round-robin.
+	PinEgressPerMessage bool
+
 	// Bounce / DSN pipeline.
 	BounceDomain            string
 	AutoSuppressHardBounces bool
@@ -75,6 +80,18 @@ type GlobalSettings struct {
 	AdminHTTPAddr      string
 	AdminTLSEnabled    bool
 	AdminTLSCertDomain string
+
+	// Injection listener (GreenArrow-compatible mail-injection API). Applied on
+	// restart — the socket is bound at startup. InjectionEnabled turns the
+	// dedicated listener on; InjectionListenAddr/InjectionPath set where it binds
+	// and which route it answers; InjectionTLSEnabled serves HTTPS using the
+	// issued certificate whose domain is InjectionTLSCertDomain. Credentials are
+	// managed separately (the Injection API page).
+	InjectionEnabled       bool
+	InjectionListenAddr    string
+	InjectionPath          string
+	InjectionTLSEnabled    bool
+	InjectionTLSCertDomain string
 
 	// ACME auto-renew schedule (Go/KumoMTA duration form, e.g. "12h", "30d").
 	// Empty uses the env/default (12h scan, renew within 30d of expiry).
@@ -196,6 +213,28 @@ func (g *GlobalSettings) Validate() error {
 	g.AdminTLSCertDomain = strings.ToLower(strings.TrimSpace(g.AdminTLSCertDomain))
 	if g.AdminTLSEnabled && g.AdminTLSCertDomain == "" {
 		return Invalid("SETTINGS_ADMIN_TLS_CERT_REQUIRED", "admin_tls_cert_domain is required when admin TLS is enabled")
+	}
+
+	// Injection listener (applied on restart). Defaults fill in when enabled and
+	// left blank; TLS requires a certificate domain.
+	g.InjectionListenAddr = strings.TrimSpace(g.InjectionListenAddr)
+	if g.InjectionListenAddr != "" {
+		if _, _, err := net.SplitHostPort(g.InjectionListenAddr); err != nil {
+			return Invalid("SETTINGS_INJECTION_ADDR_INVALID", "injection_listen_addr must be host:port (e.g. :8025)")
+		}
+	}
+	g.InjectionPath = strings.TrimSpace(g.InjectionPath)
+	if g.InjectionPath != "" && !strings.HasPrefix(g.InjectionPath, "/") {
+		return Invalid("SETTINGS_INJECTION_PATH_INVALID", "injection_path must start with '/'")
+	}
+	g.InjectionTLSCertDomain = strings.ToLower(strings.TrimSpace(g.InjectionTLSCertDomain))
+	if g.InjectionEnabled {
+		if g.InjectionPath == "" {
+			g.InjectionPath = "/api/inject"
+		}
+		if g.InjectionTLSEnabled && g.InjectionTLSCertDomain == "" {
+			return Invalid("SETTINGS_INJECTION_TLS_CERT_REQUIRED", "injection_tls_cert_domain is required when injection TLS is enabled")
+		}
 	}
 
 	// Prometheus base URL (optional; must be http(s) when set).

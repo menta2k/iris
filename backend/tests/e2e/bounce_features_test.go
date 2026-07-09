@@ -103,7 +103,7 @@ func TestBounceClassificationE2E(t *testing.T) {
 	deadline := time.Now().Add(40 * time.Second)
 	var classification string
 	for time.Now().Before(deadline) {
-		bounces, err := repo.ListBounces(ctx, biz.NormalizePage(0, ""))
+		bounces, err := repo.ListBounces(ctx, biz.BounceFilter{}, biz.NormalizePage(0, ""))
 		if err != nil {
 			t.Fatalf("list bounces: %v", err)
 		}

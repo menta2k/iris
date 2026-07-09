@@ -38,8 +38,10 @@ func (s *Service) CreateSubjectClassification(ctx context.Context, req *adminv1.
 		return nil, notImplemented("CreateSubjectClassification")
 	}
 	out, err := s.classifications.Create(ctx, &biz.SubjectClassification{
-		Subject: req.GetSubject(),
-		Label:   req.GetLabel(),
+		Subject:   req.GetSubject(),
+		Label:     req.GetLabel(),
+		MatchType: req.GetMatchType(),
+		Priority:  req.GetPriority(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "CreateSubjectClassification", err)
@@ -53,9 +55,11 @@ func (s *Service) UpdateSubjectClassification(ctx context.Context, req *adminv1.
 		return nil, notImplemented("UpdateSubjectClassification")
 	}
 	out, err := s.classifications.Update(ctx, &biz.SubjectClassification{
-		ID:      req.GetId(),
-		Subject: req.GetSubject(),
-		Label:   req.GetLabel(),
+		ID:        req.GetId(),
+		Subject:   req.GetSubject(),
+		Label:     req.GetLabel(),
+		MatchType: req.GetMatchType(),
+		Priority:  req.GetPriority(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "UpdateSubjectClassification", err)
@@ -81,6 +85,8 @@ func classificationToProto(c *biz.SubjectClassification) *adminv1.SubjectClassif
 		SubjectNormalized: c.SubjectNormalized,
 		Label:             c.Label,
 		Source:            c.Source,
+		MatchType:         c.MatchType,
+		Priority:          c.Priority,
 		HitCount:          c.HitCount,
 		CreatedAt:         formatTime(c.CreatedAt),
 		UpdatedAt:         formatTime(c.UpdatedAt),

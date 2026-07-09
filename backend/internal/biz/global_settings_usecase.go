@@ -109,6 +109,7 @@ func (uc *GlobalSettingsUsecase) Effective(ctx context.Context) (KumoConfigSetti
 	if row.InboundMaildirBasePath != "" {
 		s.InboundMaildirBase = row.InboundMaildirBasePath
 	}
+	s.PinEgressPerMessage = row.PinEgressPerMessage
 	return s, nil
 }
 
@@ -159,6 +160,22 @@ func (uc *GlobalSettingsUsecase) SuppressionTTLNow(ctx context.Context) time.Dur
 	}
 	d, _ := ParseFlexDuration(row.SuppressionTTL)
 	return d
+}
+
+// RetryScheduleNow returns the effective outbound retry schedule (the configured
+// egress retry interval / max interval / max age, falling back to KumoMTA's
+// defaults when unset). No permission check — internal provider used to estimate
+// a deferred message's next delivery attempt.
+func (uc *GlobalSettingsUsecase) RetryScheduleNow(ctx context.Context) RetrySchedule {
+	var s RetrySchedule
+	row, err := uc.repo.Get(ctx)
+	if err != nil || row == nil {
+		return s
+	}
+	s.Interval, _ = ParseFlexDuration(row.EgressRetryInterval)
+	s.MaxInterval, _ = ParseFlexDuration(row.EgressMaxRetryInterval)
+	s.MaxAge, _ = ParseFlexDuration(row.EgressMaxAge)
+	return s
 }
 
 // PrometheusURLNow returns the configured Prometheus base URL (empty when

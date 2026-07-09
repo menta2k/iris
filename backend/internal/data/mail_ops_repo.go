@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -28,8 +29,11 @@ func (r *MailOpsRepo) ListMailRecords(ctx context.Context, f biz.MailFilter, pag
 		       recipient_domain, coalesce(vmta_id::text,''), egress_source, status, record_type, smtp_status, diagnostic, classification
 		FROM mail_records
 		WHERE ($1 = '' OR mailclass = $1)
-		  AND ($2 = '' OR sender = $2)
-		  AND ($3 = '' OR recipient = $3)
+		  -- sender/recipient/from are partial, case-insensitive matches so an
+		  -- operator can search by just a domain (e.g. "gmail.com") or a name
+		  -- fragment, not only a full address.
+		  AND ($2 = '' OR sender ILIKE '%' || $2 || '%')
+		  AND ($3 = '' OR recipient ILIKE '%' || $3 || '%')
 		  AND ($4 = '' OR egress_source = $4)
 		  AND ($5::timestamptz IS NULL OR event_time >= $5)
 		  AND ($6::timestamptz IS NULL OR event_time <= $6)
@@ -56,14 +60,51 @@ func (r *MailOpsRepo) ListMailRecords(ctx context.Context, f biz.MailFilter, pag
 	return out, rows.Err()
 }
 
-// ListBounces returns bounce records newest first.
-func (r *MailOpsRepo) ListBounces(ctx context.Context, page biz.Page) ([]*biz.BounceRecord, error) {
+// ListRecordsByMessageID returns every event for one message, oldest first, so
+// the retry-schedule estimator can reconstruct the full lifecycle (reception →
+// deferrals → outcome) regardless of table pagination. Bounded for safety.
+func (r *MailOpsRepo) ListRecordsByMessageID(ctx context.Context, messageID string) ([]*biz.MailRecord, error) {
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT id, message_id, event_time, mailclass, sender, from_header, recipient,
+		       recipient_domain, coalesce(vmta_id::text,''), egress_source, status, record_type, smtp_status, diagnostic, classification
+		FROM mail_records
+		WHERE message_id = $1
+		ORDER BY event_time
+		LIMIT 1000`, messageID)
+	if err != nil {
+		return nil, fmt.Errorf("query mail records by message id: %w", err)
+	}
+	defer rows.Close()
+	var out []*biz.MailRecord
+	for rows.Next() {
+		m := &biz.MailRecord{}
+		if err := rows.Scan(&m.ID, &m.MessageID, &m.EventTime, &m.Mailclass, &m.Sender,
+			&m.FromHeader, &m.Recipient, &m.RecipientDomain, &m.VMTAID, &m.EgressSource, &m.Status,
+			&m.RecordType, &m.SMTPStatus, &m.Diagnostic, &m.Classification); err != nil {
+			return nil, fmt.Errorf("scan mail record: %w", err)
+		}
+		out = append(out, m)
+	}
+	return out, rows.Err()
+}
+
+// ListBounces returns bounce records matching the filter, newest first.
+func (r *MailOpsRepo) ListBounces(ctx context.Context, f biz.BounceFilter, page biz.Page) ([]*biz.BounceRecord, error) {
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT id, coalesce(mail_record_id::text,''), event_time, recipient,
 		       coalesce(vmta_id::text,''), mailclass, smtp_status, bounce_type,
 		       diagnostic, classification, processing_state
-		FROM bounce_records ORDER BY event_time DESC LIMIT $1 OFFSET $2`,
-		page.Size, page.Offset)
+		FROM bounce_records
+		WHERE ($1 = '' OR recipient ILIKE '%' || $1 || '%')
+		  AND ($2 = '' OR mailclass = $2)
+		  AND ($3 = '' OR lower(bounce_type) = $3)
+		  AND ($4 = '' OR classification ILIKE '%' || $4 || '%')
+		  AND ($5 = '' OR lower(processing_state) = $5)
+		  AND ($6::timestamptz IS NULL OR event_time >= $6)
+		  AND ($7::timestamptz IS NULL OR event_time <= $7)
+		ORDER BY event_time DESC LIMIT $8 OFFSET $9`,
+		f.Recipient, f.Mailclass, f.BounceType, f.Classification, f.ProcessingState,
+		f.FromTime, f.ToTime, page.Size, page.Offset)
 	if err != nil {
 		return nil, fmt.Errorf("query bounces: %w", err)
 	}
@@ -76,6 +117,32 @@ func (r *MailOpsRepo) ListBounces(ctx context.Context, page biz.Page) ([]*biz.Bo
 			return nil, fmt.Errorf("scan bounce: %w", err)
 		}
 		out = append(out, b)
+	}
+	return out, rows.Err()
+}
+
+// ListDSNMessages returns the raw DSN messages archived for a recipient, newest
+// first, bounded by limit. Reads the same dsn_messages table the DSN worker
+// writes; scoped by recipient (the resolved original address).
+func (r *MailOpsRepo) ListDSNMessages(ctx context.Context, recipient string, limit int) ([]*biz.DSNMessage, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT id, recipient, message_id, raw_message, received_at
+		FROM dsn_messages WHERE recipient = $1 ORDER BY received_at DESC LIMIT $2`,
+		strings.ToLower(strings.TrimSpace(recipient)), limit)
+	if err != nil {
+		return nil, fmt.Errorf("query dsn messages: %w", err)
+	}
+	defer rows.Close()
+	var out []*biz.DSNMessage
+	for rows.Next() {
+		m := &biz.DSNMessage{}
+		if err := rows.Scan(&m.ID, &m.Recipient, &m.MessageID, &m.RawMessage, &m.ReceivedAt); err != nil {
+			return nil, fmt.Errorf("scan dsn message: %w", err)
+		}
+		out = append(out, m)
 	}
 	return out, rows.Err()
 }

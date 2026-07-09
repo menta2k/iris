@@ -33,11 +33,20 @@ type WarmupDeliveryStat struct {
 	BounceRate      float64 // Bounced / Attempted, 0..1
 }
 
+// DomainDeferredStat is the count of DISTINCT messages that deferred to one
+// recipient domain, deduped across VMTAs — so it reflects "messages deferred",
+// not the per-IP retry incidence the per-VMTA rows show.
+type DomainDeferredStat struct {
+	RecipientDomain string
+	Messages        int64
+}
+
 // WarmupDeliveryStatsResult is the dashboard warmup panel payload.
 type WarmupDeliveryStatsResult struct {
-	Rows  []WarmupDeliveryStat
-	Range string // echoed effective range
-	Since int64  // unix seconds: window start
+	Rows             []WarmupDeliveryStat
+	DeferredByDomain []DomainDeferredStat
+	Range            string // echoed effective range
+	Since            int64  // unix seconds: window start
 }
 
 // MailClassStat is the mail-record volume for one mailclass over a window.
@@ -81,6 +90,9 @@ type DashboardRepo interface {
 	// DeliveryStats returns per-VMTA, per-recipient-domain raw counts for events
 	// at or after since. Rate fields are left zero for the usecase to derive.
 	DeliveryStats(ctx context.Context, since time.Time) ([]WarmupDeliveryStat, error)
+	// DeferredByDomain returns the count of DISTINCT messages that deferred per
+	// recipient domain (deduped across VMTAs) at or after since.
+	DeferredByDomain(ctx context.Context, since time.Time) ([]DomainDeferredStat, error)
 	// MailClassStats returns mail-record counts grouped by mailclass for events
 	// at or after since, ordered by total descending.
 	MailClassStats(ctx context.Context, since time.Time) ([]MailClassStat, error)
@@ -172,7 +184,13 @@ func (uc *DashboardUsecase) WarmupDeliveryStats(ctx context.Context, rng string)
 			rows[i].BounceRate = float64(rows[i].Bounced) / float64(rows[i].Attempted)
 		}
 	}
-	return &WarmupDeliveryStatsResult{Rows: rows, Range: eff, Since: since.Unix()}, nil
+	// Distinct messages deferred per domain (deduped across VMTAs) — the
+	// summable "messages deferred" number, unlike the per-VMTA rows.
+	byDomain, err := uc.repo.DeferredByDomain(ctx, since)
+	if err != nil {
+		return nil, err
+	}
+	return &WarmupDeliveryStatsResult{Rows: rows, DeferredByDomain: byDomain, Range: eff, Since: since.Unix()}, nil
 }
 
 // topRecipientDomains caps the "top recipient domains" panel.

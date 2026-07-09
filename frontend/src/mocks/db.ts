@@ -6,6 +6,8 @@ import type {
   AcmeCertificate,
   AuditEntry,
   AutomationRule,
+  BounceRule,
+  EventProcessor,
   Bounce,
   DeliveryBlueprint,
   DkimDomain,
@@ -19,6 +21,7 @@ import type {
   RoutingRule,
   RspamdResult,
   SubjectClassification,
+  InjectionCredential,
   Suppression,
   TLSPolicy,
   User,
@@ -40,6 +43,8 @@ export interface MockData {
   warmupSchedules: WarmupSchedule[]
   blueprints: DeliveryBlueprint[]
   automationRules: AutomationRule[]
+  bounceRules: BounceRule[]
+  eventProcessors: EventProcessor[]
   mailRecords: MailRecord[]
   bounces: Bounce[]
   feedbackReports: FeedbackReport[]
@@ -52,6 +57,7 @@ export interface MockData {
   rspamdResults: RspamdResult[]
   feedbackLoops: FeedbackLoop[]
   classifications: SubjectClassification[]
+  injectionCredentials: InjectionCredential[]
   dmarcReports: DmarcReport[]
   acmeCertificates: AcmeCertificate[]
 }
@@ -92,6 +98,23 @@ export function updateRow<K extends keyof MockData>(
   }) as unknown as MockData[K]
   store = { ...store, [name]: next } as unknown as MockData
   return updated
+}
+
+// updateWhere patches rows matched by predicate — for collections that have no
+// `id` field (e.g. queues, keyed by domain).
+export function updateWhere<K extends keyof MockData>(
+  name: K,
+  match: (row: MockData[K][number]) => boolean,
+  patch: Partial<MockData[K][number]>,
+): number {
+  let count = 0
+  const next = store[name].map((row) => {
+    if (!match(row as MockData[K][number])) return row
+    count++
+    return { ...row, ...patch }
+  }) as unknown as MockData[K]
+  store = { ...store, [name]: next } as unknown as MockData
+  return count
 }
 
 export function removeRow<K extends keyof MockData>(name: K, id: string): boolean {

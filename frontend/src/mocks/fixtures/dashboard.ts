@@ -4,6 +4,7 @@
 
 import type {
   DashboardSummary,
+  DomainDeferredStat,
   MailClassStat,
   MailClassStats,
   MetricPoint,
@@ -198,13 +199,17 @@ export function queueTimeHistogram(range: string, mailclass: string): QueueTimeH
   }
 }
 
+function warmupDeferred(vi: number, di: number): number {
+  return Math.round((200 + vi * 120 + di * 60) * (0.05 + 0.02 * di))
+}
+
 export function warmupDeliveryStats(range: string): WarmupDeliveryStats {
   const since = range === '7d' ? '7 days ago' : '24 hours ago'
   const rows: WarmupDeliveryStat[] = WARMUP_VMTAS.flatMap(([vmtaId, vmtaName], vi) =>
     WARMUP_DOMAINS.map((recipientDomain, di) => {
       const attempted = 200 + vi * 120 + di * 60
       const bounced = Math.round(attempted * (0.02 + 0.01 * (vi + di)))
-      const deferred = Math.round(attempted * (0.05 + 0.02 * di))
+      const deferred = warmupDeferred(vi, di)
       const sent = attempted - bounced
       return {
         vmtaId,
@@ -219,5 +224,11 @@ export function warmupDeliveryStats(range: string): WarmupDeliveryStats {
       } satisfies WarmupDeliveryStat
     }),
   )
-  return { rows, range, since }
+  // Distinct messages deferred per domain: less than the per-VMTA sum, since a
+  // message retries across ~2.5 VMTAs (demonstrates the dedup).
+  const deferredByDomain: DomainDeferredStat[] = WARMUP_DOMAINS.map((recipientDomain, di) => {
+    const perVmtaSum = WARMUP_VMTAS.reduce((acc, _v, vi) => acc + warmupDeferred(vi, di), 0)
+    return { recipientDomain, messages: String(Math.round(perVmtaSum * 0.4)) }
+  }).sort((a, b) => Number(b.messages) - Number(a.messages))
+  return { rows, deferredByDomain, range, since }
 }

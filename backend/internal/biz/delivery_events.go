@@ -1,6 +1,9 @@
 package biz
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // Processing states shared by bounce and feedback records.
 const (
@@ -23,6 +26,36 @@ type BounceRecord struct {
 	Diagnostic      string
 	Classification  string
 	ProcessingState string
+}
+
+// BounceFilter is a validated, bounded set of bounce query filters.
+type BounceFilter struct {
+	// Recipient is a case-insensitive substring match on the address.
+	Recipient string
+	Mailclass string
+	// BounceType filters by hard/soft/dsn. Empty matches all.
+	BounceType string
+	// Classification is a case-insensitive substring match on the KumoMTA
+	// bounce-classifier category. Empty matches all.
+	Classification string
+	// ProcessingState filters by the record's pipeline state (new, processing,
+	// processed, suppressed, retried). Empty matches all.
+	ProcessingState string
+	FromTime        *time.Time
+	ToTime          *time.Time
+}
+
+// NormalizeBounceFilter sanitizes and bounds the free-text filter fields.
+func NormalizeBounceFilter(f BounceFilter) (BounceFilter, error) {
+	f.Recipient = strings.ToLower(SanitizeFilter(f.Recipient))
+	f.Mailclass = SanitizeFilter(f.Mailclass)
+	f.BounceType = strings.ToLower(SanitizeFilter(f.BounceType))
+	f.Classification = SanitizeFilter(f.Classification)
+	f.ProcessingState = strings.ToLower(SanitizeFilter(f.ProcessingState))
+	if f.FromTime != nil && f.ToTime != nil && f.ToTime.Before(*f.FromTime) {
+		return f, Invalid("BOUNCE_FILTER_RANGE", "to_time must not be before from_time")
+	}
+	return f, nil
 }
 
 // IsHardBounce reports whether the SMTP status indicates a permanent failure

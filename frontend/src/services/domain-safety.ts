@@ -5,10 +5,12 @@ import type {
   CreateSuppressionRequest,
   CreateTLSPolicyRequest,
   DkimDomain,
+  DsnMessage,
   GenerateDkimKeyReply,
   GenerateDkimKeyRequest,
   ListResponse,
   Suppression,
+  SuppressionFilters,
   TLSPolicy,
   UpdateDkimDomainRequest,
   UpdateSuppressionRequest,
@@ -27,14 +29,23 @@ export const domainSafetyService = {
   generateDkimKey(body: GenerateDkimKeyRequest) {
     return http.post<GenerateDkimKeyReply>('/dkim-domains:generate-key', body)
   },
-  listSuppressions(page?: PageParams) {
-    return http.get<ListResponse<Suppression>>('/suppressions', { query: pageQuery(page) })
+  listSuppressions(page?: PageParams, filters?: SuppressionFilters) {
+    // Only send non-empty filters so the query stays clean.
+    const clean = Object.fromEntries(
+      Object.entries(filters ?? {}).filter(([, v]) => (v ?? '').toString().trim() !== ''),
+    )
+    return http.get<ListResponse<Suppression>>('/suppressions', {
+      query: pageQuery(page, Object.keys(clean).length ? clean : undefined),
+    })
   },
   createSuppression(body: CreateSuppressionRequest) {
     return http.post<Suppression>('/suppressions', body)
   },
   updateSuppression(id: string, body: UpdateSuppressionRequest) {
     return http.put<Suppression>(`/suppressions/${id}`, body)
+  },
+  listSuppressionDsnMessages(id: string) {
+    return http.get<ListResponse<DsnMessage>>(`/suppressions/${id}/dsn-messages`)
   },
   listTLSPolicies() {
     return http.get<ListResponse<TLSPolicy>>('/tls-policies')

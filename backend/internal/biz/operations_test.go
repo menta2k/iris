@@ -49,10 +49,16 @@ type fakeMailOpsRepo struct {
 func (f *fakeMailOpsRepo) ListMailRecords(context.Context, MailFilter, Page) ([]*MailRecord, error) {
 	return nil, nil
 }
-func (f *fakeMailOpsRepo) ListBounces(context.Context, Page) ([]*BounceRecord, error) {
+func (f *fakeMailOpsRepo) ListRecordsByMessageID(context.Context, string) ([]*MailRecord, error) {
+	return nil, nil
+}
+func (f *fakeMailOpsRepo) ListBounces(context.Context, BounceFilter, Page) ([]*BounceRecord, error) {
 	return nil, nil
 }
 func (f *fakeMailOpsRepo) ListFeedbackReports(context.Context, Page) ([]*FeedbackReport, error) {
+	return nil, nil
+}
+func (f *fakeMailOpsRepo) ListDSNMessages(context.Context, string, int) ([]*DSNMessage, error) {
 	return nil, nil
 }
 func (f *fakeMailOpsRepo) ListQueues(context.Context, Page) ([]*MailclassQueue, error) {

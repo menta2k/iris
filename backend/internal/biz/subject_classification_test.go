@@ -70,22 +70,118 @@ func TestSubjectClassificationValidate(t *testing.T) {
 	}
 }
 
+func TestSubjectClassificationValidateRegex(t *testing.T) {
+	// A valid regex rule keeps its pattern verbatim and clears the similarity key.
+	c := &SubjectClassification{MatchType: ClassificationMatchRegex, Subject: `^Invoice #\d+`, Label: "invoice"}
+	if err := c.Validate(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if c.Subject != `^Invoice #\d+` {
+		t.Errorf("regex pattern must not be normalized, got %q", c.Subject)
+	}
+	if c.SubjectNormalized != "" {
+		t.Errorf("regex rule must have empty normalized key, got %q", c.SubjectNormalized)
+	}
+	// A digit-only pattern is fine for regex (it is not normalized away).
+	if err := (&SubjectClassification{MatchType: ClassificationMatchRegex, Subject: `12345`, Label: "x"}).Validate(); err != nil {
+		t.Errorf("digit-only regex should be allowed: %v", err)
+	}
+	// An invalid pattern is rejected.
+	if err := (&SubjectClassification{MatchType: ClassificationMatchRegex, Subject: `(unclosed`, Label: "x"}).Validate(); err == nil {
+		t.Error("invalid regex should be rejected")
+	}
+	// An unknown match type is rejected.
+	if err := (&SubjectClassification{MatchType: "fuzzy", Subject: "x", Label: "y"}).Validate(); err == nil {
+		t.Error("unknown match_type should be rejected")
+	}
+}
+
+func TestClassifierRegexMatch(t *testing.T) {
+	repo := &fakeClassRepo{
+		match:      nil, // no similarity hit
+		regexRules: []*SubjectClassification{{ID: "r1", MatchType: ClassificationMatchRegex, Subject: `(?i)^invoice`, Label: "invoice"}},
+	}
+	ai := &fakeAI{reply: "should-not-be-used"}
+	uc := NewSubjectClassifierUsecase(repo, ai, onPolicy())
+	got, err := uc.Classify(context.Background(), "INVOICE #42")
+	if err != nil || got != "invoice" {
+		t.Fatalf("got %q err %v, want invoice", got, err)
+	}
+	if ai.called != 0 {
+		t.Error("AI must not be called on a regex hit")
+	}
+	if repo.incrID != "r1" {
+		t.Errorf("hit bumped on %q, want r1", repo.incrID)
+	}
+}
+
+func TestClassifierPriorityFirstMatchWins(t *testing.T) {
+	// A higher-priority similarity rule must beat a lower-priority regex rule.
+	repo := &fakeClassRepo{
+		match:      &SubjectClassification{ID: "sim", Label: "billing", Priority: 10},
+		regexRules: []*SubjectClassification{{ID: "rx", MatchType: ClassificationMatchRegex, Subject: `.`, Label: "catchall", Priority: 5}},
+	}
+	uc := NewSubjectClassifierUsecase(repo, &fakeAI{}, onPolicy())
+	got, _ := uc.Classify(context.Background(), "Your invoice is ready")
+	if got != "billing" {
+		t.Fatalf("got %q, want billing (higher priority sim rule wins)", got)
+	}
+	if repo.incrID != "sim" {
+		t.Errorf("hit bumped on %q, want sim", repo.incrID)
+	}
+
+	// On an equal-priority tie, the explicit regex rule wins.
+	repo = &fakeClassRepo{
+		match:      &SubjectClassification{ID: "sim", Label: "billing", Priority: 5},
+		regexRules: []*SubjectClassification{{ID: "rx", MatchType: ClassificationMatchRegex, Subject: `.`, Label: "catchall", Priority: 5}},
+	}
+	uc = NewSubjectClassifierUsecase(repo, &fakeAI{}, onPolicy())
+	got, _ = uc.Classify(context.Background(), "Your invoice is ready")
+	if got != "catchall" {
+		t.Fatalf("got %q, want catchall (regex wins ties)", got)
+	}
+}
+
+func TestClassifierRegexOrderedByPriority(t *testing.T) {
+	// Rules arrive priority-ordered; the first that matches wins.
+	repo := &fakeClassRepo{
+		regexRules: []*SubjectClassification{
+			{ID: "hi", MatchType: ClassificationMatchRegex, Subject: `(?i)urgent`, Label: "urgent", Priority: 100},
+			{ID: "lo", MatchType: ClassificationMatchRegex, Subject: `.`, Label: "other", Priority: 1},
+		},
+	}
+	uc := NewSubjectClassifierUsecase(repo, &fakeAI{}, onPolicy())
+	got, _ := uc.Classify(context.Background(), "URGENT: action needed")
+	if got != "urgent" {
+		t.Fatalf("got %q, want urgent (highest-priority regex first)", got)
+	}
+}
+
 // --- classifier usecase (fakes) ---
 
 type fakeClassRepo struct {
-	match     *SubjectClassification
-	upserted  *SubjectClassification
-	incrCalls int
+	match      *SubjectClassification
+	regexRules []*SubjectClassification
+	upserted   *SubjectClassification
+	incrCalls  int
+	incrID     string
 }
 
 func (f *fakeClassRepo) BestMatch(context.Context, string, float64) (*SubjectClassification, error) {
 	return f.match, nil
 }
+func (f *fakeClassRepo) RegexRules(context.Context) ([]*SubjectClassification, error) {
+	return f.regexRules, nil
+}
 func (f *fakeClassRepo) Upsert(_ context.Context, c *SubjectClassification) (*SubjectClassification, error) {
 	f.upserted = c
 	return c, nil
 }
-func (f *fakeClassRepo) IncrementHit(context.Context, string) error { f.incrCalls++; return nil }
+func (f *fakeClassRepo) IncrementHit(_ context.Context, id string) error {
+	f.incrCalls++
+	f.incrID = id
+	return nil
+}
 func (f *fakeClassRepo) List(context.Context) ([]*SubjectClassification, error) {
 	return nil, nil
 }

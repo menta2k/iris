@@ -78,6 +78,12 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/outbound/AutomationRulesPage.vue'),
         meta: { permission: 'outbound:read', title: 'Shaping Automation' },
       },
+      {
+        path: 'operations/bounce-actions',
+        name: 'bounce-actions',
+        component: () => import('@/pages/operations/BounceActionsPage.vue'),
+        meta: { permission: 'operations:read', title: 'Bounce Actions' },
+      },
 
       // Operations
       {
@@ -139,6 +145,18 @@ export const routes: RouteRecordRaw[] = [
         name: 'subject-classifications',
         component: () => import('@/pages/settings/SubjectClassificationsPage.vue'),
         meta: { permission: 'service:control', title: 'Subject Classifications' },
+      },
+      {
+        path: 'settings/event-processors',
+        name: 'event-processors',
+        component: () => import('@/pages/settings/EventProcessorsPage.vue'),
+        meta: { permission: 'service:control', title: 'Event Processors' },
+      },
+      {
+        path: 'settings/system-monitor',
+        name: 'system-monitor',
+        component: () => import('@/pages/settings/SystemMonitorPage.vue'),
+        meta: { permission: 'service:control', title: 'System Monitor' },
       },
       {
         path: 'settings/feedback-loops',
@@ -223,6 +241,12 @@ export const routes: RouteRecordRaw[] = [
         name: 'access',
         component: () => import('@/pages/security/AccessPage.vue'),
         meta: { permission: 'security:read', title: 'MFA & Permissions' },
+      },
+      {
+        path: 'security/injection-credentials',
+        name: 'injection-credentials',
+        component: () => import('@/pages/security/InjectionCredentialsPage.vue'),
+        meta: { permission: 'security:write', title: 'Injection API' },
       },
       {
         path: 'security/audit',

@@ -138,6 +138,7 @@ func (s *Service) CreateRoutingRule(ctx context.Context, req *adminv1.CreateRout
 		MatchType:       req.GetMatchType(),
 		MatchHeader:     req.GetMatchHeader(),
 		MatchValue:      req.GetMatchValue(),
+		Conditions:      routingConditionsFromProto(req.GetConditions()),
 		Priority:        int(req.GetPriority()),
 		TargetType:      req.GetTargetType(),
 		TargetID:        req.GetTargetId(),
@@ -159,6 +160,7 @@ func (s *Service) UpdateRoutingRule(ctx context.Context, req *adminv1.UpdateRout
 		MatchType:       req.GetMatchType(),
 		MatchHeader:     req.GetMatchHeader(),
 		MatchValue:      req.GetMatchValue(),
+		Conditions:      routingConditionsFromProto(req.GetConditions()),
 		Priority:        int(req.GetPriority()),
 		TargetType:      req.GetTargetType(),
 		TargetID:        req.GetTargetId(),
@@ -253,9 +255,25 @@ func groupToProto(g *biz.VMTAGroup) *adminv1.VMTAGroup {
 }
 
 func routingToProto(r *biz.RoutingRule) *adminv1.RoutingRule {
-	return &adminv1.RoutingRule{
+	out := &adminv1.RoutingRule{
 		Id: r.ID, Name: r.Name, MatchType: r.MatchType, MatchHeader: r.MatchHeader, MatchValue: r.MatchValue,
 		Priority: int32(r.Priority), TargetType: r.TargetType, TargetId: r.TargetID,
 		AssignMailclass: r.AssignMailclass, Status: r.Status,
 	}
+	for _, c := range r.Conditions {
+		out.Conditions = append(out.Conditions, &adminv1.RoutingMatchCondition{Header: c.Header, Value: c.Value})
+	}
+	return out
+}
+
+// routingConditionsFromProto maps proto match conditions to the biz model.
+func routingConditionsFromProto(in []*adminv1.RoutingMatchCondition) []biz.RoutingMatchCondition {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]biz.RoutingMatchCondition, 0, len(in))
+	for _, c := range in {
+		out = append(out, biz.RoutingMatchCondition{Header: c.GetHeader(), Value: c.GetValue()})
+	}
+	return out
 }

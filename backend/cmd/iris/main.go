@@ -63,6 +63,11 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	// Admin subcommands run a one-shot task and exit before the server starts.
+	if args := flag.Args(); len(args) > 0 {
+		os.Exit(runCommand(ctx, cfg, log, args))
+	}
+
 	app, cleanup, err := buildApp(ctx, cfg, log)
 	if err != nil {
 		log.Error("startup failed", "error", err.Error())
@@ -124,12 +129,15 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// adapter (writes the generated policy and reloads KumoMTA) otherwise.
 	var kumo biz.KumoMTAAdapter
 	var queueAdmin biz.KumoQueueAdmin // live kumod queue control (nil in stub mode)
+	var injector biz.KumoInjector     // KumoMTA HTTP injection (stub in dev mode)
 	if cfg.KumoMTA.Stub {
 		kumo = biz.NewStubKumoMTA()
+		injector = data.StubInjector{}
 	} else {
 		fk := data.NewFileKumoMTA(cfg.KumoMTA)
 		kumo = fk
 		queueAdmin = fk
+		injector = fk
 	}
 
 	// US2 mail operations: repository, Redis producer, and use case.
@@ -205,6 +213,12 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	}
 	subjectClassifierUC := biz.NewSubjectClassifierUsecase(subjectClassRepo, aiClassifier, settingsUC)
 	subjectClassAdminUC := biz.NewSubjectClassificationUsecase(subjectClassRepo, auditor)
+
+	// Injection API credentials: DB-managed keys for the GreenArrow listener,
+	// plus their admin CRUD (always available so keys can be set up before the
+	// listener is turned on).
+	injectionCredRepo := data.NewInjectionCredentialRepo(db)
+	injectionCredUC := biz.NewInjectionCredentialUsecase(injectionCredRepo, auditor)
 	// Suppression list lives in Redis (write-through cache + per-entry TTL); the
 	// rendered policy consults it instead of an inline table. Attach the cache and
 	// TTL provider now that settingsUC exists, then backfill Redis from the DB so
@@ -229,8 +243,10 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	blueprintUC := biz.NewBlueprintUsecase(blueprintRepo, auditor)
 	automationRepo := data.NewAutomationRepo(db)
 	automationUC := biz.NewAutomationUsecase(automationRepo, auditor)
+	bounceRuleRepo := data.NewBounceRuleRepo(db)
+	bounceRuleUC := biz.NewBounceRuleUsecase(bounceRuleRepo, auditor)
 
-	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo, inboundRouteRepo, fblRepo, warmupRepo, blueprintRepo, automationRepo)
+	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo, inboundRouteRepo, fblRepo, warmupRepo, blueprintRepo, automationRepo, bounceRuleRepo)
 	kumoConfigUC := biz.NewKumoConfigUsecase(kumoSnapshotRepo, kumo, mailOpsRepo, auditor, settingsUC)
 	// Domain bounce-readiness checker (MX/SPF/DKIM via live DNS).
 	domainCheckUC := biz.NewDomainCheckUsecase(kumoSnapshotRepo, nil)
@@ -240,6 +256,26 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// DMARC aggregate-report parsing.
 	dmarcRepo := data.NewDMARCRepo(db)
 	dmarcUC := biz.NewDMARCUsecase(dmarcRepo, auditor)
+
+	// Event Processor: forward internal events to external services via pluggable
+	// drivers. Register the built-in drivers, then dispatch matched events.
+	eventDriverRegistry := biz.NewEventDriverRegistry()
+	eventDriverRegistry.Register(biz.EventDriverWebhook, data.NewWebhookDriverFactory())
+	eventDriverRegistry.Register(biz.EventDriverRedis, data.NewRedisEventDriverFactory(streams.Client))
+	eventDriverRegistry.Register(biz.EventDriverGreenArrow, data.NewGreenArrowDriverFactory())
+	eventProcessorRepo := data.NewEventProcessorRepo(db)
+	eventProcessorUC := biz.NewEventProcessorUsecase(eventProcessorRepo, eventDriverRegistry, auditor)
+	eventDispatcher := biz.NewEventDispatcher(eventProcessorRepo, eventDriverRegistry, nil, log.With("component", "event-processor"))
+	// Wire producers to emit into the dispatcher.
+	domainSafetyRepo.WithEventEmitter(eventDispatcher)
+	dmarcUC.WithEventEmitter(eventDispatcher)
+
+	// Self-monitoring: sample host CPU/memory/disk, publish to the use case for
+	// the dashboard/API, and email alerts on threshold breaches.
+	monitorRepo := data.NewMonitorRepo(db)
+	hostSampler := data.NewHostSampler()
+	sysMonUC := biz.NewSysMonUsecase(monitorRepo, data.NewSMTPNotifier(), hostSampler, auditor)
+	sysMonWorker := worker.NewSysMonWorker(hostSampler, monitorRepo, data.NewSMTPNotifier(), sysMonUC.SetSnapshot, log.With("component", "system-monitor"))
 
 	// Generic worker error log: the repo is both the read API source and the
 	// sink behind the errlog slog handler that captures worker Warn/Error events.
@@ -271,9 +307,26 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	var adminTLS *tls.Config
 	renewInterval := envDuration("IRIS_ACME_RENEW_INTERVAL", 12*time.Hour)
 	renewBefore := envDuration("IRIS_ACME_RENEW_BEFORE", 30*24*time.Hour)
+	// Effective injection listener config: the config file supplies defaults and
+	// the static fallback credential / explicit cert files; global settings (the
+	// UI) drive enable/addr/path/TLS. Applied on restart. The YAML enable flags
+	// default to false, so the UI is the normal control; an explicit YAML `true`
+	// force-enables (acts as an override).
+	injCfg := cfg.Injection
 	if gs, gerr := settingsRepo.Get(ctx); gerr == nil {
 		if gs.AdminHTTPAddr != "" {
 			adminServerConf.HTTP.Addr = gs.AdminHTTPAddr
+		}
+		injCfg.Enabled = injCfg.Enabled || gs.InjectionEnabled
+		if gs.InjectionListenAddr != "" {
+			injCfg.Addr = gs.InjectionListenAddr
+		}
+		if gs.InjectionPath != "" {
+			injCfg.Path = gs.InjectionPath
+		}
+		injCfg.TLS = injCfg.TLS || gs.InjectionTLSEnabled
+		if gs.InjectionTLSCertDomain != "" {
+			injCfg.TLSCertDomain = gs.InjectionTLSCertDomain
 		}
 		if gs.AdminTLSEnabled && gs.AdminTLSCertDomain != "" {
 			if tc, terr := loadAdminTLS(ctx, acmeRepo, gs.AdminTLSCertDomain); terr != nil {
@@ -317,7 +370,11 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		Warmup:          warmupUC,
 		Blueprints:      blueprintUC,
 		Automation:      automationUC,
+		BounceRules:     bounceRuleUC,
+		EventProcessors: eventProcessorUC,
 		Classifications: subjectClassAdminUC,
+		InjectionCreds:  injectionCredUC,
+		SysMon:          sysMonUC,
 	}
 
 	svc := service.NewService(deps)
@@ -337,6 +394,9 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 
 	// Start background workers. Each exits cleanly on context cancellation.
 	startWorker(ctx, log, "errlog-flush", errHandler.Run)
+	// Event Processor dispatch loop (delivers matched events to external services).
+	startWorker(ctx, log, "event-processor", eventDispatcher.Run)
+	startWorker(ctx, log, "system-monitor", sysMonWorker.Run)
 	startWorker(ctx, log, "service-control", worker.NewServiceControlWorker(streams, mailOpsRepo, kumo, wlog("service-control")).Run)
 	startWorker(ctx, log, "rspamd-ingest", worker.NewRspamdWorker(streams, inboundUC, wlog("rspamd-ingest")).Run)
 	// Ingest KumoMTA's structured logs (streamed by the generated policy's
@@ -345,7 +405,9 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// which forwards the raw message — there is no webhook fan-out worker.
 	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, wlog("log-stream")).
 		WithFeedbackVerification(domainSafetyRepo, settingsUC).
-		WithClassification(settingsUC).Run)
+		WithClassification(settingsUC).
+		WithBounceRules(bounceRuleUC).
+		WithEventEmitter(eventDispatcher).Run)
 	// Optional subject classification: consumes the transient classify-pending
 	// stream, resolves labels (trigram → LLM), and backfills mail_records. Idles
 	// when the feature is off (nothing is enqueued).
@@ -369,10 +431,39 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	httpSrv := server.NewHTTPServer(adminServerConf, svc, adminv1.OpenAPISpec, checks, adminTLS, authMW)
 	grpcSrv := server.NewGRPCServer(cfg.Server, svc, authMW)
 
+	servers := []transport.Server{httpSrv, grpcSrv}
+
+	// GreenArrow-compatible mail injection on its OWN listener (separate port,
+	// no admin JWT) — body-credential auth, forwards to KumoMTA /api/inject/v1.
+	if injCfg.Enabled {
+		if injCfg.Addr == "" {
+			injCfg.Addr = ":8025"
+		}
+		if injCfg.Addr == adminServerConf.HTTP.Addr || injCfg.Addr == cfg.Server.GRPC.Addr {
+			return nil, cleanup, fmt.Errorf("injection listener addr (%s) must differ from the admin HTTP/gRPC ports", injCfg.Addr)
+		}
+		var injTLS *tls.Config
+		if injCfg.TLS {
+			tc, terr := loadInjectionTLS(ctx, acmeRepo, injCfg)
+			if terr != nil {
+				// Fail hard: a security-sensitive listener must never silently
+				// downgrade to plaintext when HTTPS was requested.
+				return nil, cleanup, fmt.Errorf("injection TLS: %w", terr)
+			}
+			injTLS = tc
+			log.Info("injection HTTPS enabled", "addr", injCfg.Addr)
+		}
+		injectUC := biz.NewGreenArrowInjectUsecase(injector, injCfg.Username, injCfg.Password, "").
+			WithCredentialStore(injectionCredRepo)
+		if injSrv := server.NewInjectionServer(injCfg, injectUC, injTLS, log); injSrv != nil {
+			servers = append(servers, injSrv)
+		}
+	}
+
 	app := kratos.New(
 		kratos.Name("iris"),
 		kratos.Context(ctx),
-		kratos.Server([]transport.Server{httpSrv, grpcSrv}...),
+		kratos.Server(servers...),
 	)
 	return app, cleanup, nil
 }
@@ -437,6 +528,24 @@ func loadAdminTLS(ctx context.Context, repo biz.AcmeCertificateRepo, domain stri
 		return nil, err
 	}
 	return &tls.Config{Certificates: []tls.Certificate{pair}, MinVersion: tls.VersionTLS12}, nil
+}
+
+// loadInjectionTLS builds the TLS config for the injection listener from either
+// an explicit key pair (TLSCertFile+TLSKeyFile) or an iris/ACME-managed
+// certificate by domain (TLSCertDomain). It errors when no usable certificate
+// is available so the caller can refuse to start rather than serve plaintext.
+func loadInjectionTLS(ctx context.Context, repo biz.AcmeCertificateRepo, c conf.Injection) (*tls.Config, error) {
+	if c.TLSCertFile != "" && c.TLSKeyFile != "" {
+		pair, err := tls.LoadX509KeyPair(c.TLSCertFile, c.TLSKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("load key pair: %w", err)
+		}
+		return &tls.Config{Certificates: []tls.Certificate{pair}, MinVersion: tls.VersionTLS12}, nil
+	}
+	if c.TLSCertDomain != "" {
+		return loadAdminTLS(ctx, repo, c.TLSCertDomain)
+	}
+	return nil, fmt.Errorf("no certificate configured (set tls_cert_domain or tls_cert_file+tls_key_file)")
 }
 
 // startWorker launches a background worker goroutine, logging unexpected exits

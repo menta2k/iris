@@ -15,11 +15,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { StatusBadge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { usePagedList } from '@/composables/usePagedList'
 import { useConfigStore } from '@/stores/config'
+import { useToast } from '@/composables/useToast'
 import { mailOperationsService } from '@/services'
 import { formatDateTime } from '@/composables/useTimezone'
 import type { MailRecord, MailRecordFilters } from '@/types'
@@ -40,6 +38,26 @@ const TYPE_ITEMS = [
   ...RECORD_TYPES.map((t) => ({ title: t, value: t })),
 ]
 
+// Stored mail-record statuses (backend/internal/biz/mail_record.go).
+const STATUS_ITEMS = [
+  { title: 'All statuses', value: '' },
+  { title: 'Received', value: 'received' },
+  { title: 'Sent (delivered)', value: 'sent' },
+  { title: 'Deferred', value: 'deferred' },
+  { title: 'Bounced', value: 'bounced' },
+  { title: 'Suppressed', value: 'suppressed' },
+]
+
+// Quick relative windows sent as the API's from_time lower bound.
+const TIME_ITEMS = [
+  { title: 'Any time', value: 0 },
+  { title: 'Last 15 minutes', value: 15 * 60_000 },
+  { title: 'Last hour', value: 60 * 60_000 },
+  { title: 'Last 6 hours', value: 6 * 60 * 60_000 },
+  { title: 'Last 24 hours', value: 24 * 60 * 60_000 },
+  { title: 'Last 7 days', value: 7 * 24 * 60 * 60_000 },
+]
+
 const filters = ref<MailRecordFilters>({
   mailclass: '',
   sender: '',
@@ -47,9 +65,22 @@ const filters = ref<MailRecordFilters>({
   recipient: '',
   vmta_id: '',
   record_type: '',
+  status: '',
 })
+const timeWindowMs = ref(0)
 
-// The loader reads filters at call time, so reload() applies the current values.
+// v-text-field `clearable` writes null; normalize and add the time bound so
+// the loader (which reads filters at call time) always sends clean values.
+function buildFilters(): MailRecordFilters {
+  const clean = Object.fromEntries(
+    Object.entries(filters.value).map(([k, v]) => [k, v ?? '']),
+  ) as MailRecordFilters
+  if (timeWindowMs.value > 0) {
+    clean.from_time = new Date(Date.now() - timeWindowMs.value).toISOString()
+  }
+  return clean
+}
+
 const {
   items,
   loading,
@@ -59,18 +90,58 @@ const {
   pageNumber,
   hasPrev,
   hasNext,
+  load,
   reload,
   nextPage,
   prevPage,
   setPageSize,
 } = usePagedList<MailRecord>({
-  loader: (page) => mailOperationsService.listMailRecords({ ...filters.value }, page),
+  loader: (page) => mailOperationsService.listMailRecords(buildFilters(), page),
 })
 
+// Text fields apply as you type (debounced); selects apply immediately.
+let debounceTimer: ReturnType<typeof setTimeout> | undefined
+watch(
+  () => [filters.value.mailclass, filters.value.sender, filters.value.from, filters.value.recipient, filters.value.vmta_id],
+  () => {
+    clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(reload, 400)
+  },
+)
+watch(() => [filters.value.record_type, filters.value.status, timeWindowMs.value], () => reload())
+
+const hasActiveFilters = computed(
+  () => timeWindowMs.value > 0 || Object.values(filters.value).some((v) => (v ?? '') !== ''),
+)
+
 function resetFilters() {
-  filters.value = { mailclass: '', sender: '', from: '', recipient: '', vmta_id: '', record_type: '' }
+  clearTimeout(debounceTimer)
+  filters.value = {
+    mailclass: '',
+    sender: '',
+    from: '',
+    recipient: '',
+    vmta_id: '',
+    record_type: '',
+    status: '',
+  }
+  timeWindowMs.value = 0
   reload()
 }
+
+// ---- Live auto-refresh (keeps the current page; new rows arrive on page 1) ----
+
+const REFRESH_MS = 15_000
+
+const live = ref(false)
+let liveTimer: ReturnType<typeof setInterval> | undefined
+
+watch(live, (on) => {
+  clearInterval(liveTimer)
+  if (on) liveTimer = setInterval(() => {
+    if (!loading.value) load()
+  }, REFRESH_MS)
+})
 
 // ---- Column visibility & density (persisted per-table in the config store) ----
 
@@ -93,9 +164,14 @@ const ALL_COLUMNS = [
 
 type ColumnKey = (typeof ALL_COLUMNS)[number]['key']
 
+// Hidden until the operator opts in: low-signal columns that used to force a
+// horizontal scrollbar (domain repeats the recipient; the id is copyable from
+// the drawer and the Message ID column once re-enabled).
+const DEFAULT_HIDDEN: string[] = ['messageId', 'recipientDomain', 'class']
+
 const config = useConfigStore()
 
-const hiddenColumns = computed<string[]>(() => config.tablePrefs[TABLE_ID]?.hidden ?? [])
+const hiddenColumns = computed<string[]>(() => config.tablePrefs[TABLE_ID]?.hidden ?? DEFAULT_HIDDEN)
 const density = computed(() => config.tablePrefs[TABLE_ID]?.density ?? 'compact')
 
 function isVisible(key: ColumnKey): boolean {
@@ -116,6 +192,68 @@ function toggleDensity() {
 }
 
 const visibleCount = computed(() => ALL_COLUMNS.filter((c) => isVisible(c.key)).length)
+
+// ---- Cell helpers ----
+
+const { toast } = useToast()
+
+// `"Example" <no-reply@example.com>` -> "Example" (fall back to the address); the
+// full header stays available as the cell tooltip.
+function fromDisplay(header?: string): string {
+  if (!header) return ''
+  const match = header.match(/^\s*"?([^"<]*?)"?\s*<(.+)>\s*$/)
+  if (match) return match[1].trim() || match[2].trim()
+  return header
+}
+
+function shortId(id?: string): string {
+  if (!id) return ''
+  return id.length > 12 ? `${id.slice(0, 12)}…` : id
+}
+
+async function copyMessageId(m: MailRecord) {
+  try {
+    await navigator.clipboard.writeText(m.messageId)
+    toast({ title: 'Message ID copied', variant: 'success', duration: 2000 })
+  } catch {
+    toast({ title: 'Could not copy to clipboard', variant: 'destructive' })
+  }
+}
+
+// ---- CSV export of the current page (visible columns only) ----
+
+function cellValue(m: MailRecord, key: ColumnKey): string {
+  switch (key) {
+    case 'time': return formatDateTime(m.eventTime)
+    case 'messageId': return m.messageId ?? ''
+    case 'mailclass': return m.mailclass ?? ''
+    case 'from': return m.fromHeader ?? ''
+    case 'sender': return m.sender ?? ''
+    case 'recipient': return m.recipient ?? ''
+    case 'recipientDomain': return m.recipientDomain ?? ''
+    case 'vmta': return m.egressSource || m.vmtaId || ''
+    case 'status': return m.status ?? ''
+    case 'type': return m.recordType ?? ''
+    case 'class': return m.classification ?? ''
+    case 'reason': return `${m.smtpStatus ?? ''} ${m.diagnostic ?? ''}`.trim()
+  }
+}
+
+function exportCsv() {
+  const cols = ALL_COLUMNS.filter((c) => isVisible(c.key))
+  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`
+  const lines = [
+    cols.map((c) => esc(c.title)).join(','),
+    ...items.value.map((m) => cols.map((c) => esc(cellValue(m, c.key))).join(',')),
+  ]
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `mail-logs-page-${pageNumber.value}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 // ---- Right-hand detail drawer (inspection + compare, deep-linked) ----
 
@@ -157,7 +295,11 @@ function onEsc(e: KeyboardEvent) {
   if (e.key === 'Escape' && selected.value) select(null)
 }
 onMounted(() => window.addEventListener('keydown', onEsc))
-onBeforeUnmount(() => window.removeEventListener('keydown', onEsc))
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onEsc)
+  clearTimeout(debounceTimer)
+  clearInterval(liveTimer)
+})
 </script>
 
 <template>
@@ -166,93 +308,192 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onEsc))
 
     <Card class="mb-4">
       <CardContent class="pa-4">
-        <form @submit.prevent="reload">
-          <v-row dense align="end">
-            <v-col cols="12" sm="6" md="2">
-              <Label for="f-mailclass">Mailclass</Label>
-              <Input id="f-mailclass" v-model="filters.mailclass" placeholder="marketing" />
-            </v-col>
-            <v-col cols="12" sm="6" md="2">
-              <Label for="f-from">From</Label>
-              <Input id="f-from" v-model="filters.from" placeholder="sentry@infra.example.com" />
-            </v-col>
-            <v-col cols="12" sm="6" md="2">
-              <Label for="f-sender">Sender (envelope)</Label>
-              <Input id="f-sender" v-model="filters.sender" placeholder="news@example.com" />
-            </v-col>
-            <v-col cols="12" sm="6" md="2">
-              <Label for="f-recipient">Recipient</Label>
-              <Input id="f-recipient" v-model="filters.recipient" placeholder="user@gmail.com" />
-            </v-col>
-            <v-col cols="12" sm="6" md="2">
-              <Label for="f-vmta">VMTA</Label>
-              <Input id="f-vmta" v-model="filters.vmta_id" placeholder="vmta-1" />
-            </v-col>
-            <v-col cols="12" sm="6" md="2">
-              <Label for="f-type">Type</Label>
-              <v-select
-                id="f-type"
-                :model-value="filters.record_type"
-                :items="TYPE_ITEMS"
-                data-testid="mail-record-type"
-                variant="outlined"
-                density="compact"
-                hide-details
-                @update:model-value="filters.record_type = $event"
-              />
-            </v-col>
-            <v-col cols="12" class="d-flex align-center ga-2">
-              <Button type="submit" data-testid="apply-filters">Filter</Button>
-              <Button type="button" variant="outline" @click="resetFilters">Reset</Button>
-              <v-spacer />
-              <v-btn
-                :icon="density === 'compact' ? 'mdi-arrow-expand-vertical' : 'mdi-arrow-collapse-vertical'"
-                variant="text"
-                size="small"
-                :aria-label="density === 'compact' ? 'Comfortable rows' : 'Compact rows'"
-                :title="density === 'compact' ? 'Comfortable rows' : 'Compact rows'"
-                @click="toggleDensity"
-              />
-              <v-menu :close-on-content-click="false">
-                <template #activator="{ props: menuProps }">
-                  <v-btn
-                    v-bind="menuProps"
-                    prepend-icon="mdi-view-column-outline"
-                    variant="text"
-                    size="small"
-                  >
-                    Columns ({{ visibleCount }}/{{ ALL_COLUMNS.length }})
-                  </v-btn>
-                </template>
-                <v-list density="compact">
-                  <v-list-item
-                    v-for="col in ALL_COLUMNS"
-                    :key="col.key"
-                    @click="toggleColumn(col.key)"
-                  >
-                    <template #prepend>
-                      <v-checkbox-btn :model-value="isVisible(col.key)" density="compact" />
-                    </template>
-                    <v-list-item-title class="text-body-2">{{ col.title }}</v-list-item-title>
-                  </v-list-item>
-                </v-list>
-              </v-menu>
-            </v-col>
-          </v-row>
-        </form>
+        <v-row dense>
+          <v-col cols="12" sm="6" md="3">
+            <v-text-field
+              v-model="filters.recipient"
+              label="Recipient"
+              placeholder="user@gmail.com or gmail.com"
+              prepend-inner-icon="mdi-email-outline"
+              variant="outlined"
+              density="compact"
+              hide-details
+              clearable
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <v-text-field
+              v-model="filters.from"
+              label="From header"
+              placeholder="sentry@infra.example.com"
+              prepend-inner-icon="mdi-account-arrow-right-outline"
+              variant="outlined"
+              density="compact"
+              hide-details
+              clearable
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <v-text-field
+              v-model="filters.sender"
+              label="Sender (envelope)"
+              placeholder="news@example.com or example.com"
+              prepend-inner-icon="mdi-email-arrow-right-outline"
+              variant="outlined"
+              density="compact"
+              hide-details
+              clearable
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <v-text-field
+              v-model="filters.mailclass"
+              label="Mailclass"
+              placeholder="marketing"
+              prepend-inner-icon="mdi-tag-outline"
+              variant="outlined"
+              density="compact"
+              hide-details
+              clearable
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <v-text-field
+              v-model="filters.vmta_id"
+              label="VMTA"
+              placeholder="vmta-1"
+              prepend-inner-icon="mdi-server-network-outline"
+              variant="outlined"
+              density="compact"
+              hide-details
+              clearable
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="2">
+            <v-select
+              v-model="filters.record_type"
+              :items="TYPE_ITEMS"
+              data-testid="mail-record-type"
+              label="Type"
+              variant="outlined"
+              density="compact"
+              hide-details
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="2">
+            <v-select
+              v-model="filters.status"
+              :items="STATUS_ITEMS"
+              data-testid="mail-record-status"
+              label="Status"
+              variant="outlined"
+              density="compact"
+              hide-details
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <v-select
+              v-model="timeWindowMs"
+              :items="TIME_ITEMS"
+              data-testid="mail-record-window"
+              label="Time range"
+              prepend-inner-icon="mdi-clock-outline"
+              variant="outlined"
+              density="compact"
+              hide-details
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="2" class="d-flex align-center">
+            <v-btn
+              variant="outlined"
+              color="secondary"
+              block
+              :disabled="!hasActiveFilters"
+              data-testid="reset-filters"
+              @click="resetFilters"
+            >
+              Reset
+            </v-btn>
+          </v-col>
+        </v-row>
       </CardContent>
     </Card>
 
-    <DataState
-      :loading="loading"
-      :error="error"
-      :not-implemented="notImplemented"
-      :empty="items.length === 0"
-      empty-message="No mail records match the selected filters."
-    >
-      <Card>
-        <CardContent class="pa-0">
-          <Table :density="density" fixed-header height="calc(100vh - 420px)">
+    <Card>
+      <div class="d-flex flex-wrap align-center ga-1 px-4 py-2">
+        <span class="text-subtitle-1 font-weight-bold mr-1">Records</span>
+        <span class="text-caption text-medium-emphasis">
+          page {{ pageNumber }}<template v-if="items.length"> · {{ items.length }} rows</template>
+        </span>
+        <v-spacer />
+        <v-switch
+          v-model="live"
+          label="Live"
+          color="primary"
+          density="compact"
+          hide-details
+          class="mr-2 flex-grow-0"
+        />
+        <v-btn
+          icon="mdi-refresh"
+          variant="text"
+          size="small"
+          :loading="loading"
+          aria-label="Refresh"
+          title="Refresh"
+          @click="load"
+        />
+        <v-btn
+          prepend-icon="mdi-download-outline"
+          variant="text"
+          size="small"
+          :disabled="items.length === 0"
+          @click="exportCsv"
+        >
+          CSV
+        </v-btn>
+        <v-btn
+          :icon="density === 'compact' ? 'mdi-arrow-expand-vertical' : 'mdi-arrow-collapse-vertical'"
+          variant="text"
+          size="small"
+          :aria-label="density === 'compact' ? 'Comfortable rows' : 'Compact rows'"
+          :title="density === 'compact' ? 'Comfortable rows' : 'Compact rows'"
+          @click="toggleDensity"
+        />
+        <v-menu :close-on-content-click="false">
+          <template #activator="{ props: menuProps }">
+            <v-btn
+              v-bind="menuProps"
+              prepend-icon="mdi-view-column-outline"
+              variant="text"
+              size="small"
+            >
+              Columns ({{ visibleCount }}/{{ ALL_COLUMNS.length }})
+            </v-btn>
+          </template>
+          <v-list density="compact">
+            <v-list-item v-for="col in ALL_COLUMNS" :key="col.key" @click="toggleColumn(col.key)">
+              <template #prepend>
+                <v-checkbox-btn :model-value="isVisible(col.key)" density="compact" />
+              </template>
+              <v-list-item-title class="text-body-2">{{ col.title }}</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+      </div>
+      <v-divider />
+      <v-progress-linear :active="loading" indeterminate color="primary" height="2" />
+      <CardContent class="pa-0">
+        <!-- Keep the table mounted during refreshes (live tail, as-you-type
+             filters); the full-height spinner only covers the first load. -->
+        <DataState
+          :loading="loading && items.length === 0"
+          :error="error"
+          :not-implemented="notImplemented"
+          :empty="items.length === 0"
+          empty-message="No mail records match the selected filters."
+        >
+          <Table :density="density" fixed-header height="calc(100vh - 430px)">
             <TableHeader>
               <TableRow>
                 <TableHead v-if="isVisible('time')">Time</TableHead>
@@ -279,11 +520,26 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onEsc))
                 <TableCell v-if="isVisible('time')" class="text-no-wrap text-medium-emphasis">{{
                   formatDateTime(m.eventTime)
                 }}</TableCell>
-                <TableCell v-if="isVisible('messageId')" class="font-mono text-caption">{{
-                  m.messageId
-                }}</TableCell>
+                <TableCell v-if="isVisible('messageId')" class="text-no-wrap">
+                  <span class="font-mono text-caption" :title="m.messageId">{{
+                    shortId(m.messageId)
+                  }}</span>
+                  <v-btn
+                    icon="mdi-content-copy"
+                    variant="text"
+                    size="x-small"
+                    class="copy-btn ml-1"
+                    aria-label="Copy message ID"
+                    title="Copy message ID"
+                    @click.stop="copyMessageId(m)"
+                  />
+                </TableCell>
                 <TableCell v-if="isVisible('mailclass')">{{ m.mailclass }}</TableCell>
-                <TableCell v-if="isVisible('from')">{{ m.fromHeader || '—' }}</TableCell>
+                <TableCell v-if="isVisible('from')" style="max-width: 200px">
+                  <span class="d-block text-truncate" :title="m.fromHeader">{{
+                    fromDisplay(m.fromHeader) || '—'
+                  }}</span>
+                </TableCell>
                 <TableCell v-if="isVisible('sender')" style="max-width: 220px">
                   <span class="d-block text-truncate text-medium-emphasis" :title="m.sender">{{
                     m.sender
@@ -317,9 +573,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onEsc))
               </TableRow>
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-    </DataState>
+        </DataState>
+      </CardContent>
+    </Card>
 
     <PaginationControls
       v-if="!notImplemented && (items.length > 0 || hasPrev)"
@@ -374,5 +630,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onEsc))
 }
 .row-selected {
   background: rgba(var(--v-theme-primary), 0.08);
+}
+/* The copy affordance stays quiet until the row is hovered. */
+.copy-btn {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.row-clickable:hover .copy-btn,
+.copy-btn:focus-visible {
+  opacity: 1;
 }
 </style>

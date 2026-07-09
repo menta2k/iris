@@ -1,20 +1,26 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { StatusBadge } from '@/components/ui/badge'
+import { computed } from 'vue'
+import StatTile from './StatTile.vue'
 
-defineProps<{ state?: string }>()
+const props = defineProps<{ state?: string }>()
+
+// Map the daemon state onto a semantic color; anything unexpected reads as a
+// warning rather than silently looking healthy.
+const color = computed(() => {
+  const s = (props.state ?? '').toLowerCase()
+  if (['running', 'ok', 'healthy', 'active'].includes(s)) return 'success'
+  if (['stopped', 'failed', 'error', 'dead'].includes(s)) return 'error'
+  return 'warning'
+})
 </script>
 
 <template>
-  <Card data-testid="service-status-widget">
-    <CardHeader class="pb-2">
-      <CardTitle class="text-body-2 text-medium-emphasis">KumoMTA Service</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div class="d-flex align-center justify-space-between">
-        <span class="text-h5 font-weight-bold">{{ state ?? 'Unknown' }}</span>
-        <StatusBadge :status="state" />
-      </div>
-    </CardContent>
-  </Card>
+  <StatTile
+    data-testid="service-status-widget"
+    label="KumoMTA Service"
+    :value="state ?? 'Unknown'"
+    caption="MTA daemon state"
+    icon="mdi-server-outline"
+    :color="color"
+  />
 </template>

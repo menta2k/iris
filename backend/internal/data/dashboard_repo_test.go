@@ -49,15 +49,15 @@ func TestDashboardDeliveryStats(t *testing.T) {
 		t.Fatalf("insert vmta: %v", err)
 	}
 
-	insert := func(src, domain, status string, at time.Time, n int) {
+	insert := func(mid, src, domain, status string, at time.Time, n int) {
 		t.Helper()
 		for range n {
 			if _, err := db.Pool.Exec(ctx, `
 				INSERT INTO mail_records
 					(message_id, event_time, mailclass, sender, recipient,
 					 recipient_domain, egress_source, status, record_type)
-				VALUES ('m', $1, 'default', 's@example.com', 'r@'||$2, $2, $3, $4, 'Delivery')`,
-				at, domain, src, status); err != nil {
+				VALUES ($5, $1, 'default', 's@example.com', 'r@'||$2, $2, $3, $4, 'Delivery')`,
+				at, domain, src, status, mid); err != nil {
 				t.Fatalf("insert mail_record: %v", err)
 			}
 		}
@@ -67,13 +67,17 @@ func TestDashboardDeliveryStats(t *testing.T) {
 	recent := now.Add(-10 * time.Minute)
 	old := now.Add(-2 * time.Hour)
 
-	insert("ip-a", "gmail.com", biz.MailSent, recent, 9)
-	insert("ip-a", "gmail.com", biz.MailBounced, recent, 1)
-	insert("ip-a", "gmail.com", biz.MailDeferred, recent, 2)
-	insert("ip-a", "yahoo.com", biz.MailSent, recent, 1)
-	insert("ip-x", "gmail.com", biz.MailSent, recent, 1) // egress with no matching VMTA
-	insert("", "gmail.com", biz.MailReceived, recent, 1) // reception: empty egress, excluded
-	insert("ip-a", "gmail.com", biz.MailSent, old, 5)    // outside the window, excluded
+	insert("m", "ip-a", "gmail.com", biz.MailSent, recent, 9)
+	insert("m", "ip-a", "gmail.com", biz.MailBounced, recent, 1)
+	// Deferred is counted as DISTINCT messages, not attempts: two distinct
+	// messages deferred, and one of them (md1) deferred twice — so 3 deferred
+	// rows but only 2 distinct messages.
+	insert("md1", "ip-a", "gmail.com", biz.MailDeferred, recent, 2)
+	insert("md2", "ip-a", "gmail.com", biz.MailDeferred, recent, 1)
+	insert("m", "ip-a", "yahoo.com", biz.MailSent, recent, 1)
+	insert("m", "ip-x", "gmail.com", biz.MailSent, recent, 1) // egress with no matching VMTA
+	insert("m", "", "gmail.com", biz.MailReceived, recent, 1) // reception: empty egress, excluded
+	insert("m", "ip-a", "gmail.com", biz.MailSent, old, 5)    // outside the window, excluded
 
 	repo := NewDashboardRepo(db)
 	rows, err := repo.DeliveryStats(ctx, now.Add(-time.Hour))
@@ -86,7 +90,8 @@ func TestDashboardDeliveryStats(t *testing.T) {
 		byKey[r.VMTAName+"|"+r.RecipientDomain] = r
 	}
 
-	// ip-a / gmail.com: 9 sent, 1 bounced, 2 deferred — the 5 old sents excluded.
+	// ip-a / gmail.com: 9 sent, 1 bounced, 2 deferred (distinct messages md1+md2,
+	// though md1 deferred twice) — the 5 old sents excluded.
 	g := byKey["ip-a|gmail.com"]
 	if g.Sent != 9 || g.Bounced != 1 || g.Deferred != 2 {
 		t.Fatalf("ip-a/gmail counts = %d/%d/%d, want 9/1/2", g.Sent, g.Bounced, g.Deferred)

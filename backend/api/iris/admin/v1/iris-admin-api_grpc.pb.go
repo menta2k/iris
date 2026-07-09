@@ -19,105 +19,128 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IrisAdminService_ListListeners_FullMethodName               = "/iris.admin.v1.IrisAdminService/ListListeners"
-	IrisAdminService_CreateListener_FullMethodName              = "/iris.admin.v1.IrisAdminService/CreateListener"
-	IrisAdminService_UpdateListener_FullMethodName              = "/iris.admin.v1.IrisAdminService/UpdateListener"
-	IrisAdminService_ListVMTAs_FullMethodName                   = "/iris.admin.v1.IrisAdminService/ListVMTAs"
-	IrisAdminService_CreateVMTA_FullMethodName                  = "/iris.admin.v1.IrisAdminService/CreateVMTA"
-	IrisAdminService_UpdateVMTA_FullMethodName                  = "/iris.admin.v1.IrisAdminService/UpdateVMTA"
-	IrisAdminService_ListVMTAGroups_FullMethodName              = "/iris.admin.v1.IrisAdminService/ListVMTAGroups"
-	IrisAdminService_CreateVMTAGroups_FullMethodName            = "/iris.admin.v1.IrisAdminService/CreateVMTAGroups"
-	IrisAdminService_UpdateVMTAGroup_FullMethodName             = "/iris.admin.v1.IrisAdminService/UpdateVMTAGroup"
-	IrisAdminService_ListWarmupSchedules_FullMethodName         = "/iris.admin.v1.IrisAdminService/ListWarmupSchedules"
-	IrisAdminService_CreateWarmupSchedule_FullMethodName        = "/iris.admin.v1.IrisAdminService/CreateWarmupSchedule"
-	IrisAdminService_UpdateWarmupSchedule_FullMethodName        = "/iris.admin.v1.IrisAdminService/UpdateWarmupSchedule"
-	IrisAdminService_PauseWarmupSchedule_FullMethodName         = "/iris.admin.v1.IrisAdminService/PauseWarmupSchedule"
-	IrisAdminService_ResumeWarmupSchedule_FullMethodName        = "/iris.admin.v1.IrisAdminService/ResumeWarmupSchedule"
-	IrisAdminService_ListDeliveryBlueprints_FullMethodName      = "/iris.admin.v1.IrisAdminService/ListDeliveryBlueprints"
-	IrisAdminService_CreateDeliveryBlueprint_FullMethodName     = "/iris.admin.v1.IrisAdminService/CreateDeliveryBlueprint"
-	IrisAdminService_UpdateDeliveryBlueprint_FullMethodName     = "/iris.admin.v1.IrisAdminService/UpdateDeliveryBlueprint"
-	IrisAdminService_SetDeliveryBlueprintStatus_FullMethodName  = "/iris.admin.v1.IrisAdminService/SetDeliveryBlueprintStatus"
-	IrisAdminService_SeedDeliveryBlueprints_FullMethodName      = "/iris.admin.v1.IrisAdminService/SeedDeliveryBlueprints"
-	IrisAdminService_ListAutomationRules_FullMethodName         = "/iris.admin.v1.IrisAdminService/ListAutomationRules"
-	IrisAdminService_CreateAutomationRule_FullMethodName        = "/iris.admin.v1.IrisAdminService/CreateAutomationRule"
-	IrisAdminService_UpdateAutomationRule_FullMethodName        = "/iris.admin.v1.IrisAdminService/UpdateAutomationRule"
-	IrisAdminService_SetAutomationRuleStatus_FullMethodName     = "/iris.admin.v1.IrisAdminService/SetAutomationRuleStatus"
-	IrisAdminService_ListRoutingRules_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListRoutingRules"
-	IrisAdminService_CreateRoutingRule_FullMethodName           = "/iris.admin.v1.IrisAdminService/CreateRoutingRule"
-	IrisAdminService_UpdateRoutingRule_FullMethodName           = "/iris.admin.v1.IrisAdminService/UpdateRoutingRule"
-	IrisAdminService_ListMailRecords_FullMethodName             = "/iris.admin.v1.IrisAdminService/ListMailRecords"
-	IrisAdminService_ListBounces_FullMethodName                 = "/iris.admin.v1.IrisAdminService/ListBounces"
-	IrisAdminService_ListFeedbackReports_FullMethodName         = "/iris.admin.v1.IrisAdminService/ListFeedbackReports"
-	IrisAdminService_ListQueues_FullMethodName                  = "/iris.admin.v1.IrisAdminService/ListQueues"
-	IrisAdminService_RequestQueueAction_FullMethodName          = "/iris.admin.v1.IrisAdminService/RequestQueueAction"
-	IrisAdminService_ListDKIMDomains_FullMethodName             = "/iris.admin.v1.IrisAdminService/ListDKIMDomains"
-	IrisAdminService_CreateDKIMDomain_FullMethodName            = "/iris.admin.v1.IrisAdminService/CreateDKIMDomain"
-	IrisAdminService_UpdateDKIMDomain_FullMethodName            = "/iris.admin.v1.IrisAdminService/UpdateDKIMDomain"
-	IrisAdminService_GenerateDKIMKey_FullMethodName             = "/iris.admin.v1.IrisAdminService/GenerateDKIMKey"
-	IrisAdminService_ListSuppressions_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListSuppressions"
-	IrisAdminService_CreateSuppression_FullMethodName           = "/iris.admin.v1.IrisAdminService/CreateSuppression"
-	IrisAdminService_UpdateSuppression_FullMethodName           = "/iris.admin.v1.IrisAdminService/UpdateSuppression"
-	IrisAdminService_ListTLSPolicies_FullMethodName             = "/iris.admin.v1.IrisAdminService/ListTLSPolicies"
-	IrisAdminService_CreateTLSPolicy_FullMethodName             = "/iris.admin.v1.IrisAdminService/CreateTLSPolicy"
-	IrisAdminService_DeleteTLSPolicy_FullMethodName             = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
-	IrisAdminService_ListInboundRoutes_FullMethodName           = "/iris.admin.v1.IrisAdminService/ListInboundRoutes"
-	IrisAdminService_CreateInboundRoute_FullMethodName          = "/iris.admin.v1.IrisAdminService/CreateInboundRoute"
-	IrisAdminService_UpdateInboundRoute_FullMethodName          = "/iris.admin.v1.IrisAdminService/UpdateInboundRoute"
-	IrisAdminService_DeleteInboundRoute_FullMethodName          = "/iris.admin.v1.IrisAdminService/DeleteInboundRoute"
-	IrisAdminService_ListRspamdResults_FullMethodName           = "/iris.admin.v1.IrisAdminService/ListRspamdResults"
-	IrisAdminService_ListFeedbackLoops_FullMethodName           = "/iris.admin.v1.IrisAdminService/ListFeedbackLoops"
-	IrisAdminService_CreateFeedbackLoop_FullMethodName          = "/iris.admin.v1.IrisAdminService/CreateFeedbackLoop"
-	IrisAdminService_UpdateFeedbackLoop_FullMethodName          = "/iris.admin.v1.IrisAdminService/UpdateFeedbackLoop"
-	IrisAdminService_DeleteFeedbackLoop_FullMethodName          = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
-	IrisAdminService_Login_FullMethodName                       = "/iris.admin.v1.IrisAdminService/Login"
-	IrisAdminService_VerifyMFA_FullMethodName                   = "/iris.admin.v1.IrisAdminService/VerifyMFA"
-	IrisAdminService_CurrentUser_FullMethodName                 = "/iris.admin.v1.IrisAdminService/CurrentUser"
-	IrisAdminService_ChangePassword_FullMethodName              = "/iris.admin.v1.IrisAdminService/ChangePassword"
-	IrisAdminService_Logout_FullMethodName                      = "/iris.admin.v1.IrisAdminService/Logout"
-	IrisAdminService_ListUsers_FullMethodName                   = "/iris.admin.v1.IrisAdminService/ListUsers"
-	IrisAdminService_CreateUser_FullMethodName                  = "/iris.admin.v1.IrisAdminService/CreateUser"
-	IrisAdminService_UpdateUser_FullMethodName                  = "/iris.admin.v1.IrisAdminService/UpdateUser"
-	IrisAdminService_ResetUserPassword_FullMethodName           = "/iris.admin.v1.IrisAdminService/ResetUserPassword"
-	IrisAdminService_EnrollMFA_FullMethodName                   = "/iris.admin.v1.IrisAdminService/EnrollMFA"
-	IrisAdminService_ConfirmMFA_FullMethodName                  = "/iris.admin.v1.IrisAdminService/ConfirmMFA"
-	IrisAdminService_DisableMFA_FullMethodName                  = "/iris.admin.v1.IrisAdminService/DisableMFA"
-	IrisAdminService_ListAuditEntries_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListAuditEntries"
-	IrisAdminService_RequestServiceControl_FullMethodName       = "/iris.admin.v1.IrisAdminService/RequestServiceControl"
-	IrisAdminService_GenerateKumoConfig_FullMethodName          = "/iris.admin.v1.IrisAdminService/GenerateKumoConfig"
-	IrisAdminService_ApplyKumoConfig_FullMethodName             = "/iris.admin.v1.IrisAdminService/ApplyKumoConfig"
-	IrisAdminService_GetAppliedKumoConfig_FullMethodName        = "/iris.admin.v1.IrisAdminService/GetAppliedKumoConfig"
-	IrisAdminService_KumoConfigStatus_FullMethodName            = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
-	IrisAdminService_GetAcmeAccount_FullMethodName              = "/iris.admin.v1.IrisAdminService/GetAcmeAccount"
-	IrisAdminService_SaveAcmeAccount_FullMethodName             = "/iris.admin.v1.IrisAdminService/SaveAcmeAccount"
-	IrisAdminService_ListAcmeCertificates_FullMethodName        = "/iris.admin.v1.IrisAdminService/ListAcmeCertificates"
-	IrisAdminService_RequestAcmeCertificate_FullMethodName      = "/iris.admin.v1.IrisAdminService/RequestAcmeCertificate"
-	IrisAdminService_DeleteAcmeCertificate_FullMethodName       = "/iris.admin.v1.IrisAdminService/DeleteAcmeCertificate"
-	IrisAdminService_ListAcmeDnsProviders_FullMethodName        = "/iris.admin.v1.IrisAdminService/ListAcmeDnsProviders"
-	IrisAdminService_GetAcmeDnsProvider_FullMethodName          = "/iris.admin.v1.IrisAdminService/GetAcmeDnsProvider"
-	IrisAdminService_SetAcmeDnsProvider_FullMethodName          = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
-	IrisAdminService_ClearAcmeDnsProvider_FullMethodName        = "/iris.admin.v1.IrisAdminService/ClearAcmeDnsProvider"
-	IrisAdminService_GetDashboardSummary_FullMethodName         = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
-	IrisAdminService_GetMetricsTimeseries_FullMethodName        = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
-	IrisAdminService_GetWarmupDeliveryStats_FullMethodName      = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
-	IrisAdminService_GetQueueTimeHistogram_FullMethodName       = "/iris.admin.v1.IrisAdminService/GetQueueTimeHistogram"
-	IrisAdminService_GetMailClassStats_FullMethodName           = "/iris.admin.v1.IrisAdminService/GetMailClassStats"
-	IrisAdminService_GetRecipientDomainStats_FullMethodName     = "/iris.admin.v1.IrisAdminService/GetRecipientDomainStats"
-	IrisAdminService_CheckDomainBounceSetup_FullMethodName      = "/iris.admin.v1.IrisAdminService/CheckDomainBounceSetup"
-	IrisAdminService_Diagnose_FullMethodName                    = "/iris.admin.v1.IrisAdminService/Diagnose"
-	IrisAdminService_RblCheck_FullMethodName                    = "/iris.admin.v1.IrisAdminService/RblCheck"
-	IrisAdminService_GetDmarcStats_FullMethodName               = "/iris.admin.v1.IrisAdminService/GetDmarcStats"
-	IrisAdminService_ListDmarcReports_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListDmarcReports"
-	IrisAdminService_ListDmarcDomains_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListDmarcDomains"
-	IrisAdminService_ListWorkerErrorLogs_FullMethodName         = "/iris.admin.v1.IrisAdminService/ListWorkerErrorLogs"
-	IrisAdminService_ListRetentionPolicies_FullMethodName       = "/iris.admin.v1.IrisAdminService/ListRetentionPolicies"
-	IrisAdminService_UpdateRetentionPolicy_FullMethodName       = "/iris.admin.v1.IrisAdminService/UpdateRetentionPolicy"
-	IrisAdminService_RunRetention_FullMethodName                = "/iris.admin.v1.IrisAdminService/RunRetention"
-	IrisAdminService_GetGlobalSettings_FullMethodName           = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
-	IrisAdminService_UpdateGlobalSettings_FullMethodName        = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
-	IrisAdminService_ListSubjectClassifications_FullMethodName  = "/iris.admin.v1.IrisAdminService/ListSubjectClassifications"
-	IrisAdminService_CreateSubjectClassification_FullMethodName = "/iris.admin.v1.IrisAdminService/CreateSubjectClassification"
-	IrisAdminService_UpdateSubjectClassification_FullMethodName = "/iris.admin.v1.IrisAdminService/UpdateSubjectClassification"
-	IrisAdminService_DeleteSubjectClassification_FullMethodName = "/iris.admin.v1.IrisAdminService/DeleteSubjectClassification"
+	IrisAdminService_ListListeners_FullMethodName                  = "/iris.admin.v1.IrisAdminService/ListListeners"
+	IrisAdminService_CreateListener_FullMethodName                 = "/iris.admin.v1.IrisAdminService/CreateListener"
+	IrisAdminService_UpdateListener_FullMethodName                 = "/iris.admin.v1.IrisAdminService/UpdateListener"
+	IrisAdminService_ListVMTAs_FullMethodName                      = "/iris.admin.v1.IrisAdminService/ListVMTAs"
+	IrisAdminService_CreateVMTA_FullMethodName                     = "/iris.admin.v1.IrisAdminService/CreateVMTA"
+	IrisAdminService_UpdateVMTA_FullMethodName                     = "/iris.admin.v1.IrisAdminService/UpdateVMTA"
+	IrisAdminService_ListVMTAGroups_FullMethodName                 = "/iris.admin.v1.IrisAdminService/ListVMTAGroups"
+	IrisAdminService_CreateVMTAGroups_FullMethodName               = "/iris.admin.v1.IrisAdminService/CreateVMTAGroups"
+	IrisAdminService_UpdateVMTAGroup_FullMethodName                = "/iris.admin.v1.IrisAdminService/UpdateVMTAGroup"
+	IrisAdminService_ListWarmupSchedules_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListWarmupSchedules"
+	IrisAdminService_CreateWarmupSchedule_FullMethodName           = "/iris.admin.v1.IrisAdminService/CreateWarmupSchedule"
+	IrisAdminService_UpdateWarmupSchedule_FullMethodName           = "/iris.admin.v1.IrisAdminService/UpdateWarmupSchedule"
+	IrisAdminService_PauseWarmupSchedule_FullMethodName            = "/iris.admin.v1.IrisAdminService/PauseWarmupSchedule"
+	IrisAdminService_ResumeWarmupSchedule_FullMethodName           = "/iris.admin.v1.IrisAdminService/ResumeWarmupSchedule"
+	IrisAdminService_ListDeliveryBlueprints_FullMethodName         = "/iris.admin.v1.IrisAdminService/ListDeliveryBlueprints"
+	IrisAdminService_CreateDeliveryBlueprint_FullMethodName        = "/iris.admin.v1.IrisAdminService/CreateDeliveryBlueprint"
+	IrisAdminService_UpdateDeliveryBlueprint_FullMethodName        = "/iris.admin.v1.IrisAdminService/UpdateDeliveryBlueprint"
+	IrisAdminService_SetDeliveryBlueprintStatus_FullMethodName     = "/iris.admin.v1.IrisAdminService/SetDeliveryBlueprintStatus"
+	IrisAdminService_SeedDeliveryBlueprints_FullMethodName         = "/iris.admin.v1.IrisAdminService/SeedDeliveryBlueprints"
+	IrisAdminService_ListAutomationRules_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListAutomationRules"
+	IrisAdminService_CreateAutomationRule_FullMethodName           = "/iris.admin.v1.IrisAdminService/CreateAutomationRule"
+	IrisAdminService_UpdateAutomationRule_FullMethodName           = "/iris.admin.v1.IrisAdminService/UpdateAutomationRule"
+	IrisAdminService_SetAutomationRuleStatus_FullMethodName        = "/iris.admin.v1.IrisAdminService/SetAutomationRuleStatus"
+	IrisAdminService_ListBounceRules_FullMethodName                = "/iris.admin.v1.IrisAdminService/ListBounceRules"
+	IrisAdminService_CreateBounceRule_FullMethodName               = "/iris.admin.v1.IrisAdminService/CreateBounceRule"
+	IrisAdminService_UpdateBounceRule_FullMethodName               = "/iris.admin.v1.IrisAdminService/UpdateBounceRule"
+	IrisAdminService_DeleteBounceRule_FullMethodName               = "/iris.admin.v1.IrisAdminService/DeleteBounceRule"
+	IrisAdminService_ResetBounceRules_FullMethodName               = "/iris.admin.v1.IrisAdminService/ResetBounceRules"
+	IrisAdminService_TestBounceDiagnostic_FullMethodName           = "/iris.admin.v1.IrisAdminService/TestBounceDiagnostic"
+	IrisAdminService_ListEventProcessors_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListEventProcessors"
+	IrisAdminService_CreateEventProcessor_FullMethodName           = "/iris.admin.v1.IrisAdminService/CreateEventProcessor"
+	IrisAdminService_UpdateEventProcessor_FullMethodName           = "/iris.admin.v1.IrisAdminService/UpdateEventProcessor"
+	IrisAdminService_DeleteEventProcessor_FullMethodName           = "/iris.admin.v1.IrisAdminService/DeleteEventProcessor"
+	IrisAdminService_TestEventProcessor_FullMethodName             = "/iris.admin.v1.IrisAdminService/TestEventProcessor"
+	IrisAdminService_ListRoutingRules_FullMethodName               = "/iris.admin.v1.IrisAdminService/ListRoutingRules"
+	IrisAdminService_CreateRoutingRule_FullMethodName              = "/iris.admin.v1.IrisAdminService/CreateRoutingRule"
+	IrisAdminService_UpdateRoutingRule_FullMethodName              = "/iris.admin.v1.IrisAdminService/UpdateRoutingRule"
+	IrisAdminService_ListMailRecords_FullMethodName                = "/iris.admin.v1.IrisAdminService/ListMailRecords"
+	IrisAdminService_GetNextDeliveryAttempt_FullMethodName         = "/iris.admin.v1.IrisAdminService/GetNextDeliveryAttempt"
+	IrisAdminService_ListDsnMessages_FullMethodName                = "/iris.admin.v1.IrisAdminService/ListDsnMessages"
+	IrisAdminService_ListBounces_FullMethodName                    = "/iris.admin.v1.IrisAdminService/ListBounces"
+	IrisAdminService_ListFeedbackReports_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListFeedbackReports"
+	IrisAdminService_ListQueues_FullMethodName                     = "/iris.admin.v1.IrisAdminService/ListQueues"
+	IrisAdminService_RequestQueueAction_FullMethodName             = "/iris.admin.v1.IrisAdminService/RequestQueueAction"
+	IrisAdminService_ListDKIMDomains_FullMethodName                = "/iris.admin.v1.IrisAdminService/ListDKIMDomains"
+	IrisAdminService_CreateDKIMDomain_FullMethodName               = "/iris.admin.v1.IrisAdminService/CreateDKIMDomain"
+	IrisAdminService_UpdateDKIMDomain_FullMethodName               = "/iris.admin.v1.IrisAdminService/UpdateDKIMDomain"
+	IrisAdminService_GenerateDKIMKey_FullMethodName                = "/iris.admin.v1.IrisAdminService/GenerateDKIMKey"
+	IrisAdminService_ListSuppressions_FullMethodName               = "/iris.admin.v1.IrisAdminService/ListSuppressions"
+	IrisAdminService_CreateSuppression_FullMethodName              = "/iris.admin.v1.IrisAdminService/CreateSuppression"
+	IrisAdminService_UpdateSuppression_FullMethodName              = "/iris.admin.v1.IrisAdminService/UpdateSuppression"
+	IrisAdminService_ListSuppressionDsnMessages_FullMethodName     = "/iris.admin.v1.IrisAdminService/ListSuppressionDsnMessages"
+	IrisAdminService_ListTLSPolicies_FullMethodName                = "/iris.admin.v1.IrisAdminService/ListTLSPolicies"
+	IrisAdminService_CreateTLSPolicy_FullMethodName                = "/iris.admin.v1.IrisAdminService/CreateTLSPolicy"
+	IrisAdminService_DeleteTLSPolicy_FullMethodName                = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
+	IrisAdminService_ListInboundRoutes_FullMethodName              = "/iris.admin.v1.IrisAdminService/ListInboundRoutes"
+	IrisAdminService_CreateInboundRoute_FullMethodName             = "/iris.admin.v1.IrisAdminService/CreateInboundRoute"
+	IrisAdminService_UpdateInboundRoute_FullMethodName             = "/iris.admin.v1.IrisAdminService/UpdateInboundRoute"
+	IrisAdminService_DeleteInboundRoute_FullMethodName             = "/iris.admin.v1.IrisAdminService/DeleteInboundRoute"
+	IrisAdminService_ListRspamdResults_FullMethodName              = "/iris.admin.v1.IrisAdminService/ListRspamdResults"
+	IrisAdminService_ListFeedbackLoops_FullMethodName              = "/iris.admin.v1.IrisAdminService/ListFeedbackLoops"
+	IrisAdminService_CreateFeedbackLoop_FullMethodName             = "/iris.admin.v1.IrisAdminService/CreateFeedbackLoop"
+	IrisAdminService_UpdateFeedbackLoop_FullMethodName             = "/iris.admin.v1.IrisAdminService/UpdateFeedbackLoop"
+	IrisAdminService_DeleteFeedbackLoop_FullMethodName             = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
+	IrisAdminService_Login_FullMethodName                          = "/iris.admin.v1.IrisAdminService/Login"
+	IrisAdminService_VerifyMFA_FullMethodName                      = "/iris.admin.v1.IrisAdminService/VerifyMFA"
+	IrisAdminService_CurrentUser_FullMethodName                    = "/iris.admin.v1.IrisAdminService/CurrentUser"
+	IrisAdminService_ChangePassword_FullMethodName                 = "/iris.admin.v1.IrisAdminService/ChangePassword"
+	IrisAdminService_Logout_FullMethodName                         = "/iris.admin.v1.IrisAdminService/Logout"
+	IrisAdminService_ListUsers_FullMethodName                      = "/iris.admin.v1.IrisAdminService/ListUsers"
+	IrisAdminService_CreateUser_FullMethodName                     = "/iris.admin.v1.IrisAdminService/CreateUser"
+	IrisAdminService_UpdateUser_FullMethodName                     = "/iris.admin.v1.IrisAdminService/UpdateUser"
+	IrisAdminService_ResetUserPassword_FullMethodName              = "/iris.admin.v1.IrisAdminService/ResetUserPassword"
+	IrisAdminService_EnrollMFA_FullMethodName                      = "/iris.admin.v1.IrisAdminService/EnrollMFA"
+	IrisAdminService_ConfirmMFA_FullMethodName                     = "/iris.admin.v1.IrisAdminService/ConfirmMFA"
+	IrisAdminService_DisableMFA_FullMethodName                     = "/iris.admin.v1.IrisAdminService/DisableMFA"
+	IrisAdminService_ListAuditEntries_FullMethodName               = "/iris.admin.v1.IrisAdminService/ListAuditEntries"
+	IrisAdminService_RequestServiceControl_FullMethodName          = "/iris.admin.v1.IrisAdminService/RequestServiceControl"
+	IrisAdminService_GenerateKumoConfig_FullMethodName             = "/iris.admin.v1.IrisAdminService/GenerateKumoConfig"
+	IrisAdminService_ApplyKumoConfig_FullMethodName                = "/iris.admin.v1.IrisAdminService/ApplyKumoConfig"
+	IrisAdminService_GetAppliedKumoConfig_FullMethodName           = "/iris.admin.v1.IrisAdminService/GetAppliedKumoConfig"
+	IrisAdminService_KumoConfigStatus_FullMethodName               = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
+	IrisAdminService_GetAcmeAccount_FullMethodName                 = "/iris.admin.v1.IrisAdminService/GetAcmeAccount"
+	IrisAdminService_SaveAcmeAccount_FullMethodName                = "/iris.admin.v1.IrisAdminService/SaveAcmeAccount"
+	IrisAdminService_ListAcmeCertificates_FullMethodName           = "/iris.admin.v1.IrisAdminService/ListAcmeCertificates"
+	IrisAdminService_RequestAcmeCertificate_FullMethodName         = "/iris.admin.v1.IrisAdminService/RequestAcmeCertificate"
+	IrisAdminService_DeleteAcmeCertificate_FullMethodName          = "/iris.admin.v1.IrisAdminService/DeleteAcmeCertificate"
+	IrisAdminService_ListAcmeDnsProviders_FullMethodName           = "/iris.admin.v1.IrisAdminService/ListAcmeDnsProviders"
+	IrisAdminService_GetAcmeDnsProvider_FullMethodName             = "/iris.admin.v1.IrisAdminService/GetAcmeDnsProvider"
+	IrisAdminService_SetAcmeDnsProvider_FullMethodName             = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
+	IrisAdminService_ClearAcmeDnsProvider_FullMethodName           = "/iris.admin.v1.IrisAdminService/ClearAcmeDnsProvider"
+	IrisAdminService_GetDashboardSummary_FullMethodName            = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
+	IrisAdminService_GetMetricsTimeseries_FullMethodName           = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
+	IrisAdminService_GetSystemMetrics_FullMethodName               = "/iris.admin.v1.IrisAdminService/GetSystemMetrics"
+	IrisAdminService_GetWarmupDeliveryStats_FullMethodName         = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
+	IrisAdminService_GetQueueTimeHistogram_FullMethodName          = "/iris.admin.v1.IrisAdminService/GetQueueTimeHistogram"
+	IrisAdminService_GetMailClassStats_FullMethodName              = "/iris.admin.v1.IrisAdminService/GetMailClassStats"
+	IrisAdminService_GetRecipientDomainStats_FullMethodName        = "/iris.admin.v1.IrisAdminService/GetRecipientDomainStats"
+	IrisAdminService_CheckDomainBounceSetup_FullMethodName         = "/iris.admin.v1.IrisAdminService/CheckDomainBounceSetup"
+	IrisAdminService_Diagnose_FullMethodName                       = "/iris.admin.v1.IrisAdminService/Diagnose"
+	IrisAdminService_RblCheck_FullMethodName                       = "/iris.admin.v1.IrisAdminService/RblCheck"
+	IrisAdminService_GetDmarcStats_FullMethodName                  = "/iris.admin.v1.IrisAdminService/GetDmarcStats"
+	IrisAdminService_ListDmarcReports_FullMethodName               = "/iris.admin.v1.IrisAdminService/ListDmarcReports"
+	IrisAdminService_ListDmarcDomains_FullMethodName               = "/iris.admin.v1.IrisAdminService/ListDmarcDomains"
+	IrisAdminService_ListWorkerErrorLogs_FullMethodName            = "/iris.admin.v1.IrisAdminService/ListWorkerErrorLogs"
+	IrisAdminService_ListRetentionPolicies_FullMethodName          = "/iris.admin.v1.IrisAdminService/ListRetentionPolicies"
+	IrisAdminService_UpdateRetentionPolicy_FullMethodName          = "/iris.admin.v1.IrisAdminService/UpdateRetentionPolicy"
+	IrisAdminService_RunRetention_FullMethodName                   = "/iris.admin.v1.IrisAdminService/RunRetention"
+	IrisAdminService_GetGlobalSettings_FullMethodName              = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
+	IrisAdminService_UpdateGlobalSettings_FullMethodName           = "/iris.admin.v1.IrisAdminService/UpdateGlobalSettings"
+	IrisAdminService_ListSubjectClassifications_FullMethodName     = "/iris.admin.v1.IrisAdminService/ListSubjectClassifications"
+	IrisAdminService_CreateSubjectClassification_FullMethodName    = "/iris.admin.v1.IrisAdminService/CreateSubjectClassification"
+	IrisAdminService_UpdateSubjectClassification_FullMethodName    = "/iris.admin.v1.IrisAdminService/UpdateSubjectClassification"
+	IrisAdminService_DeleteSubjectClassification_FullMethodName    = "/iris.admin.v1.IrisAdminService/DeleteSubjectClassification"
+	IrisAdminService_ListInjectionCredentials_FullMethodName       = "/iris.admin.v1.IrisAdminService/ListInjectionCredentials"
+	IrisAdminService_CreateInjectionCredential_FullMethodName      = "/iris.admin.v1.IrisAdminService/CreateInjectionCredential"
+	IrisAdminService_UpdateInjectionCredential_FullMethodName      = "/iris.admin.v1.IrisAdminService/UpdateInjectionCredential"
+	IrisAdminService_SetInjectionCredentialPassword_FullMethodName = "/iris.admin.v1.IrisAdminService/SetInjectionCredentialPassword"
+	IrisAdminService_DeleteInjectionCredential_FullMethodName      = "/iris.admin.v1.IrisAdminService/DeleteInjectionCredential"
+	IrisAdminService_GetSystemMonitor_FullMethodName               = "/iris.admin.v1.IrisAdminService/GetSystemMonitor"
+	IrisAdminService_UpdateMonitorSettings_FullMethodName          = "/iris.admin.v1.IrisAdminService/UpdateMonitorSettings"
+	IrisAdminService_TestMonitorNotification_FullMethodName        = "/iris.admin.v1.IrisAdminService/TestMonitorNotification"
 )
 
 // IrisAdminServiceClient is the client API for IrisAdminService service.
@@ -152,11 +175,26 @@ type IrisAdminServiceClient interface {
 	CreateAutomationRule(ctx context.Context, in *CreateAutomationRuleRequest, opts ...grpc.CallOption) (*AutomationRule, error)
 	UpdateAutomationRule(ctx context.Context, in *UpdateAutomationRuleRequest, opts ...grpc.CallOption) (*AutomationRule, error)
 	SetAutomationRuleStatus(ctx context.Context, in *SetAutomationRuleStatusRequest, opts ...grpc.CallOption) (*AutomationRule, error)
+	ListBounceRules(ctx context.Context, in *ListBounceRulesRequest, opts ...grpc.CallOption) (*ListBounceRulesReply, error)
+	CreateBounceRule(ctx context.Context, in *CreateBounceRuleRequest, opts ...grpc.CallOption) (*BounceRule, error)
+	UpdateBounceRule(ctx context.Context, in *UpdateBounceRuleRequest, opts ...grpc.CallOption) (*BounceRule, error)
+	DeleteBounceRule(ctx context.Context, in *DeleteBounceRuleRequest, opts ...grpc.CallOption) (*DeleteBounceRuleReply, error)
+	ResetBounceRules(ctx context.Context, in *ResetBounceRulesRequest, opts ...grpc.CallOption) (*ListBounceRulesReply, error)
+	TestBounceDiagnostic(ctx context.Context, in *TestBounceDiagnosticRequest, opts ...grpc.CallOption) (*TestBounceDiagnosticReply, error)
+	ListEventProcessors(ctx context.Context, in *ListEventProcessorsRequest, opts ...grpc.CallOption) (*ListEventProcessorsReply, error)
+	CreateEventProcessor(ctx context.Context, in *CreateEventProcessorRequest, opts ...grpc.CallOption) (*EventProcessor, error)
+	UpdateEventProcessor(ctx context.Context, in *UpdateEventProcessorRequest, opts ...grpc.CallOption) (*EventProcessor, error)
+	DeleteEventProcessor(ctx context.Context, in *DeleteEventProcessorRequest, opts ...grpc.CallOption) (*DeleteEventProcessorReply, error)
+	TestEventProcessor(ctx context.Context, in *TestEventProcessorRequest, opts ...grpc.CallOption) (*TestEventProcessorReply, error)
 	ListRoutingRules(ctx context.Context, in *ListRoutingRulesRequest, opts ...grpc.CallOption) (*ListRoutingRulesReply, error)
 	CreateRoutingRule(ctx context.Context, in *CreateRoutingRuleRequest, opts ...grpc.CallOption) (*RoutingRule, error)
 	UpdateRoutingRule(ctx context.Context, in *UpdateRoutingRuleRequest, opts ...grpc.CallOption) (*RoutingRule, error)
 	// Mail operations ----------------------------------------------------------
 	ListMailRecords(ctx context.Context, in *ListMailRecordsRequest, opts ...grpc.CallOption) (*ListMailRecordsReply, error)
+	GetNextDeliveryAttempt(ctx context.Context, in *GetNextDeliveryAttemptRequest, opts ...grpc.CallOption) (*NextDeliveryAttempt, error)
+	// ListDsnMessages returns the raw DSN notifications archived for a recipient,
+	// so the operator can read the full asynchronous bounce behind a dsn-type bounce.
+	ListDsnMessages(ctx context.Context, in *ListDsnMessagesRequest, opts ...grpc.CallOption) (*ListDsnMessagesReply, error)
 	ListBounces(ctx context.Context, in *ListBouncesRequest, opts ...grpc.CallOption) (*ListBouncesReply, error)
 	ListFeedbackReports(ctx context.Context, in *ListFeedbackReportsRequest, opts ...grpc.CallOption) (*ListFeedbackReportsReply, error)
 	ListQueues(ctx context.Context, in *ListQueuesRequest, opts ...grpc.CallOption) (*ListQueuesReply, error)
@@ -171,6 +209,10 @@ type IrisAdminServiceClient interface {
 	ListSuppressions(ctx context.Context, in *ListSuppressionsRequest, opts ...grpc.CallOption) (*ListSuppressionsReply, error)
 	CreateSuppression(ctx context.Context, in *CreateSuppressionRequest, opts ...grpc.CallOption) (*Suppression, error)
 	UpdateSuppression(ctx context.Context, in *UpdateSuppressionRequest, opts ...grpc.CallOption) (*Suppression, error)
+	// ListSuppressionDsnMessages returns the raw DSN notifications archived for the
+	// recipient behind a dsn-sourced suppression, so an operator can read the full
+	// asynchronous bounce.
+	ListSuppressionDsnMessages(ctx context.Context, in *ListSuppressionDsnMessagesRequest, opts ...grpc.CallOption) (*ListSuppressionDsnMessagesReply, error)
 	// Require-TLS policies (outbound delivery must use TLS for these domains) ---
 	ListTLSPolicies(ctx context.Context, in *ListTLSPoliciesRequest, opts ...grpc.CallOption) (*ListTLSPoliciesReply, error)
 	CreateTLSPolicy(ctx context.Context, in *CreateTLSPolicyRequest, opts ...grpc.CallOption) (*TLSPolicy, error)
@@ -250,6 +292,9 @@ type IrisAdminServiceClient interface {
 	// GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(ctx context.Context, in *GetMetricsTimeseriesRequest, opts ...grpc.CallOption) (*MetricsTimeseries, error)
+	// GetSystemMetrics returns host CPU / memory / per-disk usage over time from
+	// the iris_system_* Prometheus gauges.
+	GetSystemMetrics(ctx context.Context, in *GetSystemMetricsRequest, opts ...grpc.CallOption) (*MetricsTimeseries, error)
 	// GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
 	// bounce rates over a lookback window — used to watch IP-warmup health.
 	GetWarmupDeliveryStats(ctx context.Context, in *GetWarmupDeliveryStatsRequest, opts ...grpc.CallOption) (*WarmupDeliveryStats, error)
@@ -294,6 +339,16 @@ type IrisAdminServiceClient interface {
 	CreateSubjectClassification(ctx context.Context, in *CreateSubjectClassificationRequest, opts ...grpc.CallOption) (*SubjectClassification, error)
 	UpdateSubjectClassification(ctx context.Context, in *UpdateSubjectClassificationRequest, opts ...grpc.CallOption) (*SubjectClassification, error)
 	DeleteSubjectClassification(ctx context.Context, in *DeleteSubjectClassificationRequest, opts ...grpc.CallOption) (*DeleteSubjectClassificationReply, error)
+	// Injection API credentials (GreenArrow-compatible mail-injection listener).
+	ListInjectionCredentials(ctx context.Context, in *ListInjectionCredentialsRequest, opts ...grpc.CallOption) (*ListInjectionCredentialsReply, error)
+	CreateInjectionCredential(ctx context.Context, in *CreateInjectionCredentialRequest, opts ...grpc.CallOption) (*InjectionCredential, error)
+	UpdateInjectionCredential(ctx context.Context, in *UpdateInjectionCredentialRequest, opts ...grpc.CallOption) (*InjectionCredential, error)
+	SetInjectionCredentialPassword(ctx context.Context, in *SetInjectionCredentialPasswordRequest, opts ...grpc.CallOption) (*InjectionCredential, error)
+	DeleteInjectionCredential(ctx context.Context, in *DeleteInjectionCredentialRequest, opts ...grpc.CallOption) (*DeleteInjectionCredentialReply, error)
+	// System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
+	GetSystemMonitor(ctx context.Context, in *GetSystemMonitorRequest, opts ...grpc.CallOption) (*SystemMonitor, error)
+	UpdateMonitorSettings(ctx context.Context, in *UpdateMonitorSettingsRequest, opts ...grpc.CallOption) (*MonitorSettings, error)
+	TestMonitorNotification(ctx context.Context, in *TestMonitorNotificationRequest, opts ...grpc.CallOption) (*TestMonitorNotificationReply, error)
 }
 
 type irisAdminServiceClient struct {
@@ -534,6 +589,116 @@ func (c *irisAdminServiceClient) SetAutomationRuleStatus(ctx context.Context, in
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) ListBounceRules(ctx context.Context, in *ListBounceRulesRequest, opts ...grpc.CallOption) (*ListBounceRulesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListBounceRulesReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListBounceRules_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) CreateBounceRule(ctx context.Context, in *CreateBounceRuleRequest, opts ...grpc.CallOption) (*BounceRule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BounceRule)
+	err := c.cc.Invoke(ctx, IrisAdminService_CreateBounceRule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) UpdateBounceRule(ctx context.Context, in *UpdateBounceRuleRequest, opts ...grpc.CallOption) (*BounceRule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BounceRule)
+	err := c.cc.Invoke(ctx, IrisAdminService_UpdateBounceRule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) DeleteBounceRule(ctx context.Context, in *DeleteBounceRuleRequest, opts ...grpc.CallOption) (*DeleteBounceRuleReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteBounceRuleReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_DeleteBounceRule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ResetBounceRules(ctx context.Context, in *ResetBounceRulesRequest, opts ...grpc.CallOption) (*ListBounceRulesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListBounceRulesReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ResetBounceRules_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) TestBounceDiagnostic(ctx context.Context, in *TestBounceDiagnosticRequest, opts ...grpc.CallOption) (*TestBounceDiagnosticReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TestBounceDiagnosticReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_TestBounceDiagnostic_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ListEventProcessors(ctx context.Context, in *ListEventProcessorsRequest, opts ...grpc.CallOption) (*ListEventProcessorsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListEventProcessorsReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListEventProcessors_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) CreateEventProcessor(ctx context.Context, in *CreateEventProcessorRequest, opts ...grpc.CallOption) (*EventProcessor, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventProcessor)
+	err := c.cc.Invoke(ctx, IrisAdminService_CreateEventProcessor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) UpdateEventProcessor(ctx context.Context, in *UpdateEventProcessorRequest, opts ...grpc.CallOption) (*EventProcessor, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventProcessor)
+	err := c.cc.Invoke(ctx, IrisAdminService_UpdateEventProcessor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) DeleteEventProcessor(ctx context.Context, in *DeleteEventProcessorRequest, opts ...grpc.CallOption) (*DeleteEventProcessorReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteEventProcessorReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_DeleteEventProcessor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) TestEventProcessor(ctx context.Context, in *TestEventProcessorRequest, opts ...grpc.CallOption) (*TestEventProcessorReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TestEventProcessorReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_TestEventProcessor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) ListRoutingRules(ctx context.Context, in *ListRoutingRulesRequest, opts ...grpc.CallOption) (*ListRoutingRulesReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListRoutingRulesReply)
@@ -568,6 +733,26 @@ func (c *irisAdminServiceClient) ListMailRecords(ctx context.Context, in *ListMa
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListMailRecordsReply)
 	err := c.cc.Invoke(ctx, IrisAdminService_ListMailRecords_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) GetNextDeliveryAttempt(ctx context.Context, in *GetNextDeliveryAttemptRequest, opts ...grpc.CallOption) (*NextDeliveryAttempt, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NextDeliveryAttempt)
+	err := c.cc.Invoke(ctx, IrisAdminService_GetNextDeliveryAttempt_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ListDsnMessages(ctx context.Context, in *ListDsnMessagesRequest, opts ...grpc.CallOption) (*ListDsnMessagesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDsnMessagesReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListDsnMessages_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -678,6 +863,16 @@ func (c *irisAdminServiceClient) UpdateSuppression(ctx context.Context, in *Upda
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Suppression)
 	err := c.cc.Invoke(ctx, IrisAdminService_UpdateSuppression_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ListSuppressionDsnMessages(ctx context.Context, in *ListSuppressionDsnMessagesRequest, opts ...grpc.CallOption) (*ListSuppressionDsnMessagesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSuppressionDsnMessagesReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListSuppressionDsnMessages_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1094,6 +1289,16 @@ func (c *irisAdminServiceClient) GetMetricsTimeseries(ctx context.Context, in *G
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) GetSystemMetrics(ctx context.Context, in *GetSystemMetricsRequest, opts ...grpc.CallOption) (*MetricsTimeseries, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MetricsTimeseries)
+	err := c.cc.Invoke(ctx, IrisAdminService_GetSystemMetrics_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) GetWarmupDeliveryStats(ctx context.Context, in *GetWarmupDeliveryStatsRequest, opts ...grpc.CallOption) (*WarmupDeliveryStats, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(WarmupDeliveryStats)
@@ -1294,6 +1499,86 @@ func (c *irisAdminServiceClient) DeleteSubjectClassification(ctx context.Context
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) ListInjectionCredentials(ctx context.Context, in *ListInjectionCredentialsRequest, opts ...grpc.CallOption) (*ListInjectionCredentialsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListInjectionCredentialsReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListInjectionCredentials_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) CreateInjectionCredential(ctx context.Context, in *CreateInjectionCredentialRequest, opts ...grpc.CallOption) (*InjectionCredential, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InjectionCredential)
+	err := c.cc.Invoke(ctx, IrisAdminService_CreateInjectionCredential_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) UpdateInjectionCredential(ctx context.Context, in *UpdateInjectionCredentialRequest, opts ...grpc.CallOption) (*InjectionCredential, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InjectionCredential)
+	err := c.cc.Invoke(ctx, IrisAdminService_UpdateInjectionCredential_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) SetInjectionCredentialPassword(ctx context.Context, in *SetInjectionCredentialPasswordRequest, opts ...grpc.CallOption) (*InjectionCredential, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InjectionCredential)
+	err := c.cc.Invoke(ctx, IrisAdminService_SetInjectionCredentialPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) DeleteInjectionCredential(ctx context.Context, in *DeleteInjectionCredentialRequest, opts ...grpc.CallOption) (*DeleteInjectionCredentialReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteInjectionCredentialReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_DeleteInjectionCredential_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) GetSystemMonitor(ctx context.Context, in *GetSystemMonitorRequest, opts ...grpc.CallOption) (*SystemMonitor, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SystemMonitor)
+	err := c.cc.Invoke(ctx, IrisAdminService_GetSystemMonitor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) UpdateMonitorSettings(ctx context.Context, in *UpdateMonitorSettingsRequest, opts ...grpc.CallOption) (*MonitorSettings, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MonitorSettings)
+	err := c.cc.Invoke(ctx, IrisAdminService_UpdateMonitorSettings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) TestMonitorNotification(ctx context.Context, in *TestMonitorNotificationRequest, opts ...grpc.CallOption) (*TestMonitorNotificationReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TestMonitorNotificationReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_TestMonitorNotification_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IrisAdminServiceServer is the server API for IrisAdminService service.
 // All implementations must embed UnimplementedIrisAdminServiceServer
 // for forward compatibility.
@@ -1326,11 +1611,26 @@ type IrisAdminServiceServer interface {
 	CreateAutomationRule(context.Context, *CreateAutomationRuleRequest) (*AutomationRule, error)
 	UpdateAutomationRule(context.Context, *UpdateAutomationRuleRequest) (*AutomationRule, error)
 	SetAutomationRuleStatus(context.Context, *SetAutomationRuleStatusRequest) (*AutomationRule, error)
+	ListBounceRules(context.Context, *ListBounceRulesRequest) (*ListBounceRulesReply, error)
+	CreateBounceRule(context.Context, *CreateBounceRuleRequest) (*BounceRule, error)
+	UpdateBounceRule(context.Context, *UpdateBounceRuleRequest) (*BounceRule, error)
+	DeleteBounceRule(context.Context, *DeleteBounceRuleRequest) (*DeleteBounceRuleReply, error)
+	ResetBounceRules(context.Context, *ResetBounceRulesRequest) (*ListBounceRulesReply, error)
+	TestBounceDiagnostic(context.Context, *TestBounceDiagnosticRequest) (*TestBounceDiagnosticReply, error)
+	ListEventProcessors(context.Context, *ListEventProcessorsRequest) (*ListEventProcessorsReply, error)
+	CreateEventProcessor(context.Context, *CreateEventProcessorRequest) (*EventProcessor, error)
+	UpdateEventProcessor(context.Context, *UpdateEventProcessorRequest) (*EventProcessor, error)
+	DeleteEventProcessor(context.Context, *DeleteEventProcessorRequest) (*DeleteEventProcessorReply, error)
+	TestEventProcessor(context.Context, *TestEventProcessorRequest) (*TestEventProcessorReply, error)
 	ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesReply, error)
 	CreateRoutingRule(context.Context, *CreateRoutingRuleRequest) (*RoutingRule, error)
 	UpdateRoutingRule(context.Context, *UpdateRoutingRuleRequest) (*RoutingRule, error)
 	// Mail operations ----------------------------------------------------------
 	ListMailRecords(context.Context, *ListMailRecordsRequest) (*ListMailRecordsReply, error)
+	GetNextDeliveryAttempt(context.Context, *GetNextDeliveryAttemptRequest) (*NextDeliveryAttempt, error)
+	// ListDsnMessages returns the raw DSN notifications archived for a recipient,
+	// so the operator can read the full asynchronous bounce behind a dsn-type bounce.
+	ListDsnMessages(context.Context, *ListDsnMessagesRequest) (*ListDsnMessagesReply, error)
 	ListBounces(context.Context, *ListBouncesRequest) (*ListBouncesReply, error)
 	ListFeedbackReports(context.Context, *ListFeedbackReportsRequest) (*ListFeedbackReportsReply, error)
 	ListQueues(context.Context, *ListQueuesRequest) (*ListQueuesReply, error)
@@ -1345,6 +1645,10 @@ type IrisAdminServiceServer interface {
 	ListSuppressions(context.Context, *ListSuppressionsRequest) (*ListSuppressionsReply, error)
 	CreateSuppression(context.Context, *CreateSuppressionRequest) (*Suppression, error)
 	UpdateSuppression(context.Context, *UpdateSuppressionRequest) (*Suppression, error)
+	// ListSuppressionDsnMessages returns the raw DSN notifications archived for the
+	// recipient behind a dsn-sourced suppression, so an operator can read the full
+	// asynchronous bounce.
+	ListSuppressionDsnMessages(context.Context, *ListSuppressionDsnMessagesRequest) (*ListSuppressionDsnMessagesReply, error)
 	// Require-TLS policies (outbound delivery must use TLS for these domains) ---
 	ListTLSPolicies(context.Context, *ListTLSPoliciesRequest) (*ListTLSPoliciesReply, error)
 	CreateTLSPolicy(context.Context, *CreateTLSPolicyRequest) (*TLSPolicy, error)
@@ -1424,6 +1728,9 @@ type IrisAdminServiceServer interface {
 	// GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(context.Context, *GetMetricsTimeseriesRequest) (*MetricsTimeseries, error)
+	// GetSystemMetrics returns host CPU / memory / per-disk usage over time from
+	// the iris_system_* Prometheus gauges.
+	GetSystemMetrics(context.Context, *GetSystemMetricsRequest) (*MetricsTimeseries, error)
 	// GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
 	// bounce rates over a lookback window — used to watch IP-warmup health.
 	GetWarmupDeliveryStats(context.Context, *GetWarmupDeliveryStatsRequest) (*WarmupDeliveryStats, error)
@@ -1468,6 +1775,16 @@ type IrisAdminServiceServer interface {
 	CreateSubjectClassification(context.Context, *CreateSubjectClassificationRequest) (*SubjectClassification, error)
 	UpdateSubjectClassification(context.Context, *UpdateSubjectClassificationRequest) (*SubjectClassification, error)
 	DeleteSubjectClassification(context.Context, *DeleteSubjectClassificationRequest) (*DeleteSubjectClassificationReply, error)
+	// Injection API credentials (GreenArrow-compatible mail-injection listener).
+	ListInjectionCredentials(context.Context, *ListInjectionCredentialsRequest) (*ListInjectionCredentialsReply, error)
+	CreateInjectionCredential(context.Context, *CreateInjectionCredentialRequest) (*InjectionCredential, error)
+	UpdateInjectionCredential(context.Context, *UpdateInjectionCredentialRequest) (*InjectionCredential, error)
+	SetInjectionCredentialPassword(context.Context, *SetInjectionCredentialPasswordRequest) (*InjectionCredential, error)
+	DeleteInjectionCredential(context.Context, *DeleteInjectionCredentialRequest) (*DeleteInjectionCredentialReply, error)
+	// System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
+	GetSystemMonitor(context.Context, *GetSystemMonitorRequest) (*SystemMonitor, error)
+	UpdateMonitorSettings(context.Context, *UpdateMonitorSettingsRequest) (*MonitorSettings, error)
+	TestMonitorNotification(context.Context, *TestMonitorNotificationRequest) (*TestMonitorNotificationReply, error)
 	mustEmbedUnimplementedIrisAdminServiceServer()
 }
 
@@ -1547,6 +1864,39 @@ func (UnimplementedIrisAdminServiceServer) UpdateAutomationRule(context.Context,
 func (UnimplementedIrisAdminServiceServer) SetAutomationRuleStatus(context.Context, *SetAutomationRuleStatusRequest) (*AutomationRule, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetAutomationRuleStatus not implemented")
 }
+func (UnimplementedIrisAdminServiceServer) ListBounceRules(context.Context, *ListBounceRulesRequest) (*ListBounceRulesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListBounceRules not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) CreateBounceRule(context.Context, *CreateBounceRuleRequest) (*BounceRule, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateBounceRule not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) UpdateBounceRule(context.Context, *UpdateBounceRuleRequest) (*BounceRule, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateBounceRule not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) DeleteBounceRule(context.Context, *DeleteBounceRuleRequest) (*DeleteBounceRuleReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteBounceRule not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ResetBounceRules(context.Context, *ResetBounceRulesRequest) (*ListBounceRulesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResetBounceRules not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) TestBounceDiagnostic(context.Context, *TestBounceDiagnosticRequest) (*TestBounceDiagnosticReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method TestBounceDiagnostic not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListEventProcessors(context.Context, *ListEventProcessorsRequest) (*ListEventProcessorsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListEventProcessors not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) CreateEventProcessor(context.Context, *CreateEventProcessorRequest) (*EventProcessor, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateEventProcessor not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) UpdateEventProcessor(context.Context, *UpdateEventProcessorRequest) (*EventProcessor, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateEventProcessor not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) DeleteEventProcessor(context.Context, *DeleteEventProcessorRequest) (*DeleteEventProcessorReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteEventProcessor not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) TestEventProcessor(context.Context, *TestEventProcessorRequest) (*TestEventProcessorReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method TestEventProcessor not implemented")
+}
 func (UnimplementedIrisAdminServiceServer) ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRoutingRules not implemented")
 }
@@ -1558,6 +1908,12 @@ func (UnimplementedIrisAdminServiceServer) UpdateRoutingRule(context.Context, *U
 }
 func (UnimplementedIrisAdminServiceServer) ListMailRecords(context.Context, *ListMailRecordsRequest) (*ListMailRecordsReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListMailRecords not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) GetNextDeliveryAttempt(context.Context, *GetNextDeliveryAttemptRequest) (*NextDeliveryAttempt, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetNextDeliveryAttempt not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListDsnMessages(context.Context, *ListDsnMessagesRequest) (*ListDsnMessagesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDsnMessages not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) ListBounces(context.Context, *ListBouncesRequest) (*ListBouncesReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListBounces not implemented")
@@ -1591,6 +1947,9 @@ func (UnimplementedIrisAdminServiceServer) CreateSuppression(context.Context, *C
 }
 func (UnimplementedIrisAdminServiceServer) UpdateSuppression(context.Context, *UpdateSuppressionRequest) (*Suppression, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateSuppression not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListSuppressionDsnMessages(context.Context, *ListSuppressionDsnMessagesRequest) (*ListSuppressionDsnMessagesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListSuppressionDsnMessages not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) ListTLSPolicies(context.Context, *ListTLSPoliciesRequest) (*ListTLSPoliciesReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListTLSPolicies not implemented")
@@ -1715,6 +2074,9 @@ func (UnimplementedIrisAdminServiceServer) GetDashboardSummary(context.Context, 
 func (UnimplementedIrisAdminServiceServer) GetMetricsTimeseries(context.Context, *GetMetricsTimeseriesRequest) (*MetricsTimeseries, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetMetricsTimeseries not implemented")
 }
+func (UnimplementedIrisAdminServiceServer) GetSystemMetrics(context.Context, *GetSystemMetricsRequest) (*MetricsTimeseries, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSystemMetrics not implemented")
+}
 func (UnimplementedIrisAdminServiceServer) GetWarmupDeliveryStats(context.Context, *GetWarmupDeliveryStatsRequest) (*WarmupDeliveryStats, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetWarmupDeliveryStats not implemented")
 }
@@ -1774,6 +2136,30 @@ func (UnimplementedIrisAdminServiceServer) UpdateSubjectClassification(context.C
 }
 func (UnimplementedIrisAdminServiceServer) DeleteSubjectClassification(context.Context, *DeleteSubjectClassificationRequest) (*DeleteSubjectClassificationReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteSubjectClassification not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListInjectionCredentials(context.Context, *ListInjectionCredentialsRequest) (*ListInjectionCredentialsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListInjectionCredentials not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) CreateInjectionCredential(context.Context, *CreateInjectionCredentialRequest) (*InjectionCredential, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateInjectionCredential not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) UpdateInjectionCredential(context.Context, *UpdateInjectionCredentialRequest) (*InjectionCredential, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateInjectionCredential not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) SetInjectionCredentialPassword(context.Context, *SetInjectionCredentialPasswordRequest) (*InjectionCredential, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetInjectionCredentialPassword not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) DeleteInjectionCredential(context.Context, *DeleteInjectionCredentialRequest) (*DeleteInjectionCredentialReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteInjectionCredential not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) GetSystemMonitor(context.Context, *GetSystemMonitorRequest) (*SystemMonitor, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSystemMonitor not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) UpdateMonitorSettings(context.Context, *UpdateMonitorSettingsRequest) (*MonitorSettings, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateMonitorSettings not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) TestMonitorNotification(context.Context, *TestMonitorNotificationRequest) (*TestMonitorNotificationReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method TestMonitorNotification not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) mustEmbedUnimplementedIrisAdminServiceServer() {}
 func (UnimplementedIrisAdminServiceServer) testEmbeddedByValue()                          {}
@@ -2210,6 +2596,204 @@ func _IrisAdminService_SetAutomationRuleStatus_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_ListBounceRules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListBounceRulesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListBounceRules(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListBounceRules_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListBounceRules(ctx, req.(*ListBounceRulesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_CreateBounceRule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateBounceRuleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).CreateBounceRule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_CreateBounceRule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).CreateBounceRule(ctx, req.(*CreateBounceRuleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_UpdateBounceRule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateBounceRuleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).UpdateBounceRule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_UpdateBounceRule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).UpdateBounceRule(ctx, req.(*UpdateBounceRuleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_DeleteBounceRule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteBounceRuleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).DeleteBounceRule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_DeleteBounceRule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).DeleteBounceRule(ctx, req.(*DeleteBounceRuleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ResetBounceRules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResetBounceRulesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ResetBounceRules(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ResetBounceRules_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ResetBounceRules(ctx, req.(*ResetBounceRulesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_TestBounceDiagnostic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TestBounceDiagnosticRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).TestBounceDiagnostic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_TestBounceDiagnostic_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).TestBounceDiagnostic(ctx, req.(*TestBounceDiagnosticRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListEventProcessors_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListEventProcessorsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListEventProcessors(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListEventProcessors_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListEventProcessors(ctx, req.(*ListEventProcessorsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_CreateEventProcessor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateEventProcessorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).CreateEventProcessor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_CreateEventProcessor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).CreateEventProcessor(ctx, req.(*CreateEventProcessorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_UpdateEventProcessor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateEventProcessorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).UpdateEventProcessor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_UpdateEventProcessor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).UpdateEventProcessor(ctx, req.(*UpdateEventProcessorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_DeleteEventProcessor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteEventProcessorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).DeleteEventProcessor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_DeleteEventProcessor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).DeleteEventProcessor(ctx, req.(*DeleteEventProcessorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_TestEventProcessor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TestEventProcessorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).TestEventProcessor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_TestEventProcessor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).TestEventProcessor(ctx, req.(*TestEventProcessorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_ListRoutingRules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListRoutingRulesRequest)
 	if err := dec(in); err != nil {
@@ -2278,6 +2862,42 @@ func _IrisAdminService_ListMailRecords_Handler(srv interface{}, ctx context.Cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IrisAdminServiceServer).ListMailRecords(ctx, req.(*ListMailRecordsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_GetNextDeliveryAttempt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNextDeliveryAttemptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).GetNextDeliveryAttempt(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_GetNextDeliveryAttempt_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).GetNextDeliveryAttempt(ctx, req.(*GetNextDeliveryAttemptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListDsnMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDsnMessagesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListDsnMessages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListDsnMessages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListDsnMessages(ctx, req.(*ListDsnMessagesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2476,6 +3096,24 @@ func _IrisAdminService_UpdateSuppression_Handler(srv interface{}, ctx context.Co
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IrisAdminServiceServer).UpdateSuppression(ctx, req.(*UpdateSuppressionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListSuppressionDsnMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSuppressionDsnMessagesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListSuppressionDsnMessages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListSuppressionDsnMessages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListSuppressionDsnMessages(ctx, req.(*ListSuppressionDsnMessagesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -3218,6 +3856,24 @@ func _IrisAdminService_GetMetricsTimeseries_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_GetSystemMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSystemMetricsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).GetSystemMetrics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_GetSystemMetrics_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).GetSystemMetrics(ctx, req.(*GetSystemMetricsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_GetWarmupDeliveryStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetWarmupDeliveryStatsRequest)
 	if err := dec(in); err != nil {
@@ -3578,6 +4234,150 @@ func _IrisAdminService_DeleteSubjectClassification_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_ListInjectionCredentials_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListInjectionCredentialsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListInjectionCredentials(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListInjectionCredentials_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListInjectionCredentials(ctx, req.(*ListInjectionCredentialsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_CreateInjectionCredential_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateInjectionCredentialRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).CreateInjectionCredential(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_CreateInjectionCredential_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).CreateInjectionCredential(ctx, req.(*CreateInjectionCredentialRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_UpdateInjectionCredential_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateInjectionCredentialRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).UpdateInjectionCredential(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_UpdateInjectionCredential_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).UpdateInjectionCredential(ctx, req.(*UpdateInjectionCredentialRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_SetInjectionCredentialPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetInjectionCredentialPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).SetInjectionCredentialPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_SetInjectionCredentialPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).SetInjectionCredentialPassword(ctx, req.(*SetInjectionCredentialPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_DeleteInjectionCredential_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteInjectionCredentialRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).DeleteInjectionCredential(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_DeleteInjectionCredential_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).DeleteInjectionCredential(ctx, req.(*DeleteInjectionCredentialRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_GetSystemMonitor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSystemMonitorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).GetSystemMonitor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_GetSystemMonitor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).GetSystemMonitor(ctx, req.(*GetSystemMonitorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_UpdateMonitorSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateMonitorSettingsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).UpdateMonitorSettings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_UpdateMonitorSettings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).UpdateMonitorSettings(ctx, req.(*UpdateMonitorSettingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_TestMonitorNotification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TestMonitorNotificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).TestMonitorNotification(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_TestMonitorNotification_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).TestMonitorNotification(ctx, req.(*TestMonitorNotificationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IrisAdminService_ServiceDesc is the grpc.ServiceDesc for IrisAdminService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -3678,6 +4478,50 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _IrisAdminService_SetAutomationRuleStatus_Handler,
 		},
 		{
+			MethodName: "ListBounceRules",
+			Handler:    _IrisAdminService_ListBounceRules_Handler,
+		},
+		{
+			MethodName: "CreateBounceRule",
+			Handler:    _IrisAdminService_CreateBounceRule_Handler,
+		},
+		{
+			MethodName: "UpdateBounceRule",
+			Handler:    _IrisAdminService_UpdateBounceRule_Handler,
+		},
+		{
+			MethodName: "DeleteBounceRule",
+			Handler:    _IrisAdminService_DeleteBounceRule_Handler,
+		},
+		{
+			MethodName: "ResetBounceRules",
+			Handler:    _IrisAdminService_ResetBounceRules_Handler,
+		},
+		{
+			MethodName: "TestBounceDiagnostic",
+			Handler:    _IrisAdminService_TestBounceDiagnostic_Handler,
+		},
+		{
+			MethodName: "ListEventProcessors",
+			Handler:    _IrisAdminService_ListEventProcessors_Handler,
+		},
+		{
+			MethodName: "CreateEventProcessor",
+			Handler:    _IrisAdminService_CreateEventProcessor_Handler,
+		},
+		{
+			MethodName: "UpdateEventProcessor",
+			Handler:    _IrisAdminService_UpdateEventProcessor_Handler,
+		},
+		{
+			MethodName: "DeleteEventProcessor",
+			Handler:    _IrisAdminService_DeleteEventProcessor_Handler,
+		},
+		{
+			MethodName: "TestEventProcessor",
+			Handler:    _IrisAdminService_TestEventProcessor_Handler,
+		},
+		{
 			MethodName: "ListRoutingRules",
 			Handler:    _IrisAdminService_ListRoutingRules_Handler,
 		},
@@ -3692,6 +4536,14 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListMailRecords",
 			Handler:    _IrisAdminService_ListMailRecords_Handler,
+		},
+		{
+			MethodName: "GetNextDeliveryAttempt",
+			Handler:    _IrisAdminService_GetNextDeliveryAttempt_Handler,
+		},
+		{
+			MethodName: "ListDsnMessages",
+			Handler:    _IrisAdminService_ListDsnMessages_Handler,
 		},
 		{
 			MethodName: "ListBounces",
@@ -3736,6 +4588,10 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateSuppression",
 			Handler:    _IrisAdminService_UpdateSuppression_Handler,
+		},
+		{
+			MethodName: "ListSuppressionDsnMessages",
+			Handler:    _IrisAdminService_ListSuppressionDsnMessages_Handler,
 		},
 		{
 			MethodName: "ListTLSPolicies",
@@ -3902,6 +4758,10 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _IrisAdminService_GetMetricsTimeseries_Handler,
 		},
 		{
+			MethodName: "GetSystemMetrics",
+			Handler:    _IrisAdminService_GetSystemMetrics_Handler,
+		},
+		{
 			MethodName: "GetWarmupDeliveryStats",
 			Handler:    _IrisAdminService_GetWarmupDeliveryStats_Handler,
 		},
@@ -3980,6 +4840,38 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteSubjectClassification",
 			Handler:    _IrisAdminService_DeleteSubjectClassification_Handler,
+		},
+		{
+			MethodName: "ListInjectionCredentials",
+			Handler:    _IrisAdminService_ListInjectionCredentials_Handler,
+		},
+		{
+			MethodName: "CreateInjectionCredential",
+			Handler:    _IrisAdminService_CreateInjectionCredential_Handler,
+		},
+		{
+			MethodName: "UpdateInjectionCredential",
+			Handler:    _IrisAdminService_UpdateInjectionCredential_Handler,
+		},
+		{
+			MethodName: "SetInjectionCredentialPassword",
+			Handler:    _IrisAdminService_SetInjectionCredentialPassword_Handler,
+		},
+		{
+			MethodName: "DeleteInjectionCredential",
+			Handler:    _IrisAdminService_DeleteInjectionCredential_Handler,
+		},
+		{
+			MethodName: "GetSystemMonitor",
+			Handler:    _IrisAdminService_GetSystemMonitor_Handler,
+		},
+		{
+			MethodName: "UpdateMonitorSettings",
+			Handler:    _IrisAdminService_UpdateMonitorSettings_Handler,
+		},
+		{
+			MethodName: "TestMonitorNotification",
+			Handler:    _IrisAdminService_TestMonitorNotification_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

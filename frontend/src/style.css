@@ -33,6 +33,19 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Outlined-field labels clipped by the card edge.
+   v-card sets `overflow: hidden` (for its rounded corners), and CardContent
+   bakes in `pt-0` so it can sit flush under a CardHeader. On our filter
+   panels the CardContent is the card's first element (no header above it),
+   so the first row of outlined fields is flush with the card's top edge and
+   the floating label — which sits above the field border — gets clipped.
+   Restore top padding, but only for a header-less, padded CardContent:
+   `.v-card__loader + .pa-4` targets the first content element, and
+   `:not(.pa-0):not(.p-0)` skips edge-to-edge (table) cards. */
+.v-card > .v-card__loader + .pa-4:not(.pa-0):not(.p-0) {
+  padding-top: 1rem !important;
+}
+
 /* "Bordered" skin (settings drawer): flat surfaces with hairline borders
    instead of shadows, Vuexy-style. */
 .skin-bordered .v-card,

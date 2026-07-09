@@ -42,7 +42,11 @@ type Service struct {
 	warmup          *biz.WarmupUsecase
 	blueprints      *biz.BlueprintUsecase
 	automation      *biz.AutomationUsecase
+	bounceRules     *biz.BounceRuleUsecase
+	eventProcessors *biz.EventProcessorUsecase
 	classifications *biz.SubjectClassificationUsecase
+	injectionCreds  *biz.InjectionCredentialUsecase
+	sysMon          *biz.SysMonUsecase
 }
 
 // Deps bundles the use cases the service delegates to. Fields may be nil for
@@ -72,7 +76,11 @@ type Deps struct {
 	Warmup          *biz.WarmupUsecase
 	Blueprints      *biz.BlueprintUsecase
 	Automation      *biz.AutomationUsecase
+	BounceRules     *biz.BounceRuleUsecase
+	EventProcessors *biz.EventProcessorUsecase
 	Classifications *biz.SubjectClassificationUsecase
+	InjectionCreds  *biz.InjectionCredentialUsecase
+	SysMon          *biz.SysMonUsecase
 }
 
 // NewService constructs the admin API service.
@@ -106,7 +114,11 @@ func NewService(d Deps) *Service {
 		warmup:          d.Warmup,
 		blueprints:      d.Blueprints,
 		automation:      d.Automation,
+		bounceRules:     d.BounceRules,
+		eventProcessors: d.EventProcessors,
 		classifications: d.Classifications,
+		injectionCreds:  d.InjectionCreds,
+		sysMon:          d.SysMon,
 	}
 }
 

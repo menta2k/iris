@@ -5,6 +5,8 @@ import { BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import RangeToggle from './RangeToggle.vue'
+import { useChartTheme } from '@/composables/useChartTheme'
 import { metricsService, type MetricsRange } from '@/services/metrics'
 import { ApiError } from '@/services/http'
 import type { QueueTimeBucket } from '@/types'
@@ -13,6 +15,8 @@ echarts.use([BarChart, GridComponent, TooltipComponent, CanvasRenderer])
 
 const RANGES: MetricsRange[] = ['1h', '6h', '24h', '7d']
 const GLOBAL = '' // empty mailclass = global (all classes)
+
+const chartTheme = useChartTheme()
 
 const range = ref<MetricsRange>('6h')
 const mailclass = ref<string>(GLOBAL)
@@ -59,6 +63,7 @@ function bucketLabel(le: string, prevBound: number): string {
 
 function render() {
   if (!chart.value) return
+  const t = chartTheme.value
   let prev = 0
   const labels: string[] = []
   const values: number[] = []
@@ -72,6 +77,9 @@ function render() {
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
+        backgroundColor: t.tooltipBg,
+        borderColor: t.tooltipBorder,
+        textStyle: { color: t.tooltipText },
         formatter: (p: { name: string; value: number }[]) =>
           `${p[0].name}<br/>${p[0].value.toLocaleString()} deliveries`,
       },
@@ -79,22 +87,22 @@ function render() {
       xAxis: {
         type: 'category',
         data: labels,
-        axisLabel: { color: '#64748b', rotate: 30, fontSize: 10 },
-        axisLine: { lineStyle: { color: '#e2e8f0' } },
+        axisLabel: { color: t.axisLabel, rotate: 30, fontSize: 10 },
+        axisLine: { lineStyle: { color: t.axisLine } },
       },
       yAxis: {
         type: 'value',
         min: 0,
-        axisLabel: { color: '#64748b' },
-        splitLine: { lineStyle: { color: '#f1f5f9' } },
+        axisLabel: { color: t.axisLabel },
+        splitLine: { lineStyle: { color: t.splitLine } },
       },
       series: [
         {
           type: 'bar',
           data: values,
-          color: '#6366f1',
+          color: t.series.primary,
           barMaxWidth: 40,
-          itemStyle: { borderRadius: [3, 3, 0, 0] },
+          itemStyle: { borderRadius: [4, 4, 0, 0] },
         },
       ],
     },
@@ -132,11 +140,6 @@ async function load() {
   }
 }
 
-function selectRange(r: MetricsRange) {
-  if (r === range.value) return
-  range.value = r
-}
-
 const onResize = () => chart.value?.resize()
 
 onMounted(() => {
@@ -154,38 +157,33 @@ onBeforeUnmount(() => {
 })
 
 watch([range, mailclass], load)
-watch([buckets, loading], () => {
+// Re-render whenever data lands, and re-skin when the theme flips.
+watch([buckets, loading, chartTheme], () => {
   if (hasData.value) render()
 })
 </script>
 
 <template>
-  <Card>
-    <CardHeader class="d-flex flex-row align-center justify-space-between pb-2 ga-2">
-      <CardTitle class="text-body-2 text-medium-emphasis">
-        Delivery queue time
-        <span v-if="hasData" class="ml-1">· {{ totalCount.toLocaleString() }} delivered</span>
-      </CardTitle>
-      <div class="d-flex align-center ga-2">
-        <v-select
-          v-model="mailclass"
-          :items="mailclassItems"
-          density="compact"
-          variant="outlined"
-          hide-details
-          style="min-width: 150px"
-        />
-        <div class="d-flex ga-1">
-          <button
-            v-for="r in RANGES"
-            :key="r"
-            type="button"
-            class="rounded px-2 text-caption font-weight-medium"
-            :class="r === range ? 'bg-primary' : 'text-medium-emphasis'"
-            @click="selectRange(r)"
-          >
-            {{ r }}
-          </button>
+  <Card class="h-100">
+    <CardHeader class="pb-2">
+      <div class="d-flex flex-wrap align-center justify-space-between ga-2">
+        <div>
+          <CardTitle>Delivery Queue Time</CardTitle>
+          <p class="text-caption text-medium-emphasis mb-0">
+            <template v-if="hasData">{{ totalCount.toLocaleString() }} delivered</template>
+            <template v-else>Time from enqueue to delivery</template>
+          </p>
+        </div>
+        <div class="d-flex align-center flex-wrap ga-2">
+          <v-select
+            v-model="mailclass"
+            :items="mailclassItems"
+            density="compact"
+            variant="outlined"
+            hide-details
+            style="min-width: 150px"
+          />
+          <RangeToggle v-model="range" :options="RANGES" />
         </div>
       </div>
     </CardHeader>

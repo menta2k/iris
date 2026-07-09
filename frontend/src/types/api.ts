@@ -223,6 +223,122 @@ export interface UpdateAutomationRuleRequest extends CreateAutomationRuleRequest
   status: string
 }
 
+// ---- Bounce-based actions ----
+
+export type BounceAction = 'retry' | 'throttle' | 'suspend_domain' | 'suppress'
+export type BounceClass = 'soft' | 'hard'
+
+export interface BounceRule {
+  id: string
+  smtpCode: string
+  enhancedCode: string
+  provider: string
+  pattern: string
+  class: BounceClass
+  category: string
+  action: BounceAction
+  actionConfig: string
+  suggestedAction: string
+  priority: number
+  minAttempts: number
+  suppressTtl: string
+  source: 'default' | 'overlay'
+  status: 'active' | 'disabled'
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CreateBounceRuleRequest {
+  smtp_code: string
+  enhanced_code: string
+  provider: string
+  pattern: string
+  class: string
+  category: string
+  action: string
+  action_config: string
+  suggested_action: string
+  priority: number
+  min_attempts: number
+  suppress_ttl: string
+}
+
+export interface UpdateBounceRuleRequest extends CreateBounceRuleRequest {
+  status: string
+}
+
+// ---- Event Processor ----
+
+export type EventProcessorEventType =
+  | 'bounce'
+  | 'suppression_created'
+  | 'feedback_report'
+  | 'dmarc_received'
+
+export interface EventProcessor {
+  id: string
+  name: string
+  eventTypes: string[]
+  mailclasses: string[]
+  driver: string
+  driverConfig: Record<string, string>
+  mode: string
+  batchMaxSize: number
+  batchMaxWait: string
+  status: 'active' | 'disabled'
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CreateEventProcessorRequest {
+  name: string
+  event_types: string[]
+  mailclasses: string[]
+  driver: string
+  driver_config: Record<string, string>
+  mode: string
+  batch_max_size: number
+  batch_max_wait: string
+}
+
+export interface UpdateEventProcessorRequest extends CreateEventProcessorRequest {
+  status: string
+}
+
+export interface TestEventProcessorResult {
+  ok: boolean
+  error?: string
+}
+
+// Estimated retry schedule for a deferred message (RFC3339 UTC timestamps).
+export interface NextDeliveryAttempt {
+  deferred: boolean
+  attempts: number
+  lastAttempt?: string
+  nextAttempt?: string
+  remainingAttempts: number
+  finalAttempt?: string
+  willExpire: boolean
+  expiresAt?: string
+  interval?: string
+}
+
+export interface TestBounceDiagnosticRequest {
+  smtp_code: string
+  domain: string
+  diagnostic: string
+  attempts: number
+}
+
+export interface TestBounceDiagnosticResult {
+  smtpCode: string
+  enhancedCode: string
+  provider: string
+  matched: boolean
+  rule?: BounceRule
+  effectiveAction: BounceAction
+}
+
 // Response member shape (camelCase).
 export interface VMTAGroupMember {
   vmtaId: string
@@ -257,6 +373,12 @@ export interface UpdateVMTAGroupRequest {
 export type MatchType = 'mailclass' | 'recipient_email' | 'recipient_domain' | 'sender_ip' | string
 export type TargetType = 'vmta' | 'vmta_group' | '' | string
 
+// One header NAME + VALUE pair of a mailclass rule (OR-matched).
+export interface RoutingMatchCondition {
+  header: string
+  value: string
+}
+
 // Response type: camelCase. matchHeader is the header NAME for a mailclass match.
 export interface RoutingRule {
   id: string
@@ -264,6 +386,10 @@ export interface RoutingRule {
   matchType: MatchType
   matchHeader?: string
   matchValue: string
+  // conditions is the OR-list of header/value pairs for a mailclass rule; the
+  // rule matches when ANY condition matches. matchHeader/matchValue mirror the
+  // first condition. Empty for non-mailclass rules.
+  conditions?: RoutingMatchCondition[]
   priority: number
   targetType: TargetType
   targetId: string
@@ -278,6 +404,7 @@ export interface CreateRoutingRuleRequest {
   match_type: MatchType
   match_header?: string
   match_value: string
+  conditions?: RoutingMatchCondition[]
   priority: number
   target_type: TargetType
   target_id: string
@@ -289,6 +416,7 @@ export interface UpdateRoutingRuleRequest {
   match_type: MatchType
   match_header?: string
   match_value: string
+  conditions?: RoutingMatchCondition[]
   priority: number
   target_type: TargetType
   target_id: string
@@ -332,6 +460,10 @@ export interface MailRecordFilters {
   status?: string
   /** Filter by raw KumoMTA log record type (e.g. "AdminBounce"). */
   record_type?: string
+  /** RFC3339 lower bound on event time. */
+  from_time?: string
+  /** RFC3339 upper bound on event time. */
+  to_time?: string
   [key: string]: string | undefined
 }
 
@@ -366,6 +498,24 @@ export interface Bounce {
   diagnostic: string
   processingState: string
   classification?: string
+}
+
+/** Query filters for the bounce list (mirrors ListBouncesRequest). */
+export interface BounceFilters {
+  /** Case-insensitive substring match on the recipient address. */
+  recipient?: string
+  mailclass?: string
+  /** hard | soft | dsn; empty matches all. */
+  bounce_type?: string
+  /** Case-insensitive substring match on the classifier category. */
+  classification?: string
+  /** new | processing | processed | suppressed | retried; empty matches all. */
+  processing_state?: string
+  /** RFC3339 lower bound on event time. */
+  from_time?: string
+  /** RFC3339 upper bound on event time. */
+  to_time?: string
+  [key: string]: string | undefined
 }
 
 export interface FeedbackReport {
@@ -536,6 +686,24 @@ export interface Suppression {
   reason: string
   source: string
   status: string
+  mailclass?: string
+  createdAt?: string
+  expiresAt?: string
+}
+
+/** Query filters for the suppression list (mirrors ListSuppressionsRequest). */
+export interface SuppressionFilters {
+  /** Case-insensitive substring match on the suppressed value. */
+  search?: string
+  /** email | domain; empty matches all. */
+  type?: string
+  /** active | disabled | expired; empty matches all. */
+  status?: string
+  /** manual | bounce | feedback | dsn; empty matches all. */
+  source?: string
+  /** Exact match on the triggering event's mailclass. */
+  mailclass?: string
+  [key: string]: string | undefined
 }
 
 export interface CreateSuppressionRequest {
@@ -564,6 +732,14 @@ export interface CreateTLSPolicyRequest {
 export interface UpdateSuppressionRequest {
   reason: string
   status: string
+}
+
+// Raw asynchronous bounce (DSN) archived behind a dsn-sourced suppression.
+export interface DsnMessage {
+  id: string
+  messageId: string
+  rawMessage: string
+  receivedAt: string
 }
 
 // ---- Inbound automation ----
@@ -733,6 +909,7 @@ export interface GlobalSettings {
   egressRetryInterval: string
   egressMaxRetryInterval: string
   egressMaxAge: string
+  pinEgressPerMessage: boolean
   bounceDomain: string
   bounceDomainTemplate: string
   autoSuppressHardBounces: boolean
@@ -751,6 +928,11 @@ export interface GlobalSettings {
   classifyModel: string
   classifyThreshold: number
   classifyApiBase: string
+  injectionEnabled: boolean
+  injectionListenAddr: string
+  injectionPath: string
+  injectionTlsEnabled: boolean
+  injectionTlsCertDomain: string
   updatedAt?: string
   updatedBy?: string
 }
@@ -765,6 +947,7 @@ export interface UpdateGlobalSettingsRequest {
   egress_retry_interval: string
   egress_max_retry_interval: string
   egress_max_age: string
+  pin_egress_per_message: boolean
   bounce_domain: string
   auto_suppress_hard_bounces: boolean
   soft_bounce_threshold: number
@@ -783,9 +966,16 @@ export interface UpdateGlobalSettingsRequest {
   classify_model: string
   classify_threshold: number
   classify_api_base: string
+  injection_enabled: boolean
+  injection_listen_addr: string
+  injection_path: string
+  injection_tls_enabled: boolean
+  injection_tls_cert_domain: string
 }
 
 // ---- Subject classifications ----
+
+export type SubjectMatchType = 'similarity' | 'regex'
 
 export interface SubjectClassification {
   id: string
@@ -793,6 +983,8 @@ export interface SubjectClassification {
   subjectNormalized: string
   label: string
   source: string // "manual" | "ai"
+  matchType: SubjectMatchType // "similarity" (trigram) | "regex"
+  priority: number // higher is matched first; first match wins
   hitCount: string // int64 as JSON string
   createdAt?: string
   updatedAt?: string
@@ -801,12 +993,49 @@ export interface SubjectClassification {
 export interface CreateSubjectClassificationRequest {
   subject: string
   label: string
+  matchType: SubjectMatchType
+  priority: number
 }
 
 export interface UpdateSubjectClassificationRequest {
   id: string
   subject: string
   label: string
+  matchType: SubjectMatchType
+  priority: number
+}
+
+// ---- Injection API credentials (GreenArrow-compatible listener) ----
+
+export interface InjectionCredential {
+  id: string
+  username: string
+  label: string
+  enabled: boolean
+  allowedMailclasses: string[] // empty = any mailclass
+  lastUsedAt?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CreateInjectionCredentialRequest {
+  username: string
+  password: string
+  label: string
+  enabled: boolean
+  allowedMailclasses: string[]
+}
+
+export interface UpdateInjectionCredentialRequest {
+  id: string
+  label: string
+  enabled: boolean
+  allowedMailclasses: string[]
+}
+
+export interface SetInjectionCredentialPasswordRequest {
+  id: string
+  password: string
 }
 
 // ---- Dashboard metrics (Prometheus-backed time-series) ----
@@ -941,8 +1170,16 @@ export interface WarmupDeliveryStat {
   bounceRate: number
 }
 
+// Distinct messages that deferred to one recipient domain, deduped across VMTAs
+// (so it's summable, unlike the per-VMTA rows). int64 → JSON string.
+export interface DomainDeferredStat {
+  recipientDomain: string
+  messages: string
+}
+
 export interface WarmupDeliveryStats {
   rows?: WarmupDeliveryStat[]
+  deferredByDomain?: DomainDeferredStat[]
   range: string
   since: string
 }
@@ -1077,4 +1314,70 @@ export interface RblCheckReply {
   zones?: string[]
   checkedAt?: string
   skipped?: string[]
+}
+
+// ---- System self-monitoring ----
+
+export interface DiskUsage {
+  path: string
+  usedPercent: number
+  usedBytes: string // uint64 → JSON string
+  totalBytes: string
+}
+
+export interface SystemSnapshot {
+  collectedAt: string
+  cpuPercent: number
+  memPercent: number
+  memUsedBytes: string
+  memTotalBytes: string
+  disks?: DiskUsage[]
+  available: boolean
+}
+
+export interface MonitorSettings {
+  enabled: boolean
+  cpuThreshold: number
+  memThreshold: number
+  diskThreshold: number
+  diskPaths?: string[]
+  notifyEmails?: string[]
+  fromEmail: string
+  smtpHost: string
+  cooldownMinutes: number
+  sampleSeconds: number
+}
+
+export interface MonitorAlert {
+  id: string
+  resource: string
+  detail: string
+  level: string
+  value: number
+  threshold: number
+  message: string
+  notified: boolean
+  createdAt: string
+}
+
+export interface Mount {
+  path: string
+  device: string
+  fstype: string
+  usedPercent: number
+  usedBytes: string
+  totalBytes: string
+}
+
+export interface SystemMonitor {
+  snapshot?: SystemSnapshot
+  settings?: MonitorSettings
+  recentAlerts?: MonitorAlert[]
+  mounts?: Mount[]
+  spoolPath?: string
+}
+
+export interface TestMonitorNotificationResult {
+  ok: boolean
+  error?: string
 }
