@@ -7,6 +7,11 @@ import (
 	"net/http"
 	"time"
 
+	// Register the "json" codec so sse.WithCodec("json") resolves it (its init()
+	// calls encoding.RegisterCodec). Without a codec the SSE server falls back to
+	// gob (binary), which the browser's EventSource can't JSON-parse.
+	_ "github.com/go-kratos/kratos/v2/encoding/json"
+
 	sse "github.com/tx7do/kratos-transport/transport/sse"
 
 	"github.com/menta2k/iris/backend/internal/biz"
@@ -35,6 +40,8 @@ func NewSSEServer(resolver SSESessionResolver, log *slog.Logger) *sse.Server {
 	srv := sse.NewServer(
 		sse.WithPath("/sse"),
 		sse.WithAutoStream(true),
+		// JSON payloads (default is gob/binary, which EventSource can't parse).
+		sse.WithCodec("json"),
 		sse.WithAuthorizeFunc(func(r *http.Request, token string) error {
 			if token == "" {
 				return errors.New("missing token") // 401
