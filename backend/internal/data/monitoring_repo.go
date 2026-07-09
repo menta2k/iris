@@ -343,11 +343,17 @@ func (r *MonitoringRepo) UpdateProbeSend(ctx context.Context, id, status, messag
 // a probe send status. Terminal outcomes (delivery/bounce) win over transient
 // ones so a single query resolves the final state. A 1-minute skew before sentAt
 // tolerates clock drift between iris and kumod.
+//
+// The match on from_header is a substring (not equality): mail_records stores the
+// full RFC 5322 header (e.g. `"iris monitor" <monitoring+<uid>@dom>`) while the
+// probe carries only the bare plus-tagged address. The uid makes that address
+// globally unique, so a contains match is unambiguous. strpos (not LIKE) is used
+// so `+`/`_`/`%` in the address carry no wildcard meaning.
 func (r *MonitoringRepo) CorrelateSend(ctx context.Context, fromAddr, recipient string, sentAt time.Time) (biz.ProbeSendMatch, error) {
 	var status, messageID string
 	err := r.db.Pool.QueryRow(ctx, `
 		SELECT status, message_id FROM mail_records
-		WHERE lower(from_header) = lower($1)
+		WHERE strpos(lower(from_header), lower($1)) > 0
 		  AND lower(recipient) = lower($2)
 		  AND event_time >= $3
 		ORDER BY
