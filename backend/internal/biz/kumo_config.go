@@ -567,6 +567,18 @@ func writeRouting(b *strings.Builder, routes []*RoutingRule, vmtaName, groupName
 		if r.Status != RoutingStatusActive {
 			continue
 		}
+		// header_vmta has no fixed target — its egress pool is the header value,
+		// resolved at match time in select_pool. Emit it with just the header name.
+		if r.MatchType == MatchHeaderVMTA {
+			header := r.MatchHeader
+			if header == "" {
+				header = DefaultVMTAHeader
+			}
+			fmt.Fprintf(b, "  { match_type = %s, match_header = %s, priority = %d },\n",
+				MustLuaString(r.MatchType), MustLuaString(header), r.Priority)
+			n++
+			continue
+		}
 		var target string
 		switch r.TargetType {
 		case TargetVMTAGroup:
@@ -650,20 +662,38 @@ end
 -- select_pool walks ROUTES (ordered by descending priority) and returns the
 -- egress pool of the first matching rule. A mailclass rule matches its header
 -- value OR the message's already-resolved class (e.g. one assigned by a
--- sender_ip rule); recipient rules match the envelope recipient / its domain.
+-- sender_ip rule); recipient rules match the envelope recipient / its domain;
+-- a header_vmta rule routes via the VMTA named in its header value.
 local function select_pool(msg, recipient, class)
   local domain = recipient:match('@(.+)$') or ''
   for _, route in ipairs(ROUTES) do
-    local matched = false
-    if route.match_type == 'mailclass' then
+    if route.match_type == 'header_vmta' then
+      -- The header value names the egress VMTA. Consume the header regardless
+      -- (it is an internal routing hint that must not ride along to recipients;
+      -- X-* headers are not in the DKIM signed set, so removing it post-signing
+      -- is signature-safe). Honor it only for relayable (outbound) mail whose
+      -- named VMTA actually exists — inbound to a hosted domain is never diverted,
+      -- and only relay-authorized senders reach this hook in the first place.
       local hv = msg:get_first_named_header_value(route.match_header)
-      matched = (hv ~= nil and hv == route.match_value) or (class ~= nil and class == route.match_value)
-    elseif route.match_type == 'recipient_email' then
-      matched = (route.match_value == recipient)
-    elseif route.match_type == 'recipient_domain' then
-      matched = (route.match_value == domain)
+      if hv ~= nil then
+        msg:remove_all_named_headers(route.match_header)
+        hv = hv:gsub('^%s+', ''):gsub('%s+$', '')
+        if hv ~= '' and HOSTED_DOMAINS[domain] == nil and SOURCES[hv] ~= nil then
+          return hv
+        end
+      end
+    else
+      local matched = false
+      if route.match_type == 'mailclass' then
+        local h = msg:get_first_named_header_value(route.match_header)
+        matched = (h ~= nil and h == route.match_value) or (class ~= nil and class == route.match_value)
+      elseif route.match_type == 'recipient_email' then
+        matched = (route.match_value == recipient)
+      elseif route.match_type == 'recipient_domain' then
+        matched = (route.match_value == domain)
+      end
+      if matched then return route.egress_pool end
     end
-    if matched then return route.egress_pool end
   end
   return nil
 end

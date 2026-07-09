@@ -16,6 +16,40 @@ var testDKIMKeyPEM = func() string {
 	return pem
 }()
 
+// TestRoutingHeaderVMTA verifies a header_vmta rule renders a headerless ROUTES
+// entry and a select_pool branch that routes via the header value (guarded by
+// HOSTED_DOMAINS + SOURCES) and strips the header.
+func TestRoutingHeaderVMTA(t *testing.T) {
+	snap := ConfigSnapshot{
+		VMTAs:  []*VMTA{{ID: "v1", Name: "vmta-a", ListenerID: "l1", IPAddress: "203.0.113.10", EHLOName: "a.example.com", Status: VMTAStatusActive}},
+		Groups: []*VMTAGroup{{ID: "g1", Name: "bulk-pool", Status: VMTAGroupStatusActive, Members: []VMTAGroupMember{{VMTAID: "v1", Weight: 100}}}},
+		Routes: []*RoutingRule{
+			{ID: "r1", Name: "by-header", MatchType: MatchHeaderVMTA, MatchHeader: "X-Kumo-VMTA", Priority: 200, Status: RoutingStatusActive},
+		},
+		DKIM: []*DKIMDomain{{ID: "d1", Domain: "example.com", Selector: "s1", PrivateKeyRef: testDKIMKeyPEM, Status: DKIMReady}},
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	if !r.Valid {
+		t.Fatalf("policy failed lint: %v\n%s", r.LintIssues, r.Content)
+	}
+	if !strings.Contains(r.Content, `{ match_type = "header_vmta", match_header = "X-Kumo-VMTA", priority = 200 }`) {
+		t.Errorf("missing header_vmta ROUTES entry:\n%s", r.Content)
+	}
+	for _, want := range []string{
+		"route.match_type == 'header_vmta'",
+		"msg:remove_all_named_headers(route.match_header)",
+		"HOSTED_DOMAINS[domain] == nil and SOURCES[hv] ~= nil",
+		"return hv",
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Errorf("select_pool missing %q", want)
+		}
+	}
+}
+
 // TestRoutingMultiConditionOR verifies a mailclass rule with several
 // header/value conditions renders one ROUTES row + MAIL_CLASSES entry per
 // condition (all sharing the rule's pool/priority), giving OR match semantics.
