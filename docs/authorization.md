@@ -15,6 +15,7 @@ UI: **Security & Audit → Users** (`user:read` / `user:write`) and
 | Mail operations | `mail:read`, `queue:read`, `queue:control`, `service:control`, `worker-logs:read` |
 | Domain & recipient safety | `dkim:read`, `dkim:write`, `suppression:read`, `suppression:write` |
 | Inbound automation | `webhook:read`, `webhook:write`, `rspamd:read` |
+| Inbox monitoring | `monitoring:read`, `monitoring:write` ([inbox monitoring](inbox-monitoring.md)) |
 | Security | `user:read`, `user:write`, `audit:read` |
 | Settings & dashboard | `settings:read`, `settings:write`, `dashboard:read` |
 | Wildcard | `*` (all permissions; reserved for `owner`) |
@@ -30,7 +31,7 @@ Seeded by a migration, so role assignment works on a fresh database:
 | Role | Intent | Grants |
 | ---- | ------ | ------ |
 | `owner` | Full control | `*` |
-| `operator` | Day-to-day configuration & operations | outbound r/w, mail/queue/service, worker logs, DKIM r/w, suppression r/w, inbound r/w, rspamd read, dashboard, settings r/w |
+| `operator` | Day-to-day configuration & operations | outbound r/w, mail/queue/service, worker logs, DKIM r/w, suppression r/w, inbound r/w, rspamd read, dashboard, settings r/w, monitoring r/w |
 | `security_admin` | User & audit administration | user r/w, audit read, dashboard, mail/queue read, worker logs |
 | `viewer` | Read-only across the product | the `*:read` permissions |
 

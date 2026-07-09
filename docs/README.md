@@ -40,6 +40,7 @@ overview and quick start, see the [root README](../README.md).
 | [Bounce handling](bounce-handling.md) | DSN capture, VERP, classification, auto-suppression |
 | [Feedback loops](feedback-loops.md) | ARF complaint ingestion and provenance verification |
 | [DMARC reports](dmarc.md) | Aggregate-report capture and parsing |
+| [Inbox monitoring](inbox-monitoring.md) | Seed-mailbox probes: inbox-vs-spam placement and header-based spam-risk analysis |
 
 ## Inbound
 

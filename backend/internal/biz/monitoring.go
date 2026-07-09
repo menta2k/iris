@@ -1,0 +1,232 @@
+package biz
+
+import (
+	"context"
+	"net/mail"
+	"strings"
+	"time"
+)
+
+// Monitoring protocols.
+const (
+	MonitorProtocolIMAP = "imap"
+	MonitorProtocolPOP3 = "pop3"
+)
+
+// Probe send-status values (KumoMTA delivery outcome).
+const (
+	ProbeSendQueued   = "queued"
+	ProbeSendSent     = "sent"
+	ProbeSendDeferred = "deferred"
+	ProbeSendBounced  = "bounced"
+	ProbeSendError    = "error"
+)
+
+// Probe mailbox-status values (phase 2 fetch outcome).
+const (
+	ProbeMailboxPending  = "pending"
+	ProbeMailboxFound    = "found"
+	ProbeMailboxNotFound = "not_found"
+	ProbeMailboxTimeout  = "timeout"
+	ProbeMailboxSkipped  = "skipped"
+)
+
+// Probe placement values (which mailbox area the probe landed in). Phase 2 sets
+// this from the IMAP folder; phase 3 refines it via header analysis.
+const (
+	PlacementInbox   = "inbox"
+	PlacementSpam    = "spam"
+	PlacementMissing = "missing"
+	PlacementUnknown = "unknown"
+)
+
+// MailboxProbeResult is the outcome of searching a mailbox for a probe.
+type MailboxProbeResult struct {
+	Found bool
+	// Folder is the IMAP folder the probe was found in (empty for POP3, which has
+	// no folders). Drives the initial placement classification.
+	Folder     string
+	RawHeaders string
+}
+
+// MailboxFetcher connects to a monitored mailbox and searches it for a probe by
+// its unique id. Implemented by internal/mailbox for IMAP and POP3.
+type MailboxFetcher interface {
+	Fetch(ctx context.Context, acc *MonitoringAccount, password, probeUID string) (MailboxProbeResult, error)
+}
+
+// ProbeFetchCandidate pairs a probe due for a mailbox fetch with the account
+// that owns it (connection details + folders), so the fetch worker has
+// everything except the decrypted password (fetched separately).
+type ProbeFetchCandidate struct {
+	Probe   *MonitoringProbe
+	Account *MonitoringAccount
+}
+
+// MonitoringAccount is a mailbox iris sends probe mail to and later inspects for
+// inbox placement. Password is write-only: it is set via Password (encrypted at
+// the repo boundary) and never read back.
+type MonitoringAccount struct {
+	ID       string
+	Label    string
+	Provider string // gmail|outlook|yahoo|custom
+	Email    string // probe recipient
+	Protocol string // imap|pop3
+	Host     string
+	Port     int
+	TLS      bool
+	Username string
+	// Password is the plaintext password on write only; it is never populated on
+	// reads (the stored value is encrypted).
+	Password     string
+	CheckFolders []string
+	// FromAddress is the sender iris uses for this account's probes. Must be a
+	// domain iris can send/DKIM-sign from.
+	FromAddress string
+	// Recurring schedule.
+	ScheduleEnabled  bool
+	ScheduleInterval string // duration form, e.g. "6h"
+	FetchDelay       string // duration form, e.g. "10m"
+	Enabled          bool
+	// HasPassword reports whether an encrypted mailbox password is stored. Set on
+	// reads; the password value itself is never returned.
+	HasPassword bool
+	LastProbeAt *time.Time
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+// MonitoringProbe is one probe message sent to a MonitoringAccount.
+type MonitoringProbe struct {
+	ID            string
+	AccountID     string
+	ProbeUID      string
+	MessageID     string
+	Subject       string
+	FromAddr      string
+	Recipient     string
+	SentAt        time.Time
+	SendStatus    string
+	MailboxStatus string
+	Placement     string
+	FoundAt       *time.Time
+	LatencyMs     *int64
+	Analysis      string // JSON
+	RawHeaders    string
+	Error         string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+// MonitoringRepo is the persistence boundary for monitoring accounts + probes.
+type MonitoringRepo interface {
+	ListAccounts(ctx context.Context) ([]*MonitoringAccount, error)
+	CreateAccount(ctx context.Context, a *MonitoringAccount) (*MonitoringAccount, error)
+	UpdateAccount(ctx context.Context, a *MonitoringAccount) (*MonitoringAccount, error)
+	// SetAccountPassword stores a new encrypted password for the account.
+	SetAccountPassword(ctx context.Context, id, password string) error
+	DeleteAccount(ctx context.Context, id string) error
+	GetAccount(ctx context.Context, id string) (*MonitoringAccount, error)
+	// AccountSecret returns the decrypted password for an account (fetch worker).
+	AccountSecret(ctx context.Context, id string) (string, error)
+	// ScheduledAccounts returns enabled accounts whose recurring schedule is due.
+	ScheduledAccounts(ctx context.Context, now time.Time) ([]*MonitoringAccount, error)
+	TouchLastProbe(ctx context.Context, id string, at time.Time) error
+
+	ListProbes(ctx context.Context, accountID string, page Page) ([]*MonitoringProbe, error)
+	CreateProbe(ctx context.Context, p *MonitoringProbe) (*MonitoringProbe, error)
+	GetProbe(ctx context.Context, id string) (*MonitoringProbe, error)
+	// UpdateProbeSend records the KumoMTA send outcome and (when discovered) the
+	// KumoMTA message id. Called by the send-status reconciler.
+	UpdateProbeSend(ctx context.Context, id, status, messageID string) error
+	// ProbesAwaitingSend returns recently-sent probes still in a non-terminal
+	// send state, for the reconciler to correlate against mail records.
+	ProbesAwaitingSend(ctx context.Context, since time.Time) ([]*MonitoringProbe, error)
+	// CorrelateSend finds the KumoMTA send outcome for a probe by matching its
+	// uid-tagged From header and recipient against mail records since sentAt.
+	// Found is false when no matching record exists yet.
+	CorrelateSend(ctx context.Context, fromAddr, recipient string, sentAt time.Time) (ProbeSendMatch, error)
+	// ProbesAwaitingFetch returns probes whose mailbox has not yet been checked
+	// and whose fetch delay has elapsed, paired with their account.
+	ProbesAwaitingFetch(ctx context.Context, now time.Time) ([]*ProbeFetchCandidate, error)
+	// UpdateProbeMailbox records the phase-2 mailbox fetch outcome.
+	UpdateProbeMailbox(ctx context.Context, id string, u ProbeMailboxUpdate) error
+}
+
+// ProbeMailboxUpdate carries the phase-2 fetch outcome for a probe (and the
+// phase-3 header analysis, when produced in the same pass).
+type ProbeMailboxUpdate struct {
+	MailboxStatus string
+	Placement     string
+	FoundAt       *time.Time
+	LatencyMs     *int64
+	RawHeaders    string
+	// Analysis is the phase-3 ProbeAnalysis serialized to JSON; empty leaves the
+	// stored analysis untouched.
+	Analysis string
+	Error    string
+}
+
+// ProbeSendMatch is the correlated send outcome for a probe.
+type ProbeSendMatch struct {
+	Found     bool
+	Status    string // one of the ProbeSend* values
+	MessageID string
+}
+
+// Validate normalizes and checks a monitoring account.
+func (a *MonitoringAccount) Validate() error {
+	a.Label = strings.TrimSpace(a.Label)
+	a.Email = strings.ToLower(strings.TrimSpace(a.Email))
+	a.Provider = strings.ToLower(strings.TrimSpace(a.Provider))
+	a.Protocol = strings.ToLower(strings.TrimSpace(a.Protocol))
+	a.Host = strings.TrimSpace(a.Host)
+	a.Username = strings.TrimSpace(a.Username)
+	a.FromAddress = strings.ToLower(strings.TrimSpace(a.FromAddress))
+	a.ScheduleInterval = strings.TrimSpace(a.ScheduleInterval)
+	a.FetchDelay = strings.TrimSpace(a.FetchDelay)
+
+	if a.Label == "" {
+		return Invalid("MONITOR_LABEL_REQUIRED", "label is required")
+	}
+	if _, err := mail.ParseAddress(a.Email); err != nil {
+		return Invalid("MONITOR_EMAIL_INVALID", "email %q is not a valid address", a.Email)
+	}
+	if a.Provider == "" {
+		a.Provider = "custom"
+	}
+	if a.Protocol == "" {
+		a.Protocol = MonitorProtocolIMAP
+	}
+	if a.Protocol != MonitorProtocolIMAP && a.Protocol != MonitorProtocolPOP3 {
+		return Invalid("MONITOR_PROTOCOL_INVALID", "protocol must be imap or pop3")
+	}
+	if a.Host == "" {
+		return Invalid("MONITOR_HOST_REQUIRED", "host is required")
+	}
+	if a.Port <= 0 || a.Port > 65535 {
+		return Invalid("MONITOR_PORT_RANGE", "port must be between 1 and 65535")
+	}
+	if a.Username == "" {
+		a.Username = a.Email
+	}
+	if len(a.CheckFolders) == 0 {
+		a.CheckFolders = []string{"INBOX"}
+	}
+	if a.FromAddress != "" {
+		if _, err := mail.ParseAddress(a.FromAddress); err != nil {
+			return Invalid("MONITOR_FROM_INVALID", "from_address %q is not a valid address", a.FromAddress)
+		}
+	}
+	if a.ScheduleEnabled {
+		if _, ok := ParseFlexDuration(a.ScheduleInterval); !ok {
+			return Invalid("MONITOR_SCHEDULE_INVALID", "schedule_interval %q is not a valid duration", a.ScheduleInterval)
+		}
+	}
+	if a.FetchDelay != "" {
+		if _, ok := ParseFlexDuration(a.FetchDelay); !ok {
+			return Invalid("MONITOR_FETCH_DELAY_INVALID", "fetch_delay %q is not a valid duration", a.FetchDelay)
+		}
+	}
+	return nil
+}

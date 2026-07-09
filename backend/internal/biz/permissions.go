@@ -46,6 +46,10 @@ const (
 	PermInjectionRead  Permission = "injection:read"
 	PermInjectionWrite Permission = "injection:write"
 
+	// Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
+	PermMonitoringRead  Permission = "monitoring:read"
+	PermMonitoringWrite Permission = "monitoring:write"
+
 	// Wildcard granting all permissions; reserved for the owner role.
 	PermAll Permission = "*"
 )
@@ -68,6 +72,7 @@ var BuiltinRolePermissions = map[string][]Permission{
 		PermDKIMRead, PermDKIMWrite, PermSuppressionRead, PermSuppressionWrite,
 		PermWebhookRead, PermWebhookWrite, PermRspamdRead, PermDashboardRead,
 		PermSettingsRead, PermSettingsWrite,
+		PermMonitoringRead, PermMonitoringWrite,
 	},
 	RoleSecurity: {
 		PermUserRead, PermUserWrite, PermAuditRead, PermDashboardRead,
@@ -78,7 +83,7 @@ var BuiltinRolePermissions = map[string][]Permission{
 		PermVMTARead, PermRoutingRead, PermMailRead, PermQueueRead,
 		PermDKIMRead, PermSuppressionRead, PermWebhookRead, PermRspamdRead,
 		PermDashboardRead, PermUserRead, PermAuditRead, PermSettingsRead,
-		PermWorkerLogsRead, PermInjectionRead,
+		PermWorkerLogsRead, PermInjectionRead, PermMonitoringRead,
 	},
 }
 

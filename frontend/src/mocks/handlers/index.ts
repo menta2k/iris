@@ -11,6 +11,7 @@ import { domainSafetyRoutes } from './domain-safety'
 import { inboundHandlers } from './inbound'
 import { operationsRoutes } from './operations'
 import { outboundRoutes } from './outbound'
+import { monitoringRoutes } from './monitoring'
 import { securityRoutes } from './security'
 import { settingsRoutes } from './settings'
 import { systemMonitorRoutes } from './system-monitor'
@@ -25,6 +26,7 @@ export const routes: Route[] = [
   ...operationsRoutes,
   ...domainSafetyRoutes,
   ...inboundHandlers,
+  ...monitoringRoutes,
   ...securityRoutes,
   ...settingsRoutes,
   ...systemMonitorRoutes,

@@ -25,6 +25,8 @@ import (
 	"github.com/menta2k/iris/backend/internal/conf"
 	"github.com/menta2k/iris/backend/internal/data"
 	"github.com/menta2k/iris/backend/internal/errlog"
+	"github.com/menta2k/iris/backend/internal/mailbox"
+	"github.com/menta2k/iris/backend/internal/secret"
 	"github.com/menta2k/iris/backend/internal/server"
 	"github.com/menta2k/iris/backend/internal/service"
 	"github.com/menta2k/iris/backend/internal/worker"
@@ -219,6 +221,31 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// listener is turned on).
 	injectionCredRepo := data.NewInjectionCredentialRepo(db)
 	injectionCredUC := biz.NewInjectionCredentialUsecase(injectionCredRepo, auditor)
+
+	// Mail provider (inbox-placement) monitoring: mailbox accounts + probes. The
+	// mailbox password is stored reversibly encrypted (AES-GCM keyed by
+	// IRIS_MONITORING_KEY); when the key is unset the cipher is nil and accounts
+	// that carry a password are rejected (probes without stored creds still work).
+	var monitoringCipher *secret.Cipher
+	if key := strings.TrimSpace(os.Getenv("IRIS_MONITORING_KEY")); key != "" {
+		c, cerr := secret.NewCipher(key)
+		if cerr != nil {
+			return nil, cleanup, fmt.Errorf("monitoring cipher: %w", cerr)
+		}
+		monitoringCipher = c
+	} else {
+		log.Warn("IRIS_MONITORING_KEY unset: monitoring mailbox passwords cannot be stored")
+	}
+	monitoringRepo := data.NewMonitoringRepo(db, monitoringCipher)
+	monitoringUC := biz.NewMonitoringUsecase(monitoringRepo, injector, auditor, envOr("IRIS_MONITORING_FROM", "")).
+		WithFetcher(mailbox.NewFetcher(envDuration("IRIS_MONITORING_FETCH_TIMEOUT", 30*time.Second)),
+			envDuration("IRIS_MONITORING_FETCH_GIVEUP", 2*time.Hour))
+	// Phase 3: LLM header analysis of fetched probes (spam-risk verdict). Reuses
+	// IRIS_OPENAI_API_KEY; absent → deterministic heuristic verdict only.
+	if key := strings.TrimSpace(os.Getenv("IRIS_OPENAI_API_KEY")); key != "" {
+		monitoringUC.WithAnalyzer(biz.NewOpenAIHeaderAnalyzer(
+			key, envOr("IRIS_OPENAI_MODEL", ""), envOr("IRIS_OPENAI_API_BASE", ""), nil))
+	}
 	// Suppression list lives in Redis (write-through cache + per-entry TTL); the
 	// rendered policy consults it instead of an inline table. Attach the cache and
 	// TTL provider now that settingsUC exists, then backfill Redis from the DB so
@@ -383,6 +410,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		Classifications: subjectClassAdminUC,
 		InjectionCreds:  injectionCredUC,
 		SysMon:          sysMonUC,
+		Monitoring:      monitoringUC,
 	}
 
 	svc := service.NewService(deps)
@@ -438,6 +466,12 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 
 	// IP warmup: advance schedules and apply the policy when the per-day caps step.
 	startWorker(ctx, log, "warmup", worker.NewWarmupWorker(warmupUC, kumoConfigUC, envDuration("IRIS_WARMUP_INTERVAL", time.Hour), wlog("warmup")).Run)
+
+	// Inbox-placement monitoring: reconcile probe send status against the mail log,
+	// and send scheduled probes for accounts with a recurring schedule.
+	startWorker(ctx, log, "monitoring-reconciler", worker.NewMonitoringReconcilerWorker(monitoringUC, envDuration("IRIS_MONITORING_RECONCILE_INTERVAL", 30*time.Second), envDuration("IRIS_MONITORING_RECONCILE_LOOKBACK", time.Hour), wlog("monitoring-reconciler")).Run)
+	startWorker(ctx, log, "monitoring-scheduler", worker.NewMonitoringSchedulerWorker(monitoringUC, envDuration("IRIS_MONITORING_SCHEDULE_INTERVAL", time.Minute), wlog("monitoring-scheduler")).Run)
+	startWorker(ctx, log, "monitoring-fetch", worker.NewMonitoringFetchWorker(monitoringUC, envDuration("IRIS_MONITORING_FETCH_INTERVAL", time.Minute), wlog("monitoring-fetch")).Run)
 
 	authMW := service.AuthMiddleware(cfg.Auth, authUC)
 	checks := []server.ReadinessChecker{db, streams}

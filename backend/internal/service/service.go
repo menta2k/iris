@@ -47,6 +47,7 @@ type Service struct {
 	classifications *biz.SubjectClassificationUsecase
 	injectionCreds  *biz.InjectionCredentialUsecase
 	sysMon          *biz.SysMonUsecase
+	monitoring      *biz.MonitoringUsecase
 }
 
 // Deps bundles the use cases the service delegates to. Fields may be nil for
@@ -81,6 +82,7 @@ type Deps struct {
 	Classifications *biz.SubjectClassificationUsecase
 	InjectionCreds  *biz.InjectionCredentialUsecase
 	SysMon          *biz.SysMonUsecase
+	Monitoring      *biz.MonitoringUsecase
 }
 
 // NewService constructs the admin API service.
@@ -119,6 +121,7 @@ func NewService(d Deps) *Service {
 		classifications: d.Classifications,
 		injectionCreds:  d.InjectionCreds,
 		sysMon:          d.SysMon,
+		monitoring:      d.Monitoring,
 	}
 }
 

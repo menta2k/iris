@@ -1568,6 +1568,152 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/EnrollMFAReply'
+    /v1/monitoring/accounts:
+        get:
+            tags:
+                - IrisAdminService
+            description: 'Mail provider (inbox-placement) monitoring: mailbox accounts + probes.'
+            operationId: IrisAdminService_ListMonitoringAccounts
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListMonitoringAccountsReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateMonitoringAccount
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateMonitoringAccountRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MonitoringAccount'
+    /v1/monitoring/accounts/{account_id}/probe:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_SendMonitoringProbe
+            parameters:
+                - name: account_id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/SendMonitoringProbeRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MonitoringProbe'
+    /v1/monitoring/accounts/{account_id}/probes:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListMonitoringProbes
+            parameters:
+                - name: account_id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: page_size
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: page_token
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListMonitoringProbesReply'
+    /v1/monitoring/accounts/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateMonitoringAccount
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateMonitoringAccountRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MonitoringAccount'
+        delete:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_DeleteMonitoringAccount
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteMonitoringAccountReply'
+    /v1/monitoring/accounts/{id}/password:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_SetMonitoringAccountPassword
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/SetMonitoringAccountPasswordRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MonitoringAccount'
     /v1/queues:
         get:
             tags:
@@ -2942,6 +3088,42 @@ components:
                         type: string
                 role:
                     type: string
+        CreateMonitoringAccountRequest:
+            type: object
+            properties:
+                label:
+                    type: string
+                provider:
+                    type: string
+                email:
+                    type: string
+                protocol:
+                    type: string
+                host:
+                    type: string
+                port:
+                    type: integer
+                    format: int32
+                tls:
+                    type: boolean
+                username:
+                    type: string
+                password:
+                    type: string
+                check_folders:
+                    type: array
+                    items:
+                        type: string
+                from_address:
+                    type: string
+                schedule_enabled:
+                    type: boolean
+                schedule_interval:
+                    type: string
+                fetch_delay:
+                    type: string
+                enabled:
+                    type: boolean
         CreateRoutingRuleRequest:
             type: object
             properties:
@@ -3106,6 +3288,11 @@ components:
                 ok:
                     type: boolean
         DeleteInjectionCredentialReply:
+            type: object
+            properties:
+                ok:
+                    type: boolean
+        DeleteMonitoringAccountReply:
             type: object
             properties:
                 ok:
@@ -3829,6 +4016,22 @@ components:
                         $ref: '#/components/schemas/MailRecord'
                 page:
                     $ref: '#/components/schemas/PageReply'
+        ListMonitoringAccountsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/MonitoringAccount'
+        ListMonitoringProbesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/MonitoringProbe'
+                next_page_token:
+                    type: string
         ListQueuesReply:
             type: object
             properties:
@@ -4180,6 +4383,94 @@ components:
                 sample_seconds:
                     type: integer
                     format: int32
+        MonitoringAccount:
+            type: object
+            properties:
+                id:
+                    type: string
+                label:
+                    type: string
+                provider:
+                    type: string
+                email:
+                    type: string
+                protocol:
+                    type: string
+                host:
+                    type: string
+                port:
+                    type: integer
+                    format: int32
+                tls:
+                    type: boolean
+                username:
+                    type: string
+                check_folders:
+                    type: array
+                    items:
+                        type: string
+                from_address:
+                    type: string
+                schedule_enabled:
+                    type: boolean
+                schedule_interval:
+                    type: string
+                fetch_delay:
+                    type: string
+                enabled:
+                    type: boolean
+                last_probe_at:
+                    type: string
+                created_at:
+                    type: string
+                updated_at:
+                    type: string
+                has_password:
+                    type: boolean
+                    description: |-
+                        has_password reports whether a mailbox password is stored (the value itself
+                         is never returned).
+            description: |-
+                MonitoringAccount is a mailbox iris sends probe mail to and later inspects for
+                 inbox placement. The mailbox password is write-only: it is never returned.
+        MonitoringProbe:
+            type: object
+            properties:
+                id:
+                    type: string
+                account_id:
+                    type: string
+                probe_uid:
+                    type: string
+                message_id:
+                    type: string
+                subject:
+                    type: string
+                from_addr:
+                    type: string
+                recipient:
+                    type: string
+                sent_at:
+                    type: string
+                send_status:
+                    type: string
+                mailbox_status:
+                    type: string
+                placement:
+                    type: string
+                found_at:
+                    type: string
+                latency_ms:
+                    type: string
+                analysis:
+                    type: string
+                error:
+                    type: string
+                created_at:
+                    type: string
+                updated_at:
+                    type: string
+            description: MonitoringProbe is one probe message sent to a MonitoringAccount.
         Mount:
             type: object
             properties:
@@ -4587,6 +4878,11 @@ components:
         SeedDeliveryBlueprintsRequest:
             type: object
             properties: {}
+        SendMonitoringProbeRequest:
+            type: object
+            properties:
+                account_id:
+                    type: string
         ServiceControlRequest:
             type: object
             properties:
@@ -4620,6 +4916,13 @@ components:
                 status:
                     type: string
         SetInjectionCredentialPasswordRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                password:
+                    type: string
+        SetMonitoringAccountPasswordRequest:
             type: object
             properties:
                 id:
@@ -5103,6 +5406,42 @@ components:
             properties:
                 settings:
                     $ref: '#/components/schemas/MonitorSettings'
+        UpdateMonitoringAccountRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                label:
+                    type: string
+                provider:
+                    type: string
+                email:
+                    type: string
+                protocol:
+                    type: string
+                host:
+                    type: string
+                port:
+                    type: integer
+                    format: int32
+                tls:
+                    type: boolean
+                username:
+                    type: string
+                check_folders:
+                    type: array
+                    items:
+                        type: string
+                from_address:
+                    type: string
+                schedule_enabled:
+                    type: boolean
+                schedule_interval:
+                    type: string
+                fetch_delay:
+                    type: string
+                enabled:
+                    type: boolean
         UpdateRetentionPolicyRequest:
             type: object
             properties:

@@ -92,5 +92,16 @@ injection:
   # tls_cert_file: "/etc/iris/inject.crt"   # or an explicit key pair
   # tls_key_file:  "/etc/iris/inject.key"
 
+# Mail provider (inbox-placement) monitoring. Env-only:
+#   IRIS_MONITORING_KEY   passphrase for AES-GCM encryption of mailbox passwords
+#                         (required to store IMAP/POP3 credentials; unset = probes
+#                         without stored creds only).
+#   IRIS_MONITORING_FROM  fallback probe sender when an account has no from_address.
+#   IRIS_MONITORING_RECONCILE_INTERVAL (30s), IRIS_MONITORING_RECONCILE_LOOKBACK (1h),
+#   IRIS_MONITORING_SCHEDULE_INTERVAL (1m) tune the send-side workers.
+#   Phase 2 (mailbox fetch): IRIS_MONITORING_FETCH_INTERVAL (1m) scan cadence,
+#   IRIS_MONITORING_FETCH_TIMEOUT (30s) per-connection timeout,
+#   IRIS_MONITORING_FETCH_GIVEUP (2h) how long to retry before not_found/timeout.
+
 log:
   level: "info"
