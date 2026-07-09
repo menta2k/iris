@@ -34,9 +34,10 @@ func NewHTTPServer(c conf.Server, svc adminv1.IrisAdminServiceHTTPServer, openap
 	if c.HTTP.Addr != "" {
 		opts = append(opts, kratoshttp.Address(c.HTTP.Addr))
 	}
-	if c.HTTP.Timeout > 0 {
-		opts = append(opts, kratoshttp.Timeout(c.HTTP.Timeout))
-	}
+	// Always set the per-request timeout explicitly (Kratos defaults to 1s when
+	// unset). 0 disables the deadline — required for the long-lived /sse streams
+	// mounted on this server, which any positive deadline would sever.
+	opts = append(opts, kratoshttp.Timeout(c.HTTP.Timeout))
 	if tlsConf != nil {
 		opts = append(opts, kratoshttp.TLSConfig(tlsConf))
 	}

@@ -36,7 +36,7 @@ type SSESessionResolver interface {
 // bounce APIs require) and pre-creates the streams so publishes never race
 // stream creation. It is served by mounting ServeHTTP on the admin HTTP server
 // (same origin as the API) — Start() is never called, so it binds no listener.
-func NewSSEServer(resolver SSESessionResolver, log *slog.Logger) *sse.Server {
+func NewSSEServer(ctx context.Context, resolver SSESessionResolver, log *slog.Logger) *sse.Server {
 	srv := sse.NewServer(
 		sse.WithPath("/sse"),
 		sse.WithAutoStream(true),
@@ -56,11 +56,32 @@ func NewSSEServer(resolver SSESessionResolver, log *slog.Logger) *sse.Server {
 			return nil
 		}),
 	)
-	srv.CreateStream(SSEStreamMailLogs)
-	srv.CreateStream(SSEStreamBounces)
-	srv.CreateStream(SSEStreamDashboard)
-	log.Info("SSE endpoint enabled", "path", "/sse",
-		"streams", []string{SSEStreamMailLogs, SSEStreamBounces, SSEStreamDashboard})
+	streams := []string{SSEStreamMailLogs, SSEStreamBounces, SSEStreamDashboard}
+	for _, s := range streams {
+		srv.CreateStream(sse.StreamID(s))
+	}
+
+	// Heartbeat: send an SSE comment to every stream periodically so a reverse
+	// proxy (or the browser) never idles the connection out during quiet periods.
+	// Comment-only frames are ignored by EventSource's onmessage and do not break
+	// the server's per-subscriber send loop (which only stops on an empty
+	// data+comment frame).
+	go func() {
+		ticker := time.NewTicker(20 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				for _, s := range streams {
+					srv.Publish(ctx, sse.StreamID(s), &sse.Event{Comment: []byte("hb")})
+				}
+			}
+		}
+	}()
+
+	log.Info("SSE endpoint enabled", "path", "/sse", "streams", streams)
 	return srv
 }
 

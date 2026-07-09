@@ -304,6 +304,14 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// override the HTTP bind and enable HTTPS using an issued certificate;
 	// unreadable cert config falls back to plain HTTP rather than failing boot.
 	adminServerConf := cfg.Server
+	// Disable Kratos's blanket per-request timeout on the admin HTTP server: it
+	// wraps EVERY request (including the mounted /sse handler) in a context
+	// deadline, which would cancel the long-lived SSE streams every N seconds and
+	// force the browser to reconnect. Go's stdlib server imposes no such deadline
+	// by default, and every iris handler already does ctx-aware, individually
+	// timed I/O (DB/Redis/HTTP), so this only removes an unnecessary net that
+	// happens to be incompatible with streaming.
+	adminServerConf.HTTP.Timeout = 0
 	var adminTLS *tls.Config
 	renewInterval := envDuration("IRIS_ACME_RENEW_INTERVAL", 12*time.Hour)
 	renewBefore := envDuration("IRIS_ACME_RENEW_BEFORE", 30*24*time.Hour)
@@ -406,7 +414,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// SSE: real-time mail-log / bounce / dashboard updates for the UI, mounted
 	// same-origin on the admin server (/sse). The log-stream worker publishes to
 	// it as records are persisted.
-	sseSrv := server.NewSSEServer(authUC, log)
+	sseSrv := server.NewSSEServer(ctx, authUC, log)
 	rtPublisher := server.NewSSEPublisher(sseSrv, log)
 	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, wlog("log-stream")).
 		WithFeedbackVerification(domainSafetyRepo, settingsUC).
