@@ -28,29 +28,31 @@ type MonitoringUsecase struct {
 	repo     MonitoringRepo
 	injector KumoInjector
 	auditor  *Auditor
-	// defaultFrom is the fallback probe sender (IRIS_MONITORING_FROM) used when an
-	// account has no from_address of its own.
-	defaultFrom string
-	now         MonitoringClock
+	now MonitoringClock
 	// fetcher performs the phase-2 mailbox search; nil disables mailbox fetching.
 	fetcher MailboxFetcher
-	// fetchGiveUp bounds how long after send iris keeps retrying the mailbox
-	// fetch before marking the probe not_found/timeout.
-	fetchGiveUp time.Duration
+	// settings supplies the live monitoring policy (fallback sender + tuning
+	// durations); nil uses built-in defaults.
+	settings MonitoringSettingsProvider
 	// analyzer performs the phase-3 LLM header analysis; nil falls back to the
 	// deterministic heuristic verdict.
 	analyzer ProbeHeaderAnalyzer
 }
 
-// NewMonitoringUsecase constructs the use case. defaultFrom may be empty, in
-// which case every account must define its own from_address.
-func NewMonitoringUsecase(repo MonitoringRepo, injector KumoInjector, auditor *Auditor, defaultFrom string) *MonitoringUsecase {
+// Built-in defaults applied when a monitoring policy value is unset.
+const (
+	defaultReconcileLookback = time.Hour
+	defaultFetchTimeout      = 30 * time.Second
+	defaultFetchGiveUp       = 2 * time.Hour
+)
+
+// NewMonitoringUsecase constructs the use case.
+func NewMonitoringUsecase(repo MonitoringRepo, injector KumoInjector, auditor *Auditor) *MonitoringUsecase {
 	return &MonitoringUsecase{
-		repo:        repo,
-		injector:    injector,
-		auditor:     auditor,
-		defaultFrom: strings.ToLower(strings.TrimSpace(defaultFrom)),
-		now:         time.Now,
+		repo:     repo,
+		injector: injector,
+		auditor:  auditor,
+		now:      time.Now,
 	}
 }
 
@@ -60,16 +62,37 @@ func (uc *MonitoringUsecase) WithClock(c MonitoringClock) *MonitoringUsecase {
 	return uc
 }
 
-// WithFetcher attaches the phase-2 mailbox fetcher. giveUp bounds retries before
-// a probe is marked not_found/timeout (default 2h). Without a fetcher, mailbox
-// fetching is disabled and probes stay at mailbox_status=pending.
-func (uc *MonitoringUsecase) WithFetcher(f MailboxFetcher, giveUp time.Duration) *MonitoringUsecase {
-	uc.fetcher = f
-	if giveUp <= 0 {
-		giveUp = 2 * time.Hour
-	}
-	uc.fetchGiveUp = giveUp
+// WithSettings attaches the live monitoring-policy provider (global settings).
+func (uc *MonitoringUsecase) WithSettings(s MonitoringSettingsProvider) *MonitoringUsecase {
+	uc.settings = s
 	return uc
+}
+
+// WithFetcher attaches the phase-2 mailbox fetcher. Without a fetcher, mailbox
+// fetching is disabled and probes stay at mailbox_status=pending.
+func (uc *MonitoringUsecase) WithFetcher(f MailboxFetcher) *MonitoringUsecase {
+	uc.fetcher = f
+	return uc
+}
+
+// policy resolves the effective monitoring policy, applying built-in defaults to
+// any value the settings provider leaves unset.
+func (uc *MonitoringUsecase) policy(ctx context.Context) MonitoringPolicy {
+	var p MonitoringPolicy
+	if uc.settings != nil {
+		p = uc.settings.MonitoringPolicyNow(ctx)
+	}
+	p.From = strings.ToLower(strings.TrimSpace(p.From))
+	if p.ReconcileLookback <= 0 {
+		p.ReconcileLookback = defaultReconcileLookback
+	}
+	if p.FetchTimeout <= 0 {
+		p.FetchTimeout = defaultFetchTimeout
+	}
+	if p.FetchGiveUp <= 0 {
+		p.FetchGiveUp = defaultFetchGiveUp
+	}
+	return p
 }
 
 // WithAnalyzer attaches the phase-3 LLM header analyzer. Without it, analysis
@@ -198,11 +221,11 @@ func (uc *MonitoringUsecase) sendProbe(ctx context.Context, acc *MonitoringAccou
 	}
 	base := acc.FromAddress
 	if base == "" {
-		base = uc.defaultFrom
+		base = uc.policy(ctx).From
 	}
 	if base == "" {
 		return nil, Invalid("MONITOR_FROM_UNCONFIGURED",
-			"account has no from_address and IRIS_MONITORING_FROM is not set")
+			"account has no from_address and no default monitoring sender is configured (Global Settings → Inbox monitoring)")
 	}
 	uid, err := newProbeUID()
 	if err != nil {
@@ -262,13 +285,10 @@ func (uc *MonitoringUsecase) sendProbe(ctx context.Context, acc *MonitoringAccou
 
 // ReconcileSends correlates recently-sent probes still in the queued state
 // against the mail log and advances their send status. It is called by the
-// reconciler worker (system context, no RBAC). lookback bounds how far back to
-// consider probes. Returns the number of probes advanced.
-func (uc *MonitoringUsecase) ReconcileSends(ctx context.Context, lookback time.Duration) (int, error) {
-	if lookback <= 0 {
-		lookback = time.Hour
-	}
-	since := uc.now().Add(-lookback)
+// reconciler worker (system context, no RBAC). The lookback window comes from
+// the monitoring policy. Returns the number of probes advanced.
+func (uc *MonitoringUsecase) ReconcileSends(ctx context.Context) (int, error) {
+	since := uc.now().Add(-uc.policy(ctx).ReconcileLookback)
 	probes, err := uc.repo.ProbesAwaitingSend(ctx, since)
 	if err != nil {
 		return 0, err
@@ -323,9 +343,10 @@ func (uc *MonitoringUsecase) RunDueFetches(ctx context.Context) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	pol := uc.policy(ctx)
 	advanced := 0
 	for _, c := range cands {
-		if uc.fetchOne(ctx, c) {
+		if uc.fetchOne(ctx, c, pol) {
 			advanced++
 		}
 	}
@@ -335,20 +356,23 @@ func (uc *MonitoringUsecase) RunDueFetches(ctx context.Context) (int, error) {
 // fetchOne runs one probe's mailbox search and persists the outcome. It returns
 // true when the probe reached a terminal mailbox status (found/not_found/
 // timeout); a transient failure before give-up leaves it pending for retry.
-func (uc *MonitoringUsecase) fetchOne(ctx context.Context, c *ProbeFetchCandidate) bool {
+func (uc *MonitoringUsecase) fetchOne(ctx context.Context, c *ProbeFetchCandidate, pol MonitoringPolicy) bool {
 	password, err := uc.repo.AccountSecret(ctx, c.Account.ID)
 	if err != nil {
 		LoggerFrom(ctx).Warn("probe fetch: secret unavailable", "account", c.Account.ID, "error", err.Error())
-		return uc.giveUpOrRetry(ctx, c, ProbeMailboxTimeout, err.Error())
+		return uc.giveUpOrRetry(ctx, c, pol, ProbeMailboxTimeout, err.Error())
 	}
-	res, err := uc.fetcher.Fetch(ctx, c.Account, password, c.Probe.ProbeUID)
+	// Bound the mailbox connection by the configured fetch timeout.
+	fctx, cancel := context.WithTimeout(ctx, pol.FetchTimeout)
+	defer cancel()
+	res, err := uc.fetcher.Fetch(fctx, c.Account, password, c.Probe.ProbeUID)
 	if err != nil {
 		// Connection/search failure: retry until give-up, then mark timeout.
-		return uc.giveUpOrRetry(ctx, c, ProbeMailboxTimeout, err.Error())
+		return uc.giveUpOrRetry(ctx, c, pol, ProbeMailboxTimeout, err.Error())
 	}
 	if !res.Found {
 		// Not there yet: retry until give-up, then mark not_found/missing.
-		return uc.giveUpOrRetry(ctx, c, ProbeMailboxNotFound, "")
+		return uc.giveUpOrRetry(ctx, c, pol, ProbeMailboxNotFound, "")
 	}
 	now := uc.now()
 	latency := now.Sub(c.Probe.SentAt).Milliseconds()
@@ -371,9 +395,9 @@ func (uc *MonitoringUsecase) fetchOne(ctx context.Context, c *ProbeFetchCandidat
 // placement) once the give-up window has passed; otherwise it leaves the probe
 // pending (records only the error) so the next tick retries. Returns true when
 // the probe became terminal.
-func (uc *MonitoringUsecase) giveUpOrRetry(ctx context.Context, c *ProbeFetchCandidate, terminalStatus, errMsg string) bool {
+func (uc *MonitoringUsecase) giveUpOrRetry(ctx context.Context, c *ProbeFetchCandidate, pol MonitoringPolicy, terminalStatus, errMsg string) bool {
 	elapsed := uc.now().Sub(c.Probe.SentAt)
-	if elapsed < uc.fetchGiveUp {
+	if elapsed < pol.FetchGiveUp {
 		// Still within the retry window: only surface the last error, stay pending.
 		if errMsg != "" {
 			_ = uc.repo.UpdateProbeMailbox(ctx, c.Probe.ID, ProbeMailboxUpdate{

@@ -14906,8 +14906,15 @@ type GlobalSettings struct {
 	InjectionPath          string `protobuf:"bytes,34,opt,name=injection_path,json=injectionPath,proto3" json:"injection_path,omitempty"`
 	InjectionTlsEnabled    bool   `protobuf:"varint,35,opt,name=injection_tls_enabled,json=injectionTlsEnabled,proto3" json:"injection_tls_enabled,omitempty"`
 	InjectionTlsCertDomain string `protobuf:"bytes,36,opt,name=injection_tls_cert_domain,json=injectionTlsCertDomain,proto3" json:"injection_tls_cert_domain,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	// Inbox-placement monitoring policy. monitoring_from is the fallback probe
+	// sender; the three durations tune the probe pipeline (empty = built-in
+	// defaults 1h / 30s / 2h).
+	MonitoringFrom              string `protobuf:"bytes,37,opt,name=monitoring_from,json=monitoringFrom,proto3" json:"monitoring_from,omitempty"`
+	MonitoringReconcileLookback string `protobuf:"bytes,38,opt,name=monitoring_reconcile_lookback,json=monitoringReconcileLookback,proto3" json:"monitoring_reconcile_lookback,omitempty"`
+	MonitoringFetchTimeout      string `protobuf:"bytes,39,opt,name=monitoring_fetch_timeout,json=monitoringFetchTimeout,proto3" json:"monitoring_fetch_timeout,omitempty"`
+	MonitoringFetchGiveup       string `protobuf:"bytes,40,opt,name=monitoring_fetch_giveup,json=monitoringFetchGiveup,proto3" json:"monitoring_fetch_giveup,omitempty"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *GlobalSettings) Reset() {
@@ -15185,6 +15192,34 @@ func (x *GlobalSettings) GetInjectionTlsCertDomain() string {
 	return ""
 }
 
+func (x *GlobalSettings) GetMonitoringFrom() string {
+	if x != nil {
+		return x.MonitoringFrom
+	}
+	return ""
+}
+
+func (x *GlobalSettings) GetMonitoringReconcileLookback() string {
+	if x != nil {
+		return x.MonitoringReconcileLookback
+	}
+	return ""
+}
+
+func (x *GlobalSettings) GetMonitoringFetchTimeout() string {
+	if x != nil {
+		return x.MonitoringFetchTimeout
+	}
+	return ""
+}
+
+func (x *GlobalSettings) GetMonitoringFetchGiveup() string {
+	if x != nil {
+		return x.MonitoringFetchGiveup
+	}
+	return ""
+}
+
 type GetGlobalSettingsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -15260,8 +15295,13 @@ type UpdateGlobalSettingsRequest struct {
 	InjectionPath          string `protobuf:"bytes,32,opt,name=injection_path,json=injectionPath,proto3" json:"injection_path,omitempty"`
 	InjectionTlsEnabled    bool   `protobuf:"varint,33,opt,name=injection_tls_enabled,json=injectionTlsEnabled,proto3" json:"injection_tls_enabled,omitempty"`
 	InjectionTlsCertDomain string `protobuf:"bytes,34,opt,name=injection_tls_cert_domain,json=injectionTlsCertDomain,proto3" json:"injection_tls_cert_domain,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	// Inbox-placement monitoring policy (see GlobalSettings).
+	MonitoringFrom              string `protobuf:"bytes,35,opt,name=monitoring_from,json=monitoringFrom,proto3" json:"monitoring_from,omitempty"`
+	MonitoringReconcileLookback string `protobuf:"bytes,36,opt,name=monitoring_reconcile_lookback,json=monitoringReconcileLookback,proto3" json:"monitoring_reconcile_lookback,omitempty"`
+	MonitoringFetchTimeout      string `protobuf:"bytes,37,opt,name=monitoring_fetch_timeout,json=monitoringFetchTimeout,proto3" json:"monitoring_fetch_timeout,omitempty"`
+	MonitoringFetchGiveup       string `protobuf:"bytes,38,opt,name=monitoring_fetch_giveup,json=monitoringFetchGiveup,proto3" json:"monitoring_fetch_giveup,omitempty"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *UpdateGlobalSettingsRequest) Reset() {
@@ -15521,6 +15561,34 @@ func (x *UpdateGlobalSettingsRequest) GetInjectionTlsEnabled() bool {
 func (x *UpdateGlobalSettingsRequest) GetInjectionTlsCertDomain() string {
 	if x != nil {
 		return x.InjectionTlsCertDomain
+	}
+	return ""
+}
+
+func (x *UpdateGlobalSettingsRequest) GetMonitoringFrom() string {
+	if x != nil {
+		return x.MonitoringFrom
+	}
+	return ""
+}
+
+func (x *UpdateGlobalSettingsRequest) GetMonitoringReconcileLookback() string {
+	if x != nil {
+		return x.MonitoringReconcileLookback
+	}
+	return ""
+}
+
+func (x *UpdateGlobalSettingsRequest) GetMonitoringFetchTimeout() string {
+	if x != nil {
+		return x.MonitoringFetchTimeout
+	}
+	return ""
+}
+
+func (x *UpdateGlobalSettingsRequest) GetMonitoringFetchGiveup() string {
+	if x != nil {
+		return x.MonitoringFetchGiveup
 	}
 	return ""
 }
@@ -19457,7 +19525,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\vtotal_count\x18\x03 \x01(\x03R\n" +
 	"totalCount\x12\x14\n" +
 	"\x05range\x18\x04 \x01(\tR\x05range\x121\n" +
-	"\x14prometheus_available\x18\x05 \x01(\bR\x13prometheusAvailable\"\xc9\f\n" +
+	"\x14prometheus_available\x18\x05 \x01(\bR\x13prometheusAvailable\"\xa8\x0e\n" +
 	"\x0eGlobalSettings\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -19499,8 +19567,12 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x15injection_listen_addr\x18! \x01(\tR\x13injectionListenAddr\x12%\n" +
 	"\x0einjection_path\x18\" \x01(\tR\rinjectionPath\x122\n" +
 	"\x15injection_tls_enabled\x18# \x01(\bR\x13injectionTlsEnabled\x129\n" +
-	"\x19injection_tls_cert_domain\x18$ \x01(\tR\x16injectionTlsCertDomainJ\x04\b\r\x10\x0e\"\x1a\n" +
-	"\x18GetGlobalSettingsRequest\"\x98\f\n" +
+	"\x19injection_tls_cert_domain\x18$ \x01(\tR\x16injectionTlsCertDomain\x12'\n" +
+	"\x0fmonitoring_from\x18% \x01(\tR\x0emonitoringFrom\x12B\n" +
+	"\x1dmonitoring_reconcile_lookback\x18& \x01(\tR\x1bmonitoringReconcileLookback\x128\n" +
+	"\x18monitoring_fetch_timeout\x18' \x01(\tR\x16monitoringFetchTimeout\x126\n" +
+	"\x17monitoring_fetch_giveup\x18( \x01(\tR\x15monitoringFetchGiveupJ\x04\b\r\x10\x0e\"\x1a\n" +
+	"\x18GetGlobalSettingsRequest\"\xf7\r\n" +
 	"\x1bUpdateGlobalSettingsRequest\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -19538,7 +19610,11 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x15injection_listen_addr\x18\x1f \x01(\tR\x13injectionListenAddr\x12%\n" +
 	"\x0einjection_path\x18  \x01(\tR\rinjectionPath\x122\n" +
 	"\x15injection_tls_enabled\x18! \x01(\bR\x13injectionTlsEnabled\x129\n" +
-	"\x19injection_tls_cert_domain\x18\" \x01(\tR\x16injectionTlsCertDomainJ\x04\b\r\x10\x0e\"\xb4\x02\n" +
+	"\x19injection_tls_cert_domain\x18\" \x01(\tR\x16injectionTlsCertDomain\x12'\n" +
+	"\x0fmonitoring_from\x18# \x01(\tR\x0emonitoringFrom\x12B\n" +
+	"\x1dmonitoring_reconcile_lookback\x18$ \x01(\tR\x1bmonitoringReconcileLookback\x128\n" +
+	"\x18monitoring_fetch_timeout\x18% \x01(\tR\x16monitoringFetchTimeout\x126\n" +
+	"\x17monitoring_fetch_giveup\x18& \x01(\tR\x15monitoringFetchGiveupJ\x04\b\r\x10\x0e\"\xb4\x02\n" +
 	"\x15SubjectClassification\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12-\n" +

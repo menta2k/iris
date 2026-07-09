@@ -118,13 +118,18 @@ func (r *recordingInjector) InjectV1(_ context.Context, req KumoInjectRequest) e
 	return r.err
 }
 
+// fakeSettings supplies a canned monitoring policy.
+type fakeSettings struct{ policy MonitoringPolicy }
+
+func (f fakeSettings) MonitoringPolicyNow(context.Context) MonitoringPolicy { return f.policy }
+
 func TestSendProbeTagsFromAndRecords(t *testing.T) {
 	repo := newFakeMonitoringRepo()
 	repo.accounts["a1"] = &MonitoringAccount{
 		ID: "a1", Email: "seed@gmail.com", FromAddress: "probe@monitor.example.com", Enabled: true,
 	}
 	inj := &recordingInjector{}
-	uc := NewMonitoringUsecase(repo, inj, nil, "")
+	uc := NewMonitoringUsecase(repo, inj, nil)
 
 	probe, err := uc.SendProbe(monitorCtx(), "a1")
 	if err != nil {
@@ -155,7 +160,8 @@ func TestSendProbeUsesDefaultFrom(t *testing.T) {
 	repo := newFakeMonitoringRepo()
 	repo.accounts["a1"] = &MonitoringAccount{ID: "a1", Email: "seed@gmail.com", Enabled: true}
 	inj := &recordingInjector{}
-	uc := NewMonitoringUsecase(repo, inj, nil, "fallback@monitor.example.com")
+	uc := NewMonitoringUsecase(repo, inj, nil).
+		WithSettings(fakeSettings{policy: MonitoringPolicy{From: "fallback@monitor.example.com"}})
 
 	if _, err := uc.SendProbe(monitorCtx(), "a1"); err != nil {
 		t.Fatalf("SendProbe: %v", err)
@@ -168,7 +174,7 @@ func TestSendProbeUsesDefaultFrom(t *testing.T) {
 func TestSendProbeNoFromFails(t *testing.T) {
 	repo := newFakeMonitoringRepo()
 	repo.accounts["a1"] = &MonitoringAccount{ID: "a1", Email: "seed@gmail.com", Enabled: true}
-	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil, "")
+	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil)
 	if _, err := uc.SendProbe(monitorCtx(), "a1"); err == nil {
 		t.Error("expected error when no from address is configured")
 	}
@@ -181,9 +187,9 @@ func TestReconcileSendsAdvancesStatus(t *testing.T) {
 		SendStatus: ProbeSendQueued, SentAt: time.Unix(1_700_000_000, 0),
 	}}
 	repo.match = ProbeSendMatch{Found: true, Status: ProbeSendSent, MessageID: "msg1"}
-	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil, "")
+	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil)
 
-	n, err := uc.ReconcileSends(context.Background(), time.Hour)
+	n, err := uc.ReconcileSends(context.Background())
 	if err != nil {
 		t.Fatalf("ReconcileSends: %v", err)
 	}
@@ -199,8 +205,8 @@ func TestReconcileSkipsWhenNoMatch(t *testing.T) {
 	repo := newFakeMonitoringRepo()
 	repo.probes = []*MonitoringProbe{{ID: "probe-1", SendStatus: ProbeSendQueued, SentAt: time.Unix(1_700_000_000, 0)}}
 	repo.match = ProbeSendMatch{Found: false}
-	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil, "")
-	n, err := uc.ReconcileSends(context.Background(), time.Hour)
+	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil)
+	n, err := uc.ReconcileSends(context.Background())
 	if err != nil {
 		t.Fatalf("ReconcileSends: %v", err)
 	}
@@ -284,7 +290,7 @@ func TestRunDueFetchesFoundInInbox(t *testing.T) {
 	repo.secrets = map[string]string{"a1": "pw"}
 	repo.fetchCands = []*ProbeFetchCandidate{candidate(30*time.Minute, now)}
 	f := &fakeFetcher{res: MailboxProbeResult{Found: true, Folder: "INBOX", RawHeaders: "X-Iris-Probe-Id: ipabc"}}
-	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil, "").WithClock(func() time.Time { return now }).WithFetcher(f, time.Hour)
+	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil).WithClock(func() time.Time { return now }).WithFetcher(f)
 
 	n, err := uc.RunDueFetches(fetchCtx())
 	if err != nil || n != 1 {
@@ -319,9 +325,9 @@ func TestRunDueFetchesUsesLLMAnalysis(t *testing.T) {
 	repo.fetchCands = []*ProbeFetchCandidate{candidate(30*time.Minute, now)}
 	f := &fakeFetcher{res: MailboxProbeResult{Found: true, Folder: "INBOX", RawHeaders: "Subject: x"}}
 	analyzer := stubAnalyzer{v: LLMHeaderVerdict{Verdict: VerdictSpam, Confidence: 0.9, Summary: "DKIM failed", Factors: []string{"dkim fail"}}}
-	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil, "").
+	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil).
 		WithClock(func() time.Time { return now }).
-		WithFetcher(f, time.Hour).
+		WithFetcher(f).
 		WithAnalyzer(analyzer)
 
 	if _, err := uc.RunDueFetches(fetchCtx()); err != nil {
@@ -342,7 +348,7 @@ func TestRunDueFetchesSpamFolder(t *testing.T) {
 	repo := newFakeMonitoringRepo()
 	repo.fetchCands = []*ProbeFetchCandidate{candidate(30*time.Minute, now)}
 	f := &fakeFetcher{res: MailboxProbeResult{Found: true, Folder: "[Gmail]/Spam"}}
-	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil, "").WithClock(func() time.Time { return now }).WithFetcher(f, time.Hour)
+	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil).WithClock(func() time.Time { return now }).WithFetcher(f)
 	if _, err := uc.RunDueFetches(fetchCtx()); err != nil {
 		t.Fatal(err)
 	}
@@ -358,7 +364,7 @@ func TestRunDueFetchesNotFoundRetriesThenGivesUp(t *testing.T) {
 	// Within the give-up window: stays pending, no terminal advance.
 	repo := newFakeMonitoringRepo()
 	repo.fetchCands = []*ProbeFetchCandidate{candidate(10*time.Minute, now)}
-	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil, "").WithClock(func() time.Time { return now }).WithFetcher(f, time.Hour)
+	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil).WithClock(func() time.Time { return now }).WithFetcher(f)
 	n, _ := uc.RunDueFetches(fetchCtx())
 	if n != 0 {
 		t.Errorf("within window advanced = %d, want 0", n)
@@ -367,7 +373,7 @@ func TestRunDueFetchesNotFoundRetriesThenGivesUp(t *testing.T) {
 	// Past give-up: marked not_found/missing.
 	repo2 := newFakeMonitoringRepo()
 	repo2.fetchCands = []*ProbeFetchCandidate{candidate(2*time.Hour, now)}
-	uc2 := NewMonitoringUsecase(repo2, &recordingInjector{}, nil, "").WithClock(func() time.Time { return now }).WithFetcher(f, time.Hour)
+	uc2 := NewMonitoringUsecase(repo2, &recordingInjector{}, nil).WithClock(func() time.Time { return now }).WithFetcher(f)
 	n2, _ := uc2.RunDueFetches(fetchCtx())
 	if n2 != 1 {
 		t.Fatalf("past give-up advanced = %d, want 1", n2)
@@ -381,7 +387,7 @@ func TestRunDueFetchesNotFoundRetriesThenGivesUp(t *testing.T) {
 func TestRunDueFetchesNoFetcherIsNoop(t *testing.T) {
 	repo := newFakeMonitoringRepo()
 	repo.fetchCands = []*ProbeFetchCandidate{candidate(time.Hour, time.Unix(1_700_000_000, 0))}
-	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil, "")
+	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil)
 	n, err := uc.RunDueFetches(fetchCtx())
 	if err != nil || n != 0 {
 		t.Errorf("no fetcher: got %d, %v; want 0, nil", n, err)

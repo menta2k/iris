@@ -1893,6 +1893,13 @@ message GlobalSettings {
   string injection_path = 34;
   bool injection_tls_enabled = 35;
   string injection_tls_cert_domain = 36;
+  // Inbox-placement monitoring policy. monitoring_from is the fallback probe
+  // sender; the three durations tune the probe pipeline (empty = built-in
+  // defaults 1h / 30s / 2h).
+  string monitoring_from = 37;
+  string monitoring_reconcile_lookback = 38;
+  string monitoring_fetch_timeout = 39;
+  string monitoring_fetch_giveup = 40;
 }
 message GetGlobalSettingsRequest {}
 message UpdateGlobalSettingsRequest {
@@ -1934,6 +1941,11 @@ message UpdateGlobalSettingsRequest {
   string injection_path = 32;
   bool injection_tls_enabled = 33;
   string injection_tls_cert_domain = 34;
+  // Inbox-placement monitoring policy (see GlobalSettings).
+  string monitoring_from = 35;
+  string monitoring_reconcile_lookback = 36;
+  string monitoring_fetch_timeout = 37;
+  string monitoring_fetch_giveup = 38;
 }
 
 // A subject → label classification rule. source is "manual" (operator-authored)

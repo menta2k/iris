@@ -55,6 +55,23 @@ type MailboxFetcher interface {
 	Fetch(ctx context.Context, acc *MonitoringAccount, password, probeUID string) (MailboxProbeResult, error)
 }
 
+// MonitoringPolicy is the operator-tunable inbox-monitoring policy read at
+// runtime from global settings. Durations are 0 when unset; the monitoring
+// usecase applies its built-in defaults.
+type MonitoringPolicy struct {
+	// From is the fallback probe sender for accounts with no from_address.
+	From              string
+	ReconcileLookback time.Duration
+	FetchTimeout      time.Duration
+	FetchGiveUp       time.Duration
+}
+
+// MonitoringSettingsProvider supplies the live monitoring policy. Satisfied by
+// GlobalSettingsUsecase; nil in the usecase means "use built-in defaults".
+type MonitoringSettingsProvider interface {
+	MonitoringPolicyNow(ctx context.Context) MonitoringPolicy
+}
+
 // ProbeFetchCandidate pairs a probe due for a mailbox fetch with the account
 // that owns it (connection details + folders), so the fetch worker has
 // everything except the decrypted password (fetched separately).

@@ -29,6 +29,7 @@ const globalSettingsCols = `rspamd_mode, rspamd_url, egress_ehlo_domain,
 	classify_subjects, classify_model, classify_threshold, classify_api_base,
 	pin_egress_per_message,
 	injection_enabled, injection_listen_addr, injection_path, injection_tls_enabled, injection_tls_cert_domain,
+	monitoring_from, monitoring_reconcile_lookback, monitoring_fetch_timeout, monitoring_fetch_giveup,
 	updated_at, updated_by`
 
 // scanGlobalSettings scans a row in globalSettingsCols order.
@@ -44,6 +45,7 @@ func scanGlobalSettings(row interface{ Scan(...any) error }) (*biz.GlobalSetting
 		&out.ClassifySubjects, &out.ClassifyModel, &out.ClassifyThreshold, &out.ClassifyAPIBase,
 		&out.PinEgressPerMessage,
 		&out.InjectionEnabled, &out.InjectionListenAddr, &out.InjectionPath, &out.InjectionTLSEnabled, &out.InjectionTLSCertDomain,
+		&out.MonitoringFrom, &out.MonitoringReconcileLookback, &out.MonitoringFetchTimeout, &out.MonitoringFetchGiveUp,
 		&out.UpdatedAt, &out.UpdatedBy)
 	return out, err
 }
@@ -80,7 +82,9 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in *biz.GlobalSettings,
 			pin_egress_per_message = $28,
 			injection_enabled = $29, injection_listen_addr = $30, injection_path = $31,
 			injection_tls_enabled = $32, injection_tls_cert_domain = $33,
-			updated_at = now(), updated_by = $34
+			monitoring_from = $34, monitoring_reconcile_lookback = $35,
+			monitoring_fetch_timeout = $36, monitoring_fetch_giveup = $37,
+			updated_at = now(), updated_by = $38
 		WHERE id = 1
 		RETURNING `+globalSettingsCols,
 		in.RspamdMode, in.RspamdURL, in.EgressEHLODomain,
@@ -93,6 +97,7 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in *biz.GlobalSettings,
 		in.ClassifySubjects, in.ClassifyModel, in.ClassifyThreshold, in.ClassifyAPIBase,
 		in.PinEgressPerMessage,
 		in.InjectionEnabled, in.InjectionListenAddr, in.InjectionPath, in.InjectionTLSEnabled, in.InjectionTLSCertDomain,
+		in.MonitoringFrom, in.MonitoringReconcileLookback, in.MonitoringFetchTimeout, in.MonitoringFetchGiveUp,
 		actor))
 	if err != nil {
 		return nil, mapConstraint(err, "global_settings")

@@ -59,10 +59,11 @@ probes to them can't be fetched.
 
 Every probe needs a `From` domain iris can send from and ideally
 [DKIM-sign](dkim.md) (so the probe itself authenticates). Set a fallback used by
-any account that doesn't define its own `from_address`:
+any account that doesn't define its own `from_address` under **Global Settings →
+Inbox Monitoring → Default probe sender** (`monitoring_from`):
 
-```bash
-export IRIS_MONITORING_FROM="probe@monitor.example.com"
+```
+probe@monitor.example.com
 ```
 
 The domain must be one of your sending domains — resolvable, SPF-authorized for
@@ -136,24 +137,31 @@ any LLM error the deterministic verdict is kept, so an analysis always exists.
 
 ## Background workers & tuning
 
-Three workers drive the pipeline; all are enabled automatically and tunable by
-environment variable:
+Three workers drive the pipeline; all are enabled automatically. Their scan
+cadence is deployment-level (environment variables); the *policy* they apply is
+UI-managed under **Global Settings → Inbox Monitoring** and hot-reloads without a
+restart.
 
-| Worker | Job | Interval env (default) |
+| Worker | Job | Scan cadence env (default) |
 | --- | --- | --- |
 | `monitoring-reconciler` | Correlate probes to the mail log; set send status | `IRIS_MONITORING_RECONCILE_INTERVAL` (`30s`) |
 | `monitoring-scheduler` | Send probes for accounts whose schedule is due | `IRIS_MONITORING_SCHEDULE_INTERVAL` (`1m`) |
 | `monitoring-fetch` | Log into mailboxes, find probes, analyze headers | `IRIS_MONITORING_FETCH_INTERVAL` (`1m`) |
 
-Additional knobs:
+**Policy — Global Settings → Inbox Monitoring** (blank uses the built-in default):
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| Default probe sender (`monitoring_from`) | *(empty)* | Fallback sender when an account has no `from_address` |
+| Reconcile lookback (`monitoring_reconcile_lookback`) | `1h` | How far back the reconciler considers queued probes |
+| Mailbox fetch timeout (`monitoring_fetch_timeout`) | `30s` | Per-connection IMAP/POP3 timeout |
+| Fetch give-up window (`monitoring_fetch_giveup`) | `2h` | How long to retry the fetch before marking a probe not_found / timeout |
+
+**Environment (startup-only):**
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `IRIS_MONITORING_KEY` | *(unset)* | AES-GCM passphrase for mailbox passwords (required to store credentials) |
-| `IRIS_MONITORING_FROM` | *(unset)* | Fallback probe sender when an account has no `from_address` |
-| `IRIS_MONITORING_RECONCILE_LOOKBACK` | `1h` | How far back the reconciler considers queued probes |
-| `IRIS_MONITORING_FETCH_TIMEOUT` | `30s` | Per-connection IMAP/POP3 timeout |
-| `IRIS_MONITORING_FETCH_GIVEUP` | `2h` | How long to retry the fetch before marking a probe not_found / timeout |
 | `IRIS_OPENAI_API_KEY` | *(unset)* | Enables the LLM spam verdict (shared with subject classification) |
 | `IRIS_OPENAI_MODEL` | `gpt-4o-mini` | Model for the LLM analysis |
 | `IRIS_OPENAI_API_BASE` | `https://api.openai.com/v1` | Override for Azure OpenAI or a local gateway |

@@ -933,6 +933,10 @@ export interface GlobalSettings {
   injectionPath: string
   injectionTlsEnabled: boolean
   injectionTlsCertDomain: string
+  monitoringFrom: string
+  monitoringReconcileLookback: string
+  monitoringFetchTimeout: string
+  monitoringFetchGiveup: string
   updatedAt?: string
   updatedBy?: string
 }
@@ -971,6 +975,10 @@ export interface UpdateGlobalSettingsRequest {
   injection_path: string
   injection_tls_enabled: boolean
   injection_tls_cert_domain: string
+  monitoring_from: string
+  monitoring_reconcile_lookback: string
+  monitoring_fetch_timeout: string
+  monitoring_fetch_giveup: string
 }
 
 // ---- Subject classifications ----

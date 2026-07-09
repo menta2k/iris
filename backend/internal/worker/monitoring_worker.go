@@ -14,20 +14,16 @@ import (
 type MonitoringReconcilerWorker struct {
 	uc       *biz.MonitoringUsecase
 	interval time.Duration
-	lookback time.Duration
 	log      *slog.Logger
 }
 
-// NewMonitoringReconcilerWorker constructs the reconciler. Sensible defaults are
-// applied for a non-positive interval/lookback.
-func NewMonitoringReconcilerWorker(uc *biz.MonitoringUsecase, interval, lookback time.Duration, log *slog.Logger) *MonitoringReconcilerWorker {
+// NewMonitoringReconcilerWorker constructs the reconciler. A non-positive
+// interval defaults to 30s. The lookback window is read from global settings.
+func NewMonitoringReconcilerWorker(uc *biz.MonitoringUsecase, interval time.Duration, log *slog.Logger) *MonitoringReconcilerWorker {
 	if interval <= 0 {
 		interval = 30 * time.Second
 	}
-	if lookback <= 0 {
-		lookback = time.Hour
-	}
-	return &MonitoringReconcilerWorker{uc: uc, interval: interval, lookback: lookback, log: log}
+	return &MonitoringReconcilerWorker{uc: uc, interval: interval, log: log}
 }
 
 // Run reconciles on each tick until the context is cancelled.
@@ -44,7 +40,7 @@ func (w *MonitoringReconcilerWorker) Run(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			n, err := w.uc.ReconcileSends(ctx, w.lookback)
+			n, err := w.uc.ReconcileSends(ctx)
 			if err != nil {
 				w.log.Error("monitoring reconcile failed", "error", err.Error())
 				continue

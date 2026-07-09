@@ -205,6 +205,22 @@ func (uc *GlobalSettingsUsecase) ClassifyPolicyNow(ctx context.Context) Classify
 	}
 }
 
+// MonitoringPolicyNow returns the current inbox-monitoring policy (fallback
+// probe sender + pipeline tuning durations). Durations are 0 when unset — the
+// consumer applies its built-in defaults. No permission check — internal
+// provider read by the monitoring usecase/workers so changes hot-reload.
+func (uc *GlobalSettingsUsecase) MonitoringPolicyNow(ctx context.Context) MonitoringPolicy {
+	row, err := uc.repo.Get(ctx)
+	if err != nil || row == nil {
+		return MonitoringPolicy{}
+	}
+	p := MonitoringPolicy{From: strings.TrimSpace(row.MonitoringFrom)}
+	p.ReconcileLookback, _ = ParseFlexDuration(row.MonitoringReconcileLookback)
+	p.FetchTimeout, _ = ParseFlexDuration(row.MonitoringFetchTimeout)
+	p.FetchGiveUp, _ = ParseFlexDuration(row.MonitoringFetchGiveUp)
+	return p
+}
+
 func (uc *GlobalSettingsUsecase) audit(ctx context.Context, outcome AuditOutcome, summary map[string]any) {
 	if uc.auditor == nil {
 		return

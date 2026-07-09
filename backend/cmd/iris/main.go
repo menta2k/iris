@@ -237,9 +237,12 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		log.Warn("IRIS_MONITORING_KEY unset: monitoring mailbox passwords cannot be stored")
 	}
 	monitoringRepo := data.NewMonitoringRepo(db, monitoringCipher)
-	monitoringUC := biz.NewMonitoringUsecase(monitoringRepo, injector, auditor, envOr("IRIS_MONITORING_FROM", "")).
-		WithFetcher(mailbox.NewFetcher(envDuration("IRIS_MONITORING_FETCH_TIMEOUT", 30*time.Second)),
-			envDuration("IRIS_MONITORING_FETCH_GIVEUP", 2*time.Hour))
+	// The probe sender and pipeline tuning (reconcile lookback, fetch timeout,
+	// give-up) are UI-managed in Global Settings → Inbox monitoring; the usecase
+	// reads them at runtime so changes hot-reload without a restart.
+	monitoringUC := biz.NewMonitoringUsecase(monitoringRepo, injector, auditor).
+		WithSettings(settingsUC).
+		WithFetcher(mailbox.NewFetcher(30 * time.Second))
 	// Phase 3: LLM header analysis of fetched probes (spam-risk verdict). Reuses
 	// IRIS_OPENAI_API_KEY; absent → deterministic heuristic verdict only.
 	if key := strings.TrimSpace(os.Getenv("IRIS_OPENAI_API_KEY")); key != "" {
@@ -469,7 +472,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 
 	// Inbox-placement monitoring: reconcile probe send status against the mail log,
 	// and send scheduled probes for accounts with a recurring schedule.
-	startWorker(ctx, log, "monitoring-reconciler", worker.NewMonitoringReconcilerWorker(monitoringUC, envDuration("IRIS_MONITORING_RECONCILE_INTERVAL", 30*time.Second), envDuration("IRIS_MONITORING_RECONCILE_LOOKBACK", time.Hour), wlog("monitoring-reconciler")).Run)
+	startWorker(ctx, log, "monitoring-reconciler", worker.NewMonitoringReconcilerWorker(monitoringUC, envDuration("IRIS_MONITORING_RECONCILE_INTERVAL", 30*time.Second), wlog("monitoring-reconciler")).Run)
 	startWorker(ctx, log, "monitoring-scheduler", worker.NewMonitoringSchedulerWorker(monitoringUC, envDuration("IRIS_MONITORING_SCHEDULE_INTERVAL", time.Minute), wlog("monitoring-scheduler")).Run)
 	startWorker(ctx, log, "monitoring-fetch", worker.NewMonitoringFetchWorker(monitoringUC, envDuration("IRIS_MONITORING_FETCH_INTERVAL", time.Minute), wlog("monitoring-fetch")).Run)
 

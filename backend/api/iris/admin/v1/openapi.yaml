@@ -3744,6 +3744,18 @@ components:
                     type: boolean
                 injection_tls_cert_domain:
                     type: string
+                monitoring_from:
+                    type: string
+                    description: |-
+                        Inbox-placement monitoring policy. monitoring_from is the fallback probe
+                         sender; the three durations tune the probe pipeline (empty = built-in
+                         defaults 1h / 30s / 2h).
+                monitoring_reconcile_lookback:
+                    type: string
+                monitoring_fetch_timeout:
+                    type: string
+                monitoring_fetch_giveup:
+                    type: string
             description: Global settings — deployment-level policy knobs an operator edits in the UI.
         InboundRoute:
             type: object
@@ -5319,6 +5331,15 @@ components:
                 injection_tls_enabled:
                     type: boolean
                 injection_tls_cert_domain:
+                    type: string
+                monitoring_from:
+                    type: string
+                    description: Inbox-placement monitoring policy (see GlobalSettings).
+                monitoring_reconcile_lookback:
+                    type: string
+                monitoring_fetch_timeout:
+                    type: string
+                monitoring_fetch_giveup:
                     type: string
         UpdateInboundRouteRequest:
             type: object

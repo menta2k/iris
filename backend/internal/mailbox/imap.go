@@ -82,11 +82,15 @@ func fetchHeaders(client *imapclient.Client, uid imap.UID) string {
 	return ""
 }
 
-// dialConn opens a TCP (optionally TLS) connection honoring the context deadline.
+// dialConn opens a TCP (optionally TLS) connection. The context deadline is
+// authoritative when present (set by the caller from the configured fetch
+// timeout); otherwise the fallback timeout applies.
 func dialConn(ctx context.Context, addr string, useTLS bool, serverName string, timeout time.Duration) (net.Conn, error) {
-	d := &net.Dialer{Timeout: timeout}
+	d := &net.Dialer{}
 	if dl, ok := ctx.Deadline(); ok {
 		d.Deadline = dl
+	} else {
+		d.Timeout = timeout
 	}
 	if !useTLS {
 		return d.DialContext(ctx, "tcp", addr)
