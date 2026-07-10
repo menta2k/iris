@@ -138,6 +138,11 @@ func TestSendProbeTagsFromAndRecords(t *testing.T) {
 	if probe.SendStatus != ProbeSendQueued {
 		t.Errorf("send status = %q, want queued", probe.SendStatus)
 	}
+	// Must be seeded pending so the phase-2 fetch selector (mailbox_status =
+	// 'pending') can pick it up once it is sent.
+	if probe.MailboxStatus != ProbeMailboxPending {
+		t.Errorf("mailbox status = %q, want pending", probe.MailboxStatus)
+	}
 	// From header must be plus-tagged with the probe uid for later correlation.
 	wantPrefix := "probe+" + probe.ProbeUID + "@"
 	if !strings.HasPrefix(inj.last.Content.From.Email, wantPrefix) {

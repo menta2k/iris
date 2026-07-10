@@ -251,10 +251,12 @@ func (uc *MonitoringUsecase) sendProbe(ctx context.Context, acc *MonitoringAccou
 		},
 	}
 	if err := uc.injector.InjectV1(ctx, req); err != nil {
-		// Record the failed attempt so the operator sees it.
+		// Record the failed attempt so the operator sees it. It never sent, so the
+		// mailbox is never checked (skipped).
 		p := &MonitoringProbe{
 			AccountID: acc.ID, ProbeUID: uid, Subject: subject, FromAddr: fromAddr,
-			Recipient: acc.Email, SendStatus: ProbeSendError, Error: err.Error(),
+			Recipient: acc.Email, SendStatus: ProbeSendError, MailboxStatus: ProbeMailboxSkipped,
+			Error: err.Error(),
 		}
 		if _, cerr := uc.repo.CreateProbe(ctx, p); cerr != nil {
 			LoggerFrom(ctx).Error("record failed probe", "error", cerr.Error())
@@ -263,12 +265,13 @@ func (uc *MonitoringUsecase) sendProbe(ctx context.Context, acc *MonitoringAccou
 	}
 
 	probe := &MonitoringProbe{
-		AccountID:  acc.ID,
-		ProbeUID:   uid,
-		Subject:    subject,
-		FromAddr:   fromAddr,
-		Recipient:  acc.Email,
-		SendStatus: ProbeSendQueued,
+		AccountID:     acc.ID,
+		ProbeUID:      uid,
+		Subject:       subject,
+		FromAddr:      fromAddr,
+		Recipient:     acc.Email,
+		SendStatus:    ProbeSendQueued,
+		MailboxStatus: ProbeMailboxPending,
 	}
 	out, err := uc.repo.CreateProbe(ctx, probe)
 	if err != nil {

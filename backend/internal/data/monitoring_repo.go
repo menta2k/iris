@@ -293,6 +293,17 @@ func (r *MonitoringRepo) CreateProbe(ctx context.Context, p *biz.MonitoringProbe
 	if analysis == "" {
 		analysis = "{}"
 	}
+	// Coalesce the status enums to their initial values so an unset field can't
+	// write an empty string that the reconciler/fetch selectors (which filter on
+	// = 'queued' / = 'pending') would never match.
+	sendStatus := p.SendStatus
+	if sendStatus == "" {
+		sendStatus = biz.ProbeSendQueued
+	}
+	mailboxStatus := p.MailboxStatus
+	if mailboxStatus == "" {
+		mailboxStatus = biz.ProbeMailboxPending
+	}
 	out, err := scanProbe(r.db.Pool.QueryRow(ctx, `
 		INSERT INTO monitoring_probes
 			(account_id, probe_uid, message_id, subject, from_addr, recipient,
@@ -300,7 +311,7 @@ func (r *MonitoringRepo) CreateProbe(ctx context.Context, p *biz.MonitoringProbe
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
 		RETURNING `+probeCols,
 		p.AccountID, p.ProbeUID, p.MessageID, p.Subject, p.FromAddr, p.Recipient,
-		p.SendStatus, p.MailboxStatus, p.Placement, analysis, p.RawHeaders, p.Error))
+		sendStatus, mailboxStatus, p.Placement, analysis, p.RawHeaders, p.Error))
 	if err != nil {
 		return nil, fmt.Errorf("create monitoring probe: %w", err)
 	}
