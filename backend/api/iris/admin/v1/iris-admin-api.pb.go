@@ -5341,7 +5341,10 @@ type ListMailRecordsRequest struct {
 	// Filter by mail-record status (e.g. "deferred" to see what's in the queue).
 	Status string `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"`
 	// Filter by raw KumoMTA log record type (e.g. "AdminBounce"). Empty = all.
-	RecordType    string `protobuf:"bytes,10,opt,name=record_type,json=recordType,proto3" json:"record_type,omitempty"`
+	RecordType string `protobuf:"bytes,10,opt,name=record_type,json=recordType,proto3" json:"record_type,omitempty"`
+	// Case-insensitive substring match on the SMTP diagnostic / response text
+	// (e.g. "quota", "STARTTLS", "NXDOMAIN"). Empty = all.
+	Diagnostic    string `protobuf:"bytes,11,opt,name=diagnostic,proto3" json:"diagnostic,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5442,6 +5445,13 @@ func (x *ListMailRecordsRequest) GetStatus() string {
 func (x *ListMailRecordsRequest) GetRecordType() string {
 	if x != nil {
 		return x.RecordType
+	}
+	return ""
+}
+
+func (x *ListMailRecordsRequest) GetDiagnostic() string {
+	if x != nil {
+		return x.Diagnostic
 	}
 	return ""
 }
@@ -16526,8 +16536,11 @@ type MonitoringAccount struct {
 	LastProbeSendStatus    string `protobuf:"bytes,20,opt,name=last_probe_send_status,json=lastProbeSendStatus,proto3" json:"last_probe_send_status,omitempty"`
 	LastProbeMailboxStatus string `protobuf:"bytes,21,opt,name=last_probe_mailbox_status,json=lastProbeMailboxStatus,proto3" json:"last_probe_mailbox_status,omitempty"`
 	LastProbePlacement     string `protobuf:"bytes,22,opt,name=last_probe_placement,json=lastProbePlacement,proto3" json:"last_probe_placement,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	// last_probe_verdict is the phase-3 spam-risk verdict (clean|suspicious|spam)
+	// from the latest probe's header analysis; empty when not yet analyzed.
+	LastProbeVerdict string `protobuf:"bytes,23,opt,name=last_probe_verdict,json=lastProbeVerdict,proto3" json:"last_probe_verdict,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *MonitoringAccount) Reset() {
@@ -16710,6 +16723,13 @@ func (x *MonitoringAccount) GetLastProbeMailboxStatus() string {
 func (x *MonitoringAccount) GetLastProbePlacement() string {
 	if x != nil {
 		return x.LastProbePlacement
+	}
+	return ""
+}
+
+func (x *MonitoringAccount) GetLastProbeVerdict() string {
+	if x != nil {
+		return x.LastProbeVerdict
 	}
 	return ""
 }
@@ -19108,7 +19128,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06domain\x18\x01 \x01(\tR\x06domain\x12\x14\n" +
 	"\x05depth\x18\x02 \x01(\x03R\x05depth\x12\x1c\n" +
 	"\tsuspended\x18\x03 \x01(\bR\tsuspended\x12%\n" +
-	"\x0esuspend_reason\x18\x04 \x01(\tR\rsuspendReason\"\xf0\x02\n" +
+	"\x0esuspend_reason\x18\x04 \x01(\tR\rsuspendReason\"\x90\x03\n" +
 	"\x16ListMailRecordsRequest\x12.\n" +
 	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\x12\x1c\n" +
 	"\tmailclass\x18\x02 \x01(\tR\tmailclass\x12\x16\n" +
@@ -19121,7 +19141,10 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06status\x18\t \x01(\tR\x06status\x12\x1f\n" +
 	"\vrecord_type\x18\n" +
 	" \x01(\tR\n" +
-	"recordType\"u\n" +
+	"recordType\x12\x1e\n" +
+	"\n" +
+	"diagnostic\x18\v \x01(\tR\n" +
+	"diagnostic\"u\n" +
 	"\x14ListMailRecordsReply\x12/\n" +
 	"\x05items\x18\x01 \x03(\v2\x19.iris.admin.v1.MailRecordR\x05items\x12,\n" +
 	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\">\n" +
@@ -19992,7 +20015,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	" DeleteInjectionCredentialRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"0\n" +
 	"\x1eDeleteInjectionCredentialReply\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok\"\xdf\x05\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"\x8d\x06\n" +
 	"\x11MonitoringAccount\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12\x1a\n" +
@@ -20019,7 +20042,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\fhas_password\x18\x13 \x01(\bR\vhasPassword\x123\n" +
 	"\x16last_probe_send_status\x18\x14 \x01(\tR\x13lastProbeSendStatus\x129\n" +
 	"\x19last_probe_mailbox_status\x18\x15 \x01(\tR\x16lastProbeMailboxStatus\x120\n" +
-	"\x14last_probe_placement\x18\x16 \x01(\tR\x12lastProbePlacement\"\xfa\x03\n" +
+	"\x14last_probe_placement\x18\x16 \x01(\tR\x12lastProbePlacement\x12,\n" +
+	"\x12last_probe_verdict\x18\x17 \x01(\tR\x10lastProbeVerdict\"\xfa\x03\n" +
 	"\x0fMonitoringProbe\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +

@@ -25,6 +25,7 @@ export const monitoringAccounts: MonitoringAccount[] = [
     lastProbeSendStatus: 'sent',
     lastProbeMailboxStatus: 'found',
     lastProbePlacement: 'inbox',
+    lastProbeVerdict: 'clean',
     createdAt: hoursAgo(240),
     updatedAt: hoursAgo(2),
   },

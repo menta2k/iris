@@ -1488,6 +1488,13 @@ paths:
                   description: Filter by raw KumoMTA log record type (e.g. "AdminBounce"). Empty = all.
                   schema:
                     type: string
+                - name: diagnostic
+                  in: query
+                  description: |-
+                    Case-insensitive substring match on the SMTP diagnostic / response text
+                     (e.g. "quota", "STARTTLS", "NXDOMAIN"). Empty = all.
+                  schema:
+                    type: string
             responses:
                 "200":
                     description: OK
@@ -4487,6 +4494,11 @@ components:
                     type: string
                 last_probe_placement:
                     type: string
+                last_probe_verdict:
+                    type: string
+                    description: |-
+                        last_probe_verdict is the phase-3 spam-risk verdict (clean|suspicious|spam)
+                         from the latest probe's header analysis; empty when not yet analyzed.
             description: |-
                 MonitoringAccount is a mailbox iris sends probe mail to and later inspects for
                  inbox placement. The mailbox password is write-only: it is never returned.

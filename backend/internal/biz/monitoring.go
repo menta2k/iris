@@ -120,8 +120,11 @@ type MonitoringAccount struct {
 	LastProbeSendStatus    string
 	LastProbeMailboxStatus string
 	LastProbePlacement     string
-	CreatedAt              time.Time
-	UpdatedAt              time.Time
+	// LastProbeVerdict is the phase-3 spam-risk verdict (clean|suspicious|spam)
+	// from the latest probe's analysis JSON; empty when not yet analyzed.
+	LastProbeVerdict string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 // MonitoringProbe is one probe message sent to a MonitoringAccount.

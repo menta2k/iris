@@ -1040,6 +1040,9 @@ message ListMailRecordsRequest {
   string status = 9;
   // Filter by raw KumoMTA log record type (e.g. "AdminBounce"). Empty = all.
   string record_type = 10;
+  // Case-insensitive substring match on the SMTP diagnostic / response text
+  // (e.g. "quota", "STARTTLS", "NXDOMAIN"). Empty = all.
+  string diagnostic = 11;
 }
 message ListMailRecordsReply {
   repeated MailRecord items = 1;
@@ -2070,6 +2073,9 @@ message MonitoringAccount {
   string last_probe_send_status = 20;
   string last_probe_mailbox_status = 21;
   string last_probe_placement = 22;
+  // last_probe_verdict is the phase-3 spam-risk verdict (clean|suspicious|spam)
+  // from the latest probe's header analysis; empty when not yet analyzed.
+  string last_probe_verdict = 23;
 }
 
 // MonitoringProbe is one probe message sent to a MonitoringAccount.

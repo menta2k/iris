@@ -199,6 +199,7 @@ func monitoringAccountToProto(a *biz.MonitoringAccount) *adminv1.MonitoringAccou
 		LastProbeSendStatus:    a.LastProbeSendStatus,
 		LastProbeMailboxStatus: a.LastProbeMailboxStatus,
 		LastProbePlacement:     a.LastProbePlacement,
+		LastProbeVerdict:       a.LastProbeVerdict,
 		CreatedAt:              formatTime(a.CreatedAt),
 		UpdatedAt:              formatTime(a.UpdatedAt),
 	}

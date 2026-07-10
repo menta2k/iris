@@ -460,6 +460,8 @@ export interface MailRecordFilters {
   status?: string
   /** Filter by raw KumoMTA log record type (e.g. "AdminBounce"). */
   record_type?: string
+  /** Case-insensitive substring match on the SMTP diagnostic / response text. */
+  diagnostic?: string
   /** RFC3339 lower bound on event time. */
   from_time?: string
   /** RFC3339 upper bound on event time. */
@@ -1079,6 +1081,7 @@ export interface MonitoringAccount {
   lastProbeSendStatus?: string
   lastProbeMailboxStatus?: string
   lastProbePlacement?: ProbePlacement
+  lastProbeVerdict?: SpamVerdict
   createdAt?: string
   updatedAt?: string
 }

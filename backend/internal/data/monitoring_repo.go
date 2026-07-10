@@ -64,10 +64,11 @@ func scanAccount(row pgx.Row) (*biz.MonitoringAccount, error) {
 func (r *MonitoringRepo) ListAccounts(ctx context.Context) ([]*biz.MonitoringAccount, error) {
 	rows, err := r.db.Pool.Query(ctx,
 		`SELECT `+accountCols+`,
-		    coalesce(lp.send_status, ''), coalesce(lp.mailbox_status, ''), coalesce(lp.placement, '')
+		    coalesce(lp.send_status, ''), coalesce(lp.mailbox_status, ''), coalesce(lp.placement, ''),
+		    coalesce(lp.analysis->>'verdict', '')
 		 FROM monitoring_accounts a
 		 LEFT JOIN LATERAL (
-		     SELECT send_status, mailbox_status, placement
+		     SELECT send_status, mailbox_status, placement, analysis
 		     FROM monitoring_probes WHERE account_id = a.id ORDER BY sent_at DESC LIMIT 1
 		 ) lp ON true
 		 ORDER BY a.created_at DESC`)
@@ -79,7 +80,7 @@ func (r *MonitoringRepo) ListAccounts(ctx context.Context) ([]*biz.MonitoringAcc
 	for rows.Next() {
 		a := &biz.MonitoringAccount{}
 		args := accountScanArgs(a)
-		args = append(args, &a.LastProbeSendStatus, &a.LastProbeMailboxStatus, &a.LastProbePlacement)
+		args = append(args, &a.LastProbeSendStatus, &a.LastProbeMailboxStatus, &a.LastProbePlacement, &a.LastProbeVerdict)
 		if err := rows.Scan(args...); err != nil {
 			return nil, fmt.Errorf("scan monitoring account: %w", err)
 		}
