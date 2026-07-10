@@ -35,6 +35,7 @@ func (s *Service) CreateVMTA(ctx context.Context, req *adminv1.CreateVMTARequest
 		EHLOName:       req.GetEhloName(),
 		ListenerID:     req.GetListenerId(),
 		MaxConnections: int(req.GetMaxConnections()),
+		TLSMode:        req.GetTlsMode(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "CreateVMTA", err)
@@ -55,6 +56,7 @@ func (s *Service) UpdateVMTA(ctx context.Context, req *adminv1.UpdateVMTARequest
 		MaxConnections: int(req.GetMaxConnections()),
 		Status:         req.GetStatus(),
 		Notes:          req.GetNotes(),
+		TLSMode:        req.GetTlsMode(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "UpdateVMTA", err)
@@ -177,6 +179,7 @@ func vmtaToProto(v *biz.VMTA) *adminv1.VMTA {
 	return &adminv1.VMTA{
 		Id: v.ID, Name: v.Name, IpAddress: v.IPAddress, EhloName: v.EHLOName, Status: v.Status, Notes: v.Notes,
 		ListenerId: v.ListenerID, ListenerName: v.ListenerName, MaxConnections: int32(v.MaxConnections),
+		TlsMode: v.TLSMode,
 	}
 }
 

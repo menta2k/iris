@@ -1334,6 +1334,18 @@ func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolic
 		fmt.Fprintf(b, "REQUIRE_TLS_DOMAINS[%s] = %s\n",
 			MustLuaString(strings.ToLower(p.Domain)), MustLuaString(p.EnableTLSValue()))
 	}
+	// Per-VMTA (egress source) TLS override: force/relax STARTTLS for anything
+	// sent from this source, regardless of destination. A per-domain policy above
+	// wins over this (destination-specific intent is more targeted).
+	b.WriteString("local SOURCE_TLS = {}\n")
+	for _, v := range sortedVMTAs(vmtas) {
+		if v.Status != VMTAStatusActive && v.Status != VMTAStatusDraining {
+			continue
+		}
+		if tls := v.EnableTLSValue(); tls != "" {
+			fmt.Fprintf(b, "SOURCE_TLS[%s] = %s\n", MustLuaString(v.Name), MustLuaString(tls))
+		}
+	}
 	// Forward routes deliver to a synthetic queue whose domain is the smarthost
 	// key; honor their TLS policy on that egress path. Opportunistic is kumod's
 	// default and needs no entry.
@@ -1385,7 +1397,9 @@ kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
   if limit and limit > 0 and (not params.connection_limit or params.connection_limit > limit) then
     params.connection_limit = limit
   end
-  local tls = REQUIRE_TLS_DOMAINS[string.lower(domain)]
+  -- Per-domain TLS policy wins; else the per-VMTA (egress source) override; else
+  -- the opportunistic default below.
+  local tls = REQUIRE_TLS_DOMAINS[string.lower(domain)] or SOURCE_TLS[egress_source]
   if tls then
     params.enable_tls = tls
   else

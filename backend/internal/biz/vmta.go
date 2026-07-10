@@ -30,8 +30,13 @@ type VMTA struct {
 	// MaxConnections caps simultaneous outbound connections for this source
 	// (0 = KumoMTA default / unlimited).
 	MaxConnections int
-	Status         string
-	Notes          string
+	// TLSMode forces the outbound TLS posture for any delivery sent from this
+	// VMTA (egress source): "" = no override; required/required_insecure force
+	// STARTTLS; opportunistic_insecure/disabled relax it. A per-domain TLS Policy
+	// takes precedence over this when both apply.
+	TLSMode string
+	Status  string
+	Notes   string
 
 	// ListenerName is the resolved name of the optional listener, read-only for
 	// display; empty when unattached.
@@ -81,8 +86,20 @@ func (v *VMTA) Validate() error {
 	if v.MaxConnections < 0 || v.MaxConnections > 100000 {
 		return Invalid("VMTA_MAX_CONNECTIONS_RANGE", "max_connections must be between 0 and 100000")
 	}
+	v.TLSMode = strings.ToLower(strings.TrimSpace(v.TLSMode))
+	switch v.TLSMode {
+	case "", TLSModeRequired, TLSModeRequiredInsecure, TLSModeOpportunisticInsecure, TLSModeDisabled:
+	default:
+		return Invalid("VMTA_TLS_MODE_INVALID", "tls_mode %q is not valid", v.TLSMode)
+	}
 	if !ValidVMTAStatus(v.Status) {
 		return Invalid("VMTA_STATUS_INVALID", "status %q is not valid", v.Status)
 	}
 	return nil
+}
+
+// EnableTLSValue returns the KumoMTA enable_tls string for the VMTA's TLS mode,
+// or "" when no per-VMTA override is set.
+func (v *VMTA) EnableTLSValue() string {
+	return enableTLSValue(v.TLSMode)
 }

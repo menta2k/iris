@@ -3278,6 +3278,8 @@ components:
                     type: string
                 ehlo_name:
                     type: string
+                tls_mode:
+                    type: string
         CreateWarmupScheduleRequest:
             type: object
             properties:
@@ -5687,6 +5689,8 @@ components:
                     type: string
                 ehlo_name:
                     type: string
+                tls_mode:
+                    type: string
         UpdateWarmupScheduleRequest:
             type: object
             properties:
@@ -5740,6 +5744,12 @@ components:
                 max_connections:
                     type: integer
                     format: int32
+                tls_mode:
+                    type: string
+                    description: |-
+                        Per-VMTA outbound TLS override applied to any delivery from this egress
+                         source: "" (none) | required | required_insecure | opportunistic_insecure |
+                         disabled. A per-domain TLS policy takes precedence when both apply.
             description: |-
                 VMTA is a self-contained outbound sending identity that OWNS its egress
                  ip_address and ehlo_name (3.0.0). listener_id/listener_name are an optional

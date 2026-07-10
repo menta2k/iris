@@ -41,9 +41,13 @@ type TLSPolicy struct {
 	Status string
 }
 
-// EnableTLSValue returns the KumoMTA enable_tls string for the policy's mode.
-func (p *TLSPolicy) EnableTLSValue() string {
-	switch p.Mode {
+// enableTLSValue maps a TLS mode to its KumoMTA enable_tls string, or "" for an
+// empty/unrecognized mode (meaning "no override"). Shared by TLSPolicy (per
+// destination domain) and VMTA (per egress source).
+func enableTLSValue(mode string) string {
+	switch mode {
+	case TLSModeRequired:
+		return "Required"
 	case TLSModeRequiredInsecure:
 		return "RequiredInsecure"
 	case TLSModeOpportunisticInsecure:
@@ -51,8 +55,17 @@ func (p *TLSPolicy) EnableTLSValue() string {
 	case TLSModeDisabled:
 		return "Disabled"
 	default:
-		return "Required"
+		return ""
 	}
+}
+
+// EnableTLSValue returns the KumoMTA enable_tls string for the policy's mode. A
+// TLS policy always requires TLS, so a blank/unknown mode defaults to Required.
+func (p *TLSPolicy) EnableTLSValue() string {
+	if v := enableTLSValue(p.Mode); v != "" {
+		return v
+	}
+	return "Required"
 }
 
 // Validate normalizes and checks a TLS policy before persistence.

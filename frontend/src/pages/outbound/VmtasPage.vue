@@ -44,9 +44,19 @@ const form = ref({
   ehlo_name: '',
   listener_id: '',
   max_connections: 0,
+  tls_mode: '',
   status: 'active',
   notes: '',
 })
+
+// Per-VMTA outbound TLS override. '' = follow the per-domain TLS Policy / default.
+const TLS_ITEMS = [
+  { title: 'Default (per-domain policy / opportunistic)', value: '' },
+  { title: 'Required — STARTTLS + valid cert', value: 'required' },
+  { title: 'Required insecure — STARTTLS, skip cert', value: 'required_insecure' },
+  { title: 'Opportunistic insecure — try TLS, fall back to cleartext', value: 'opportunistic_insecure' },
+  { title: 'Disabled — never TLS (cleartext)', value: 'disabled' },
+]
 
 const isEdit = computed(() => mode.value === 'edit')
 
@@ -97,6 +107,7 @@ async function openCreate() {
     ehlo_name: '',
     listener_id: '',
     max_connections: 0,
+    tls_mode: '',
     status: 'active',
     notes: '',
   }
@@ -113,6 +124,7 @@ async function openEdit(v: VMTA) {
     ehlo_name: v.ehloName ?? '',
     listener_id: v.listenerId ?? '',
     max_connections: v.maxConnections ?? 0,
+    tls_mode: v.tlsMode ?? '',
     status: (v.status || 'active').toLowerCase(),
     notes: v.notes ?? '',
   }
@@ -133,6 +145,7 @@ async function submit() {
         max_connections: Number(form.value.max_connections),
         status: form.value.status,
         notes: form.value.notes,
+        tls_mode: form.value.tls_mode,
       })
       toast({ title: 'VMTA updated', description: form.value.name, variant: 'success' })
     } else {
@@ -142,6 +155,7 @@ async function submit() {
         ehlo_name: form.value.ehlo_name,
         listener_id: form.value.listener_id,
         max_connections: Number(form.value.max_connections),
+        tls_mode: form.value.tls_mode,
       })
       toast({ title: 'VMTA created', description: form.value.name, variant: 'success' })
     }
@@ -266,6 +280,21 @@ async function submit() {
             placeholder="0"
           />
           <p class="text-caption text-medium-emphasis">0 = unlimited.</p>
+        </div>
+        <div class="d-flex flex-column ga-1">
+          <Label for="vmta-tls">Outbound TLS</Label>
+          <v-select
+            id="vmta-tls"
+            v-model="form.tls_mode"
+            :items="TLS_ITEMS"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
+          <p class="text-caption text-medium-emphasis">
+            Forces STARTTLS (or relaxes it) for any mail sent from this VMTA. A per-domain
+            <strong>TLS Policy</strong> still takes precedence when both apply.
+          </p>
         </div>
         <template v-if="isEdit">
           <div class="d-flex flex-column ga-1">

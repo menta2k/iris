@@ -53,6 +53,58 @@ func TestRoutingHeaderVMTA(t *testing.T) {
 // TestRoutingMultiConditionOR verifies a mailclass rule with several
 // header/value conditions renders one ROUTES row + MAIL_CLASSES entry per
 // condition (all sharing the rule's pool/priority), giving OR match semantics.
+func TestPerVMTATLSMode(t *testing.T) {
+	snap := ConfigSnapshot{
+		VMTAs: []*VMTA{
+			{ID: "v1", Name: "secure-ip", IPAddress: "203.0.113.10", EHLOName: "a.example.com", Status: VMTAStatusActive, TLSMode: TLSModeRequired},
+			{ID: "v2", Name: "plain-ip", IPAddress: "203.0.113.11", EHLOName: "b.example.com", Status: VMTAStatusActive},
+		},
+		DKIM: []*DKIMDomain{{ID: "d1", Domain: "example.com", Selector: "s1", PrivateKeyRef: testDKIMKeyPEM, Status: DKIMReady}},
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	if !r.Valid {
+		t.Fatalf("policy failed lint: %v\n%s", r.LintIssues, r.Content)
+	}
+	if !strings.Contains(r.Content, `SOURCE_TLS["secure-ip"] = "Required"`) {
+		t.Errorf("missing per-VMTA SOURCE_TLS entry:\n%s", r.Content)
+	}
+	if strings.Contains(r.Content, `SOURCE_TLS["plain-ip"]`) {
+		t.Error("VMTA without a tls_mode should not emit a SOURCE_TLS entry")
+	}
+	// Domain policy must take precedence over the per-VMTA override.
+	if !strings.Contains(r.Content, "REQUIRE_TLS_DOMAINS[string.lower(domain)] or SOURCE_TLS[egress_source]") {
+		t.Errorf("egress path config missing domain>source TLS precedence:\n%s", r.Content)
+	}
+}
+
+func TestVMTATLSModeValidation(t *testing.T) {
+	base := func() *VMTA {
+		return &VMTA{Name: "v", IPAddress: "203.0.113.1", EHLOName: "v.example.com"}
+	}
+	for _, m := range []string{"", TLSModeRequired, TLSModeRequiredInsecure, TLSModeOpportunisticInsecure, TLSModeDisabled} {
+		v := base()
+		v.TLSMode = m
+		if err := v.Validate(); err != nil {
+			t.Errorf("tls_mode %q should be valid: %v", m, err)
+		}
+	}
+	v := base()
+	v.TLSMode = "bogus"
+	if err := v.Validate(); err == nil {
+		t.Error("bogus tls_mode should be rejected")
+	}
+	// EnableTLSValue mapping.
+	if (&VMTA{TLSMode: TLSModeRequired}).EnableTLSValue() != "Required" {
+		t.Error("required → Required")
+	}
+	if (&VMTA{TLSMode: ""}).EnableTLSValue() != "" {
+		t.Error("empty mode → no override")
+	}
+}
+
 func TestRoutingMultiConditionOR(t *testing.T) {
 	snap := ConfigSnapshot{
 		VMTAs:  []*VMTA{{ID: "v1", Name: "vmta-a", ListenerID: "l1", IPAddress: "203.0.113.10", EHLOName: "a.example.com", Status: VMTAStatusActive}},
