@@ -1139,6 +1139,16 @@ export interface VerifyMonitoringAccountReply {
   error?: string
 }
 
+export type ProbePhase = 'send' | 'fetch' | 'analyze'
+
+export interface ProbeEvent {
+  id: string
+  at?: string
+  phase: ProbePhase
+  level: 'info' | 'error'
+  message: string
+}
+
 export interface MonitoringProbeRaw {
   id: string
   probeUid: string

@@ -518,6 +518,37 @@ func (r *MonitoringRepo) UpdateProbeMailbox(ctx context.Context, id string, u bi
 	return nil
 }
 
+// AppendProbeEvent records one lifecycle event for a probe.
+func (r *MonitoringRepo) AppendProbeEvent(ctx context.Context, probeID, phase, level, message string) error {
+	_, err := r.db.Pool.Exec(ctx,
+		`INSERT INTO monitoring_probe_events (probe_id, phase, level, message) VALUES ($1,$2,$3,$4)`,
+		probeID, phase, level, message)
+	if err != nil {
+		return fmt.Errorf("append probe event: %w", err)
+	}
+	return nil
+}
+
+// ListProbeEvents returns a probe's lifecycle events, oldest first.
+func (r *MonitoringRepo) ListProbeEvents(ctx context.Context, probeID string) ([]*biz.ProbeEvent, error) {
+	rows, err := r.db.Pool.Query(ctx,
+		`SELECT id, probe_id, at, phase, level, message
+		 FROM monitoring_probe_events WHERE probe_id = $1 ORDER BY at ASC, id ASC`, probeID)
+	if err != nil {
+		return nil, fmt.Errorf("list probe events: %w", err)
+	}
+	defer rows.Close()
+	var out []*biz.ProbeEvent
+	for rows.Next() {
+		e := &biz.ProbeEvent{}
+		if err := rows.Scan(&e.ID, &e.ProbeID, &e.At, &e.Phase, &e.Level, &e.Message); err != nil {
+			return nil, fmt.Errorf("scan probe event: %w", err)
+		}
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}
+
 // encrypt returns the ciphertext for a password, or an error if a non-empty
 // password is supplied without a configured cipher.
 func (r *MonitoringRepo) encrypt(password string) (string, error) {

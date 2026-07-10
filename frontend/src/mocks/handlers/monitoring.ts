@@ -147,6 +147,23 @@ export const monitoringRoutes: Route[] = [
   },
   {
     method: 'GET',
+    pattern: '/monitoring/probes/:id/events',
+    handler: (ctx) => {
+      const p = (all('monitoringProbes') as MonitoringProbe[]).find((x) => x.id === ctx.params.id)
+      if (!p) return ok({ items: [] })
+      const items: Array<{ id: string; at: string; phase: string; level: string; message: string }> = [
+        { id: 'e1', at: p.sentAt ?? minutesAgo(20), phase: 'send', level: 'info', message: `Injected into KumoMTA from ${p.fromAddr} to ${p.recipient}; queued.` },
+      ]
+      if (p.sendStatus === 'sent') items.push({ id: 'e2', at: p.sentAt ?? minutesAgo(19), phase: 'send', level: 'info', message: 'Delivery confirmed by KumoMTA: sent.' })
+      if (p.mailboxStatus === 'found') {
+        items.push({ id: 'e3', at: p.foundAt ?? minutesAgo(9), phase: 'fetch', level: 'info', message: `Found in ${p.placement === 'spam' ? '[Gmail]/Spam' : 'INBOX'} → placement: ${p.placement}.` })
+        items.push({ id: 'e4', at: p.foundAt ?? minutesAgo(9), phase: 'analyze', level: 'info', message: 'Header analysis complete → spam risk: ' + (p.placement === 'spam' ? 'spam' : 'clean') + '.' })
+      }
+      return ok({ items })
+    },
+  },
+  {
+    method: 'GET',
     pattern: '/monitoring/accounts/:id/probes',
     handler: (ctx) => {
       const items = accountsFor(ctx.params.id).slice().sort((a, b) => (a.sentAt! < b.sentAt! ? 1 : -1))

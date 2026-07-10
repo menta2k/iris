@@ -178,6 +178,24 @@ func (s *Service) GetMonitoringProbeRaw(ctx context.Context, req *adminv1.GetMon
 	}, nil
 }
 
+// ListMonitoringProbeEvents returns a probe's lifecycle event log.
+func (s *Service) ListMonitoringProbeEvents(ctx context.Context, req *adminv1.ListMonitoringProbeEventsRequest) (*adminv1.ListMonitoringProbeEventsReply, error) {
+	if s.monitoring == nil {
+		return nil, notImplemented("ListMonitoringProbeEvents")
+	}
+	events, err := s.monitoring.ListProbeEvents(ctx, req.GetProbeId())
+	if err != nil {
+		return nil, s.fail(ctx, "ListMonitoringProbeEvents", err)
+	}
+	out := &adminv1.ListMonitoringProbeEventsReply{}
+	for _, e := range events {
+		out.Items = append(out.Items, &adminv1.ProbeEvent{
+			Id: e.ID, At: formatTime(e.At), Phase: e.Phase, Level: e.Level, Message: e.Message,
+		})
+	}
+	return out, nil
+}
+
 func monitoringAccountToProto(a *biz.MonitoringAccount) *adminv1.MonitoringAccount {
 	p := &adminv1.MonitoringAccount{
 		Id:                     a.ID,

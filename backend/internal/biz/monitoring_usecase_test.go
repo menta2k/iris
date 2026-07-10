@@ -27,6 +27,7 @@ type fakeMonitoringRepo struct {
 	secrets        map[string]string
 	fetchCands     []*ProbeFetchCandidate
 	mailboxUpdates []mailboxUpdateRecord
+	events         []ProbeEvent
 }
 
 func newFakeMonitoringRepo() *fakeMonitoringRepo {
@@ -108,6 +109,13 @@ func (f *fakeMonitoringRepo) UpdateProbeMailbox(_ context.Context, id string, u 
 }
 func (f *fakeMonitoringRepo) ProbeRaw(context.Context, string) (*ProbeRawMessage, error) {
 	return &ProbeRawMessage{}, nil
+}
+func (f *fakeMonitoringRepo) AppendProbeEvent(_ context.Context, probeID, phase, level, message string) error {
+	f.events = append(f.events, ProbeEvent{ProbeID: probeID, Phase: phase, Level: level, Message: message})
+	return nil
+}
+func (f *fakeMonitoringRepo) ListProbeEvents(context.Context, string) ([]*ProbeEvent, error) {
+	return nil, nil
 }
 
 // recordingInjector captures the last injected request.
@@ -415,6 +423,46 @@ func TestPlacementFromFolder(t *testing.T) {
 		if got := placementFromFolder(folder); got != want {
 			t.Errorf("placementFromFolder(%q) = %q, want %q", folder, got, want)
 		}
+	}
+}
+
+func TestVerifyAccountIgnoresLabel(t *testing.T) {
+	repo := newFakeMonitoringRepo()
+	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil).WithFetcher(&fakeFetcher{})
+	// No label / no from_address — a connection test must still succeed.
+	acc := &MonitoringAccount{Protocol: MonitorProtocolIMAP, Host: "imap.gmail.com", Port: 993, Email: "seed@gmail.com"}
+	if err := uc.VerifyAccount(monitorCtx(), "", acc, "app-pw"); err != nil {
+		t.Fatalf("VerifyAccount should ignore label, got %v", err)
+	}
+	// Username defaults to the mailbox address for the login.
+	if acc.Username != "seed@gmail.com" {
+		t.Errorf("username = %q, want defaulted to email", acc.Username)
+	}
+}
+
+func TestValidateForConnection(t *testing.T) {
+	cases := []struct {
+		name string
+		acc  MonitoringAccount
+		ok   bool
+	}{
+		{"valid imap", MonitoringAccount{Host: "imap.gmail.com", Port: 993, Email: "a@b.com"}, true},
+		{"missing host", MonitoringAccount{Port: 993, Email: "a@b.com"}, false},
+		{"bad port", MonitoringAccount{Host: "h", Port: 0, Email: "a@b.com"}, false},
+		{"bad protocol", MonitoringAccount{Protocol: "smtp", Host: "h", Port: 1, Email: "a@b.com"}, false},
+		{"no username or email", MonitoringAccount{Host: "h", Port: 1}, false},
+		{"label not required", MonitoringAccount{Host: "h", Port: 1, Username: "u"}, true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := c.acc.ValidateForConnection()
+			if c.ok && err != nil {
+				t.Errorf("ValidateForConnection() = %v, want nil", err)
+			}
+			if !c.ok && err == nil {
+				t.Error("ValidateForConnection() = nil, want error")
+			}
+		})
 	}
 }
 

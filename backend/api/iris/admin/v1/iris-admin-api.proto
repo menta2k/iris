@@ -491,6 +491,9 @@ service IrisAdminService {
   rpc GetMonitoringProbeRaw(GetMonitoringProbeRawRequest) returns (MonitoringProbeRaw) {
     option (google.api.http) = { get: "/v1/monitoring/probes/{id}/raw" };
   }
+  rpc ListMonitoringProbeEvents(ListMonitoringProbeEventsRequest) returns (ListMonitoringProbeEventsReply) {
+    option (google.api.http) = { get: "/v1/monitoring/probes/{probe_id}/events" };
+  }
 
   // System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
   rpc GetSystemMonitor(GetSystemMonitorRequest) returns (SystemMonitor) {
@@ -2187,6 +2190,20 @@ message MonitoringProbeRaw {
   string recipient = 4;
   string raw_headers = 5;
   string raw_message = 6;
+}
+// ProbeEvent is one timestamped entry in a probe's lifecycle log.
+message ProbeEvent {
+  string id = 1;
+  string at = 2;      // RFC3339
+  string phase = 3;   // send | fetch | analyze
+  string level = 4;   // info | error
+  string message = 5;
+}
+message ListMonitoringProbeEventsRequest {
+  string probe_id = 1;
+}
+message ListMonitoringProbeEventsReply {
+  repeated ProbeEvent items = 1;
 }
 
 // ---- System self-monitoring ----

@@ -1757,6 +1757,24 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/MonitoringProbeRaw'
+    /v1/monitoring/probes/{probe_id}/events:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_ListMonitoringProbeEvents
+            parameters:
+                - name: probe_id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListMonitoringProbeEventsReply'
     /v1/queues:
         get:
             tags:
@@ -4078,6 +4096,13 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/MonitoringAccount'
+        ListMonitoringProbeEventsReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/ProbeEvent'
         ListMonitoringProbesReply:
             type: object
             properties:
@@ -4613,6 +4638,20 @@ components:
                     type: string
                 reason:
                     type: string
+        ProbeEvent:
+            type: object
+            properties:
+                id:
+                    type: string
+                at:
+                    type: string
+                phase:
+                    type: string
+                level:
+                    type: string
+                message:
+                    type: string
+            description: ProbeEvent is one timestamped entry in a probe's lifecycle log.
         Queue:
             type: object
             properties:
