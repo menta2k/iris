@@ -24,6 +24,7 @@ function mailRecordFilter(query: Record<string, string>): ((r: MailRecord) => bo
   if (query.status)
     filters.push((r) => (r.status ?? '').toLowerCase() === query.status.toLowerCase())
   if (query.record_type) filters.push((r) => r.recordType === query.record_type)
+  if (query.diagnostic) filters.push((r) => includes(r.diagnostic, query.diagnostic))
   // Time range: RFC3339 bounds, matching the backend's from_time/to_time.
   if (query.from_time) {
     const t = Date.parse(query.from_time)

@@ -231,7 +231,9 @@ func (uc *MonitoringUsecase) VerifyAccount(ctx context.Context, id string, a *Mo
 	if uc.fetcher == nil {
 		return Unavailable("MONITOR_FETCHER_UNSET", "mailbox verification is unavailable")
 	}
-	if err := a.Validate(); err != nil {
+	// Only the connection fields matter for a test — not label/from/schedule,
+	// which the operator may not have filled in yet.
+	if err := a.ValidateForConnection(); err != nil {
 		return err
 	}
 	if password == "" && id != "" {
@@ -260,6 +262,27 @@ func (uc *MonitoringUsecase) GetProbeRaw(ctx context.Context, id string) (*Probe
 		return nil, Invalid("MONITOR_PROBE_ID_REQUIRED", "id is required")
 	}
 	return uc.repo.ProbeRaw(ctx, id)
+}
+
+// ListProbeEvents returns a probe's lifecycle event log.
+func (uc *MonitoringUsecase) ListProbeEvents(ctx context.Context, probeID string) ([]*ProbeEvent, error) {
+	if _, err := RequirePermission(ctx, PermMonitoringRead); err != nil {
+		return nil, err
+	}
+	if probeID == "" {
+		return nil, Invalid("MONITOR_PROBE_ID_REQUIRED", "id is required")
+	}
+	return uc.repo.ListProbeEvents(ctx, probeID)
+}
+
+// event records a probe lifecycle event (best-effort — never fails the caller).
+func (uc *MonitoringUsecase) event(ctx context.Context, probeID, phase, level, message string) {
+	if probeID == "" {
+		return
+	}
+	if err := uc.repo.AppendProbeEvent(ctx, probeID, phase, level, message); err != nil {
+		LoggerFrom(ctx).Warn("append probe event failed", "probe", probeID, "error", err.Error())
+	}
 }
 
 // SendProbe sends a probe message to the account's mailbox via KumoMTA and
@@ -327,8 +350,11 @@ func (uc *MonitoringUsecase) sendProbe(ctx context.Context, acc *MonitoringAccou
 			Recipient: acc.Email, SendStatus: ProbeSendError, MailboxStatus: ProbeMailboxSkipped,
 			Error: err.Error(),
 		}
-		if _, cerr := uc.repo.CreateProbe(ctx, p); cerr != nil {
+		out, cerr := uc.repo.CreateProbe(ctx, p)
+		if cerr != nil {
 			LoggerFrom(ctx).Error("record failed probe", "error", cerr.Error())
+		} else {
+			uc.event(ctx, out.ID, ProbePhaseSend, ProbeEventError, "KumoMTA injection failed: "+err.Error())
 		}
 		return nil, err
 	}
@@ -349,6 +375,8 @@ func (uc *MonitoringUsecase) sendProbe(ctx context.Context, acc *MonitoringAccou
 	if err := uc.repo.TouchLastProbe(ctx, acc.ID, uc.now()); err != nil {
 		LoggerFrom(ctx).Warn("touch last_probe_at failed", "account", acc.ID, "error", err.Error())
 	}
+	uc.event(ctx, out.ID, ProbePhaseSend, ProbeEventInfo,
+		fmt.Sprintf("Injected into KumoMTA from %s to %s; queued for delivery.", fromAddr, acc.Email))
 	uc.publish(ctx, out)
 	if audit {
 		uc.audit(ctx, "monitoring_probe.send", out.ID, map[string]any{"account": acc.ID, "recipient": acc.Email})
@@ -380,6 +408,16 @@ func (uc *MonitoringUsecase) ReconcileSends(ctx context.Context) (int, error) {
 			LoggerFrom(ctx).Warn("probe send update failed", "probe", p.ID, "error", err.Error())
 			continue
 		}
+		level := ProbeEventInfo
+		msg := "Delivery confirmed by KumoMTA: " + match.Status
+		if match.Status == ProbeSendBounced {
+			level = ProbeEventError
+			msg = "KumoMTA reported a bounce for this probe."
+		}
+		if match.MessageID != "" {
+			msg += " (message " + match.MessageID + ")"
+		}
+		uc.event(ctx, p.ID, ProbePhaseSend, level, msg)
 		uc.publishByID(ctx, p.ID)
 		advanced++
 	}
@@ -450,21 +488,44 @@ func (uc *MonitoringUsecase) fetchOne(ctx context.Context, c *ProbeFetchCandidat
 	}
 	now := uc.now()
 	latency := now.Sub(c.Probe.SentAt).Milliseconds()
+	placement := placementFromFolder(res.Folder)
+	analysis := uc.analyzeHeaders(ctx, res.RawHeaders)
 	update := ProbeMailboxUpdate{
 		MailboxStatus: ProbeMailboxFound,
-		Placement:     placementFromFolder(res.Folder),
+		Placement:     placement,
 		FoundAt:       &now,
 		LatencyMs:     &latency,
 		RawHeaders:    res.RawHeaders,
 		RawMessage:    res.RawMessage,
-		Analysis:      uc.analyzeHeaders(ctx, res.RawHeaders),
+		Analysis:      analysis,
 	}
 	if err := uc.repo.UpdateProbeMailbox(ctx, c.Probe.ID, update); err != nil {
 		LoggerFrom(ctx).Warn("probe mailbox update failed", "probe", c.Probe.ID, "error", err.Error())
 		return false
 	}
+	folder := res.Folder
+	if folder == "" {
+		folder = "mailbox"
+	}
+	uc.event(ctx, c.Probe.ID, ProbePhaseFetch, ProbeEventInfo,
+		fmt.Sprintf("Found in %s after %s → placement: %s.", folder, (time.Duration(latency)*time.Millisecond).Round(time.Second), placement))
+	if v := probeVerdict(analysis); v != "" {
+		uc.event(ctx, c.Probe.ID, ProbePhaseAnalyze, ProbeEventInfo, "Header analysis complete → spam risk: "+v+".")
+	}
 	uc.publishByID(ctx, c.Probe.ID)
 	return true
+}
+
+// probeVerdict pulls the verdict out of an analysis JSON blob (best-effort).
+func probeVerdict(analysisJSON string) string {
+	if analysisJSON == "" || analysisJSON == "{}" {
+		return ""
+	}
+	var a ProbeAnalysis
+	if err := json.Unmarshal([]byte(analysisJSON), &a); err != nil {
+		return ""
+	}
+	return a.Verdict
 }
 
 // giveUpOrRetry marks the probe terminal (with the given status + a matching
@@ -474,13 +535,19 @@ func (uc *MonitoringUsecase) fetchOne(ctx context.Context, c *ProbeFetchCandidat
 func (uc *MonitoringUsecase) giveUpOrRetry(ctx context.Context, c *ProbeFetchCandidate, pol MonitoringPolicy, terminalStatus, errMsg string) bool {
 	elapsed := uc.now().Sub(c.Probe.SentAt)
 	if elapsed < pol.FetchGiveUp {
-		// Still within the retry window: only surface the last error, stay pending.
-		if errMsg != "" {
-			_ = uc.repo.UpdateProbeMailbox(ctx, c.Probe.ID, ProbeMailboxUpdate{
-				MailboxStatus: ProbeMailboxPending,
-				Placement:     c.Probe.Placement,
-				Error:         errMsg,
-			})
+		// Still within the retry window: schedule the next attempt with exponential
+		// backoff so a rate-limiting mailbox server (e.g. abv.bg POP3 resetting the
+		// connection) isn't hammered every minute.
+		attempts := c.Probe.FetchAttempts + 1
+		nextAt := uc.now().Add(fetchBackoff(attempts))
+		if err := uc.repo.ScheduleNextFetch(ctx, c.Probe.ID, attempts, nextAt, errMsg); err != nil {
+			LoggerFrom(ctx).Warn("schedule next fetch failed", "probe", c.Probe.ID, "error", err.Error())
+		}
+		// Log a new error once (deduped against the last-recorded error) so an
+		// operator sees e.g. a POP3 reset without a flood of retry lines.
+		if errMsg != "" && errMsg != c.Probe.Error {
+			uc.event(ctx, c.Probe.ID, ProbePhaseFetch, ProbeEventError,
+				fmt.Sprintf("Mailbox fetch attempt %d failed: %s (next try %s).", attempts, errMsg, fetchBackoff(attempts).Round(time.Minute)))
 		}
 		return false
 	}
@@ -496,6 +563,15 @@ func (uc *MonitoringUsecase) giveUpOrRetry(ctx context.Context, c *ProbeFetchCan
 		LoggerFrom(ctx).Warn("probe mailbox give-up update failed", "probe", c.Probe.ID, "error", err.Error())
 		return false
 	}
+	reason := "not found in the mailbox"
+	if terminalStatus == ProbeMailboxTimeout {
+		reason = "mailbox unreachable"
+		if errMsg != "" {
+			reason = errMsg
+		}
+	}
+	uc.event(ctx, c.Probe.ID, ProbePhaseFetch, ProbeEventError,
+		fmt.Sprintf("Gave up after %s (%s).", pol.FetchGiveUp.Round(time.Minute), reason))
 	uc.publishByID(ctx, c.Probe.ID)
 	return true
 }
@@ -527,6 +603,26 @@ func (uc *MonitoringUsecase) analyzeHeaders(ctx context.Context, rawHeaders stri
 		return ""
 	}
 	return string(buf)
+}
+
+// fetchBackoff returns how long to wait before the next mailbox-fetch attempt,
+// given how many attempts have already been made: exponential (1m, 2m, 4m, 8m,
+// 16m) capped at 30m. This keeps iris from pounding a rate-limiting IMAP/POP3
+// server every minute for the whole give-up window.
+func fetchBackoff(attempts int) time.Duration {
+	const base = time.Minute
+	const maxBackoff = 30 * time.Minute
+	if attempts < 1 {
+		attempts = 1
+	}
+	if attempts > 20 { // guard the shift against overflow
+		return maxBackoff
+	}
+	d := base << (attempts - 1)
+	if d <= 0 || d > maxBackoff {
+		return maxBackoff
+	}
+	return d
 }
 
 // placementFromFolder maps the IMAP folder a probe was found in to a placement.

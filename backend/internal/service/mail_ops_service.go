@@ -24,6 +24,7 @@ func (s *Service) ListMailRecords(ctx context.Context, req *adminv1.ListMailReco
 		VMTAID:     req.GetVmtaId(),
 		Status:     req.GetStatus(),
 		RecordType: req.GetRecordType(),
+		Diagnostic: req.GetDiagnostic(),
 	}
 	if req.GetFromTime() != nil {
 		t := req.GetFromTime().AsTime()

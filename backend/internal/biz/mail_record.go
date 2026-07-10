@@ -64,6 +64,9 @@ type MailFilter struct {
 	// RecordType filters by the raw KumoMTA log record type (e.g. "AdminBounce"
 	// to isolate operator purges from ordinary bounces). Empty matches all.
 	RecordType string
+	// Diagnostic is a case-insensitive substring match on the SMTP diagnostic /
+	// response text (e.g. "quota", "STARTTLS", "NXDOMAIN"). Empty matches all.
+	Diagnostic string
 	FromTime   *time.Time
 	ToTime     *time.Time
 }
@@ -77,6 +80,9 @@ func NormalizeMailFilter(f MailFilter) (MailFilter, error) {
 	f.VMTAID = SanitizeFilter(f.VMTAID)
 	f.Status = strings.ToLower(SanitizeFilter(f.Status))
 	f.RecordType = SanitizeFilter(f.RecordType)
+	// Diagnostic is matched case-insensitively (ILIKE), so it is sanitized but not
+	// lowercased — keep the operator's term readable in logs.
+	f.Diagnostic = SanitizeFilter(f.Diagnostic)
 	if f.FromTime != nil && f.ToTime != nil && f.ToTime.Before(*f.FromTime) {
 		return f, Invalid("MAIL_FILTER_RANGE", "to_time must not be before from_time")
 	}

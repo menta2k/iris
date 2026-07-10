@@ -3,6 +3,7 @@ import type {
   MonitoringAccount,
   MonitoringProbe,
   MonitoringProbeRaw,
+  ProbeEvent,
   CreateMonitoringAccountRequest,
   UpdateMonitoringAccountRequest,
   VerifyMonitoringAccountRequest,
@@ -49,5 +50,8 @@ export const monitoringService = {
   },
   probeRaw(probeId: string) {
     return http.get<MonitoringProbeRaw>(`/monitoring/probes/${encodeURIComponent(probeId)}/raw`)
+  },
+  probeEvents(probeId: string) {
+    return http.get<{ items?: ProbeEvent[] }>(`/monitoring/probes/${encodeURIComponent(probeId)}/events`)
   },
 }

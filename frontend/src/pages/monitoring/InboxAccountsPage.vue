@@ -15,7 +15,7 @@ import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
 import { monitoringService } from '@/services'
 import { ApiError } from '@/services/http'
-import type { MonitoringAccount, MonitoringProtocol, MonitoringProvider } from '@/types'
+import type { MonitoringAccount, MonitoringProtocol, MonitoringProvider, SpamVerdict } from '@/types'
 
 const router = useRouter()
 const { items, loading, error, notImplemented, load } = useAsyncList<MonitoringAccount>({
@@ -70,6 +70,11 @@ const PLACEMENT_VARIANT: Record<string, BadgeVariant> = {
   spam: 'warning',
   missing: 'destructive',
   unknown: 'secondary',
+}
+const VERDICT_VARIANT: Record<SpamVerdict, BadgeVariant> = {
+  clean: 'success',
+  suspicious: 'warning',
+  spam: 'destructive',
 }
 
 function formatDate(iso?: string): string {
@@ -364,10 +369,17 @@ function viewProbes(a: MonitoringAccount) {
                 </TableCell>
                 <TableCell class="text-caption text-no-wrap">{{ formatDate(a.lastProbeAt) }}</TableCell>
                 <TableCell>
-                  <div v-if="a.lastProbeSendStatus" class="d-flex ga-1 align-center">
+                  <div v-if="a.lastProbeSendStatus" class="d-flex ga-1 align-center flex-wrap">
                     <Badge :variant="SEND_VARIANT[a.lastProbeSendStatus] ?? 'secondary'">{{ a.lastProbeSendStatus }}</Badge>
                     <Badge v-if="a.lastProbePlacement" :variant="PLACEMENT_VARIANT[a.lastProbePlacement] ?? 'secondary'">{{ a.lastProbePlacement }}</Badge>
                     <span v-else-if="a.lastProbeMailboxStatus && a.lastProbeMailboxStatus !== 'found'" class="text-caption text-medium-emphasis">{{ a.lastProbeMailboxStatus }}</span>
+                    <Badge
+                      v-if="a.lastProbeVerdict"
+                      :variant="VERDICT_VARIANT[a.lastProbeVerdict] ?? 'secondary'"
+                      :title="`Spam risk: ${a.lastProbeVerdict}`"
+                    >
+                      {{ a.lastProbeVerdict }}
+                    </Badge>
                   </div>
                   <span v-else class="text-caption text-medium-emphasis">—</span>
                 </TableCell>

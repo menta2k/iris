@@ -491,6 +491,9 @@ service IrisAdminService {
   rpc GetMonitoringProbeRaw(GetMonitoringProbeRawRequest) returns (MonitoringProbeRaw) {
     option (google.api.http) = { get: "/v1/monitoring/probes/{id}/raw" };
   }
+  rpc ListMonitoringProbeEvents(ListMonitoringProbeEventsRequest) returns (ListMonitoringProbeEventsReply) {
+    option (google.api.http) = { get: "/v1/monitoring/probes/{probe_id}/events" };
+  }
 
   // System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
   rpc GetSystemMonitor(GetSystemMonitorRequest) returns (SystemMonitor) {
@@ -577,6 +580,10 @@ message VMTA {
   string listener_id = 7;
   string listener_name = 8;
   int32 max_connections = 9;
+  // Per-VMTA outbound TLS override applied to any delivery from this egress
+  // source: "" (none) | required | required_insecure | opportunistic_insecure |
+  // disabled. A per-domain TLS policy takes precedence when both apply.
+  string tls_mode = 10;
 }
 message VMTAGroup {
   string id = 1;
@@ -903,6 +910,7 @@ message CreateVMTARequest {
   int32 max_connections = 3;
   string ip_address = 4; // egress source IP (required)
   string ehlo_name = 5;  // outbound EHLO hostname (required)
+  string tls_mode = 6;   // optional per-VMTA outbound TLS override
 }
 message UpdateVMTARequest {
   string id = 1;
@@ -913,6 +921,7 @@ message UpdateVMTARequest {
   string notes = 6;
   string ip_address = 7; // egress source IP (required)
   string ehlo_name = 8;  // outbound EHLO hostname (required)
+  string tls_mode = 9;   // optional per-VMTA outbound TLS override
 }
 message ListVMTAGroupsRequest {
   PageRequest page = 1;
@@ -1040,6 +1049,9 @@ message ListMailRecordsRequest {
   string status = 9;
   // Filter by raw KumoMTA log record type (e.g. "AdminBounce"). Empty = all.
   string record_type = 10;
+  // Case-insensitive substring match on the SMTP diagnostic / response text
+  // (e.g. "quota", "STARTTLS", "NXDOMAIN"). Empty = all.
+  string diagnostic = 11;
 }
 message ListMailRecordsReply {
   repeated MailRecord items = 1;
@@ -2070,6 +2082,9 @@ message MonitoringAccount {
   string last_probe_send_status = 20;
   string last_probe_mailbox_status = 21;
   string last_probe_placement = 22;
+  // last_probe_verdict is the phase-3 spam-risk verdict (clean|suspicious|spam)
+  // from the latest probe's header analysis; empty when not yet analyzed.
+  string last_probe_verdict = 23;
 }
 
 // MonitoringProbe is one probe message sent to a MonitoringAccount.
@@ -2181,6 +2196,20 @@ message MonitoringProbeRaw {
   string recipient = 4;
   string raw_headers = 5;
   string raw_message = 6;
+}
+// ProbeEvent is one timestamped entry in a probe's lifecycle log.
+message ProbeEvent {
+  string id = 1;
+  string at = 2;      // RFC3339
+  string phase = 3;   // send | fetch | analyze
+  string level = 4;   // info | error
+  string message = 5;
+}
+message ListMonitoringProbeEventsRequest {
+  string probe_id = 1;
+}
+message ListMonitoringProbeEventsReply {
+  repeated ProbeEvent items = 1;
 }
 
 // ---- System self-monitoring ----

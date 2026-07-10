@@ -61,13 +61,13 @@ var _ biz.OutboundConfigRepo = (*OutboundConfigRepo)(nil)
 // vmtaSelect is the VMTA projection. IP/EHLO are owned by the VMTA; the listener
 // is an OPTIONAL reference, LEFT JOINed only to resolve its display name.
 const vmtaSelect = `v.id, v.name, host(v.ip_address), v.ehlo_name,
-	coalesce(v.listener_id::text, ''), v.max_connections, v.status, v.notes,
+	coalesce(v.listener_id::text, ''), v.max_connections, v.tls_mode, v.status, v.notes,
 	coalesce(l.name, '')`
 
 func scanVMTA(row interface{ Scan(...any) error }) (*biz.VMTA, error) {
 	v := &biz.VMTA{}
 	if err := row.Scan(&v.ID, &v.Name, &v.IPAddress, &v.EHLOName,
-		&v.ListenerID, &v.MaxConnections, &v.Status, &v.Notes, &v.ListenerName); err != nil {
+		&v.ListenerID, &v.MaxConnections, &v.TLSMode, &v.Status, &v.Notes, &v.ListenerName); err != nil {
 		return nil, err
 	}
 	return v, nil
@@ -78,12 +78,12 @@ func scanVMTA(row interface{ Scan(...any) error }) (*biz.VMTA, error) {
 func (r *OutboundConfigRepo) CreateVMTA(ctx context.Context, v *biz.VMTA) (*biz.VMTA, error) {
 	out, err := scanVMTA(r.db.Pool.QueryRow(ctx, `
 		WITH ins AS (
-			INSERT INTO vmtas (name, ip_address, ehlo_name, listener_id, max_connections, status, notes)
-			VALUES ($1, $2::inet, $3, $4, $5, $6, $7)
-			RETURNING id, name, ip_address, ehlo_name, listener_id, max_connections, status, notes
+			INSERT INTO vmtas (name, ip_address, ehlo_name, listener_id, max_connections, tls_mode, status, notes)
+			VALUES ($1, $2::inet, $3, $4, $5, $6, $7, $8)
+			RETURNING id, name, ip_address, ehlo_name, listener_id, max_connections, tls_mode, status, notes
 		)
 		SELECT `+vmtaSelect+` FROM ins v LEFT JOIN listeners l ON l.id = v.listener_id`,
-		v.Name, v.IPAddress, v.EHLOName, nullableUUID(v.ListenerID), v.MaxConnections, v.Status, v.Notes))
+		v.Name, v.IPAddress, v.EHLOName, nullableUUID(v.ListenerID), v.MaxConnections, v.TLSMode, v.Status, v.Notes))
 	if err != nil {
 		return nil, mapConstraint(err, "vmta")
 	}
@@ -95,12 +95,12 @@ func (r *OutboundConfigRepo) UpdateVMTA(ctx context.Context, id string, v *biz.V
 	out, err := scanVMTA(r.db.Pool.QueryRow(ctx, `
 		WITH upd AS (
 			UPDATE vmtas SET name = $2, ip_address = $3::inet, ehlo_name = $4,
-				listener_id = $5, max_connections = $6, status = $7, notes = $8, updated_at = now()
+				listener_id = $5, max_connections = $6, tls_mode = $7, status = $8, notes = $9, updated_at = now()
 			WHERE id = $1
-			RETURNING id, name, ip_address, ehlo_name, listener_id, max_connections, status, notes
+			RETURNING id, name, ip_address, ehlo_name, listener_id, max_connections, tls_mode, status, notes
 		)
 		SELECT `+vmtaSelect+` FROM upd v LEFT JOIN listeners l ON l.id = v.listener_id`,
-		id, v.Name, v.IPAddress, v.EHLOName, nullableUUID(v.ListenerID), v.MaxConnections, v.Status, v.Notes))
+		id, v.Name, v.IPAddress, v.EHLOName, nullableUUID(v.ListenerID), v.MaxConnections, v.TLSMode, v.Status, v.Notes))
 	if err != nil {
 		return nil, mapConstraint(err, "vmta")
 	}

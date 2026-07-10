@@ -73,7 +73,11 @@ export interface VMTA {
   ipAddress: string
   ehloName: string
   maxConnections: number
+  /** Per-VMTA outbound TLS override: '' | required | required_insecure | opportunistic_insecure | disabled. */
+  tlsMode?: string
 }
+
+export type VMTATLSMode = '' | 'required' | 'required_insecure' | 'opportunistic_insecure' | 'disabled'
 
 // Request body: a VMTA owns its egress ip/ehlo (3.0.0); listener_id is optional.
 export interface CreateVMTARequest {
@@ -82,6 +86,7 @@ export interface CreateVMTARequest {
   ehlo_name: string
   listener_id?: string
   max_connections: number
+  tls_mode?: string
 }
 
 // Update body: status and notes become editable on edit.
@@ -93,6 +98,7 @@ export interface UpdateVMTARequest {
   max_connections: number
   status: string
   notes: string
+  tls_mode?: string
 }
 
 // ---- IP warmup ----
@@ -460,6 +466,8 @@ export interface MailRecordFilters {
   status?: string
   /** Filter by raw KumoMTA log record type (e.g. "AdminBounce"). */
   record_type?: string
+  /** Case-insensitive substring match on the SMTP diagnostic / response text. */
+  diagnostic?: string
   /** RFC3339 lower bound on event time. */
   from_time?: string
   /** RFC3339 upper bound on event time. */
@@ -1079,6 +1087,7 @@ export interface MonitoringAccount {
   lastProbeSendStatus?: string
   lastProbeMailboxStatus?: string
   lastProbePlacement?: ProbePlacement
+  lastProbeVerdict?: SpamVerdict
   createdAt?: string
   updatedAt?: string
 }
@@ -1134,6 +1143,16 @@ export interface VerifyMonitoringAccountRequest {
 export interface VerifyMonitoringAccountReply {
   ok: boolean
   error?: string
+}
+
+export type ProbePhase = 'send' | 'fetch' | 'analyze'
+
+export interface ProbeEvent {
+  id: string
+  at?: string
+  phase: ProbePhase
+  level: 'info' | 'error'
+  message: string
 }
 
 export interface MonitoringProbeRaw {

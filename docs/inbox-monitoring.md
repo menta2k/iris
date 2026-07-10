@@ -201,7 +201,11 @@ Two TimescaleDB tables (migration `0055`):
   instead.
 - **Fetch delay vs. give-up.** A probe stays `pending` and retries until
   `IRIS_MONITORING_FETCH_GIVEUP`; a mailbox that's slow or greylisted needs a
-  give-up window longer than its worst-case delivery time.
+  give-up window longer than its worst-case delivery time. Retries use
+  **exponential backoff** (1m → 2m → 4m → … capped at 30m), so a rate-limiting
+  server (e.g. a consumer POP3 host that resets connections from a sending-MTA
+  IP) isn't hammered every minute — the per-probe **Details** event log shows each
+  attempt and the next-try interval.
 
 ## Limitations
 

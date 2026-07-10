@@ -67,6 +67,7 @@ const filters = ref<MailRecordFilters>({
   vmta_id: '',
   record_type: '',
   status: '',
+  diagnostic: '',
 })
 const timeWindowMs = ref(0)
 
@@ -103,7 +104,7 @@ const {
 // Text fields apply as you type (debounced); selects apply immediately.
 let debounceTimer: ReturnType<typeof setTimeout> | undefined
 watch(
-  () => [filters.value.mailclass, filters.value.sender, filters.value.from, filters.value.recipient, filters.value.vmta_id],
+  () => [filters.value.mailclass, filters.value.sender, filters.value.from, filters.value.recipient, filters.value.vmta_id, filters.value.diagnostic],
   () => {
     clearTimeout(debounceTimer)
     debounceTimer = setTimeout(reload, 400)
@@ -125,6 +126,7 @@ function resetFilters() {
     vmta_id: '',
     record_type: '',
     status: '',
+    diagnostic: '',
   }
   timeWindowMs.value = 0
   reload()
@@ -146,7 +148,8 @@ function matchesFilters(rec: MailRecord): boolean {
   if (has(f.status) && rec.status !== f.status) return false
   if (has(f.record_type) && rec.recordType !== f.record_type) return false
   return sub(rec.sender, f.sender) && sub(rec.fromHeader, f.from) &&
-    sub(rec.recipient, f.recipient) && sub(rec.egressSource, f.vmta_id)
+    sub(rec.recipient, f.recipient) && sub(rec.egressSource, f.vmta_id) &&
+    sub(rec.diagnostic, f.diagnostic)
 }
 
 function onMailEvent(rec: MailRecord) {
@@ -379,6 +382,18 @@ onBeforeUnmount(() => {
               label="VMTA"
               placeholder="vmta-1"
               prepend-inner-icon="mdi-server-network-outline"
+              variant="outlined"
+              density="compact"
+              hide-details
+              clearable
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <v-text-field
+              v-model="filters.diagnostic"
+              label="Diagnostic"
+              placeholder="quota, STARTTLS, NXDOMAIN…"
+              prepend-inner-icon="mdi-message-alert-outline"
               variant="outlined"
               density="compact"
               hide-details

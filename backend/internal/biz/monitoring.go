@@ -40,6 +40,26 @@ const (
 	PlacementUnknown = "unknown"
 )
 
+// Probe event phases + levels for the per-probe detail log.
+const (
+	ProbePhaseSend    = "send"
+	ProbePhaseFetch   = "fetch"
+	ProbePhaseAnalyze = "analyze"
+
+	ProbeEventInfo  = "info"
+	ProbeEventError = "error"
+)
+
+// ProbeEvent is one timestamped entry in a probe's lifecycle log.
+type ProbeEvent struct {
+	ID      string
+	ProbeID string
+	At      time.Time
+	Phase   string
+	Level   string
+	Message string
+}
+
 // MailboxProbeResult is the outcome of searching a mailbox for a probe.
 type MailboxProbeResult struct {
 	Found bool
@@ -120,8 +140,11 @@ type MonitoringAccount struct {
 	LastProbeSendStatus    string
 	LastProbeMailboxStatus string
 	LastProbePlacement     string
-	CreatedAt              time.Time
-	UpdatedAt              time.Time
+	// LastProbeVerdict is the phase-3 spam-risk verdict (clean|suspicious|spam)
+	// from the latest probe's analysis JSON; empty when not yet analyzed.
+	LastProbeVerdict string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 // MonitoringProbe is one probe message sent to a MonitoringAccount.
@@ -142,6 +165,10 @@ type MonitoringProbe struct {
 	Analysis      string // JSON
 	RawHeaders    string
 	Error         string
+	// FetchAttempts / NextFetchAt drive per-probe fetch backoff. Internal
+	// (populated only for the fetch worker); not returned by list/get.
+	FetchAttempts int
+	NextFetchAt   *time.Time
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }
@@ -179,9 +206,17 @@ type MonitoringRepo interface {
 	ProbesAwaitingFetch(ctx context.Context, now time.Time) ([]*ProbeFetchCandidate, error)
 	// UpdateProbeMailbox records the phase-2 mailbox fetch outcome.
 	UpdateProbeMailbox(ctx context.Context, id string, u ProbeMailboxUpdate) error
+	// ScheduleNextFetch records a failed/not-found fetch attempt: bumps the
+	// attempt count, sets when the next attempt is eligible (backoff), and stores
+	// the last error, keeping the probe pending.
+	ScheduleNextFetch(ctx context.Context, id string, attempts int, nextAt time.Time, errMsg string) error
 	// ProbeRaw returns the stored raw headers + full message for a probe (loaded
 	// on demand — the raw message is excluded from the probe list).
 	ProbeRaw(ctx context.Context, id string) (*ProbeRawMessage, error)
+	// AppendProbeEvent records one lifecycle event for a probe (best-effort log).
+	AppendProbeEvent(ctx context.Context, probeID, phase, level, message string) error
+	// ListProbeEvents returns a probe's lifecycle events, oldest first.
+	ListProbeEvents(ctx context.Context, probeID string) ([]*ProbeEvent, error)
 }
 
 // ProbeRawMessage is a probe's stored raw content for manual analysis / download.
@@ -215,6 +250,37 @@ type ProbeSendMatch struct {
 	Found     bool
 	Status    string // one of the ProbeSend* values
 	MessageID string
+}
+
+// ValidateForConnection normalizes and checks only the fields needed to open a
+// mailbox connection (protocol, host, port, and a login username), for the
+// "Test connection" action. It deliberately does NOT require label, a valid
+// email, from_address, or schedule — those are set when the account is saved.
+func (a *MonitoringAccount) ValidateForConnection() error {
+	a.Email = strings.ToLower(strings.TrimSpace(a.Email))
+	a.Protocol = strings.ToLower(strings.TrimSpace(a.Protocol))
+	a.Host = strings.TrimSpace(a.Host)
+	a.Username = strings.TrimSpace(a.Username)
+
+	if a.Protocol == "" {
+		a.Protocol = MonitorProtocolIMAP
+	}
+	if a.Protocol != MonitorProtocolIMAP && a.Protocol != MonitorProtocolPOP3 {
+		return Invalid("MONITOR_PROTOCOL_INVALID", "protocol must be imap or pop3")
+	}
+	if a.Host == "" {
+		return Invalid("MONITOR_HOST_REQUIRED", "host is required")
+	}
+	if a.Port <= 0 || a.Port > 65535 {
+		return Invalid("MONITOR_PORT_RANGE", "port must be between 1 and 65535")
+	}
+	if a.Username == "" {
+		a.Username = a.Email
+	}
+	if a.Username == "" {
+		return Invalid("MONITOR_USERNAME_REQUIRED", "username or mailbox address is required")
+	}
+	return nil
 }
 
 // Validate normalizes and checks a monitoring account.

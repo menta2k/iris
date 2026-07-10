@@ -92,6 +92,7 @@ const OperationIrisAdminServiceListInjectionCredentials = "/iris.admin.v1.IrisAd
 const OperationIrisAdminServiceListListeners = "/iris.admin.v1.IrisAdminService/ListListeners"
 const OperationIrisAdminServiceListMailRecords = "/iris.admin.v1.IrisAdminService/ListMailRecords"
 const OperationIrisAdminServiceListMonitoringAccounts = "/iris.admin.v1.IrisAdminService/ListMonitoringAccounts"
+const OperationIrisAdminServiceListMonitoringProbeEvents = "/iris.admin.v1.IrisAdminService/ListMonitoringProbeEvents"
 const OperationIrisAdminServiceListMonitoringProbes = "/iris.admin.v1.IrisAdminService/ListMonitoringProbes"
 const OperationIrisAdminServiceListQueues = "/iris.admin.v1.IrisAdminService/ListQueues"
 const OperationIrisAdminServiceListRetentionPolicies = "/iris.admin.v1.IrisAdminService/ListRetentionPolicies"
@@ -277,6 +278,7 @@ type IrisAdminServiceHTTPServer interface {
 	ListMailRecords(context.Context, *ListMailRecordsRequest) (*ListMailRecordsReply, error)
 	// ListMonitoringAccounts Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
 	ListMonitoringAccounts(context.Context, *ListMonitoringAccountsRequest) (*ListMonitoringAccountsReply, error)
+	ListMonitoringProbeEvents(context.Context, *ListMonitoringProbeEventsRequest) (*ListMonitoringProbeEventsReply, error)
 	ListMonitoringProbes(context.Context, *ListMonitoringProbesRequest) (*ListMonitoringProbesReply, error)
 	ListQueues(context.Context, *ListQueuesRequest) (*ListQueuesReply, error)
 	// ListRetentionPolicies Retention: per-table TimescaleDB chunk compression/dropping for the event
@@ -496,6 +498,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.POST("/v1/monitoring/accounts:verify", _IrisAdminService_VerifyMonitoringAccount0_HTTP_Handler(srv))
 	r.GET("/v1/monitoring/accounts/{account_id}/probes", _IrisAdminService_ListMonitoringProbes0_HTTP_Handler(srv))
 	r.GET("/v1/monitoring/probes/{id}/raw", _IrisAdminService_GetMonitoringProbeRaw0_HTTP_Handler(srv))
+	r.GET("/v1/monitoring/probes/{probe_id}/events", _IrisAdminService_ListMonitoringProbeEvents0_HTTP_Handler(srv))
 	r.GET("/v1/system-monitor", _IrisAdminService_GetSystemMonitor0_HTTP_Handler(srv))
 	r.PUT("/v1/system-monitor/settings", _IrisAdminService_UpdateMonitorSettings0_HTTP_Handler(srv))
 	r.POST("/v1/system-monitor:test", _IrisAdminService_TestMonitorNotification0_HTTP_Handler(srv))
@@ -3254,6 +3257,28 @@ func _IrisAdminService_GetMonitoringProbeRaw0_HTTP_Handler(srv IrisAdminServiceH
 	}
 }
 
+func _IrisAdminService_ListMonitoringProbeEvents0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListMonitoringProbeEventsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListMonitoringProbeEvents)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListMonitoringProbeEvents(ctx, req.(*ListMonitoringProbeEventsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListMonitoringProbeEventsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_GetSystemMonitor0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetSystemMonitorRequest
@@ -3443,6 +3468,7 @@ type IrisAdminServiceHTTPClient interface {
 	ListMailRecords(ctx context.Context, req *ListMailRecordsRequest, opts ...http.CallOption) (rsp *ListMailRecordsReply, err error)
 	// ListMonitoringAccounts Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
 	ListMonitoringAccounts(ctx context.Context, req *ListMonitoringAccountsRequest, opts ...http.CallOption) (rsp *ListMonitoringAccountsReply, err error)
+	ListMonitoringProbeEvents(ctx context.Context, req *ListMonitoringProbeEventsRequest, opts ...http.CallOption) (rsp *ListMonitoringProbeEventsReply, err error)
 	ListMonitoringProbes(ctx context.Context, req *ListMonitoringProbesRequest, opts ...http.CallOption) (rsp *ListMonitoringProbesReply, err error)
 	ListQueues(ctx context.Context, req *ListQueuesRequest, opts ...http.CallOption) (rsp *ListQueuesReply, err error)
 	// ListRetentionPolicies Retention: per-table TimescaleDB chunk compression/dropping for the event
@@ -4533,6 +4559,19 @@ func (c *IrisAdminServiceHTTPClientImpl) ListMonitoringAccounts(ctx context.Cont
 	pattern := "/v1/monitoring/accounts"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListMonitoringAccounts))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) ListMonitoringProbeEvents(ctx context.Context, in *ListMonitoringProbeEventsRequest, opts ...http.CallOption) (*ListMonitoringProbeEventsReply, error) {
+	var out ListMonitoringProbeEventsReply
+	pattern := "/v1/monitoring/probes/{probe_id}/events"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListMonitoringProbeEvents))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/composables/useToast'
 import { useEventStream } from '@/composables/useEventStream'
+import ProbeDetailDrawer from './ProbeDetailDrawer.vue'
 import { monitoringService } from '@/services'
 import { ApiError } from '@/services/http'
 import type {
@@ -82,33 +83,23 @@ function onProbeEvent(p: MonitoringProbe) {
 const probeStream = useEventStream<MonitoringProbe>('monitoring-probes', onProbeEvent)
 watch(live, (on) => (on ? probeStream.start() : probeStream.stop()))
 
-// Download the stored raw message as an .eml for manual analysis.
-const downloadingId = ref<string | null>(null)
-async function downloadRaw(p: MonitoringProbe) {
-  downloadingId.value = p.id
-  try {
-    const raw = await monitoringService.probeRaw(p.id)
-    const content = raw.rawMessage || raw.rawHeaders
-    if (!content) {
-      toast({ title: 'Nothing to download', description: 'No raw message stored for this probe yet.', variant: 'destructive' })
-      return
-    }
-    const blob = new Blob([content], { type: 'message/rfc822' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${p.probeUid || p.id}.eml`
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
-  } catch (err) {
-    const msg = err instanceof ApiError ? err.message : 'Failed to fetch raw message.'
-    toast({ title: 'Download failed', description: msg, variant: 'destructive' })
-  } finally {
-    downloadingId.value = null
-  }
+// Probe detail drawer: phase timeline, next-phase ETA, event log, inline raw.
+const detailOpen = ref(false)
+const detailProbe = ref<MonitoringProbe | null>(null)
+function openDetail(p: MonitoringProbe) {
+  detailProbe.value = p
+  detailOpen.value = true
 }
+// Keep the drawer's probe in sync with SSE upserts while it's open.
+watch(
+  () => probes.value,
+  (list) => {
+    if (detailOpen.value && detailProbe.value) {
+      const fresh = list.find((x) => x.id === detailProbe.value!.id)
+      if (fresh) detailProbe.value = fresh
+    }
+  },
+)
 
 const sending = ref(false)
 async function sendProbe() {
@@ -254,7 +245,7 @@ onBeforeUnmount(() => probeStream.stop())
                 <TableHead>Placement</TableHead>
                 <TableHead>Spam risk</TableHead>
                 <TableHead>Latency</TableHead>
-                <TableHead class="text-right">Raw</TableHead>
+                <TableHead class="text-right">Detail</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -284,16 +275,13 @@ onBeforeUnmount(() => probeStream.stop())
                 <TableCell class="text-caption text-no-wrap">{{ formatLatency(p.latencyMs) }}</TableCell>
                 <TableCell class="text-right">
                   <Button
-                    v-if="p.mailboxStatus === 'found'"
                     variant="outline"
                     size="sm"
-                    :disabled="downloadingId === p.id"
-                    :data-testid="`raw-${p.id}`"
-                    @click="downloadRaw(p)"
+                    :data-testid="`detail-${p.id}`"
+                    @click="openDetail(p)"
                   >
-                    {{ downloadingId === p.id ? '…' : '.eml' }}
+                    Details
                   </Button>
-                  <span v-else class="text-caption text-medium-emphasis">—</span>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -301,5 +289,7 @@ onBeforeUnmount(() => probeStream.stop())
         </CardContent>
       </Card>
     </DataState>
+
+    <ProbeDetailDrawer v-model:open="detailOpen" :probe="detailProbe" :account="account" />
   </div>
 </template>

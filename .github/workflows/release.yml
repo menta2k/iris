@@ -63,6 +63,11 @@ jobs:
           file: deploy/docker/backend.Dockerfile
           platforms: linux/amd64
           push: true
+          # No provenance/SBOM attestation: keep exactly one GHCR package version
+          # per release (all semver tags point to the same digest) so the cleanup
+          # job's "keep last 5" maps cleanly to the last 5 releases.
+          provenance: false
+          sbom: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -164,3 +169,36 @@ jobs:
             below. They install the `iris` binary to `/usr/local/bin`, a systemd
             unit, and config under `/etc/iris`. After install, fill in
             `/etc/iris/iris.env` then `systemctl enable --now iris`.
+
+  cleanup:
+    name: Prune old images + releases
+    needs: [docker, packages, release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # delete old GitHub Releases
+      packages: write # delete old GHCR versions
+    steps:
+      - name: Prune GHCR image versions (keep last 5 releases)
+        # dataaxiom handles pagination robustly (actions/delete-package-versions
+        # 404s when pruning a large backlog). keep-n-tagged counts image versions,
+        # and with provenance disabled each release is one multi-tagged version —
+        # so 5 = the last 5 releases. Untagged/partial cruft is swept too.
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          package: ${{ github.event.repository.name }}
+          keep-n-tagged: 5
+          delete-untagged: true
+          delete-partial-images: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prune GitHub Releases (keep last 5)
+        # Independent of the image prune (if: always) so a registry hiccup can't
+        # block it. Removes older Release objects only; git tags are preserved so
+        # the version history and any tag-pinned deployments stay intact.
+        if: always()
+        uses: dev-drprasad/delete-older-releases@v0.3.4
+        with:
+          keep_latest: 5
+          delete_tags: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

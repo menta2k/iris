@@ -2,10 +2,13 @@ package biz
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
 )
+
+var errPOP3Reset = errors.New("pop3 dial pop3.abv.bg:995: connection reset by peer")
 
 func monitorCtx() context.Context {
 	return WithIdentity(context.Background(), &Identity{
@@ -27,6 +30,15 @@ type fakeMonitoringRepo struct {
 	secrets        map[string]string
 	fetchCands     []*ProbeFetchCandidate
 	mailboxUpdates []mailboxUpdateRecord
+	scheduled      []scheduledFetch
+	events         []ProbeEvent
+}
+
+type scheduledFetch struct {
+	id       string
+	attempts int
+	nextAt   time.Time
+	err      string
 }
 
 func newFakeMonitoringRepo() *fakeMonitoringRepo {
@@ -106,8 +118,19 @@ func (f *fakeMonitoringRepo) UpdateProbeMailbox(_ context.Context, id string, u 
 	f.mailboxUpdates = append(f.mailboxUpdates, mailboxUpdateRecord{id: id, update: u})
 	return nil
 }
+func (f *fakeMonitoringRepo) ScheduleNextFetch(_ context.Context, id string, attempts int, nextAt time.Time, errMsg string) error {
+	f.scheduled = append(f.scheduled, scheduledFetch{id: id, attempts: attempts, nextAt: nextAt, err: errMsg})
+	return nil
+}
 func (f *fakeMonitoringRepo) ProbeRaw(context.Context, string) (*ProbeRawMessage, error) {
 	return &ProbeRawMessage{}, nil
+}
+func (f *fakeMonitoringRepo) AppendProbeEvent(_ context.Context, probeID, phase, level, message string) error {
+	f.events = append(f.events, ProbeEvent{ProbeID: probeID, Phase: phase, Level: level, Message: message})
+	return nil
+}
+func (f *fakeMonitoringRepo) ListProbeEvents(context.Context, string) ([]*ProbeEvent, error) {
+	return nil, nil
 }
 
 // recordingInjector captures the last injected request.
@@ -393,6 +416,47 @@ func TestRunDueFetchesNotFoundRetriesThenGivesUp(t *testing.T) {
 	}
 }
 
+func TestFetchBackoff(t *testing.T) {
+	cases := map[int]time.Duration{
+		0: time.Minute, 1: time.Minute, 2: 2 * time.Minute, 3: 4 * time.Minute,
+		4: 8 * time.Minute, 5: 16 * time.Minute, 6: 30 * time.Minute, 100: 30 * time.Minute,
+	}
+	for attempts, want := range cases {
+		if got := fetchBackoff(attempts); got != want {
+			t.Errorf("fetchBackoff(%d) = %v, want %v", attempts, got, want)
+		}
+	}
+}
+
+func TestRunDueFetchesSchedulesBackoff(t *testing.T) {
+	now := time.Unix(1_700_000_000, 0)
+	repo := newFakeMonitoringRepo()
+	c := candidate(30*time.Minute, now) // within give-up window
+	c.Probe.FetchAttempts = 2           // next attempt is the 3rd → 4m backoff
+	repo.fetchCands = []*ProbeFetchCandidate{c}
+	f := &fakeFetcher{err: errPOP3Reset} // connection error → retry
+	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil).
+		WithClock(func() time.Time { return now }).WithFetcher(f)
+
+	if _, err := uc.RunDueFetches(fetchCtx()); err != nil {
+		t.Fatal(err)
+	}
+	if len(repo.scheduled) != 1 {
+		t.Fatalf("expected 1 scheduled retry, got %d", len(repo.scheduled))
+	}
+	s := repo.scheduled[0]
+	if s.attempts != 3 {
+		t.Errorf("attempts = %d, want 3", s.attempts)
+	}
+	if !s.nextAt.Equal(now.Add(4 * time.Minute)) {
+		t.Errorf("nextAt = %v, want now+4m", s.nextAt)
+	}
+	// No terminal mailbox update while still retrying.
+	if len(repo.mailboxUpdates) != 0 {
+		t.Errorf("expected no terminal update during backoff, got %d", len(repo.mailboxUpdates))
+	}
+}
+
 func TestRunDueFetchesNoFetcherIsNoop(t *testing.T) {
 	repo := newFakeMonitoringRepo()
 	repo.fetchCands = []*ProbeFetchCandidate{candidate(time.Hour, time.Unix(1_700_000_000, 0))}
@@ -415,6 +479,46 @@ func TestPlacementFromFolder(t *testing.T) {
 		if got := placementFromFolder(folder); got != want {
 			t.Errorf("placementFromFolder(%q) = %q, want %q", folder, got, want)
 		}
+	}
+}
+
+func TestVerifyAccountIgnoresLabel(t *testing.T) {
+	repo := newFakeMonitoringRepo()
+	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil).WithFetcher(&fakeFetcher{})
+	// No label / no from_address — a connection test must still succeed.
+	acc := &MonitoringAccount{Protocol: MonitorProtocolIMAP, Host: "imap.gmail.com", Port: 993, Email: "seed@gmail.com"}
+	if err := uc.VerifyAccount(monitorCtx(), "", acc, "app-pw"); err != nil {
+		t.Fatalf("VerifyAccount should ignore label, got %v", err)
+	}
+	// Username defaults to the mailbox address for the login.
+	if acc.Username != "seed@gmail.com" {
+		t.Errorf("username = %q, want defaulted to email", acc.Username)
+	}
+}
+
+func TestValidateForConnection(t *testing.T) {
+	cases := []struct {
+		name string
+		acc  MonitoringAccount
+		ok   bool
+	}{
+		{"valid imap", MonitoringAccount{Host: "imap.gmail.com", Port: 993, Email: "a@b.com"}, true},
+		{"missing host", MonitoringAccount{Port: 993, Email: "a@b.com"}, false},
+		{"bad port", MonitoringAccount{Host: "h", Port: 0, Email: "a@b.com"}, false},
+		{"bad protocol", MonitoringAccount{Protocol: "smtp", Host: "h", Port: 1, Email: "a@b.com"}, false},
+		{"no username or email", MonitoringAccount{Host: "h", Port: 1}, false},
+		{"label not required", MonitoringAccount{Host: "h", Port: 1, Username: "u"}, true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := c.acc.ValidateForConnection()
+			if c.ok && err != nil {
+				t.Errorf("ValidateForConnection() = %v, want nil", err)
+			}
+			if !c.ok && err == nil {
+				t.Error("ValidateForConnection() = nil, want error")
+			}
+		})
 	}
 }
 
