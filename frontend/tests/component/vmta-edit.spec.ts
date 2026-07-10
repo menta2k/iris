@@ -129,6 +129,7 @@ describe('VmtasPage edit dialog', () => {
       ehlo_name: 'mail.example.com',
       listener_id: 'lst-1',
       max_connections: 5,
+      tls_mode: '',
       status: 'disabled',
       notes: 'updated notes',
     })
