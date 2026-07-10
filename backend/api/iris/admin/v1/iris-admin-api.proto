@@ -463,6 +463,35 @@ service IrisAdminService {
     option (google.api.http) = { delete: "/v1/injection-credentials/{id}" };
   }
 
+  // Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
+  rpc ListMonitoringAccounts(ListMonitoringAccountsRequest) returns (ListMonitoringAccountsReply) {
+    option (google.api.http) = { get: "/v1/monitoring/accounts" };
+  }
+  rpc CreateMonitoringAccount(CreateMonitoringAccountRequest) returns (MonitoringAccount) {
+    option (google.api.http) = { post: "/v1/monitoring/accounts" body: "*" };
+  }
+  rpc UpdateMonitoringAccount(UpdateMonitoringAccountRequest) returns (MonitoringAccount) {
+    option (google.api.http) = { put: "/v1/monitoring/accounts/{id}" body: "*" };
+  }
+  rpc SetMonitoringAccountPassword(SetMonitoringAccountPasswordRequest) returns (MonitoringAccount) {
+    option (google.api.http) = { post: "/v1/monitoring/accounts/{id}/password" body: "*" };
+  }
+  rpc DeleteMonitoringAccount(DeleteMonitoringAccountRequest) returns (DeleteMonitoringAccountReply) {
+    option (google.api.http) = { delete: "/v1/monitoring/accounts/{id}" };
+  }
+  rpc SendMonitoringProbe(SendMonitoringProbeRequest) returns (MonitoringProbe) {
+    option (google.api.http) = { post: "/v1/monitoring/accounts/{account_id}/probe" body: "*" };
+  }
+  rpc VerifyMonitoringAccount(VerifyMonitoringAccountRequest) returns (VerifyMonitoringAccountReply) {
+    option (google.api.http) = { post: "/v1/monitoring/accounts:verify" body: "*" };
+  }
+  rpc ListMonitoringProbes(ListMonitoringProbesRequest) returns (ListMonitoringProbesReply) {
+    option (google.api.http) = { get: "/v1/monitoring/accounts/{account_id}/probes" };
+  }
+  rpc GetMonitoringProbeRaw(GetMonitoringProbeRawRequest) returns (MonitoringProbeRaw) {
+    option (google.api.http) = { get: "/v1/monitoring/probes/{id}/raw" };
+  }
+
   // System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
   rpc GetSystemMonitor(GetSystemMonitorRequest) returns (SystemMonitor) {
     option (google.api.http) = { get: "/v1/system-monitor" };
@@ -1870,6 +1899,13 @@ message GlobalSettings {
   string injection_path = 34;
   bool injection_tls_enabled = 35;
   string injection_tls_cert_domain = 36;
+  // Inbox-placement monitoring policy. monitoring_from is the fallback probe
+  // sender; the three durations tune the probe pipeline (empty = built-in
+  // defaults 1h / 30s / 2h).
+  string monitoring_from = 37;
+  string monitoring_reconcile_lookback = 38;
+  string monitoring_fetch_timeout = 39;
+  string monitoring_fetch_giveup = 40;
 }
 message GetGlobalSettingsRequest {}
 message UpdateGlobalSettingsRequest {
@@ -1911,6 +1947,11 @@ message UpdateGlobalSettingsRequest {
   string injection_path = 32;
   bool injection_tls_enabled = 33;
   string injection_tls_cert_domain = 34;
+  // Inbox-placement monitoring policy (see GlobalSettings).
+  string monitoring_from = 35;
+  string monitoring_reconcile_lookback = 36;
+  string monitoring_fetch_timeout = 37;
+  string monitoring_fetch_giveup = 38;
 }
 
 // A subject → label classification rule. source is "manual" (operator-authored)
@@ -1996,6 +2037,150 @@ message DeleteInjectionCredentialRequest {
 }
 message DeleteInjectionCredentialReply {
   bool ok = 1;
+}
+
+// ---- Mail provider (inbox-placement) monitoring ----
+
+// MonitoringAccount is a mailbox iris sends probe mail to and later inspects for
+// inbox placement. The mailbox password is write-only: it is never returned.
+message MonitoringAccount {
+  string id = 1;
+  string label = 2;
+  string provider = 3;   // gmail|outlook|yahoo|custom
+  string email = 4;      // probe recipient
+  string protocol = 5;   // imap|pop3
+  string host = 6;
+  int32 port = 7;
+  bool tls = 8;
+  string username = 9;
+  repeated string check_folders = 10;
+  string from_address = 11;
+  bool schedule_enabled = 12;
+  string schedule_interval = 13; // duration form, e.g. "6h"
+  string fetch_delay = 14;       // duration form, e.g. "10m"
+  bool enabled = 15;
+  string last_probe_at = 16;
+  string created_at = 17;
+  string updated_at = 18;
+  // has_password reports whether a mailbox password is stored (the value itself
+  // is never returned).
+  bool has_password = 19;
+  // Last-probe summary (derived, read-only): the most recent probe's send /
+  // mailbox status and placement. Empty when there are no probes yet.
+  string last_probe_send_status = 20;
+  string last_probe_mailbox_status = 21;
+  string last_probe_placement = 22;
+}
+
+// MonitoringProbe is one probe message sent to a MonitoringAccount.
+message MonitoringProbe {
+  string id = 1;
+  string account_id = 2;
+  string probe_uid = 3;
+  string message_id = 4;
+  string subject = 5;
+  string from_addr = 6;
+  string recipient = 7;
+  string sent_at = 8;
+  string send_status = 9;    // queued|sent|deferred|bounced|error
+  string mailbox_status = 10; // pending|found|not_found|timeout|skipped
+  string placement = 11;      // inbox|spam|missing|unknown
+  string found_at = 12;
+  int64 latency_ms = 13;
+  string analysis = 14;       // JSON
+  string error = 15;
+  string created_at = 16;
+  string updated_at = 17;
+}
+
+message ListMonitoringAccountsRequest {}
+message ListMonitoringAccountsReply {
+  repeated MonitoringAccount items = 1;
+}
+message CreateMonitoringAccountRequest {
+  string label = 1;
+  string provider = 2;
+  string email = 3;
+  string protocol = 4;
+  string host = 5;
+  int32 port = 6;
+  bool tls = 7;
+  string username = 8;
+  string password = 9;
+  repeated string check_folders = 10;
+  string from_address = 11;
+  bool schedule_enabled = 12;
+  string schedule_interval = 13;
+  string fetch_delay = 14;
+  bool enabled = 15;
+}
+message UpdateMonitoringAccountRequest {
+  string id = 1;
+  string label = 2;
+  string provider = 3;
+  string email = 4;
+  string protocol = 5;
+  string host = 6;
+  int32 port = 7;
+  bool tls = 8;
+  string username = 9;
+  repeated string check_folders = 10;
+  string from_address = 11;
+  bool schedule_enabled = 12;
+  string schedule_interval = 13;
+  string fetch_delay = 14;
+  bool enabled = 15;
+}
+message SetMonitoringAccountPasswordRequest {
+  string id = 1;
+  string password = 2;
+}
+message DeleteMonitoringAccountRequest {
+  string id = 1;
+}
+message DeleteMonitoringAccountReply {
+  bool ok = 1;
+}
+message SendMonitoringProbeRequest {
+  string account_id = 1;
+}
+// VerifyMonitoringAccountRequest tests connection + credentials without storing.
+// password is used when set; when blank and id is present, the account's stored
+// secret is used (test an existing account without re-entering the password).
+message VerifyMonitoringAccountRequest {
+  string id = 1;
+  string protocol = 2;
+  string host = 3;
+  int32 port = 4;
+  bool tls = 5;
+  string username = 6;
+  string email = 7;
+  string password = 8;
+}
+message VerifyMonitoringAccountReply {
+  bool ok = 1;
+  string error = 2;
+}
+message ListMonitoringProbesRequest {
+  string account_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+message ListMonitoringProbesReply {
+  repeated MonitoringProbe items = 1;
+  string next_page_token = 2;
+}
+message GetMonitoringProbeRawRequest {
+  string id = 1;
+}
+// MonitoringProbeRaw is a probe's stored raw content for manual analysis.
+message MonitoringProbeRaw {
+  string id = 1;
+  string probe_uid = 2;
+  string subject = 3;
+  string recipient = 4;
+  string raw_headers = 5;
+  string raw_message = 6;
 }
 
 // ---- System self-monitoring ----

@@ -22,6 +22,8 @@ import type {
   RspamdResult,
   SubjectClassification,
   InjectionCredential,
+  MonitoringAccount,
+  MonitoringProbe,
   Suppression,
   TLSPolicy,
   User,
@@ -58,6 +60,8 @@ export interface MockData {
   feedbackLoops: FeedbackLoop[]
   classifications: SubjectClassification[]
   injectionCredentials: InjectionCredential[]
+  monitoringAccounts: MonitoringAccount[]
+  monitoringProbes: MonitoringProbe[]
   dmarcReports: DmarcReport[]
   acmeCertificates: AcmeCertificate[]
 }

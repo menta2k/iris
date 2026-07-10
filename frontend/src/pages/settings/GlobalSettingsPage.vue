@@ -70,6 +70,10 @@ const form = ref({
   injection_path: '',
   injection_tls_enabled: false,
   injection_tls_cert_domain: '',
+  monitoring_from: '',
+  monitoring_reconcile_lookback: '',
+  monitoring_fetch_timeout: '',
+  monitoring_fetch_giveup: '',
 })
 
 // Snapshot of the last saved/loaded form, for the unsaved-changes indicator.
@@ -111,6 +115,10 @@ function apply(s: GlobalSettings) {
     injection_path: s.injectionPath || '',
     injection_tls_enabled: s.injectionTlsEnabled ?? false,
     injection_tls_cert_domain: s.injectionTlsCertDomain || '',
+    monitoring_from: s.monitoringFrom || '',
+    monitoring_reconcile_lookback: s.monitoringReconcileLookback || '',
+    monitoring_fetch_timeout: s.monitoringFetchTimeout || '',
+    monitoring_fetch_giveup: s.monitoringFetchGiveup || '',
   }
   updatedBy.value = s.updatedBy || ''
   updatedAt.value = s.updatedAt || ''
@@ -182,6 +190,10 @@ async function save() {
         injection_path: form.value.injection_path,
         injection_tls_enabled: form.value.injection_tls_enabled,
         injection_tls_cert_domain: form.value.injection_tls_cert_domain,
+        monitoring_from: form.value.monitoring_from,
+        monitoring_reconcile_lookback: form.value.monitoring_reconcile_lookback,
+        monitoring_fetch_timeout: form.value.monitoring_fetch_timeout,
+        monitoring_fetch_giveup: form.value.monitoring_fetch_giveup,
       }),
     )
     toast({
@@ -210,6 +222,7 @@ const SECTIONS = [
   { id: 'sec-classify', title: 'Subject Classification', icon: 'mdi-label-outline', keywords: 'classify subject openai model llm threshold' },
   { id: 'sec-admin', title: 'Admin Server', icon: 'mdi-monitor-lock', keywords: 'admin ui https tls certificate bind' },
   { id: 'sec-injection', title: 'Injection API', icon: 'mdi-email-fast-outline', keywords: 'injection greenarrow inject listener port https tls api credentials mail' },
+  { id: 'sec-monitoring', title: 'Inbox Monitoring', icon: 'mdi-email-search-outline', keywords: 'inbox monitoring probe seed mailbox placement spam from sender fetch timeout giveup reconcile lookback' },
   { id: 'sec-acme', title: 'ACME Auto-Renew', icon: 'mdi-certificate-outline', keywords: 'acme renew certificate expiry scan' },
 ] as const
 
@@ -868,6 +881,62 @@ onBeforeUnmount(() => window.removeEventListener('scroll', updateActiveSection))
                       v-model="form.acme_renew_before"
                       label="Renew before expiry"
                       placeholder="30d"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                  </v-col>
+                </v-row>
+              </CardContent>
+            </Card>
+
+            <Card v-show="sectionShown.has('sec-monitoring')" id="sec-monitoring" class="scroll-target">
+              <CardHeader>
+                <CardTitle>Inbox Monitoring</CardTitle>
+                <CardDescription>
+                  Policy for inbox-placement probes (Monitoring → Inbox Monitoring). The default sender
+                  is used for accounts that don't set their own <em>from address</em> — it must be a
+                  domain you can send and DKIM-sign from. The durations use duration form (e.g.
+                  <code>30s</code>, <code>1h</code>, <code>2h</code>); blank uses the built-in defaults.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <v-row dense>
+                  <v-col cols="12">
+                    <v-text-field
+                      v-model="form.monitoring_from"
+                      label="Default probe sender"
+                      placeholder="probe@monitor.example.com"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                  </v-col>
+                  <v-col cols="12" sm="4">
+                    <v-text-field
+                      v-model="form.monitoring_reconcile_lookback"
+                      label="Reconcile lookback"
+                      placeholder="1h"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                  </v-col>
+                  <v-col cols="12" sm="4">
+                    <v-text-field
+                      v-model="form.monitoring_fetch_timeout"
+                      label="Mailbox fetch timeout"
+                      placeholder="30s"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                  </v-col>
+                  <v-col cols="12" sm="4">
+                    <v-text-field
+                      v-model="form.monitoring_fetch_giveup"
+                      label="Fetch give-up window"
+                      placeholder="2h"
                       variant="outlined"
                       density="compact"
                       hide-details

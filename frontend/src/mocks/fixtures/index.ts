@@ -10,6 +10,7 @@ import { bounces, dmarcReports, feedbackReports, mailRecords, queues, workerErro
 import { dkimDomains, suppressions, tlsPolicies } from './domain-safety'
 import { feedbackLoops, inboundRoutes, rspamdResults } from './inbound'
 import { auditEntries, injectionCredentials, users } from './security'
+import { monitoringAccounts, monitoringProbes } from './monitoring'
 import { classifications } from './settings'
 import { acmeCertificates } from './tools'
 
@@ -38,6 +39,8 @@ export const seedData: MockData = {
   feedbackLoops,
   classifications,
   injectionCredentials,
+  monitoringAccounts,
+  monitoringProbes,
   dmarcReports,
   acmeCertificates,
 }

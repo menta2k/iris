@@ -102,6 +102,9 @@ Other startup-only environment variables:
 | `IRIS_ACME_CERT_DIR` | Where issued PEM certificates are mirrored (default `/opt/kumomta/etc/tls`) |
 | `IRIS_ACME_HTTP_BIND` | Bind for the HTTP-01 challenge responder (`off` to disable) |
 | `IRIS_ACME_RENEW_INTERVAL` / `IRIS_ACME_RENEW_BEFORE` | Renewal cadence and lead time |
+| `IRIS_MONITORING_KEY` | AES-GCM passphrase encrypting seed-mailbox passwords; required to store credentials ([inbox monitoring](inbox-monitoring.md)) |
+| `IRIS_MONITORING_RECONCILE_INTERVAL` / `IRIS_MONITORING_SCHEDULE_INTERVAL` / `IRIS_MONITORING_FETCH_INTERVAL` | Scan cadence of the reconciler, scheduler, and fetch workers (the probe sender + fetch/lookback tuning are UI-managed in Global Settings → Inbox Monitoring) |
+| `IRIS_OPENAI_API_KEY` / `IRIS_OPENAI_MODEL` / `IRIS_OPENAI_API_BASE` | Enable and target the LLM for subject classification and inbox-monitoring spam analysis |
 
 ## Global settings (UI)
 

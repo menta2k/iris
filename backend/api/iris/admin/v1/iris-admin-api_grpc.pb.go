@@ -138,6 +138,15 @@ const (
 	IrisAdminService_UpdateInjectionCredential_FullMethodName      = "/iris.admin.v1.IrisAdminService/UpdateInjectionCredential"
 	IrisAdminService_SetInjectionCredentialPassword_FullMethodName = "/iris.admin.v1.IrisAdminService/SetInjectionCredentialPassword"
 	IrisAdminService_DeleteInjectionCredential_FullMethodName      = "/iris.admin.v1.IrisAdminService/DeleteInjectionCredential"
+	IrisAdminService_ListMonitoringAccounts_FullMethodName         = "/iris.admin.v1.IrisAdminService/ListMonitoringAccounts"
+	IrisAdminService_CreateMonitoringAccount_FullMethodName        = "/iris.admin.v1.IrisAdminService/CreateMonitoringAccount"
+	IrisAdminService_UpdateMonitoringAccount_FullMethodName        = "/iris.admin.v1.IrisAdminService/UpdateMonitoringAccount"
+	IrisAdminService_SetMonitoringAccountPassword_FullMethodName   = "/iris.admin.v1.IrisAdminService/SetMonitoringAccountPassword"
+	IrisAdminService_DeleteMonitoringAccount_FullMethodName        = "/iris.admin.v1.IrisAdminService/DeleteMonitoringAccount"
+	IrisAdminService_SendMonitoringProbe_FullMethodName            = "/iris.admin.v1.IrisAdminService/SendMonitoringProbe"
+	IrisAdminService_VerifyMonitoringAccount_FullMethodName        = "/iris.admin.v1.IrisAdminService/VerifyMonitoringAccount"
+	IrisAdminService_ListMonitoringProbes_FullMethodName           = "/iris.admin.v1.IrisAdminService/ListMonitoringProbes"
+	IrisAdminService_GetMonitoringProbeRaw_FullMethodName          = "/iris.admin.v1.IrisAdminService/GetMonitoringProbeRaw"
 	IrisAdminService_GetSystemMonitor_FullMethodName               = "/iris.admin.v1.IrisAdminService/GetSystemMonitor"
 	IrisAdminService_UpdateMonitorSettings_FullMethodName          = "/iris.admin.v1.IrisAdminService/UpdateMonitorSettings"
 	IrisAdminService_TestMonitorNotification_FullMethodName        = "/iris.admin.v1.IrisAdminService/TestMonitorNotification"
@@ -345,6 +354,16 @@ type IrisAdminServiceClient interface {
 	UpdateInjectionCredential(ctx context.Context, in *UpdateInjectionCredentialRequest, opts ...grpc.CallOption) (*InjectionCredential, error)
 	SetInjectionCredentialPassword(ctx context.Context, in *SetInjectionCredentialPasswordRequest, opts ...grpc.CallOption) (*InjectionCredential, error)
 	DeleteInjectionCredential(ctx context.Context, in *DeleteInjectionCredentialRequest, opts ...grpc.CallOption) (*DeleteInjectionCredentialReply, error)
+	// Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
+	ListMonitoringAccounts(ctx context.Context, in *ListMonitoringAccountsRequest, opts ...grpc.CallOption) (*ListMonitoringAccountsReply, error)
+	CreateMonitoringAccount(ctx context.Context, in *CreateMonitoringAccountRequest, opts ...grpc.CallOption) (*MonitoringAccount, error)
+	UpdateMonitoringAccount(ctx context.Context, in *UpdateMonitoringAccountRequest, opts ...grpc.CallOption) (*MonitoringAccount, error)
+	SetMonitoringAccountPassword(ctx context.Context, in *SetMonitoringAccountPasswordRequest, opts ...grpc.CallOption) (*MonitoringAccount, error)
+	DeleteMonitoringAccount(ctx context.Context, in *DeleteMonitoringAccountRequest, opts ...grpc.CallOption) (*DeleteMonitoringAccountReply, error)
+	SendMonitoringProbe(ctx context.Context, in *SendMonitoringProbeRequest, opts ...grpc.CallOption) (*MonitoringProbe, error)
+	VerifyMonitoringAccount(ctx context.Context, in *VerifyMonitoringAccountRequest, opts ...grpc.CallOption) (*VerifyMonitoringAccountReply, error)
+	ListMonitoringProbes(ctx context.Context, in *ListMonitoringProbesRequest, opts ...grpc.CallOption) (*ListMonitoringProbesReply, error)
+	GetMonitoringProbeRaw(ctx context.Context, in *GetMonitoringProbeRawRequest, opts ...grpc.CallOption) (*MonitoringProbeRaw, error)
 	// System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
 	GetSystemMonitor(ctx context.Context, in *GetSystemMonitorRequest, opts ...grpc.CallOption) (*SystemMonitor, error)
 	UpdateMonitorSettings(ctx context.Context, in *UpdateMonitorSettingsRequest, opts ...grpc.CallOption) (*MonitorSettings, error)
@@ -1549,6 +1568,96 @@ func (c *irisAdminServiceClient) DeleteInjectionCredential(ctx context.Context, 
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) ListMonitoringAccounts(ctx context.Context, in *ListMonitoringAccountsRequest, opts ...grpc.CallOption) (*ListMonitoringAccountsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListMonitoringAccountsReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListMonitoringAccounts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) CreateMonitoringAccount(ctx context.Context, in *CreateMonitoringAccountRequest, opts ...grpc.CallOption) (*MonitoringAccount, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MonitoringAccount)
+	err := c.cc.Invoke(ctx, IrisAdminService_CreateMonitoringAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) UpdateMonitoringAccount(ctx context.Context, in *UpdateMonitoringAccountRequest, opts ...grpc.CallOption) (*MonitoringAccount, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MonitoringAccount)
+	err := c.cc.Invoke(ctx, IrisAdminService_UpdateMonitoringAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) SetMonitoringAccountPassword(ctx context.Context, in *SetMonitoringAccountPasswordRequest, opts ...grpc.CallOption) (*MonitoringAccount, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MonitoringAccount)
+	err := c.cc.Invoke(ctx, IrisAdminService_SetMonitoringAccountPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) DeleteMonitoringAccount(ctx context.Context, in *DeleteMonitoringAccountRequest, opts ...grpc.CallOption) (*DeleteMonitoringAccountReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteMonitoringAccountReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_DeleteMonitoringAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) SendMonitoringProbe(ctx context.Context, in *SendMonitoringProbeRequest, opts ...grpc.CallOption) (*MonitoringProbe, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MonitoringProbe)
+	err := c.cc.Invoke(ctx, IrisAdminService_SendMonitoringProbe_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) VerifyMonitoringAccount(ctx context.Context, in *VerifyMonitoringAccountRequest, opts ...grpc.CallOption) (*VerifyMonitoringAccountReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(VerifyMonitoringAccountReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_VerifyMonitoringAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ListMonitoringProbes(ctx context.Context, in *ListMonitoringProbesRequest, opts ...grpc.CallOption) (*ListMonitoringProbesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListMonitoringProbesReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListMonitoringProbes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) GetMonitoringProbeRaw(ctx context.Context, in *GetMonitoringProbeRawRequest, opts ...grpc.CallOption) (*MonitoringProbeRaw, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MonitoringProbeRaw)
+	err := c.cc.Invoke(ctx, IrisAdminService_GetMonitoringProbeRaw_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) GetSystemMonitor(ctx context.Context, in *GetSystemMonitorRequest, opts ...grpc.CallOption) (*SystemMonitor, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SystemMonitor)
@@ -1781,6 +1890,16 @@ type IrisAdminServiceServer interface {
 	UpdateInjectionCredential(context.Context, *UpdateInjectionCredentialRequest) (*InjectionCredential, error)
 	SetInjectionCredentialPassword(context.Context, *SetInjectionCredentialPasswordRequest) (*InjectionCredential, error)
 	DeleteInjectionCredential(context.Context, *DeleteInjectionCredentialRequest) (*DeleteInjectionCredentialReply, error)
+	// Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
+	ListMonitoringAccounts(context.Context, *ListMonitoringAccountsRequest) (*ListMonitoringAccountsReply, error)
+	CreateMonitoringAccount(context.Context, *CreateMonitoringAccountRequest) (*MonitoringAccount, error)
+	UpdateMonitoringAccount(context.Context, *UpdateMonitoringAccountRequest) (*MonitoringAccount, error)
+	SetMonitoringAccountPassword(context.Context, *SetMonitoringAccountPasswordRequest) (*MonitoringAccount, error)
+	DeleteMonitoringAccount(context.Context, *DeleteMonitoringAccountRequest) (*DeleteMonitoringAccountReply, error)
+	SendMonitoringProbe(context.Context, *SendMonitoringProbeRequest) (*MonitoringProbe, error)
+	VerifyMonitoringAccount(context.Context, *VerifyMonitoringAccountRequest) (*VerifyMonitoringAccountReply, error)
+	ListMonitoringProbes(context.Context, *ListMonitoringProbesRequest) (*ListMonitoringProbesReply, error)
+	GetMonitoringProbeRaw(context.Context, *GetMonitoringProbeRawRequest) (*MonitoringProbeRaw, error)
 	// System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
 	GetSystemMonitor(context.Context, *GetSystemMonitorRequest) (*SystemMonitor, error)
 	UpdateMonitorSettings(context.Context, *UpdateMonitorSettingsRequest) (*MonitorSettings, error)
@@ -2151,6 +2270,33 @@ func (UnimplementedIrisAdminServiceServer) SetInjectionCredentialPassword(contex
 }
 func (UnimplementedIrisAdminServiceServer) DeleteInjectionCredential(context.Context, *DeleteInjectionCredentialRequest) (*DeleteInjectionCredentialReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteInjectionCredential not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListMonitoringAccounts(context.Context, *ListMonitoringAccountsRequest) (*ListMonitoringAccountsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListMonitoringAccounts not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) CreateMonitoringAccount(context.Context, *CreateMonitoringAccountRequest) (*MonitoringAccount, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateMonitoringAccount not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) UpdateMonitoringAccount(context.Context, *UpdateMonitoringAccountRequest) (*MonitoringAccount, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateMonitoringAccount not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) SetMonitoringAccountPassword(context.Context, *SetMonitoringAccountPasswordRequest) (*MonitoringAccount, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetMonitoringAccountPassword not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) DeleteMonitoringAccount(context.Context, *DeleteMonitoringAccountRequest) (*DeleteMonitoringAccountReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteMonitoringAccount not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) SendMonitoringProbe(context.Context, *SendMonitoringProbeRequest) (*MonitoringProbe, error) {
+	return nil, status.Error(codes.Unimplemented, "method SendMonitoringProbe not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) VerifyMonitoringAccount(context.Context, *VerifyMonitoringAccountRequest) (*VerifyMonitoringAccountReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method VerifyMonitoringAccount not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListMonitoringProbes(context.Context, *ListMonitoringProbesRequest) (*ListMonitoringProbesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListMonitoringProbes not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) GetMonitoringProbeRaw(context.Context, *GetMonitoringProbeRawRequest) (*MonitoringProbeRaw, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetMonitoringProbeRaw not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) GetSystemMonitor(context.Context, *GetSystemMonitorRequest) (*SystemMonitor, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetSystemMonitor not implemented")
@@ -4324,6 +4470,168 @@ func _IrisAdminService_DeleteInjectionCredential_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_ListMonitoringAccounts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListMonitoringAccountsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListMonitoringAccounts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListMonitoringAccounts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListMonitoringAccounts(ctx, req.(*ListMonitoringAccountsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_CreateMonitoringAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateMonitoringAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).CreateMonitoringAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_CreateMonitoringAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).CreateMonitoringAccount(ctx, req.(*CreateMonitoringAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_UpdateMonitoringAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateMonitoringAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).UpdateMonitoringAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_UpdateMonitoringAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).UpdateMonitoringAccount(ctx, req.(*UpdateMonitoringAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_SetMonitoringAccountPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetMonitoringAccountPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).SetMonitoringAccountPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_SetMonitoringAccountPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).SetMonitoringAccountPassword(ctx, req.(*SetMonitoringAccountPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_DeleteMonitoringAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteMonitoringAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).DeleteMonitoringAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_DeleteMonitoringAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).DeleteMonitoringAccount(ctx, req.(*DeleteMonitoringAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_SendMonitoringProbe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendMonitoringProbeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).SendMonitoringProbe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_SendMonitoringProbe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).SendMonitoringProbe(ctx, req.(*SendMonitoringProbeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_VerifyMonitoringAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerifyMonitoringAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).VerifyMonitoringAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_VerifyMonitoringAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).VerifyMonitoringAccount(ctx, req.(*VerifyMonitoringAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListMonitoringProbes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListMonitoringProbesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListMonitoringProbes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListMonitoringProbes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListMonitoringProbes(ctx, req.(*ListMonitoringProbesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_GetMonitoringProbeRaw_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMonitoringProbeRawRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).GetMonitoringProbeRaw(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_GetMonitoringProbeRaw_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).GetMonitoringProbeRaw(ctx, req.(*GetMonitoringProbeRawRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_GetSystemMonitor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetSystemMonitorRequest)
 	if err := dec(in); err != nil {
@@ -4860,6 +5168,42 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteInjectionCredential",
 			Handler:    _IrisAdminService_DeleteInjectionCredential_Handler,
+		},
+		{
+			MethodName: "ListMonitoringAccounts",
+			Handler:    _IrisAdminService_ListMonitoringAccounts_Handler,
+		},
+		{
+			MethodName: "CreateMonitoringAccount",
+			Handler:    _IrisAdminService_CreateMonitoringAccount_Handler,
+		},
+		{
+			MethodName: "UpdateMonitoringAccount",
+			Handler:    _IrisAdminService_UpdateMonitoringAccount_Handler,
+		},
+		{
+			MethodName: "SetMonitoringAccountPassword",
+			Handler:    _IrisAdminService_SetMonitoringAccountPassword_Handler,
+		},
+		{
+			MethodName: "DeleteMonitoringAccount",
+			Handler:    _IrisAdminService_DeleteMonitoringAccount_Handler,
+		},
+		{
+			MethodName: "SendMonitoringProbe",
+			Handler:    _IrisAdminService_SendMonitoringProbe_Handler,
+		},
+		{
+			MethodName: "VerifyMonitoringAccount",
+			Handler:    _IrisAdminService_VerifyMonitoringAccount_Handler,
+		},
+		{
+			MethodName: "ListMonitoringProbes",
+			Handler:    _IrisAdminService_ListMonitoringProbes_Handler,
+		},
+		{
+			MethodName: "GetMonitoringProbeRaw",
+			Handler:    _IrisAdminService_GetMonitoringProbeRaw_Handler,
 		},
 		{
 			MethodName: "GetSystemMonitor",

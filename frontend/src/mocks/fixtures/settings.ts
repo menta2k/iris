@@ -42,6 +42,10 @@ export const globalSettings: GlobalSettings = {
   injectionPath: '/api/inject',
   injectionTlsEnabled: true,
   injectionTlsCertDomain: 'inject.example.net',
+  monitoringFrom: 'probe@monitor.example.com',
+  monitoringReconcileLookback: '1h',
+  monitoringFetchTimeout: '30s',
+  monitoringFetchGiveup: '2h',
   updatedAt: hoursAgo(3),
   updatedBy: 'admin@iris.local',
 }

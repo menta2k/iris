@@ -714,7 +714,11 @@ export interface CreateSuppressionRequest {
 
 // ---- Require-TLS policies (outbound delivery) ----
 
-export type TLSPolicyMode = 'required' | 'required_insecure'
+export type TLSPolicyMode =
+  | 'required'
+  | 'required_insecure'
+  | 'opportunistic_insecure'
+  | 'disabled'
 
 export interface TLSPolicy {
   id: string
@@ -933,6 +937,10 @@ export interface GlobalSettings {
   injectionPath: string
   injectionTlsEnabled: boolean
   injectionTlsCertDomain: string
+  monitoringFrom: string
+  monitoringReconcileLookback: string
+  monitoringFetchTimeout: string
+  monitoringFetchGiveup: string
   updatedAt?: string
   updatedBy?: string
 }
@@ -971,6 +979,10 @@ export interface UpdateGlobalSettingsRequest {
   injection_path: string
   injection_tls_enabled: boolean
   injection_tls_cert_domain: string
+  monitoring_from: string
+  monitoring_reconcile_lookback: string
+  monitoring_fetch_timeout: string
+  monitoring_fetch_giveup: string
 }
 
 // ---- Subject classifications ----
@@ -1036,6 +1048,123 @@ export interface UpdateInjectionCredentialRequest {
 export interface SetInjectionCredentialPasswordRequest {
   id: string
   password: string
+}
+
+// ---- Mail provider (inbox-placement) monitoring ----
+
+export type MonitoringProtocol = 'imap' | 'pop3'
+export type MonitoringProvider = 'gmail' | 'outlook' | 'yahoo' | 'custom'
+export type ProbeSendStatus = 'queued' | 'sent' | 'deferred' | 'bounced' | 'error'
+export type ProbeMailboxStatus = 'pending' | 'found' | 'not_found' | 'timeout' | 'skipped'
+export type ProbePlacement = '' | 'inbox' | 'spam' | 'missing' | 'unknown'
+
+export interface MonitoringAccount {
+  id: string
+  label: string
+  provider: MonitoringProvider
+  email: string
+  protocol: MonitoringProtocol
+  host: string
+  port: number
+  tls: boolean
+  username: string
+  checkFolders: string[]
+  fromAddress: string
+  scheduleEnabled: boolean
+  scheduleInterval: string // duration form, e.g. "6h"
+  fetchDelay: string // duration form, e.g. "10m"
+  enabled: boolean
+  hasPassword: boolean
+  lastProbeAt?: string
+  lastProbeSendStatus?: string
+  lastProbeMailboxStatus?: string
+  lastProbePlacement?: ProbePlacement
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type SpamVerdict = 'clean' | 'suspicious' | 'spam'
+
+// ProbeAnalysis is the phase-3 deliverability assessment stored (as JSON) on a
+// probe's `analysis` field.
+export interface ProbeAnalysis {
+  spf?: string
+  dkim?: string
+  dmarc?: string
+  spam_score?: number
+  spam_flag?: boolean
+  verdict?: SpamVerdict
+  confidence?: number
+  summary?: string
+  factors?: string[]
+  source?: 'heuristic' | 'llm'
+}
+
+export interface MonitoringProbe {
+  id: string
+  accountId: string
+  probeUid: string
+  messageId: string
+  subject: string
+  fromAddr: string
+  recipient: string
+  sentAt?: string
+  sendStatus: ProbeSendStatus
+  mailboxStatus: ProbeMailboxStatus
+  placement: ProbePlacement
+  foundAt?: string
+  latencyMs?: number
+  analysis: string // JSON
+  error: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface VerifyMonitoringAccountRequest {
+  id?: string
+  protocol: MonitoringProtocol
+  host: string
+  port: number
+  tls: boolean
+  username: string
+  email: string
+  password: string
+}
+
+export interface VerifyMonitoringAccountReply {
+  ok: boolean
+  error?: string
+}
+
+export interface MonitoringProbeRaw {
+  id: string
+  probeUid: string
+  subject: string
+  recipient: string
+  rawHeaders: string
+  rawMessage: string
+}
+
+export interface CreateMonitoringAccountRequest {
+  label: string
+  provider: MonitoringProvider
+  email: string
+  protocol: MonitoringProtocol
+  host: string
+  port: number
+  tls: boolean
+  username: string
+  password: string
+  checkFolders: string[]
+  fromAddress: string
+  scheduleEnabled: boolean
+  scheduleInterval: string
+  fetchDelay: string
+  enabled: boolean
+}
+
+export type UpdateMonitoringAccountRequest = Omit<CreateMonitoringAccountRequest, 'password'> & {
+  id: string
 }
 
 // ---- Dashboard metrics (Prometheus-backed time-series) ----

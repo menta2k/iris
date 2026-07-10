@@ -33,6 +33,7 @@ const OperationIrisAdminServiceCreateFeedbackLoop = "/iris.admin.v1.IrisAdminSer
 const OperationIrisAdminServiceCreateInboundRoute = "/iris.admin.v1.IrisAdminService/CreateInboundRoute"
 const OperationIrisAdminServiceCreateInjectionCredential = "/iris.admin.v1.IrisAdminService/CreateInjectionCredential"
 const OperationIrisAdminServiceCreateListener = "/iris.admin.v1.IrisAdminService/CreateListener"
+const OperationIrisAdminServiceCreateMonitoringAccount = "/iris.admin.v1.IrisAdminService/CreateMonitoringAccount"
 const OperationIrisAdminServiceCreateRoutingRule = "/iris.admin.v1.IrisAdminService/CreateRoutingRule"
 const OperationIrisAdminServiceCreateSubjectClassification = "/iris.admin.v1.IrisAdminService/CreateSubjectClassification"
 const OperationIrisAdminServiceCreateSuppression = "/iris.admin.v1.IrisAdminService/CreateSuppression"
@@ -48,6 +49,7 @@ const OperationIrisAdminServiceDeleteEventProcessor = "/iris.admin.v1.IrisAdminS
 const OperationIrisAdminServiceDeleteFeedbackLoop = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
 const OperationIrisAdminServiceDeleteInboundRoute = "/iris.admin.v1.IrisAdminService/DeleteInboundRoute"
 const OperationIrisAdminServiceDeleteInjectionCredential = "/iris.admin.v1.IrisAdminService/DeleteInjectionCredential"
+const OperationIrisAdminServiceDeleteMonitoringAccount = "/iris.admin.v1.IrisAdminService/DeleteMonitoringAccount"
 const OperationIrisAdminServiceDeleteSubjectClassification = "/iris.admin.v1.IrisAdminService/DeleteSubjectClassification"
 const OperationIrisAdminServiceDeleteTLSPolicy = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
 const OperationIrisAdminServiceDiagnose = "/iris.admin.v1.IrisAdminService/Diagnose"
@@ -63,6 +65,7 @@ const OperationIrisAdminServiceGetDmarcStats = "/iris.admin.v1.IrisAdminService/
 const OperationIrisAdminServiceGetGlobalSettings = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
 const OperationIrisAdminServiceGetMailClassStats = "/iris.admin.v1.IrisAdminService/GetMailClassStats"
 const OperationIrisAdminServiceGetMetricsTimeseries = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
+const OperationIrisAdminServiceGetMonitoringProbeRaw = "/iris.admin.v1.IrisAdminService/GetMonitoringProbeRaw"
 const OperationIrisAdminServiceGetNextDeliveryAttempt = "/iris.admin.v1.IrisAdminService/GetNextDeliveryAttempt"
 const OperationIrisAdminServiceGetQueueTimeHistogram = "/iris.admin.v1.IrisAdminService/GetQueueTimeHistogram"
 const OperationIrisAdminServiceGetRecipientDomainStats = "/iris.admin.v1.IrisAdminService/GetRecipientDomainStats"
@@ -88,6 +91,8 @@ const OperationIrisAdminServiceListInboundRoutes = "/iris.admin.v1.IrisAdminServ
 const OperationIrisAdminServiceListInjectionCredentials = "/iris.admin.v1.IrisAdminService/ListInjectionCredentials"
 const OperationIrisAdminServiceListListeners = "/iris.admin.v1.IrisAdminService/ListListeners"
 const OperationIrisAdminServiceListMailRecords = "/iris.admin.v1.IrisAdminService/ListMailRecords"
+const OperationIrisAdminServiceListMonitoringAccounts = "/iris.admin.v1.IrisAdminService/ListMonitoringAccounts"
+const OperationIrisAdminServiceListMonitoringProbes = "/iris.admin.v1.IrisAdminService/ListMonitoringProbes"
 const OperationIrisAdminServiceListQueues = "/iris.admin.v1.IrisAdminService/ListQueues"
 const OperationIrisAdminServiceListRetentionPolicies = "/iris.admin.v1.IrisAdminService/ListRetentionPolicies"
 const OperationIrisAdminServiceListRoutingRules = "/iris.admin.v1.IrisAdminService/ListRoutingRules"
@@ -114,10 +119,12 @@ const OperationIrisAdminServiceResumeWarmupSchedule = "/iris.admin.v1.IrisAdminS
 const OperationIrisAdminServiceRunRetention = "/iris.admin.v1.IrisAdminService/RunRetention"
 const OperationIrisAdminServiceSaveAcmeAccount = "/iris.admin.v1.IrisAdminService/SaveAcmeAccount"
 const OperationIrisAdminServiceSeedDeliveryBlueprints = "/iris.admin.v1.IrisAdminService/SeedDeliveryBlueprints"
+const OperationIrisAdminServiceSendMonitoringProbe = "/iris.admin.v1.IrisAdminService/SendMonitoringProbe"
 const OperationIrisAdminServiceSetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
 const OperationIrisAdminServiceSetAutomationRuleStatus = "/iris.admin.v1.IrisAdminService/SetAutomationRuleStatus"
 const OperationIrisAdminServiceSetDeliveryBlueprintStatus = "/iris.admin.v1.IrisAdminService/SetDeliveryBlueprintStatus"
 const OperationIrisAdminServiceSetInjectionCredentialPassword = "/iris.admin.v1.IrisAdminService/SetInjectionCredentialPassword"
+const OperationIrisAdminServiceSetMonitoringAccountPassword = "/iris.admin.v1.IrisAdminService/SetMonitoringAccountPassword"
 const OperationIrisAdminServiceTestBounceDiagnostic = "/iris.admin.v1.IrisAdminService/TestBounceDiagnostic"
 const OperationIrisAdminServiceTestEventProcessor = "/iris.admin.v1.IrisAdminService/TestEventProcessor"
 const OperationIrisAdminServiceTestMonitorNotification = "/iris.admin.v1.IrisAdminService/TestMonitorNotification"
@@ -132,6 +139,7 @@ const OperationIrisAdminServiceUpdateInboundRoute = "/iris.admin.v1.IrisAdminSer
 const OperationIrisAdminServiceUpdateInjectionCredential = "/iris.admin.v1.IrisAdminService/UpdateInjectionCredential"
 const OperationIrisAdminServiceUpdateListener = "/iris.admin.v1.IrisAdminService/UpdateListener"
 const OperationIrisAdminServiceUpdateMonitorSettings = "/iris.admin.v1.IrisAdminService/UpdateMonitorSettings"
+const OperationIrisAdminServiceUpdateMonitoringAccount = "/iris.admin.v1.IrisAdminService/UpdateMonitoringAccount"
 const OperationIrisAdminServiceUpdateRetentionPolicy = "/iris.admin.v1.IrisAdminService/UpdateRetentionPolicy"
 const OperationIrisAdminServiceUpdateRoutingRule = "/iris.admin.v1.IrisAdminService/UpdateRoutingRule"
 const OperationIrisAdminServiceUpdateSubjectClassification = "/iris.admin.v1.IrisAdminService/UpdateSubjectClassification"
@@ -141,6 +149,7 @@ const OperationIrisAdminServiceUpdateVMTA = "/iris.admin.v1.IrisAdminService/Upd
 const OperationIrisAdminServiceUpdateVMTAGroup = "/iris.admin.v1.IrisAdminService/UpdateVMTAGroup"
 const OperationIrisAdminServiceUpdateWarmupSchedule = "/iris.admin.v1.IrisAdminService/UpdateWarmupSchedule"
 const OperationIrisAdminServiceVerifyMFA = "/iris.admin.v1.IrisAdminService/VerifyMFA"
+const OperationIrisAdminServiceVerifyMonitoringAccount = "/iris.admin.v1.IrisAdminService/VerifyMonitoringAccount"
 
 type IrisAdminServiceHTTPServer interface {
 	// ApplyKumoConfig ApplyKumoConfig renders the configuration, writes it to KumoMTA, and
@@ -162,6 +171,7 @@ type IrisAdminServiceHTTPServer interface {
 	CreateInboundRoute(context.Context, *CreateInboundRouteRequest) (*InboundRoute, error)
 	CreateInjectionCredential(context.Context, *CreateInjectionCredentialRequest) (*InjectionCredential, error)
 	CreateListener(context.Context, *CreateListenerRequest) (*Listener, error)
+	CreateMonitoringAccount(context.Context, *CreateMonitoringAccountRequest) (*MonitoringAccount, error)
 	CreateRoutingRule(context.Context, *CreateRoutingRuleRequest) (*RoutingRule, error)
 	CreateSubjectClassification(context.Context, *CreateSubjectClassificationRequest) (*SubjectClassification, error)
 	CreateSuppression(context.Context, *CreateSuppressionRequest) (*Suppression, error)
@@ -179,6 +189,7 @@ type IrisAdminServiceHTTPServer interface {
 	DeleteFeedbackLoop(context.Context, *DeleteFeedbackLoopRequest) (*DeleteFeedbackLoopReply, error)
 	DeleteInboundRoute(context.Context, *DeleteInboundRouteRequest) (*DeleteInboundRouteReply, error)
 	DeleteInjectionCredential(context.Context, *DeleteInjectionCredentialRequest) (*DeleteInjectionCredentialReply, error)
+	DeleteMonitoringAccount(context.Context, *DeleteMonitoringAccountRequest) (*DeleteMonitoringAccountReply, error)
 	DeleteSubjectClassification(context.Context, *DeleteSubjectClassificationRequest) (*DeleteSubjectClassificationReply, error)
 	DeleteTLSPolicy(context.Context, *DeleteTLSPolicyRequest) (*DeleteTLSPolicyReply, error)
 	// Diagnose Tools ---------------------------------------------------------------------
@@ -211,6 +222,7 @@ type IrisAdminServiceHTTPServer interface {
 	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(context.Context, *GetMetricsTimeseriesRequest) (*MetricsTimeseries, error)
+	GetMonitoringProbeRaw(context.Context, *GetMonitoringProbeRawRequest) (*MonitoringProbeRaw, error)
 	GetNextDeliveryAttempt(context.Context, *GetNextDeliveryAttemptRequest) (*NextDeliveryAttempt, error)
 	// GetQueueTimeHistogram GetQueueTimeHistogram returns the delivery queue-time distribution (from the
 	// iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
@@ -263,6 +275,9 @@ type IrisAdminServiceHTTPServer interface {
 	ListListeners(context.Context, *ListListenersRequest) (*ListListenersReply, error)
 	// ListMailRecords Mail operations ----------------------------------------------------------
 	ListMailRecords(context.Context, *ListMailRecordsRequest) (*ListMailRecordsReply, error)
+	// ListMonitoringAccounts Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
+	ListMonitoringAccounts(context.Context, *ListMonitoringAccountsRequest) (*ListMonitoringAccountsReply, error)
+	ListMonitoringProbes(context.Context, *ListMonitoringProbesRequest) (*ListMonitoringProbesReply, error)
 	ListQueues(context.Context, *ListQueuesRequest) (*ListQueuesReply, error)
 	// ListRetentionPolicies Retention: per-table TimescaleDB chunk compression/dropping for the event
 	// hypertables, with live disk stats.
@@ -316,10 +331,12 @@ type IrisAdminServiceHTTPServer interface {
 	RunRetention(context.Context, *RunRetentionRequest) (*RunRetentionReply, error)
 	SaveAcmeAccount(context.Context, *SaveAcmeAccountRequest) (*AcmeAccount, error)
 	SeedDeliveryBlueprints(context.Context, *SeedDeliveryBlueprintsRequest) (*SeedDeliveryBlueprintsReply, error)
+	SendMonitoringProbe(context.Context, *SendMonitoringProbeRequest) (*MonitoringProbe, error)
 	SetAcmeDnsProvider(context.Context, *SetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	SetAutomationRuleStatus(context.Context, *SetAutomationRuleStatusRequest) (*AutomationRule, error)
 	SetDeliveryBlueprintStatus(context.Context, *SetDeliveryBlueprintStatusRequest) (*DeliveryBlueprint, error)
 	SetInjectionCredentialPassword(context.Context, *SetInjectionCredentialPasswordRequest) (*InjectionCredential, error)
+	SetMonitoringAccountPassword(context.Context, *SetMonitoringAccountPasswordRequest) (*MonitoringAccount, error)
 	TestBounceDiagnostic(context.Context, *TestBounceDiagnosticRequest) (*TestBounceDiagnosticReply, error)
 	TestEventProcessor(context.Context, *TestEventProcessorRequest) (*TestEventProcessorReply, error)
 	TestMonitorNotification(context.Context, *TestMonitorNotificationRequest) (*TestMonitorNotificationReply, error)
@@ -334,6 +351,7 @@ type IrisAdminServiceHTTPServer interface {
 	UpdateInjectionCredential(context.Context, *UpdateInjectionCredentialRequest) (*InjectionCredential, error)
 	UpdateListener(context.Context, *UpdateListenerRequest) (*Listener, error)
 	UpdateMonitorSettings(context.Context, *UpdateMonitorSettingsRequest) (*MonitorSettings, error)
+	UpdateMonitoringAccount(context.Context, *UpdateMonitoringAccountRequest) (*MonitoringAccount, error)
 	UpdateRetentionPolicy(context.Context, *UpdateRetentionPolicyRequest) (*RetentionPolicy, error)
 	UpdateRoutingRule(context.Context, *UpdateRoutingRuleRequest) (*RoutingRule, error)
 	UpdateSubjectClassification(context.Context, *UpdateSubjectClassificationRequest) (*SubjectClassification, error)
@@ -345,6 +363,7 @@ type IrisAdminServiceHTTPServer interface {
 	// VerifyMFA VerifyMFA completes a login by validating a TOTP code, upgrading the
 	// partially-authenticated session token to a fully-authenticated one.
 	VerifyMFA(context.Context, *VerifyMFARequest) (*LoginReply, error)
+	VerifyMonitoringAccount(context.Context, *VerifyMonitoringAccountRequest) (*VerifyMonitoringAccountReply, error)
 }
 
 func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTPServer) {
@@ -468,6 +487,15 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.PUT("/v1/injection-credentials/{id}", _IrisAdminService_UpdateInjectionCredential0_HTTP_Handler(srv))
 	r.POST("/v1/injection-credentials/{id}/password", _IrisAdminService_SetInjectionCredentialPassword0_HTTP_Handler(srv))
 	r.DELETE("/v1/injection-credentials/{id}", _IrisAdminService_DeleteInjectionCredential0_HTTP_Handler(srv))
+	r.GET("/v1/monitoring/accounts", _IrisAdminService_ListMonitoringAccounts0_HTTP_Handler(srv))
+	r.POST("/v1/monitoring/accounts", _IrisAdminService_CreateMonitoringAccount0_HTTP_Handler(srv))
+	r.PUT("/v1/monitoring/accounts/{id}", _IrisAdminService_UpdateMonitoringAccount0_HTTP_Handler(srv))
+	r.POST("/v1/monitoring/accounts/{id}/password", _IrisAdminService_SetMonitoringAccountPassword0_HTTP_Handler(srv))
+	r.DELETE("/v1/monitoring/accounts/{id}", _IrisAdminService_DeleteMonitoringAccount0_HTTP_Handler(srv))
+	r.POST("/v1/monitoring/accounts/{account_id}/probe", _IrisAdminService_SendMonitoringProbe0_HTTP_Handler(srv))
+	r.POST("/v1/monitoring/accounts:verify", _IrisAdminService_VerifyMonitoringAccount0_HTTP_Handler(srv))
+	r.GET("/v1/monitoring/accounts/{account_id}/probes", _IrisAdminService_ListMonitoringProbes0_HTTP_Handler(srv))
+	r.GET("/v1/monitoring/probes/{id}/raw", _IrisAdminService_GetMonitoringProbeRaw0_HTTP_Handler(srv))
 	r.GET("/v1/system-monitor", _IrisAdminService_GetSystemMonitor0_HTTP_Handler(srv))
 	r.PUT("/v1/system-monitor/settings", _IrisAdminService_UpdateMonitorSettings0_HTTP_Handler(srv))
 	r.POST("/v1/system-monitor:test", _IrisAdminService_TestMonitorNotification0_HTTP_Handler(srv))
@@ -3022,6 +3050,210 @@ func _IrisAdminService_DeleteInjectionCredential0_HTTP_Handler(srv IrisAdminServ
 	}
 }
 
+func _IrisAdminService_ListMonitoringAccounts0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListMonitoringAccountsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListMonitoringAccounts)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListMonitoringAccounts(ctx, req.(*ListMonitoringAccountsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListMonitoringAccountsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CreateMonitoringAccount0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateMonitoringAccountRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCreateMonitoringAccount)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateMonitoringAccount(ctx, req.(*CreateMonitoringAccountRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*MonitoringAccount)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateMonitoringAccount0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateMonitoringAccountRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateMonitoringAccount)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateMonitoringAccount(ctx, req.(*UpdateMonitoringAccountRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*MonitoringAccount)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_SetMonitoringAccountPassword0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SetMonitoringAccountPasswordRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceSetMonitoringAccountPassword)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SetMonitoringAccountPassword(ctx, req.(*SetMonitoringAccountPasswordRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*MonitoringAccount)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_DeleteMonitoringAccount0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteMonitoringAccountRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceDeleteMonitoringAccount)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteMonitoringAccount(ctx, req.(*DeleteMonitoringAccountRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteMonitoringAccountReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_SendMonitoringProbe0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SendMonitoringProbeRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceSendMonitoringProbe)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SendMonitoringProbe(ctx, req.(*SendMonitoringProbeRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*MonitoringProbe)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_VerifyMonitoringAccount0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in VerifyMonitoringAccountRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceVerifyMonitoringAccount)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.VerifyMonitoringAccount(ctx, req.(*VerifyMonitoringAccountRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*VerifyMonitoringAccountReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ListMonitoringProbes0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListMonitoringProbesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListMonitoringProbes)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListMonitoringProbes(ctx, req.(*ListMonitoringProbesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListMonitoringProbesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_GetMonitoringProbeRaw0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetMonitoringProbeRawRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetMonitoringProbeRaw)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetMonitoringProbeRaw(ctx, req.(*GetMonitoringProbeRawRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*MonitoringProbeRaw)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_GetSystemMonitor0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetSystemMonitorRequest
@@ -3105,6 +3337,7 @@ type IrisAdminServiceHTTPClient interface {
 	CreateInboundRoute(ctx context.Context, req *CreateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
 	CreateInjectionCredential(ctx context.Context, req *CreateInjectionCredentialRequest, opts ...http.CallOption) (rsp *InjectionCredential, err error)
 	CreateListener(ctx context.Context, req *CreateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
+	CreateMonitoringAccount(ctx context.Context, req *CreateMonitoringAccountRequest, opts ...http.CallOption) (rsp *MonitoringAccount, err error)
 	CreateRoutingRule(ctx context.Context, req *CreateRoutingRuleRequest, opts ...http.CallOption) (rsp *RoutingRule, err error)
 	CreateSubjectClassification(ctx context.Context, req *CreateSubjectClassificationRequest, opts ...http.CallOption) (rsp *SubjectClassification, err error)
 	CreateSuppression(ctx context.Context, req *CreateSuppressionRequest, opts ...http.CallOption) (rsp *Suppression, err error)
@@ -3122,6 +3355,7 @@ type IrisAdminServiceHTTPClient interface {
 	DeleteFeedbackLoop(ctx context.Context, req *DeleteFeedbackLoopRequest, opts ...http.CallOption) (rsp *DeleteFeedbackLoopReply, err error)
 	DeleteInboundRoute(ctx context.Context, req *DeleteInboundRouteRequest, opts ...http.CallOption) (rsp *DeleteInboundRouteReply, err error)
 	DeleteInjectionCredential(ctx context.Context, req *DeleteInjectionCredentialRequest, opts ...http.CallOption) (rsp *DeleteInjectionCredentialReply, err error)
+	DeleteMonitoringAccount(ctx context.Context, req *DeleteMonitoringAccountRequest, opts ...http.CallOption) (rsp *DeleteMonitoringAccountReply, err error)
 	DeleteSubjectClassification(ctx context.Context, req *DeleteSubjectClassificationRequest, opts ...http.CallOption) (rsp *DeleteSubjectClassificationReply, err error)
 	DeleteTLSPolicy(ctx context.Context, req *DeleteTLSPolicyRequest, opts ...http.CallOption) (rsp *DeleteTLSPolicyReply, err error)
 	// Diagnose Tools ---------------------------------------------------------------------
@@ -3154,6 +3388,7 @@ type IrisAdminServiceHTTPClient interface {
 	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(ctx context.Context, req *GetMetricsTimeseriesRequest, opts ...http.CallOption) (rsp *MetricsTimeseries, err error)
+	GetMonitoringProbeRaw(ctx context.Context, req *GetMonitoringProbeRawRequest, opts ...http.CallOption) (rsp *MonitoringProbeRaw, err error)
 	GetNextDeliveryAttempt(ctx context.Context, req *GetNextDeliveryAttemptRequest, opts ...http.CallOption) (rsp *NextDeliveryAttempt, err error)
 	// GetQueueTimeHistogram GetQueueTimeHistogram returns the delivery queue-time distribution (from the
 	// iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
@@ -3206,6 +3441,9 @@ type IrisAdminServiceHTTPClient interface {
 	ListListeners(ctx context.Context, req *ListListenersRequest, opts ...http.CallOption) (rsp *ListListenersReply, err error)
 	// ListMailRecords Mail operations ----------------------------------------------------------
 	ListMailRecords(ctx context.Context, req *ListMailRecordsRequest, opts ...http.CallOption) (rsp *ListMailRecordsReply, err error)
+	// ListMonitoringAccounts Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
+	ListMonitoringAccounts(ctx context.Context, req *ListMonitoringAccountsRequest, opts ...http.CallOption) (rsp *ListMonitoringAccountsReply, err error)
+	ListMonitoringProbes(ctx context.Context, req *ListMonitoringProbesRequest, opts ...http.CallOption) (rsp *ListMonitoringProbesReply, err error)
 	ListQueues(ctx context.Context, req *ListQueuesRequest, opts ...http.CallOption) (rsp *ListQueuesReply, err error)
 	// ListRetentionPolicies Retention: per-table TimescaleDB chunk compression/dropping for the event
 	// hypertables, with live disk stats.
@@ -3259,10 +3497,12 @@ type IrisAdminServiceHTTPClient interface {
 	RunRetention(ctx context.Context, req *RunRetentionRequest, opts ...http.CallOption) (rsp *RunRetentionReply, err error)
 	SaveAcmeAccount(ctx context.Context, req *SaveAcmeAccountRequest, opts ...http.CallOption) (rsp *AcmeAccount, err error)
 	SeedDeliveryBlueprints(ctx context.Context, req *SeedDeliveryBlueprintsRequest, opts ...http.CallOption) (rsp *SeedDeliveryBlueprintsReply, err error)
+	SendMonitoringProbe(ctx context.Context, req *SendMonitoringProbeRequest, opts ...http.CallOption) (rsp *MonitoringProbe, err error)
 	SetAcmeDnsProvider(ctx context.Context, req *SetAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	SetAutomationRuleStatus(ctx context.Context, req *SetAutomationRuleStatusRequest, opts ...http.CallOption) (rsp *AutomationRule, err error)
 	SetDeliveryBlueprintStatus(ctx context.Context, req *SetDeliveryBlueprintStatusRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
 	SetInjectionCredentialPassword(ctx context.Context, req *SetInjectionCredentialPasswordRequest, opts ...http.CallOption) (rsp *InjectionCredential, err error)
+	SetMonitoringAccountPassword(ctx context.Context, req *SetMonitoringAccountPasswordRequest, opts ...http.CallOption) (rsp *MonitoringAccount, err error)
 	TestBounceDiagnostic(ctx context.Context, req *TestBounceDiagnosticRequest, opts ...http.CallOption) (rsp *TestBounceDiagnosticReply, err error)
 	TestEventProcessor(ctx context.Context, req *TestEventProcessorRequest, opts ...http.CallOption) (rsp *TestEventProcessorReply, err error)
 	TestMonitorNotification(ctx context.Context, req *TestMonitorNotificationRequest, opts ...http.CallOption) (rsp *TestMonitorNotificationReply, err error)
@@ -3277,6 +3517,7 @@ type IrisAdminServiceHTTPClient interface {
 	UpdateInjectionCredential(ctx context.Context, req *UpdateInjectionCredentialRequest, opts ...http.CallOption) (rsp *InjectionCredential, err error)
 	UpdateListener(ctx context.Context, req *UpdateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
 	UpdateMonitorSettings(ctx context.Context, req *UpdateMonitorSettingsRequest, opts ...http.CallOption) (rsp *MonitorSettings, err error)
+	UpdateMonitoringAccount(ctx context.Context, req *UpdateMonitoringAccountRequest, opts ...http.CallOption) (rsp *MonitoringAccount, err error)
 	UpdateRetentionPolicy(ctx context.Context, req *UpdateRetentionPolicyRequest, opts ...http.CallOption) (rsp *RetentionPolicy, err error)
 	UpdateRoutingRule(ctx context.Context, req *UpdateRoutingRuleRequest, opts ...http.CallOption) (rsp *RoutingRule, err error)
 	UpdateSubjectClassification(ctx context.Context, req *UpdateSubjectClassificationRequest, opts ...http.CallOption) (rsp *SubjectClassification, err error)
@@ -3288,6 +3529,7 @@ type IrisAdminServiceHTTPClient interface {
 	// VerifyMFA VerifyMFA completes a login by validating a TOTP code, upgrading the
 	// partially-authenticated session token to a fully-authenticated one.
 	VerifyMFA(ctx context.Context, req *VerifyMFARequest, opts ...http.CallOption) (rsp *LoginReply, err error)
+	VerifyMonitoringAccount(ctx context.Context, req *VerifyMonitoringAccountRequest, opts ...http.CallOption) (rsp *VerifyMonitoringAccountReply, err error)
 }
 
 type IrisAdminServiceHTTPClientImpl struct {
@@ -3485,6 +3727,19 @@ func (c *IrisAdminServiceHTTPClientImpl) CreateListener(ctx context.Context, in 
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) CreateMonitoringAccount(ctx context.Context, in *CreateMonitoringAccountRequest, opts ...http.CallOption) (*MonitoringAccount, error) {
+	var out MonitoringAccount
+	pattern := "/v1/monitoring/accounts"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateMonitoringAccount))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) CreateRoutingRule(ctx context.Context, in *CreateRoutingRuleRequest, opts ...http.CallOption) (*RoutingRule, error) {
 	var out RoutingRule
 	pattern := "/v1/routing-rules"
@@ -3674,6 +3929,19 @@ func (c *IrisAdminServiceHTTPClientImpl) DeleteInjectionCredential(ctx context.C
 	pattern := "/v1/injection-credentials/{id}"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteInjectionCredential))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) DeleteMonitoringAccount(ctx context.Context, in *DeleteMonitoringAccountRequest, opts ...http.CallOption) (*DeleteMonitoringAccountReply, error) {
+	var out DeleteMonitoringAccountReply
+	pattern := "/v1/monitoring/accounts/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteMonitoringAccount))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {
@@ -3886,6 +4154,19 @@ func (c *IrisAdminServiceHTTPClientImpl) GetMetricsTimeseries(ctx context.Contex
 	pattern := "/v1/dashboard/metrics"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceGetMetricsTimeseries))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) GetMonitoringProbeRaw(ctx context.Context, in *GetMonitoringProbeRawRequest, opts ...http.CallOption) (*MonitoringProbeRaw, error) {
+	var out MonitoringProbeRaw
+	pattern := "/v1/monitoring/probes/{id}/raw"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetMonitoringProbeRaw))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -4238,6 +4519,33 @@ func (c *IrisAdminServiceHTTPClientImpl) ListMailRecords(ctx context.Context, in
 	pattern := "/v1/mail-records"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListMailRecords))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListMonitoringAccounts Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
+func (c *IrisAdminServiceHTTPClientImpl) ListMonitoringAccounts(ctx context.Context, in *ListMonitoringAccountsRequest, opts ...http.CallOption) (*ListMonitoringAccountsReply, error) {
+	var out ListMonitoringAccountsReply
+	pattern := "/v1/monitoring/accounts"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListMonitoringAccounts))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) ListMonitoringProbes(ctx context.Context, in *ListMonitoringProbesRequest, opts ...http.CallOption) (*ListMonitoringProbesReply, error) {
+	var out ListMonitoringProbesReply
+	pattern := "/v1/monitoring/accounts/{account_id}/probes"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListMonitoringProbes))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -4611,6 +4919,19 @@ func (c *IrisAdminServiceHTTPClientImpl) SeedDeliveryBlueprints(ctx context.Cont
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) SendMonitoringProbe(ctx context.Context, in *SendMonitoringProbeRequest, opts ...http.CallOption) (*MonitoringProbe, error) {
+	var out MonitoringProbe
+	pattern := "/v1/monitoring/accounts/{account_id}/probe"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceSendMonitoringProbe))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) SetAcmeDnsProvider(ctx context.Context, in *SetAcmeDnsProviderRequest, opts ...http.CallOption) (*AcmeDnsProvider, error) {
 	var out AcmeDnsProvider
 	pattern := "/v1/acme/dns-provider"
@@ -4655,6 +4976,19 @@ func (c *IrisAdminServiceHTTPClientImpl) SetInjectionCredentialPassword(ctx cont
 	pattern := "/v1/injection-credentials/{id}/password"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceSetInjectionCredentialPassword))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) SetMonitoringAccountPassword(ctx context.Context, in *SetMonitoringAccountPasswordRequest, opts ...http.CallOption) (*MonitoringAccount, error) {
+	var out MonitoringAccount
+	pattern := "/v1/monitoring/accounts/{id}/password"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceSetMonitoringAccountPassword))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -4845,6 +5179,19 @@ func (c *IrisAdminServiceHTTPClientImpl) UpdateMonitorSettings(ctx context.Conte
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) UpdateMonitoringAccount(ctx context.Context, in *UpdateMonitoringAccountRequest, opts ...http.CallOption) (*MonitoringAccount, error) {
+	var out MonitoringAccount
+	pattern := "/v1/monitoring/accounts/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateMonitoringAccount))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) UpdateRetentionPolicy(ctx context.Context, in *UpdateRetentionPolicyRequest, opts ...http.CallOption) (*RetentionPolicy, error) {
 	var out RetentionPolicy
 	pattern := "/v1/retention/{table_name}"
@@ -4956,6 +5303,19 @@ func (c *IrisAdminServiceHTTPClientImpl) VerifyMFA(ctx context.Context, in *Veri
 	pattern := "/v1/auth:verify-mfa"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceVerifyMFA))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) VerifyMonitoringAccount(ctx context.Context, in *VerifyMonitoringAccountRequest, opts ...http.CallOption) (*VerifyMonitoringAccountReply, error) {
+	var out VerifyMonitoringAccountReply
+	pattern := "/v1/monitoring/accounts:verify"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceVerifyMonitoringAccount))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {

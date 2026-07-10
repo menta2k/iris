@@ -36,10 +36,11 @@ overview and quick start, see the [root README](../README.md).
 | --- | --- |
 | [DKIM](dkim.md) | DKIM key management and signing |
 | [Suppressions](suppressions.md) | The Redis-backed suppression list and TTLs |
-| [Require TLS](tls-policies.md) | Forcing TLS to specific destination domains |
+| [TLS Policy](tls-policies.md) | Per-domain outbound TLS: require, relax, or disable (for broken-cert receivers) |
 | [Bounce handling](bounce-handling.md) | DSN capture, VERP, classification, auto-suppression |
 | [Feedback loops](feedback-loops.md) | ARF complaint ingestion and provenance verification |
 | [DMARC reports](dmarc.md) | Aggregate-report capture and parsing |
+| [Inbox monitoring](inbox-monitoring.md) | Seed-mailbox probes: inbox-vs-spam placement and header-based spam-risk analysis |
 
 ## Inbound
 

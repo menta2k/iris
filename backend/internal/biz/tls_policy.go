@@ -4,14 +4,22 @@ import "strings"
 
 // TLS policy modes. They map to KumoMTA's egress-path enable_tls values:
 //
-//	TLSModeRequired         -> "Required"         (STARTTLS + valid certificate)
-//	TLSModeRequiredInsecure -> "RequiredInsecure" (STARTTLS, skip cert validation)
+//	TLSModeRequired              -> "Required"              (STARTTLS + valid certificate)
+//	TLSModeRequiredInsecure      -> "RequiredInsecure"      (STARTTLS, skip cert validation)
+//	TLSModeOpportunisticInsecure -> "OpportunisticInsecure" (try TLS, skip cert, fall back to cleartext)
+//	TLSModeDisabled              -> "Disabled"              (never STARTTLS; deliver in cleartext)
 //
-// Both refuse to deliver in cleartext: if the remote does not advertise
-// STARTTLS the delivery fails rather than falling back to an unencrypted send.
+// The first two REQUIRE TLS: if the remote does not advertise STARTTLS the
+// delivery fails rather than falling back to cleartext. The last two RELAX it —
+// Disabled is the escape hatch for receivers whose TLS certificate kumod cannot
+// even parse (e.g. legacy X.509 v1 certs → UnsupportedCertVersion), where even
+// the OpportunisticInsecure default hard-fails the handshake and mail cannot
+// deliver at all.
 const (
-	TLSModeRequired         = "required"
-	TLSModeRequiredInsecure = "required_insecure"
+	TLSModeRequired              = "required"
+	TLSModeRequiredInsecure      = "required_insecure"
+	TLSModeOpportunisticInsecure = "opportunistic_insecure"
+	TLSModeDisabled              = "disabled"
 )
 
 // TLS policy status values.
@@ -35,10 +43,16 @@ type TLSPolicy struct {
 
 // EnableTLSValue returns the KumoMTA enable_tls string for the policy's mode.
 func (p *TLSPolicy) EnableTLSValue() string {
-	if p.Mode == TLSModeRequiredInsecure {
+	switch p.Mode {
+	case TLSModeRequiredInsecure:
 		return "RequiredInsecure"
+	case TLSModeOpportunisticInsecure:
+		return "OpportunisticInsecure"
+	case TLSModeDisabled:
+		return "Disabled"
+	default:
+		return "Required"
 	}
-	return "Required"
 }
 
 // Validate normalizes and checks a TLS policy before persistence.
@@ -58,7 +72,7 @@ func (p *TLSPolicy) Validate() error {
 		return Invalid("TLS_POLICY_DOMAIN_INVALID", "domain %q is not a valid DNS name", p.Domain)
 	}
 	switch p.Mode {
-	case TLSModeRequired, TLSModeRequiredInsecure:
+	case TLSModeRequired, TLSModeRequiredInsecure, TLSModeOpportunisticInsecure, TLSModeDisabled:
 	default:
 		return Invalid("TLS_POLICY_MODE_INVALID", "mode %q is not valid", p.Mode)
 	}

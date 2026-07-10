@@ -112,6 +112,14 @@ type GlobalSettings struct {
 	ClassifyThreshold float64 // trigram similarity cutoff, 0..1
 	ClassifyAPIBase   string  // OpenAI-compatible base URL
 
+	// Inbox-placement monitoring policy. MonitoringFrom is the fallback probe
+	// sender for accounts with no from_address. The three durations tune the
+	// probe pipeline; empty uses the built-in defaults (1h / 30s / 2h).
+	MonitoringFrom              string
+	MonitoringReconcileLookback string
+	MonitoringFetchTimeout      string
+	MonitoringFetchGiveUp       string
+
 	UpdatedAt time.Time
 	UpdatedBy string
 }
@@ -261,6 +269,25 @@ func (g *GlobalSettings) Validate() error {
 	}
 	if g.ClassifyThreshold > 1 {
 		return Invalid("SETTINGS_CLASSIFY_THRESHOLD_RANGE", "classify_threshold must be between 0 and 1")
+	}
+
+	// Inbox-monitoring policy. The sender must be a valid email when set; each
+	// tuning value must be a valid duration when set (empty = built-in default).
+	g.MonitoringFrom = SanitizeAddress(g.MonitoringFrom)
+	if g.MonitoringFrom != "" && !isValidEmail(g.MonitoringFrom) {
+		return Invalid("SETTINGS_MONITORING_FROM_INVALID", "monitoring_from %q is not a valid email address", g.MonitoringFrom)
+	}
+	g.MonitoringReconcileLookback = strings.TrimSpace(g.MonitoringReconcileLookback)
+	g.MonitoringFetchTimeout = strings.TrimSpace(g.MonitoringFetchTimeout)
+	g.MonitoringFetchGiveUp = strings.TrimSpace(g.MonitoringFetchGiveUp)
+	for field, v := range map[string]string{
+		"monitoring_reconcile_lookback": g.MonitoringReconcileLookback,
+		"monitoring_fetch_timeout":      g.MonitoringFetchTimeout,
+		"monitoring_fetch_giveup":       g.MonitoringFetchGiveUp,
+	} {
+		if v != "" && !kumoDurationRe.MatchString(v) {
+			return Invalid("SETTINGS_DURATION_INVALID", "%s %q is not a valid duration (e.g. 30s, 1h, 2h)", field, v)
+		}
 	}
 
 	// ACME renew schedule.

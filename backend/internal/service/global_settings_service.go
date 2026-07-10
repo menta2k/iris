@@ -59,6 +59,11 @@ func (s *Service) UpdateGlobalSettings(ctx context.Context, req *adminv1.UpdateG
 		InjectionPath:           req.GetInjectionPath(),
 		InjectionTLSEnabled:     req.GetInjectionTlsEnabled(),
 		InjectionTLSCertDomain:  req.GetInjectionTlsCertDomain(),
+
+		MonitoringFrom:              req.GetMonitoringFrom(),
+		MonitoringReconcileLookback: req.GetMonitoringReconcileLookback(),
+		MonitoringFetchTimeout:      req.GetMonitoringFetchTimeout(),
+		MonitoringFetchGiveUp:       req.GetMonitoringFetchGiveup(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "UpdateGlobalSettings", err)
@@ -105,7 +110,13 @@ func settingsToProto(g *biz.GlobalSettings) *adminv1.GlobalSettings {
 		InjectionPath:           g.InjectionPath,
 		InjectionTlsEnabled:     g.InjectionTLSEnabled,
 		InjectionTlsCertDomain:  g.InjectionTLSCertDomain,
-		UpdatedAt:               updatedAt,
+
+		MonitoringFrom:              g.MonitoringFrom,
+		MonitoringReconcileLookback: g.MonitoringReconcileLookback,
+		MonitoringFetchTimeout:      g.MonitoringFetchTimeout,
+		MonitoringFetchGiveup:       g.MonitoringFetchGiveUp,
+
+		UpdatedAt: updatedAt,
 		UpdatedBy:               g.UpdatedBy,
 	}
 }

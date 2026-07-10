@@ -28,8 +28,10 @@ const { items, loading, error, notImplemented, load } = useAsyncList<TLSPolicy>(
 const { toast } = useToast()
 
 const MODES: { value: TLSPolicyMode; label: string }[] = [
-  { value: 'required', label: 'required (STARTTLS + valid cert)' },
-  { value: 'required_insecure', label: 'required_insecure (STARTTLS, skip cert)' },
+  { value: 'required', label: 'Required — STARTTLS + valid cert (fail if unavailable)' },
+  { value: 'required_insecure', label: 'Required insecure — STARTTLS, skip cert (fail if unavailable)' },
+  { value: 'opportunistic_insecure', label: 'Opportunistic insecure — try TLS, fall back to cleartext' },
+  { value: 'disabled', label: 'Disabled — never use TLS, deliver in cleartext' },
 ]
 const MODE_ITEMS = MODES.map((m) => ({ title: m.label, value: m.value }))
 
@@ -48,7 +50,7 @@ async function submit() {
   saving.value = true
   try {
     await domainSafetyService.createTLSPolicy({ domain: form.value.domain, mode: form.value.mode })
-    toast({ title: 'Require-TLS domain added', description: form.value.domain, variant: 'success' })
+    toast({ title: 'TLS policy added', description: form.value.domain, variant: 'success' })
     dialogOpen.value = false
     await load()
   } catch (err) {
@@ -63,7 +65,7 @@ async function remove(p: TLSPolicy) {
   deletingId.value = p.id
   try {
     await domainSafetyService.deleteTLSPolicy(p.id)
-    toast({ title: 'Require-TLS domain removed', description: p.domain, variant: 'success' })
+    toast({ title: 'TLS policy removed', description: p.domain, variant: 'success' })
     await load()
   } catch (err) {
     const msg = err instanceof ApiError ? err.message : 'Failed to delete policy.'
@@ -77,8 +79,8 @@ async function remove(p: TLSPolicy) {
 <template>
   <div>
     <PageHeader
-      title="Require TLS"
-      description="Destination domains that must be delivered over TLS. When STARTTLS is unavailable, kumod refuses to send in cleartext (the delivery is rejected and logged)."
+      title="TLS Policy"
+      description="Per-destination-domain TLS policy for outbound delivery. Require TLS (fail rather than send in cleartext) for sensitive domains, or relax/disable it for receivers whose broken or legacy certificate kumod cannot negotiate — Disabled delivers in cleartext so mail gets through instead of deferring and bouncing."
     >
       <template #actions>
         <Button data-testid="create-tls-policy" @click="openCreate">Add Domain</Button>
@@ -89,7 +91,7 @@ async function remove(p: TLSPolicy) {
       :error="error"
       :not-implemented="notImplemented"
       :empty="items.length === 0"
-      empty-message="No require-TLS domains configured."
+      empty-message="No TLS policies configured. Domains without a policy use opportunistic TLS (encrypt if offered, never hard-fail)."
     >
       <Card>
         <CardContent class="pa-0">
@@ -105,7 +107,9 @@ async function remove(p: TLSPolicy) {
             <TableBody>
               <TableRow v-for="p in items" :key="p.id">
                 <TableCell class="font-weight-medium">{{ p.domain }}</TableCell>
-                <TableCell><Badge variant="outline">{{ p.mode }}</Badge></TableCell>
+                <TableCell>
+                  <Badge :variant="p.mode === 'disabled' ? 'warning' : p.mode === 'opportunistic_insecure' ? 'secondary' : 'success'">{{ p.mode }}</Badge>
+                </TableCell>
                 <TableCell><StatusBadge :status="p.status" /></TableCell>
                 <TableCell class="text-right">
                   <Button
@@ -127,7 +131,7 @@ async function remove(p: TLSPolicy) {
 
     <Dialog v-model:open="dialogOpen">
       <DialogHeader>
-        <DialogTitle>Add Require-TLS Domain</DialogTitle>
+        <DialogTitle>Add TLS Policy</DialogTitle>
       </DialogHeader>
       <form class="d-flex flex-column ga-4" @submit.prevent="submit">
         <div class="d-flex flex-column ga-1">

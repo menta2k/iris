@@ -195,6 +195,20 @@ export const routes: RouteRecordRaw[] = [
         meta: { permission: 'service:control', title: 'Domain Bounce Readiness' },
       },
 
+      // Inbox-placement monitoring
+      {
+        path: 'monitoring/inbox',
+        name: 'inbox-accounts',
+        component: () => import('@/pages/monitoring/InboxAccountsPage.vue'),
+        meta: { permission: 'operations:read', title: 'ESP Monitoring' },
+      },
+      {
+        path: 'monitoring/inbox/:id/probes',
+        name: 'inbox-probes',
+        component: () => import('@/pages/monitoring/InboxProbesPage.vue'),
+        meta: { permission: 'operations:read', title: 'Inbox Probes' },
+      },
+
       // Domain safety
       {
         path: 'domain-safety/dkim',
@@ -212,7 +226,7 @@ export const routes: RouteRecordRaw[] = [
         path: 'domain-safety/require-tls',
         name: 'require-tls',
         component: () => import('@/pages/domain-safety/RequireTlsPage.vue'),
-        meta: { permission: 'domain-safety:read', title: 'Require TLS' },
+        meta: { permission: 'domain-safety:read', title: 'TLS Policy' },
       },
 
       // Inbound automation
