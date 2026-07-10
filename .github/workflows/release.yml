@@ -178,17 +178,24 @@ jobs:
       contents: write # delete old GitHub Releases
       packages: write # delete old GHCR versions
     steps:
-      - name: Prune GHCR image versions (keep last 5)
-        uses: actions/delete-package-versions@v5
+      - name: Prune GHCR image versions (keep last 5 releases)
+        # dataaxiom handles pagination robustly (actions/delete-package-versions
+        # 404s when pruning a large backlog). keep-n-tagged counts image versions,
+        # and with provenance disabled each release is one multi-tagged version —
+        # so 5 = the last 5 releases. Untagged/partial cruft is swept too.
+        uses: dataaxiom/ghcr-cleanup-action@v1
         with:
-          # The GHCR package for ghcr.io/<owner>/iris is named after the repo.
-          package-name: ${{ github.event.repository.name }}
-          package-type: container
-          min-versions-to-keep: 5
+          package: ${{ github.event.repository.name }}
+          keep-n-tagged: 5
+          delete-untagged: true
+          delete-partial-images: true
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Prune GitHub Releases (keep last 5)
-        # Removes older Release objects only; git tags are preserved so the
-        # version history and any deployments pinned to a tag stay intact.
+        # Independent of the image prune (if: always) so a registry hiccup can't
+        # block it. Removes older Release objects only; git tags are preserved so
+        # the version history and any tag-pinned deployments stay intact.
+        if: always()
         uses: dev-drprasad/delete-older-releases@v0.3.4
         with:
           keep_latest: 5
