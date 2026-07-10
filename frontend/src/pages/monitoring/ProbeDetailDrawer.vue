@@ -94,7 +94,9 @@ const phases = computed<PhaseStep[]>(() => {
     fetch.detail = `First mailbox check ${fmtRelative(fetchAt - now)} (${props.account?.fetchDelay || '10m'} after send). ${p.error ? `Last error: ${p.error}` : ''}`
   } else {
     fetch.state = 'active'
-    fetch.detail = `Checking the mailbox each minute… ${p.error ? `Last error: ${p.error}` : ''}`
+    fetch.detail = p.error
+      ? `Retrying with backoff — last error: ${p.error}. See the event log for the next attempt.`
+      : 'Checking the mailbox (retries back off exponentially). See the event log for attempts.'
   }
 
   // Phase 3 — Analyze

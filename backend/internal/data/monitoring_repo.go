@@ -458,7 +458,7 @@ func (r *MonitoringRepo) ProbesAwaitingSend(ctx context.Context, since time.Time
 // string, so due-filtering is done in Go after the JOIN.
 func (r *MonitoringRepo) ProbesAwaitingFetch(ctx context.Context, now time.Time) ([]*biz.ProbeFetchCandidate, error) {
 	rows, err := r.db.Pool.Query(ctx, `
-		SELECT `+probeColsP+`, `+accountColsP+`
+		SELECT `+probeColsP+`, p.fetch_attempts, p.next_fetch_at, `+accountColsP+`
 		FROM monitoring_probes p
 		JOIN monitoring_accounts a ON a.id = p.account_id
 		WHERE p.mailbox_status = $1
@@ -474,7 +474,9 @@ func (r *MonitoringRepo) ProbesAwaitingFetch(ctx context.Context, now time.Time)
 	for rows.Next() {
 		p := &biz.MonitoringProbe{}
 		a := &biz.MonitoringAccount{}
-		if err := rows.Scan(probeScanArgs(p, accountScanArgs(a)...)...); err != nil {
+		// Scan order: probe cols, fetch_attempts, next_fetch_at, then account cols.
+		args := probeScanArgs(p, append([]any{&p.FetchAttempts, &p.NextFetchAt}, accountScanArgs(a)...)...)
+		if err := rows.Scan(args...); err != nil {
 			return nil, fmt.Errorf("scan fetch candidate: %w", err)
 		}
 		if dueForFetch(p, a, now) {
@@ -484,14 +486,38 @@ func (r *MonitoringRepo) ProbesAwaitingFetch(ctx context.Context, now time.Time)
 	return out, rows.Err()
 }
 
-// dueForFetch reports whether now is past the probe's sent_at + account fetch
-// delay (default 10m when unset/invalid).
+// dueForFetch reports whether a probe is eligible for a fetch attempt now: past
+// its initial sent_at + fetch delay (default 10m), and — for retries — past its
+// backoff window (next_fetch_at).
 func dueForFetch(p *biz.MonitoringProbe, a *biz.MonitoringAccount, now time.Time) bool {
 	delay, ok := biz.ParseFlexDuration(a.FetchDelay)
 	if !ok || delay <= 0 {
 		delay = 10 * time.Minute
 	}
-	return !now.Before(p.SentAt.Add(delay))
+	if now.Before(p.SentAt.Add(delay)) {
+		return false
+	}
+	if p.NextFetchAt != nil && now.Before(*p.NextFetchAt) {
+		return false
+	}
+	return true
+}
+
+// ScheduleNextFetch records a failed/not-found fetch attempt: bumps the attempt
+// count, sets the next-eligible time (backoff), stores the last error, and keeps
+// the probe pending.
+func (r *MonitoringRepo) ScheduleNextFetch(ctx context.Context, id string, attempts int, nextAt time.Time, errMsg string) error {
+	_, err := r.db.Pool.Exec(ctx, `
+		UPDATE monitoring_probes SET
+			fetch_attempts = $2,
+			next_fetch_at = $3,
+			error = $4,
+			updated_at = now()
+		WHERE id = $1`, id, attempts, nextAt, errMsg)
+	if err != nil {
+		return fmt.Errorf("schedule next fetch: %w", err)
+	}
+	return nil
 }
 
 // UpdateProbeMailbox records the phase-2 mailbox fetch outcome.

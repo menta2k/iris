@@ -535,18 +535,19 @@ func probeVerdict(analysisJSON string) string {
 func (uc *MonitoringUsecase) giveUpOrRetry(ctx context.Context, c *ProbeFetchCandidate, pol MonitoringPolicy, terminalStatus, errMsg string) bool {
 	elapsed := uc.now().Sub(c.Probe.SentAt)
 	if elapsed < pol.FetchGiveUp {
-		// Still within the retry window: only surface the last error, stay pending.
-		if errMsg != "" {
-			_ = uc.repo.UpdateProbeMailbox(ctx, c.Probe.ID, ProbeMailboxUpdate{
-				MailboxStatus: ProbeMailboxPending,
-				Placement:     c.Probe.Placement,
-				Error:         errMsg,
-			})
-			// Log the error once (deduped against the last-recorded error) so an
-			// operator sees e.g. a Gmail auth failure without a flood of retries.
-			if errMsg != c.Probe.Error {
-				uc.event(ctx, c.Probe.ID, ProbePhaseFetch, ProbeEventError, "Mailbox fetch attempt failed: "+errMsg)
-			}
+		// Still within the retry window: schedule the next attempt with exponential
+		// backoff so a rate-limiting mailbox server (e.g. abv.bg POP3 resetting the
+		// connection) isn't hammered every minute.
+		attempts := c.Probe.FetchAttempts + 1
+		nextAt := uc.now().Add(fetchBackoff(attempts))
+		if err := uc.repo.ScheduleNextFetch(ctx, c.Probe.ID, attempts, nextAt, errMsg); err != nil {
+			LoggerFrom(ctx).Warn("schedule next fetch failed", "probe", c.Probe.ID, "error", err.Error())
+		}
+		// Log a new error once (deduped against the last-recorded error) so an
+		// operator sees e.g. a POP3 reset without a flood of retry lines.
+		if errMsg != "" && errMsg != c.Probe.Error {
+			uc.event(ctx, c.Probe.ID, ProbePhaseFetch, ProbeEventError,
+				fmt.Sprintf("Mailbox fetch attempt %d failed: %s (next try %s).", attempts, errMsg, fetchBackoff(attempts).Round(time.Minute)))
 		}
 		return false
 	}
@@ -602,6 +603,26 @@ func (uc *MonitoringUsecase) analyzeHeaders(ctx context.Context, rawHeaders stri
 		return ""
 	}
 	return string(buf)
+}
+
+// fetchBackoff returns how long to wait before the next mailbox-fetch attempt,
+// given how many attempts have already been made: exponential (1m, 2m, 4m, 8m,
+// 16m) capped at 30m. This keeps iris from pounding a rate-limiting IMAP/POP3
+// server every minute for the whole give-up window.
+func fetchBackoff(attempts int) time.Duration {
+	const base = time.Minute
+	const maxBackoff = 30 * time.Minute
+	if attempts < 1 {
+		attempts = 1
+	}
+	if attempts > 20 { // guard the shift against overflow
+		return maxBackoff
+	}
+	d := base << (attempts - 1)
+	if d <= 0 || d > maxBackoff {
+		return maxBackoff
+	}
+	return d
 }
 
 // placementFromFolder maps the IMAP folder a probe was found in to a placement.

@@ -2,10 +2,13 @@ package biz
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
 )
+
+var errPOP3Reset = errors.New("pop3 dial pop3.abv.bg:995: connection reset by peer")
 
 func monitorCtx() context.Context {
 	return WithIdentity(context.Background(), &Identity{
@@ -27,7 +30,15 @@ type fakeMonitoringRepo struct {
 	secrets        map[string]string
 	fetchCands     []*ProbeFetchCandidate
 	mailboxUpdates []mailboxUpdateRecord
+	scheduled      []scheduledFetch
 	events         []ProbeEvent
+}
+
+type scheduledFetch struct {
+	id       string
+	attempts int
+	nextAt   time.Time
+	err      string
 }
 
 func newFakeMonitoringRepo() *fakeMonitoringRepo {
@@ -105,6 +116,10 @@ func (f *fakeMonitoringRepo) ProbesAwaitingFetch(context.Context, time.Time) ([]
 }
 func (f *fakeMonitoringRepo) UpdateProbeMailbox(_ context.Context, id string, u ProbeMailboxUpdate) error {
 	f.mailboxUpdates = append(f.mailboxUpdates, mailboxUpdateRecord{id: id, update: u})
+	return nil
+}
+func (f *fakeMonitoringRepo) ScheduleNextFetch(_ context.Context, id string, attempts int, nextAt time.Time, errMsg string) error {
+	f.scheduled = append(f.scheduled, scheduledFetch{id: id, attempts: attempts, nextAt: nextAt, err: errMsg})
 	return nil
 }
 func (f *fakeMonitoringRepo) ProbeRaw(context.Context, string) (*ProbeRawMessage, error) {
@@ -398,6 +413,47 @@ func TestRunDueFetchesNotFoundRetriesThenGivesUp(t *testing.T) {
 	u := repo2.mailboxUpdates[len(repo2.mailboxUpdates)-1].update
 	if u.MailboxStatus != ProbeMailboxNotFound || u.Placement != PlacementMissing {
 		t.Errorf("status=%q placement=%q, want not_found/missing", u.MailboxStatus, u.Placement)
+	}
+}
+
+func TestFetchBackoff(t *testing.T) {
+	cases := map[int]time.Duration{
+		0: time.Minute, 1: time.Minute, 2: 2 * time.Minute, 3: 4 * time.Minute,
+		4: 8 * time.Minute, 5: 16 * time.Minute, 6: 30 * time.Minute, 100: 30 * time.Minute,
+	}
+	for attempts, want := range cases {
+		if got := fetchBackoff(attempts); got != want {
+			t.Errorf("fetchBackoff(%d) = %v, want %v", attempts, got, want)
+		}
+	}
+}
+
+func TestRunDueFetchesSchedulesBackoff(t *testing.T) {
+	now := time.Unix(1_700_000_000, 0)
+	repo := newFakeMonitoringRepo()
+	c := candidate(30*time.Minute, now) // within give-up window
+	c.Probe.FetchAttempts = 2           // next attempt is the 3rd → 4m backoff
+	repo.fetchCands = []*ProbeFetchCandidate{c}
+	f := &fakeFetcher{err: errPOP3Reset} // connection error → retry
+	uc := NewMonitoringUsecase(repo, &recordingInjector{}, nil).
+		WithClock(func() time.Time { return now }).WithFetcher(f)
+
+	if _, err := uc.RunDueFetches(fetchCtx()); err != nil {
+		t.Fatal(err)
+	}
+	if len(repo.scheduled) != 1 {
+		t.Fatalf("expected 1 scheduled retry, got %d", len(repo.scheduled))
+	}
+	s := repo.scheduled[0]
+	if s.attempts != 3 {
+		t.Errorf("attempts = %d, want 3", s.attempts)
+	}
+	if !s.nextAt.Equal(now.Add(4 * time.Minute)) {
+		t.Errorf("nextAt = %v, want now+4m", s.nextAt)
+	}
+	// No terminal mailbox update while still retrying.
+	if len(repo.mailboxUpdates) != 0 {
+		t.Errorf("expected no terminal update during backoff, got %d", len(repo.mailboxUpdates))
 	}
 }
 

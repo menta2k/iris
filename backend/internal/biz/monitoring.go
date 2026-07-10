@@ -165,6 +165,10 @@ type MonitoringProbe struct {
 	Analysis      string // JSON
 	RawHeaders    string
 	Error         string
+	// FetchAttempts / NextFetchAt drive per-probe fetch backoff. Internal
+	// (populated only for the fetch worker); not returned by list/get.
+	FetchAttempts int
+	NextFetchAt   *time.Time
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }
@@ -202,6 +206,10 @@ type MonitoringRepo interface {
 	ProbesAwaitingFetch(ctx context.Context, now time.Time) ([]*ProbeFetchCandidate, error)
 	// UpdateProbeMailbox records the phase-2 mailbox fetch outcome.
 	UpdateProbeMailbox(ctx context.Context, id string, u ProbeMailboxUpdate) error
+	// ScheduleNextFetch records a failed/not-found fetch attempt: bumps the
+	// attempt count, sets when the next attempt is eligible (backoff), and stores
+	// the last error, keeping the probe pending.
+	ScheduleNextFetch(ctx context.Context, id string, attempts int, nextAt time.Time, errMsg string) error
 	// ProbeRaw returns the stored raw headers + full message for a probe (loaded
 	// on demand — the raw message is excluded from the probe list).
 	ProbeRaw(ctx context.Context, id string) (*ProbeRawMessage, error)
