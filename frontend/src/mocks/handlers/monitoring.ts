@@ -107,6 +107,17 @@ export const monitoringRoutes: Route[] = [
   },
   {
     method: 'POST',
+    pattern: '/monitoring/accounts:verify',
+    handler: (ctx) => {
+      const b = ctx.body as { host?: string; password?: string; id?: string }
+      // Dev mock: succeed when a host is present and a password is supplied or an
+      // existing account is referenced.
+      if (b.host && (b.password || b.id)) return ok({ ok: true })
+      return ok({ ok: false, error: 'Mock: missing host or password.' })
+    },
+  },
+  {
+    method: 'POST',
     pattern: '/monitoring/accounts/:id/probe',
     handler: (ctx) => {
       const account = (all('monitoringAccounts') as MonitoringAccount[]).find((a) => a.id === ctx.params.id)
@@ -142,4 +153,23 @@ export const monitoringRoutes: Route[] = [
       return ok({ items })
     },
   },
+  {
+    method: 'GET',
+    pattern: '/monitoring/probes/:id/raw',
+    handler: (ctx) => {
+      const p = (all('monitoringProbes') as MonitoringProbe[]).find((x) => x.id === ctx.params.id)
+      if (!p) return notFound('Monitoring probe not found')
+      const headers = `From: iris monitor <${p.fromAddr}>\r\nTo: ${p.recipient}\r\nSubject: ${p.subject}\r\n${ProbeUidHeader}: ${p.probeUid}`
+      return ok({
+        id: p.id,
+        probeUid: p.probeUid,
+        subject: p.subject,
+        recipient: p.recipient,
+        rawHeaders: headers,
+        rawMessage: `${headers}\r\n\r\nThis is an automated iris inbox-placement probe.\r\nProbe ID: ${p.probeUid}\r\n`,
+      })
+    },
+  },
 ]
+
+const ProbeUidHeader = 'X-Iris-Probe-Id'

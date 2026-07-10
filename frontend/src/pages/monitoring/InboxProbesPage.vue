@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/composables/useToast'
+import { useEventStream } from '@/composables/useEventStream'
 import { monitoringService } from '@/services'
 import { ApiError } from '@/services/http'
 import type {
@@ -31,12 +32,11 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const notImplemented = ref(false)
 
-// Live polling: probe send status resolves asynchronously (KumoMTA reports the
-// outcome seconds–minutes after injection), so a lightweight poll keeps the
-// table current without SSE.
+// Live updates via SSE: probe status resolves asynchronously (KumoMTA reports
+// the outcome seconds–minutes after injection, then the mailbox fetch + header
+// analysis land later). When Live is on, the backend pushes each probe
+// create/update on the monitoring-probes stream and we upsert it in place.
 const live = ref(false)
-let timer: ReturnType<typeof setInterval> | null = null
-const POLL_MS = 5000
 
 async function loadAccount() {
   try {
@@ -68,17 +68,47 @@ async function loadProbes() {
   }
 }
 
-function startPolling() {
-  stopPolling()
-  timer = setInterval(loadProbes, POLL_MS)
-}
-function stopPolling() {
-  if (timer) {
-    clearInterval(timer)
-    timer = null
+// SSE push: upsert the probe (replace by id, or prepend if new) when it belongs
+// to the account currently being viewed.
+function onProbeEvent(p: MonitoringProbe) {
+  if (p.accountId !== accountId.value) return
+  const idx = probes.value.findIndex((x) => x.id === p.id)
+  if (idx >= 0) {
+    probes.value = probes.value.map((x, i) => (i === idx ? p : x))
+  } else {
+    probes.value = [p, ...probes.value]
   }
 }
-watch(live, (on) => (on ? startPolling() : stopPolling()))
+const probeStream = useEventStream<MonitoringProbe>('monitoring-probes', onProbeEvent)
+watch(live, (on) => (on ? probeStream.start() : probeStream.stop()))
+
+// Download the stored raw message as an .eml for manual analysis.
+const downloadingId = ref<string | null>(null)
+async function downloadRaw(p: MonitoringProbe) {
+  downloadingId.value = p.id
+  try {
+    const raw = await monitoringService.probeRaw(p.id)
+    const content = raw.rawMessage || raw.rawHeaders
+    if (!content) {
+      toast({ title: 'Nothing to download', description: 'No raw message stored for this probe yet.', variant: 'destructive' })
+      return
+    }
+    const blob = new Blob([content], { type: 'message/rfc822' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${p.probeUid || p.id}.eml`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    const msg = err instanceof ApiError ? err.message : 'Failed to fetch raw message.'
+    toast({ title: 'Download failed', description: msg, variant: 'destructive' })
+  } finally {
+    downloadingId.value = null
+  }
+}
 
 const sending = ref(false)
 async function sendProbe() {
@@ -165,7 +195,7 @@ function formatLatency(ms?: number): string {
 onMounted(async () => {
   await Promise.all([loadAccount(), loadProbes()])
 })
-onBeforeUnmount(stopPolling)
+onBeforeUnmount(() => probeStream.stop())
 </script>
 
 <template>
@@ -224,6 +254,7 @@ onBeforeUnmount(stopPolling)
                 <TableHead>Placement</TableHead>
                 <TableHead>Spam risk</TableHead>
                 <TableHead>Latency</TableHead>
+                <TableHead class="text-right">Raw</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -251,6 +282,19 @@ onBeforeUnmount(stopPolling)
                   <span v-else class="text-caption text-medium-emphasis">—</span>
                 </TableCell>
                 <TableCell class="text-caption text-no-wrap">{{ formatLatency(p.latencyMs) }}</TableCell>
+                <TableCell class="text-right">
+                  <Button
+                    v-if="p.mailboxStatus === 'found'"
+                    variant="outline"
+                    size="sm"
+                    :disabled="downloadingId === p.id"
+                    :data-testid="`raw-${p.id}`"
+                    @click="downloadRaw(p)"
+                  >
+                    {{ downloadingId === p.id ? '…' : '.eml' }}
+                  </Button>
+                  <span v-else class="text-caption text-medium-emphasis">—</span>
+                </TableCell>
               </TableRow>
             </TableBody>
           </Table>

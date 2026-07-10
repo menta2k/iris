@@ -18,6 +18,10 @@ const analyzeSystemPrompt = "You are an email deliverability analyst. " +
 	"Weigh SPF/DKIM/DMARC results (Authentication-Results), any spam-score or " +
 	"spam-flag headers, provider anti-spam headers (e.g. X-Microsoft-Antispam SCL, " +
 	"X-Spamd-Result), and header hygiene. " +
+	"This is an automated monitoring probe: IGNORE the Return-Path / envelope " +
+	"bounce address entirely. It is a normal VERP bounce address (often an opaque " +
+	"hash on a bounce subdomain of the From domain) and is NEVER a spam signal — " +
+	"do not mention it or a mismatch between it and the From address. " +
 	"Reply ONLY with a JSON object of this exact shape: " +
 	`{"verdict":"clean|suspicious|spam","confidence":0.0,"summary":"one sentence","factors":["short signal", "..."]}. ` +
 	"verdict must be one of clean, suspicious, spam. confidence is 0..1. " +

@@ -482,8 +482,14 @@ service IrisAdminService {
   rpc SendMonitoringProbe(SendMonitoringProbeRequest) returns (MonitoringProbe) {
     option (google.api.http) = { post: "/v1/monitoring/accounts/{account_id}/probe" body: "*" };
   }
+  rpc VerifyMonitoringAccount(VerifyMonitoringAccountRequest) returns (VerifyMonitoringAccountReply) {
+    option (google.api.http) = { post: "/v1/monitoring/accounts:verify" body: "*" };
+  }
   rpc ListMonitoringProbes(ListMonitoringProbesRequest) returns (ListMonitoringProbesReply) {
     option (google.api.http) = { get: "/v1/monitoring/accounts/{account_id}/probes" };
+  }
+  rpc GetMonitoringProbeRaw(GetMonitoringProbeRawRequest) returns (MonitoringProbeRaw) {
+    option (google.api.http) = { get: "/v1/monitoring/probes/{id}/raw" };
   }
 
   // System self-monitoring: host CPU/memory/disk, thresholds, and email alerts.
@@ -2059,6 +2065,11 @@ message MonitoringAccount {
   // has_password reports whether a mailbox password is stored (the value itself
   // is never returned).
   bool has_password = 19;
+  // Last-probe summary (derived, read-only): the most recent probe's send /
+  // mailbox status and placement. Empty when there are no probes yet.
+  string last_probe_send_status = 20;
+  string last_probe_mailbox_status = 21;
+  string last_probe_placement = 22;
 }
 
 // MonitoringProbe is one probe message sent to a MonitoringAccount.
@@ -2133,6 +2144,23 @@ message DeleteMonitoringAccountReply {
 message SendMonitoringProbeRequest {
   string account_id = 1;
 }
+// VerifyMonitoringAccountRequest tests connection + credentials without storing.
+// password is used when set; when blank and id is present, the account's stored
+// secret is used (test an existing account without re-entering the password).
+message VerifyMonitoringAccountRequest {
+  string id = 1;
+  string protocol = 2;
+  string host = 3;
+  int32 port = 4;
+  bool tls = 5;
+  string username = 6;
+  string email = 7;
+  string password = 8;
+}
+message VerifyMonitoringAccountReply {
+  bool ok = 1;
+  string error = 2;
+}
 message ListMonitoringProbesRequest {
   string account_id = 1;
   int32 page_size = 2;
@@ -2141,6 +2169,18 @@ message ListMonitoringProbesRequest {
 message ListMonitoringProbesReply {
   repeated MonitoringProbe items = 1;
   string next_page_token = 2;
+}
+message GetMonitoringProbeRawRequest {
+  string id = 1;
+}
+// MonitoringProbeRaw is a probe's stored raw content for manual analysis.
+message MonitoringProbeRaw {
+  string id = 1;
+  string probe_uid = 2;
+  string subject = 3;
+  string recipient = 4;
+  string raw_headers = 5;
+  string raw_message = 6;
 }
 
 // ---- System self-monitoring ----

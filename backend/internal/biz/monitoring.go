@@ -47,12 +47,18 @@ type MailboxProbeResult struct {
 	// no folders). Drives the initial placement classification.
 	Folder     string
 	RawHeaders string
+	// RawMessage is the full fetched message (headers + body), stored for manual
+	// analysis / .eml download.
+	RawMessage string
 }
 
 // MailboxFetcher connects to a monitored mailbox and searches it for a probe by
 // its unique id. Implemented by internal/mailbox for IMAP and POP3.
 type MailboxFetcher interface {
 	Fetch(ctx context.Context, acc *MonitoringAccount, password, probeUID string) (MailboxProbeResult, error)
+	// Verify connects + authenticates (no search) to check the account's
+	// parameters and credentials. Returns nil on success.
+	Verify(ctx context.Context, acc *MonitoringAccount, password string) error
 }
 
 // MonitoringPolicy is the operator-tunable inbox-monitoring policy read at
@@ -109,8 +115,13 @@ type MonitoringAccount struct {
 	// reads; the password value itself is never returned.
 	HasPassword bool
 	LastProbeAt *time.Time
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	// Last-probe summary — derived (read-only), populated by ListAccounts from the
+	// account's most recent probe; empty when there are no probes yet.
+	LastProbeSendStatus    string
+	LastProbeMailboxStatus string
+	LastProbePlacement     string
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
 }
 
 // MonitoringProbe is one probe message sent to a MonitoringAccount.
@@ -168,6 +179,19 @@ type MonitoringRepo interface {
 	ProbesAwaitingFetch(ctx context.Context, now time.Time) ([]*ProbeFetchCandidate, error)
 	// UpdateProbeMailbox records the phase-2 mailbox fetch outcome.
 	UpdateProbeMailbox(ctx context.Context, id string, u ProbeMailboxUpdate) error
+	// ProbeRaw returns the stored raw headers + full message for a probe (loaded
+	// on demand — the raw message is excluded from the probe list).
+	ProbeRaw(ctx context.Context, id string) (*ProbeRawMessage, error)
+}
+
+// ProbeRawMessage is a probe's stored raw content for manual analysis / download.
+type ProbeRawMessage struct {
+	ID         string
+	ProbeUID   string
+	Subject    string
+	Recipient  string
+	RawHeaders string
+	RawMessage string
 }
 
 // ProbeMailboxUpdate carries the phase-2 fetch outcome for a probe (and the
@@ -178,6 +202,8 @@ type ProbeMailboxUpdate struct {
 	FoundAt       *time.Time
 	LatencyMs     *int64
 	RawHeaders    string
+	// RawMessage is the full fetched message; empty leaves the stored value.
+	RawMessage string
 	// Analysis is the phase-3 ProbeAnalysis serialized to JSON; empty leaves the
 	// stored analysis untouched.
 	Analysis string

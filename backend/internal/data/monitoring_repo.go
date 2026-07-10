@@ -59,18 +59,28 @@ func scanAccount(row pgx.Row) (*biz.MonitoringAccount, error) {
 	return a, nil
 }
 
-// ListAccounts returns all accounts, newest first.
+// ListAccounts returns all accounts, newest first, each with a summary of its
+// most recent probe (send/mailbox status + placement) via a LATERAL join.
 func (r *MonitoringRepo) ListAccounts(ctx context.Context) ([]*biz.MonitoringAccount, error) {
 	rows, err := r.db.Pool.Query(ctx,
-		`SELECT `+accountCols+` FROM monitoring_accounts ORDER BY created_at DESC`)
+		`SELECT `+accountCols+`,
+		    coalesce(lp.send_status, ''), coalesce(lp.mailbox_status, ''), coalesce(lp.placement, '')
+		 FROM monitoring_accounts a
+		 LEFT JOIN LATERAL (
+		     SELECT send_status, mailbox_status, placement
+		     FROM monitoring_probes WHERE account_id = a.id ORDER BY sent_at DESC LIMIT 1
+		 ) lp ON true
+		 ORDER BY a.created_at DESC`)
 	if err != nil {
 		return nil, fmt.Errorf("list monitoring accounts: %w", err)
 	}
 	defer rows.Close()
 	var out []*biz.MonitoringAccount
 	for rows.Next() {
-		a, err := scanAccount(rows)
-		if err != nil {
+		a := &biz.MonitoringAccount{}
+		args := accountScanArgs(a)
+		args = append(args, &a.LastProbeSendStatus, &a.LastProbeMailboxStatus, &a.LastProbePlacement)
+		if err := rows.Scan(args...); err != nil {
 			return nil, fmt.Errorf("scan monitoring account: %w", err)
 		}
 		out = append(out, a)
@@ -331,6 +341,23 @@ func (r *MonitoringRepo) GetProbe(ctx context.Context, id string) (*biz.Monitori
 	return p, nil
 }
 
+// ProbeRaw returns a probe's stored raw content (loaded on demand — raw_message
+// is excluded from the list query).
+func (r *MonitoringRepo) ProbeRaw(ctx context.Context, id string) (*biz.ProbeRawMessage, error) {
+	out := &biz.ProbeRawMessage{}
+	err := r.db.Pool.QueryRow(ctx,
+		`SELECT id, probe_uid, subject, recipient, raw_headers, raw_message
+		 FROM monitoring_probes WHERE id = $1`, id).
+		Scan(&out.ID, &out.ProbeUID, &out.Subject, &out.Recipient, &out.RawHeaders, &out.RawMessage)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, biz.NotFound("MONITOR_PROBE_NOT_FOUND", "monitoring probe %q not found", id)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get monitoring probe raw: %w", err)
+	}
+	return out, nil
+}
+
 // UpdateProbeSend updates the KumoMTA send outcome and backfills the KumoMTA
 // message id (kept if the new value is empty).
 func (r *MonitoringRepo) UpdateProbeSend(ctx context.Context, id, status, messageID string) error {
@@ -475,11 +502,12 @@ func (r *MonitoringRepo) UpdateProbeMailbox(ctx context.Context, id string, u bi
 			found_at = $4,
 			latency_ms = $5,
 			raw_headers = CASE WHEN $6 <> '' THEN $6 ELSE raw_headers END,
-			analysis = CASE WHEN $7 <> '' THEN $7::jsonb ELSE analysis END,
-			error = $8,
+			raw_message = CASE WHEN $7 <> '' THEN $7 ELSE raw_message END,
+			analysis = CASE WHEN $8 <> '' THEN $8::jsonb ELSE analysis END,
+			error = $9,
 			updated_at = now()
 		WHERE id = $1`,
-		id, u.MailboxStatus, u.Placement, u.FoundAt, u.LatencyMs, u.RawHeaders, u.Analysis, u.Error)
+		id, u.MailboxStatus, u.Placement, u.FoundAt, u.LatencyMs, u.RawHeaders, u.RawMessage, u.Analysis, u.Error)
 	if err != nil {
 		return fmt.Errorf("update probe mailbox: %w", err)
 	}

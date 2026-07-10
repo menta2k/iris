@@ -117,6 +117,31 @@ func (s *Service) SendMonitoringProbe(ctx context.Context, req *adminv1.SendMoni
 	return monitoringProbeToProto(out), nil
 }
 
+// VerifyMonitoringAccount tests connection + credentials without storing.
+func (s *Service) VerifyMonitoringAccount(ctx context.Context, req *adminv1.VerifyMonitoringAccountRequest) (*adminv1.VerifyMonitoringAccountReply, error) {
+	if s.monitoring == nil {
+		return nil, notImplemented("VerifyMonitoringAccount")
+	}
+	acc := &biz.MonitoringAccount{
+		Protocol: req.GetProtocol(),
+		Host:     req.GetHost(),
+		Port:     int(req.GetPort()),
+		TLS:      req.GetTls(),
+		Username: req.GetUsername(),
+		Email:    req.GetEmail(),
+	}
+	err := s.monitoring.VerifyAccount(ctx, req.GetId(), acc, req.GetPassword())
+	if err != nil {
+		// A verification failure (bad creds/host) is a normal result, not a
+		// transport error — return it in the reply so the UI can show it.
+		if de, ok := err.(*biz.DomainError); ok && de.Kind == biz.KindInvalidArgument {
+			return &adminv1.VerifyMonitoringAccountReply{Ok: false, Error: de.Message}, nil
+		}
+		return nil, s.fail(ctx, "VerifyMonitoringAccount", err)
+	}
+	return &adminv1.VerifyMonitoringAccountReply{Ok: true}, nil
+}
+
 // ListMonitoringProbes returns probes for an account, newest first.
 func (s *Service) ListMonitoringProbes(ctx context.Context, req *adminv1.ListMonitoringProbesRequest) (*adminv1.ListMonitoringProbesReply, error) {
 	if s.monitoring == nil {
@@ -134,26 +159,48 @@ func (s *Service) ListMonitoringProbes(ctx context.Context, req *adminv1.ListMon
 	return out, nil
 }
 
+// GetMonitoringProbeRaw returns a probe's stored raw headers + full message.
+func (s *Service) GetMonitoringProbeRaw(ctx context.Context, req *adminv1.GetMonitoringProbeRawRequest) (*adminv1.MonitoringProbeRaw, error) {
+	if s.monitoring == nil {
+		return nil, notImplemented("GetMonitoringProbeRaw")
+	}
+	out, err := s.monitoring.GetProbeRaw(ctx, req.GetId())
+	if err != nil {
+		return nil, s.fail(ctx, "GetMonitoringProbeRaw", err)
+	}
+	return &adminv1.MonitoringProbeRaw{
+		Id:         out.ID,
+		ProbeUid:   out.ProbeUID,
+		Subject:    out.Subject,
+		Recipient:  out.Recipient,
+		RawHeaders: out.RawHeaders,
+		RawMessage: out.RawMessage,
+	}, nil
+}
+
 func monitoringAccountToProto(a *biz.MonitoringAccount) *adminv1.MonitoringAccount {
 	p := &adminv1.MonitoringAccount{
-		Id:               a.ID,
-		Label:            a.Label,
-		Provider:         a.Provider,
-		Email:            a.Email,
-		Protocol:         a.Protocol,
-		Host:             a.Host,
-		Port:             int32(a.Port),
-		Tls:              a.TLS,
-		Username:         a.Username,
-		CheckFolders:     a.CheckFolders,
-		FromAddress:      a.FromAddress,
-		ScheduleEnabled:  a.ScheduleEnabled,
-		ScheduleInterval: a.ScheduleInterval,
-		FetchDelay:       a.FetchDelay,
-		Enabled:          a.Enabled,
-		HasPassword:      a.HasPassword,
-		CreatedAt:        formatTime(a.CreatedAt),
-		UpdatedAt:        formatTime(a.UpdatedAt),
+		Id:                     a.ID,
+		Label:                  a.Label,
+		Provider:               a.Provider,
+		Email:                  a.Email,
+		Protocol:               a.Protocol,
+		Host:                   a.Host,
+		Port:                   int32(a.Port),
+		Tls:                    a.TLS,
+		Username:               a.Username,
+		CheckFolders:           a.CheckFolders,
+		FromAddress:            a.FromAddress,
+		ScheduleEnabled:        a.ScheduleEnabled,
+		ScheduleInterval:       a.ScheduleInterval,
+		FetchDelay:             a.FetchDelay,
+		Enabled:                a.Enabled,
+		HasPassword:            a.HasPassword,
+		LastProbeSendStatus:    a.LastProbeSendStatus,
+		LastProbeMailboxStatus: a.LastProbeMailboxStatus,
+		LastProbePlacement:     a.LastProbePlacement,
+		CreatedAt:              formatTime(a.CreatedAt),
+		UpdatedAt:              formatTime(a.UpdatedAt),
 	}
 	if a.LastProbeAt != nil {
 		p.LastProbeAt = formatTime(*a.LastProbeAt)

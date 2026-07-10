@@ -57,6 +57,21 @@ const stats = computed(() => {
   }
 })
 
+type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'success' | 'warning'
+const SEND_VARIANT: Record<string, BadgeVariant> = {
+  queued: 'secondary',
+  sent: 'success',
+  deferred: 'warning',
+  bounced: 'destructive',
+  error: 'destructive',
+}
+const PLACEMENT_VARIANT: Record<string, BadgeVariant> = {
+  inbox: 'success',
+  spam: 'warning',
+  missing: 'destructive',
+  unknown: 'secondary',
+}
+
 function formatDate(iso?: string): string {
   if (!iso) return '—'
   const d = new Date(iso)
@@ -130,6 +145,7 @@ function openCreate() {
   mode.value = 'create'
   editId.value = null
   form.value = emptyForm()
+  testResult.value = null
   dialogOpen.value = true
 }
 function openEdit(a: MonitoringAccount) {
@@ -152,7 +168,33 @@ function openEdit(a: MonitoringAccount) {
     fetchDelay: a.fetchDelay || '10m',
     enabled: a.enabled,
   }
+  testResult.value = null
   dialogOpen.value = true
+}
+
+// ---- Test connection (on-demand; never blocks saving) ----
+const testing = ref(false)
+const testResult = ref<{ ok: boolean; error?: string } | null>(null)
+async function testConnection() {
+  testResult.value = null
+  testing.value = true
+  try {
+    const res = await monitoringService.verify({
+      id: editId.value ?? undefined,
+      protocol: form.value.protocol,
+      host: form.value.host.trim(),
+      port: Number(form.value.port),
+      tls: form.value.tls,
+      username: form.value.username.trim(),
+      email: form.value.email.trim(),
+      password: form.value.password,
+    })
+    testResult.value = { ok: res.ok, error: res.error }
+  } catch (err) {
+    testResult.value = { ok: false, error: err instanceof ApiError ? err.message : 'Verification failed.' }
+  } finally {
+    testing.value = false
+  }
 }
 
 async function submit() {
@@ -257,7 +299,7 @@ function viewProbes(a: MonitoringAccount) {
 <template>
   <div>
     <PageHeader
-      title="Inbox Monitoring"
+      title="ESP Monitoring"
       description="Mailbox accounts iris sends seed (probe) mail to and later inspects for inbox placement. Add a mailbox with IMAP/POP3 credentials, then send a probe manually or on a recurring schedule. Passwords are stored encrypted and never shown again."
     >
       <template #actions>
@@ -298,6 +340,7 @@ function viewProbes(a: MonitoringAccount) {
                 <TableHead>Schedule</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Last probe</TableHead>
+                <TableHead>Last result</TableHead>
                 <TableHead class="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -320,6 +363,14 @@ function viewProbes(a: MonitoringAccount) {
                   </div>
                 </TableCell>
                 <TableCell class="text-caption text-no-wrap">{{ formatDate(a.lastProbeAt) }}</TableCell>
+                <TableCell>
+                  <div v-if="a.lastProbeSendStatus" class="d-flex ga-1 align-center">
+                    <Badge :variant="SEND_VARIANT[a.lastProbeSendStatus] ?? 'secondary'">{{ a.lastProbeSendStatus }}</Badge>
+                    <Badge v-if="a.lastProbePlacement" :variant="PLACEMENT_VARIANT[a.lastProbePlacement] ?? 'secondary'">{{ a.lastProbePlacement }}</Badge>
+                    <span v-else-if="a.lastProbeMailboxStatus && a.lastProbeMailboxStatus !== 'found'" class="text-caption text-medium-emphasis">{{ a.lastProbeMailboxStatus }}</span>
+                  </div>
+                  <span v-else class="text-caption text-medium-emphasis">—</span>
+                </TableCell>
                 <TableCell class="text-right">
                   <div class="d-flex justify-end ga-2">
                     <Button
@@ -449,6 +500,27 @@ function viewProbes(a: MonitoringAccount) {
         <div class="d-flex align-center ga-2">
           <v-switch v-model="form.enabled" color="primary" density="compact" hide-details inset />
           <span class="text-body-2">{{ form.enabled ? 'Enabled' : 'Disabled' }}</span>
+        </div>
+        <div class="d-flex align-center ga-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            :disabled="testing || !form.host.trim() || form.port <= 0"
+            data-testid="test-connection"
+            @click="testConnection"
+          >
+            {{ testing ? 'Testing…' : 'Test connection' }}
+          </Button>
+          <span v-if="testResult?.ok" class="text-caption text-success d-flex align-center ga-1">
+            <v-icon size="small" icon="mdi-check-circle-outline" /> Connection OK
+          </span>
+          <span v-else-if="testResult" class="text-caption text-error d-flex align-center ga-1">
+            <v-icon size="small" icon="mdi-alert-circle-outline" /> {{ testResult.error || 'Connection failed' }}
+          </span>
+          <span v-else class="text-caption text-medium-emphasis">
+            {{ isEdit ? 'Tests the stored password unless you enter a new one.' : 'Verifies login before saving.' }}
+          </span>
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" @click="dialogOpen = false">Cancel</Button>

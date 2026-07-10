@@ -60,17 +60,45 @@ func (f *Fetcher) fetchIMAP(ctx context.Context, acc *biz.MonitoringAccount, pas
 		if len(uids) == 0 {
 			continue
 		}
-		raw := fetchHeaders(client, uids[len(uids)-1])
-		return biz.MailboxProbeResult{Found: true, Folder: folder, RawHeaders: raw}, nil
+		raw := fetchRaw(client, uids[len(uids)-1])
+		return biz.MailboxProbeResult{
+			Found:      true,
+			Folder:     folder,
+			RawHeaders: headerBlock([]byte(raw)),
+			RawMessage: raw,
+		}, nil
 	}
 	return biz.MailboxProbeResult{Found: false}, nil
 }
 
-// fetchHeaders fetches just the header block of a message by UID (best-effort;
-// returns "" if the fetch fails — the probe is still recorded as found).
-func fetchHeaders(client *imapclient.Client, uid imap.UID) string {
+// verifyIMAP connects, logs in, and selects INBOX to confirm the account's
+// parameters and credentials, then disconnects.
+func (f *Fetcher) verifyIMAP(ctx context.Context, acc *biz.MonitoringAccount, password string) error {
+	addr := net.JoinHostPort(acc.Host, strconv.Itoa(acc.Port))
+	conn, err := dialConn(ctx, addr, acc.TLS, acc.Host, f.timeout)
+	if err != nil {
+		return fmt.Errorf("imap dial %s: %w", addr, err)
+	}
+	if dl, ok := ctx.Deadline(); ok {
+		_ = conn.SetDeadline(dl)
+	}
+	client := imapclient.New(conn, nil)
+	defer client.Close()
+	if err := client.Login(acc.Username, password).Wait(); err != nil {
+		return fmt.Errorf("imap login: %w", err)
+	}
+	defer func() { _ = client.Logout().Wait() }()
+	if _, err := client.Select("INBOX", &imap.SelectOptions{ReadOnly: true}).Wait(); err != nil {
+		return fmt.Errorf("imap select INBOX: %w", err)
+	}
+	return nil
+}
+
+// fetchRaw fetches the full message (headers + body) by UID, best-effort;
+// returns "" if the fetch fails — the probe is still recorded as found.
+func fetchRaw(client *imapclient.Client, uid imap.UID) string {
 	opts := &imap.FetchOptions{
-		BodySection: []*imap.FetchItemBodySection{{Specifier: imap.PartSpecifierHeader, Peek: true}},
+		BodySection: []*imap.FetchItemBodySection{{Peek: true}}, // whole message
 	}
 	msgs, err := client.Fetch(imap.UIDSetNum(uid), opts).Collect()
 	if err != nil || len(msgs) == 0 {

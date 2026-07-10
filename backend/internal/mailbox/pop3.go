@@ -53,12 +53,36 @@ func (f *Fetcher) fetchPOP3(ctx context.Context, acc *biz.MonitoringAccount, pas
 		if err != nil {
 			continue
 		}
+		full := raw.String()
 		headers := headerBlock(raw.Bytes())
-		if strings.Contains(headers, probeUID) {
-			return biz.MailboxProbeResult{Found: true, Folder: "", RawHeaders: headers}, nil
+		if strings.Contains(full, probeUID) {
+			return biz.MailboxProbeResult{Found: true, Folder: "", RawHeaders: headers, RawMessage: full}, nil
 		}
 	}
 	return biz.MailboxProbeResult{Found: false}, nil
+}
+
+// verifyPOP3 connects, authenticates, and issues STAT to confirm the account's
+// parameters and credentials, then disconnects.
+func (f *Fetcher) verifyPOP3(_ context.Context, acc *biz.MonitoringAccount, password string) error {
+	client := pop3.New(pop3.Opt{
+		Host:        acc.Host,
+		Port:        acc.Port,
+		TLSEnabled:  acc.TLS,
+		DialTimeout: f.timeout,
+	})
+	conn, err := client.NewConn()
+	if err != nil {
+		return fmt.Errorf("pop3 dial %s:%d: %w", acc.Host, acc.Port, err)
+	}
+	defer func() { _ = conn.Quit() }()
+	if err := conn.Auth(acc.Username, password); err != nil {
+		return fmt.Errorf("pop3 auth: %w", err)
+	}
+	if _, _, err := conn.Stat(); err != nil {
+		return fmt.Errorf("pop3 stat: %w", err)
+	}
+	return nil
 }
 
 // headerBlock returns the RFC 5322 header section of a raw message (everything

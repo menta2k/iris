@@ -447,6 +447,8 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// it as records are persisted.
 	sseSrv := server.NewSSEServer(ctx, authUC, log)
 	rtPublisher := server.NewSSEPublisher(sseSrv, log)
+	// Live push of inbox-monitoring probe create/update events to the ESP pages.
+	monitoringUC.WithPublisher(rtPublisher)
 	startWorker(ctx, log, "log-stream", worker.NewLogStreamWorker(streams, mailOpsRepo, domainSafetyRepo, settingsUC, data.StreamMailEvents, wlog("log-stream")).
 		WithFeedbackVerification(domainSafetyRepo, settingsUC).
 		WithClassification(settingsUC).

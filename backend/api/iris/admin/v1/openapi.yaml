@@ -1714,6 +1714,42 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/MonitoringAccount'
+    /v1/monitoring/accounts:verify:
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_VerifyMonitoringAccount
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/VerifyMonitoringAccountRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/VerifyMonitoringAccountReply'
+    /v1/monitoring/probes/{id}/raw:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_GetMonitoringProbeRaw
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MonitoringProbeRaw'
     /v1/queues:
         get:
             tags:
@@ -4442,6 +4478,15 @@ components:
                     description: |-
                         has_password reports whether a mailbox password is stored (the value itself
                          is never returned).
+                last_probe_send_status:
+                    type: string
+                    description: |-
+                        Last-probe summary (derived, read-only): the most recent probe's send /
+                         mailbox status and placement. Empty when there are no probes yet.
+                last_probe_mailbox_status:
+                    type: string
+                last_probe_placement:
+                    type: string
             description: |-
                 MonitoringAccount is a mailbox iris sends probe mail to and later inspects for
                  inbox placement. The mailbox password is write-only: it is never returned.
@@ -4483,6 +4528,22 @@ components:
                 updated_at:
                     type: string
             description: MonitoringProbe is one probe message sent to a MonitoringAccount.
+        MonitoringProbeRaw:
+            type: object
+            properties:
+                id:
+                    type: string
+                probe_uid:
+                    type: string
+                subject:
+                    type: string
+                recipient:
+                    type: string
+                raw_headers:
+                    type: string
+                raw_message:
+                    type: string
+            description: MonitoringProbeRaw is a probe's stored raw content for manual analysis.
         Mount:
             type: object
             properties:
@@ -5658,6 +5719,37 @@ components:
             properties:
                 code:
                     type: string
+        VerifyMonitoringAccountReply:
+            type: object
+            properties:
+                ok:
+                    type: boolean
+                error:
+                    type: string
+        VerifyMonitoringAccountRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                protocol:
+                    type: string
+                host:
+                    type: string
+                port:
+                    type: integer
+                    format: int32
+                tls:
+                    type: boolean
+                username:
+                    type: string
+                email:
+                    type: string
+                password:
+                    type: string
+            description: |-
+                VerifyMonitoringAccountRequest tests connection + credentials without storing.
+                 password is used when set; when blank and id is present, the account's stored
+                 secret is used (test an existing account without re-entering the password).
         WarmupCurve:
             type: object
             properties:

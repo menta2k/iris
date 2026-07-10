@@ -65,6 +65,7 @@ const OperationIrisAdminServiceGetDmarcStats = "/iris.admin.v1.IrisAdminService/
 const OperationIrisAdminServiceGetGlobalSettings = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
 const OperationIrisAdminServiceGetMailClassStats = "/iris.admin.v1.IrisAdminService/GetMailClassStats"
 const OperationIrisAdminServiceGetMetricsTimeseries = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
+const OperationIrisAdminServiceGetMonitoringProbeRaw = "/iris.admin.v1.IrisAdminService/GetMonitoringProbeRaw"
 const OperationIrisAdminServiceGetNextDeliveryAttempt = "/iris.admin.v1.IrisAdminService/GetNextDeliveryAttempt"
 const OperationIrisAdminServiceGetQueueTimeHistogram = "/iris.admin.v1.IrisAdminService/GetQueueTimeHistogram"
 const OperationIrisAdminServiceGetRecipientDomainStats = "/iris.admin.v1.IrisAdminService/GetRecipientDomainStats"
@@ -148,6 +149,7 @@ const OperationIrisAdminServiceUpdateVMTA = "/iris.admin.v1.IrisAdminService/Upd
 const OperationIrisAdminServiceUpdateVMTAGroup = "/iris.admin.v1.IrisAdminService/UpdateVMTAGroup"
 const OperationIrisAdminServiceUpdateWarmupSchedule = "/iris.admin.v1.IrisAdminService/UpdateWarmupSchedule"
 const OperationIrisAdminServiceVerifyMFA = "/iris.admin.v1.IrisAdminService/VerifyMFA"
+const OperationIrisAdminServiceVerifyMonitoringAccount = "/iris.admin.v1.IrisAdminService/VerifyMonitoringAccount"
 
 type IrisAdminServiceHTTPServer interface {
 	// ApplyKumoConfig ApplyKumoConfig renders the configuration, writes it to KumoMTA, and
@@ -220,6 +222,7 @@ type IrisAdminServiceHTTPServer interface {
 	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(context.Context, *GetMetricsTimeseriesRequest) (*MetricsTimeseries, error)
+	GetMonitoringProbeRaw(context.Context, *GetMonitoringProbeRawRequest) (*MonitoringProbeRaw, error)
 	GetNextDeliveryAttempt(context.Context, *GetNextDeliveryAttemptRequest) (*NextDeliveryAttempt, error)
 	// GetQueueTimeHistogram GetQueueTimeHistogram returns the delivery queue-time distribution (from the
 	// iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
@@ -360,6 +363,7 @@ type IrisAdminServiceHTTPServer interface {
 	// VerifyMFA VerifyMFA completes a login by validating a TOTP code, upgrading the
 	// partially-authenticated session token to a fully-authenticated one.
 	VerifyMFA(context.Context, *VerifyMFARequest) (*LoginReply, error)
+	VerifyMonitoringAccount(context.Context, *VerifyMonitoringAccountRequest) (*VerifyMonitoringAccountReply, error)
 }
 
 func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTPServer) {
@@ -489,7 +493,9 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.POST("/v1/monitoring/accounts/{id}/password", _IrisAdminService_SetMonitoringAccountPassword0_HTTP_Handler(srv))
 	r.DELETE("/v1/monitoring/accounts/{id}", _IrisAdminService_DeleteMonitoringAccount0_HTTP_Handler(srv))
 	r.POST("/v1/monitoring/accounts/{account_id}/probe", _IrisAdminService_SendMonitoringProbe0_HTTP_Handler(srv))
+	r.POST("/v1/monitoring/accounts:verify", _IrisAdminService_VerifyMonitoringAccount0_HTTP_Handler(srv))
 	r.GET("/v1/monitoring/accounts/{account_id}/probes", _IrisAdminService_ListMonitoringProbes0_HTTP_Handler(srv))
+	r.GET("/v1/monitoring/probes/{id}/raw", _IrisAdminService_GetMonitoringProbeRaw0_HTTP_Handler(srv))
 	r.GET("/v1/system-monitor", _IrisAdminService_GetSystemMonitor0_HTTP_Handler(srv))
 	r.PUT("/v1/system-monitor/settings", _IrisAdminService_UpdateMonitorSettings0_HTTP_Handler(srv))
 	r.POST("/v1/system-monitor:test", _IrisAdminService_TestMonitorNotification0_HTTP_Handler(srv))
@@ -3182,6 +3188,28 @@ func _IrisAdminService_SendMonitoringProbe0_HTTP_Handler(srv IrisAdminServiceHTT
 	}
 }
 
+func _IrisAdminService_VerifyMonitoringAccount0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in VerifyMonitoringAccountRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceVerifyMonitoringAccount)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.VerifyMonitoringAccount(ctx, req.(*VerifyMonitoringAccountRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*VerifyMonitoringAccountReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_ListMonitoringProbes0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in ListMonitoringProbesRequest
@@ -3200,6 +3228,28 @@ func _IrisAdminService_ListMonitoringProbes0_HTTP_Handler(srv IrisAdminServiceHT
 			return err
 		}
 		reply := out.(*ListMonitoringProbesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_GetMonitoringProbeRaw0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetMonitoringProbeRawRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetMonitoringProbeRaw)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetMonitoringProbeRaw(ctx, req.(*GetMonitoringProbeRawRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*MonitoringProbeRaw)
 		return ctx.Result(200, reply)
 	}
 }
@@ -3338,6 +3388,7 @@ type IrisAdminServiceHTTPClient interface {
 	// GetMetricsTimeseries GetMetricsTimeseries returns curated mail-flow time-series (deliveries,
 	// bounces, deferrals, receptions) from the configured Prometheus.
 	GetMetricsTimeseries(ctx context.Context, req *GetMetricsTimeseriesRequest, opts ...http.CallOption) (rsp *MetricsTimeseries, err error)
+	GetMonitoringProbeRaw(ctx context.Context, req *GetMonitoringProbeRawRequest, opts ...http.CallOption) (rsp *MonitoringProbeRaw, err error)
 	GetNextDeliveryAttempt(ctx context.Context, req *GetNextDeliveryAttemptRequest, opts ...http.CallOption) (rsp *NextDeliveryAttempt, err error)
 	// GetQueueTimeHistogram GetQueueTimeHistogram returns the delivery queue-time distribution (from the
 	// iris_mail_queue_time_seconds histogram) over a window — global, or narrowed
@@ -3478,6 +3529,7 @@ type IrisAdminServiceHTTPClient interface {
 	// VerifyMFA VerifyMFA completes a login by validating a TOTP code, upgrading the
 	// partially-authenticated session token to a fully-authenticated one.
 	VerifyMFA(ctx context.Context, req *VerifyMFARequest, opts ...http.CallOption) (rsp *LoginReply, err error)
+	VerifyMonitoringAccount(ctx context.Context, req *VerifyMonitoringAccountRequest, opts ...http.CallOption) (rsp *VerifyMonitoringAccountReply, err error)
 }
 
 type IrisAdminServiceHTTPClientImpl struct {
@@ -4102,6 +4154,19 @@ func (c *IrisAdminServiceHTTPClientImpl) GetMetricsTimeseries(ctx context.Contex
 	pattern := "/v1/dashboard/metrics"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceGetMetricsTimeseries))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) GetMonitoringProbeRaw(ctx context.Context, in *GetMonitoringProbeRawRequest, opts ...http.CallOption) (*MonitoringProbeRaw, error) {
+	var out MonitoringProbeRaw
+	pattern := "/v1/monitoring/probes/{id}/raw"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetMonitoringProbeRaw))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -5238,6 +5303,19 @@ func (c *IrisAdminServiceHTTPClientImpl) VerifyMFA(ctx context.Context, in *Veri
 	pattern := "/v1/auth:verify-mfa"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceVerifyMFA))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) VerifyMonitoringAccount(ctx context.Context, in *VerifyMonitoringAccountRequest, opts ...http.CallOption) (*VerifyMonitoringAccountReply, error) {
+	var out VerifyMonitoringAccountReply
+	pattern := "/v1/monitoring/accounts:verify"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceVerifyMonitoringAccount))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {

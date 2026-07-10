@@ -2,8 +2,11 @@ import { http } from './http'
 import type {
   MonitoringAccount,
   MonitoringProbe,
+  MonitoringProbeRaw,
   CreateMonitoringAccountRequest,
   UpdateMonitoringAccountRequest,
+  VerifyMonitoringAccountRequest,
+  VerifyMonitoringAccountReply,
 } from '@/types'
 
 interface AccountsReply {
@@ -36,9 +39,15 @@ export const monitoringService = {
   sendProbe(accountId: string) {
     return http.post<MonitoringProbe>(`${base}/${encodeURIComponent(accountId)}/probe`, { accountId })
   },
+  verify(body: VerifyMonitoringAccountRequest) {
+    return http.post<VerifyMonitoringAccountReply>(`${base}:verify`, body)
+  },
   listProbes(accountId: string, params?: { pageSize?: number; pageToken?: string }) {
     return http.get<ProbesReply>(`${base}/${encodeURIComponent(accountId)}/probes`, {
       query: { page_size: params?.pageSize, page_token: params?.pageToken },
     })
+  },
+  probeRaw(probeId: string) {
+    return http.get<MonitoringProbeRaw>(`/monitoring/probes/${encodeURIComponent(probeId)}/raw`)
   },
 }

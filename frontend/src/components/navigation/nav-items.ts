@@ -43,7 +43,7 @@ export const navItems: NavItem[] = [
       { label: 'Bounce Actions', to: '/operations/bounce-actions', permission: 'operations:read' },
       { label: 'Feedback', to: '/operations/feedback', permission: 'operations:read' },
       { label: 'DMARC Reports', to: '/operations/dmarc', permission: 'operations:read' },
-      { label: 'Inbox Monitoring', to: '/monitoring/inbox', permission: 'operations:read' },
+      { label: 'ESP Monitoring', to: '/monitoring/inbox', permission: 'operations:read' },
       { label: 'Queues', to: '/operations/queues', permission: 'operations:read' },
       { label: 'Worker Errors', to: '/operations/worker-errors', permission: 'operations:read' },
     ],
@@ -76,7 +76,7 @@ export const navItems: NavItem[] = [
     children: [
       { label: 'DKIM Domains', to: '/domain-safety/dkim', permission: 'domain-safety:read' },
       { label: 'TLS Certificates', to: '/operations/acme', permission: 'service:control' },
-      { label: 'Require TLS', to: '/domain-safety/require-tls', permission: 'domain-safety:read' },
+      { label: 'TLS Policy', to: '/domain-safety/require-tls', permission: 'domain-safety:read' },
       {
         label: 'Suppressions',
         to: '/domain-safety/suppressions',

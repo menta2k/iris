@@ -43,6 +43,19 @@ func (f *Fetcher) Fetch(ctx context.Context, acc *biz.MonitoringAccount, passwor
 	}
 }
 
+// Verify connects and authenticates to the mailbox (without searching) to check
+// the account's connection parameters and credentials. Returns nil on success.
+func (f *Fetcher) Verify(ctx context.Context, acc *biz.MonitoringAccount, password string) error {
+	ctx, cancel := f.withTimeout(ctx)
+	defer cancel()
+	switch acc.Protocol {
+	case biz.MonitorProtocolPOP3:
+		return f.verifyPOP3(ctx, acc, password)
+	default:
+		return f.verifyIMAP(ctx, acc, password)
+	}
+}
+
 // withTimeout ensures the context has a deadline so a hung server cannot stall a
 // fetch forever.
 func (f *Fetcher) withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {

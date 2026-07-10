@@ -48,6 +48,32 @@ function mockSSEEvent(stream: string): unknown {
   if (stream === 'dashboard') {
     return { kind: mockSeq % 3 === 0 ? 'bounce' : 'mail' }
   }
+  if (stream === 'monitoring-probes') {
+    // Cycle one probe (same id) through queued → sent → found for account
+    // mon_gmail so the ESP Probes Live toggle demonstrates in-place upserts.
+    const i = mockSeq % 3
+    return {
+      id: 'prb_live',
+      accountId: 'mon_gmail',
+      probeUid: 'iplive0001',
+      messageId: i === 0 ? '' : 'live-msg-1',
+      subject: '[iris-probe] iplive0001',
+      fromAddr: 'probe+iplive0001@monitor.example.com',
+      recipient: 'seed.iris@gmail.com',
+      sentAt: now,
+      sendStatus: i === 0 ? 'queued' : 'sent',
+      mailboxStatus: i === 2 ? 'found' : 'pending',
+      placement: i === 2 ? 'inbox' : '',
+      latencyMs: i === 2 ? 41000 : 0,
+      analysis:
+        i === 2
+          ? '{"spf":"pass","dkim":"pass","dmarc":"pass","verdict":"clean","source":"llm","summary":"Live mock probe."}'
+          : '{}',
+      error: '',
+      createdAt: now,
+      updatedAt: now,
+    }
+  }
   // mail-logs
   const sent = mockSeq % 4 !== 0
   return {

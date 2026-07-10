@@ -714,7 +714,11 @@ export interface CreateSuppressionRequest {
 
 // ---- Require-TLS policies (outbound delivery) ----
 
-export type TLSPolicyMode = 'required' | 'required_insecure'
+export type TLSPolicyMode =
+  | 'required'
+  | 'required_insecure'
+  | 'opportunistic_insecure'
+  | 'disabled'
 
 export interface TLSPolicy {
   id: string
@@ -1072,6 +1076,9 @@ export interface MonitoringAccount {
   enabled: boolean
   hasPassword: boolean
   lastProbeAt?: string
+  lastProbeSendStatus?: string
+  lastProbeMailboxStatus?: string
+  lastProbePlacement?: ProbePlacement
   createdAt?: string
   updatedAt?: string
 }
@@ -1111,6 +1118,31 @@ export interface MonitoringProbe {
   error: string
   createdAt?: string
   updatedAt?: string
+}
+
+export interface VerifyMonitoringAccountRequest {
+  id?: string
+  protocol: MonitoringProtocol
+  host: string
+  port: number
+  tls: boolean
+  username: string
+  email: string
+  password: string
+}
+
+export interface VerifyMonitoringAccountReply {
+  ok: boolean
+  error?: string
+}
+
+export interface MonitoringProbeRaw {
+  id: string
+  probeUid: string
+  subject: string
+  recipient: string
+  rawHeaders: string
+  rawMessage: string
 }
 
 export interface CreateMonitoringAccountRequest {

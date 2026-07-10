@@ -106,6 +106,9 @@ func (f *fakeMonitoringRepo) UpdateProbeMailbox(_ context.Context, id string, u 
 	f.mailboxUpdates = append(f.mailboxUpdates, mailboxUpdateRecord{id: id, update: u})
 	return nil
 }
+func (f *fakeMonitoringRepo) ProbeRaw(context.Context, string) (*ProbeRawMessage, error) {
+	return &ProbeRawMessage{}, nil
+}
 
 // recordingInjector captures the last injected request.
 type recordingInjector struct {
@@ -279,6 +282,7 @@ func (f *fakeFetcher) Fetch(_ context.Context, _ *MonitoringAccount, _, probeUID
 	f.uids = append(f.uids, probeUID)
 	return f.res, f.err
 }
+func (f *fakeFetcher) Verify(_ context.Context, _ *MonitoringAccount, _ string) error { return f.err }
 
 func fetchCtx() context.Context { return context.Background() }
 

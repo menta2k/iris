@@ -37,6 +37,9 @@ type MonitoringUsecase struct {
 	// analyzer performs the phase-3 LLM header analysis; nil falls back to the
 	// deterministic heuristic verdict.
 	analyzer ProbeHeaderAnalyzer
+	// publisher pushes probe create/update events to connected UI clients (SSE);
+	// nil disables live push.
+	publisher RealtimePublisher
 }
 
 // Built-in defaults applied when a monitoring policy value is unset.
@@ -100,6 +103,30 @@ func (uc *MonitoringUsecase) policy(ctx context.Context) MonitoringPolicy {
 func (uc *MonitoringUsecase) WithAnalyzer(a ProbeHeaderAnalyzer) *MonitoringUsecase {
 	uc.analyzer = a
 	return uc
+}
+
+// WithPublisher attaches the realtime publisher for live probe updates (SSE).
+func (uc *MonitoringUsecase) WithPublisher(p RealtimePublisher) *MonitoringUsecase {
+	uc.publisher = p
+	return uc
+}
+
+// publish pushes a probe to connected UI clients (best-effort).
+func (uc *MonitoringUsecase) publish(ctx context.Context, p *MonitoringProbe) {
+	if uc.publisher != nil && p != nil {
+		uc.publisher.PublishProbe(ctx, p)
+	}
+}
+
+// publishByID re-loads a probe and pushes it (used after an in-place status
+// update that doesn't return the full row).
+func (uc *MonitoringUsecase) publishByID(ctx context.Context, id string) {
+	if uc.publisher == nil {
+		return
+	}
+	if p, err := uc.repo.GetProbe(ctx, id); err == nil {
+		uc.publish(ctx, p)
+	}
 }
 
 // ListAccounts returns all monitoring accounts (without password material).
@@ -193,6 +220,48 @@ func (uc *MonitoringUsecase) ListProbes(ctx context.Context, accountID string, p
 	return uc.repo.ListProbes(ctx, accountID, page)
 }
 
+// VerifyAccount tests the connection + credentials for an account without
+// storing anything (the "Test connection" button). The password is taken from
+// the request when supplied; when blank and id is set, the account's stored
+// secret is used (testing an existing account without re-entering the password).
+func (uc *MonitoringUsecase) VerifyAccount(ctx context.Context, id string, a *MonitoringAccount, password string) error {
+	if _, err := RequirePermission(ctx, PermMonitoringWrite); err != nil {
+		return err
+	}
+	if uc.fetcher == nil {
+		return Unavailable("MONITOR_FETCHER_UNSET", "mailbox verification is unavailable")
+	}
+	if err := a.Validate(); err != nil {
+		return err
+	}
+	if password == "" && id != "" {
+		secret, err := uc.repo.AccountSecret(ctx, id)
+		if err != nil {
+			return err
+		}
+		password = secret
+	}
+	if password == "" {
+		return Invalid("MONITOR_PASSWORD_REQUIRED", "a password is required to test the connection")
+	}
+	if err := uc.fetcher.Verify(ctx, a, password); err != nil {
+		return Invalid("MONITOR_VERIFY_FAILED", "%v", err)
+	}
+	return nil
+}
+
+// GetProbeRaw returns a probe's stored raw headers + full message for manual
+// analysis / download.
+func (uc *MonitoringUsecase) GetProbeRaw(ctx context.Context, id string) (*ProbeRawMessage, error) {
+	if _, err := RequirePermission(ctx, PermMonitoringRead); err != nil {
+		return nil, err
+	}
+	if id == "" {
+		return nil, Invalid("MONITOR_PROBE_ID_REQUIRED", "id is required")
+	}
+	return uc.repo.ProbeRaw(ctx, id)
+}
+
 // SendProbe sends a probe message to the account's mailbox via KumoMTA and
 // records it. This is both the manual "send now" action and the scheduler's
 // per-account trigger (SendProbeForAccount).
@@ -280,6 +349,7 @@ func (uc *MonitoringUsecase) sendProbe(ctx context.Context, acc *MonitoringAccou
 	if err := uc.repo.TouchLastProbe(ctx, acc.ID, uc.now()); err != nil {
 		LoggerFrom(ctx).Warn("touch last_probe_at failed", "account", acc.ID, "error", err.Error())
 	}
+	uc.publish(ctx, out)
 	if audit {
 		uc.audit(ctx, "monitoring_probe.send", out.ID, map[string]any{"account": acc.ID, "recipient": acc.Email})
 	}
@@ -310,6 +380,7 @@ func (uc *MonitoringUsecase) ReconcileSends(ctx context.Context) (int, error) {
 			LoggerFrom(ctx).Warn("probe send update failed", "probe", p.ID, "error", err.Error())
 			continue
 		}
+		uc.publishByID(ctx, p.ID)
 		advanced++
 	}
 	return advanced, nil
@@ -385,12 +456,14 @@ func (uc *MonitoringUsecase) fetchOne(ctx context.Context, c *ProbeFetchCandidat
 		FoundAt:       &now,
 		LatencyMs:     &latency,
 		RawHeaders:    res.RawHeaders,
+		RawMessage:    res.RawMessage,
 		Analysis:      uc.analyzeHeaders(ctx, res.RawHeaders),
 	}
 	if err := uc.repo.UpdateProbeMailbox(ctx, c.Probe.ID, update); err != nil {
 		LoggerFrom(ctx).Warn("probe mailbox update failed", "probe", c.Probe.ID, "error", err.Error())
 		return false
 	}
+	uc.publishByID(ctx, c.Probe.ID)
 	return true
 }
 
@@ -423,6 +496,7 @@ func (uc *MonitoringUsecase) giveUpOrRetry(ctx context.Context, c *ProbeFetchCan
 		LoggerFrom(ctx).Warn("probe mailbox give-up update failed", "probe", c.Probe.ID, "error", err.Error())
 		return false
 	}
+	uc.publishByID(ctx, c.Probe.ID)
 	return true
 }
 

@@ -19,9 +19,10 @@ import (
 
 // SSE stream ids. Clients subscribe with /sse?stream=<id>&token=<jwt>.
 const (
-	SSEStreamMailLogs  = "mail-logs"
-	SSEStreamBounces   = "bounces"
-	SSEStreamDashboard = "dashboard"
+	SSEStreamMailLogs         = "mail-logs"
+	SSEStreamBounces          = "bounces"
+	SSEStreamDashboard        = "dashboard"
+	SSEStreamMonitoringProbes = "monitoring-probes"
 )
 
 // SSESessionResolver validates a bearer/session token (the same resolver the
@@ -56,7 +57,7 @@ func NewSSEServer(ctx context.Context, resolver SSESessionResolver, log *slog.Lo
 			return nil
 		}),
 	)
-	streams := []string{SSEStreamMailLogs, SSEStreamBounces, SSEStreamDashboard}
+	streams := []string{SSEStreamMailLogs, SSEStreamBounces, SSEStreamDashboard, SSEStreamMonitoringProbes}
 	for _, s := range streams {
 		srv.CreateStream(sse.StreamID(s))
 	}
@@ -135,6 +136,28 @@ type dashboardTick struct {
 	Kind string `json:"kind"` // "mail" | "bounce"
 }
 
+// sseProbe mirrors the frontend MonitoringProbe shape (camelCase). Raw headers /
+// message are excluded — the live table doesn't need them.
+type sseProbe struct {
+	ID            string `json:"id"`
+	AccountID     string `json:"accountId"`
+	ProbeUID      string `json:"probeUid"`
+	MessageID     string `json:"messageId"`
+	Subject       string `json:"subject"`
+	FromAddr      string `json:"fromAddr"`
+	Recipient     string `json:"recipient"`
+	SentAt        string `json:"sentAt,omitempty"`
+	SendStatus    string `json:"sendStatus"`
+	MailboxStatus string `json:"mailboxStatus"`
+	Placement     string `json:"placement"`
+	FoundAt       string `json:"foundAt,omitempty"`
+	LatencyMs     int64  `json:"latencyMs"`
+	Analysis      string `json:"analysis"`
+	Error         string `json:"error"`
+	CreatedAt     string `json:"createdAt,omitempty"`
+	UpdatedAt     string `json:"updatedAt,omitempty"`
+}
+
 func rfc3339(t time.Time) string {
 	if t.IsZero() {
 		return ""
@@ -177,4 +200,28 @@ func (p *ssePublisher) PublishBounce(ctx context.Context, b *biz.BounceRecord) {
 		p.log.Debug("sse publish bounce failed", "error", err.Error())
 	}
 	_ = p.srv.PublishData(ctx, SSEStreamDashboard, dashboardTick{Kind: "bounce"})
+}
+
+// PublishProbe pushes a created/updated inbox-monitoring probe to the
+// monitoring-probes stream. Best-effort.
+func (p *ssePublisher) PublishProbe(ctx context.Context, probe *biz.MonitoringProbe) {
+	if probe == nil {
+		return
+	}
+	dto := sseProbe{
+		ID: probe.ID, AccountID: probe.AccountID, ProbeUID: probe.ProbeUID,
+		MessageID: probe.MessageID, Subject: probe.Subject, FromAddr: probe.FromAddr,
+		Recipient: probe.Recipient, SentAt: rfc3339(probe.SentAt), SendStatus: probe.SendStatus,
+		MailboxStatus: probe.MailboxStatus, Placement: probe.Placement, Analysis: probe.Analysis,
+		Error: probe.Error, CreatedAt: rfc3339(probe.CreatedAt), UpdatedAt: rfc3339(probe.UpdatedAt),
+	}
+	if probe.FoundAt != nil {
+		dto.FoundAt = rfc3339(*probe.FoundAt)
+	}
+	if probe.LatencyMs != nil {
+		dto.LatencyMs = *probe.LatencyMs
+	}
+	if err := p.srv.PublishData(ctx, SSEStreamMonitoringProbes, dto); err != nil {
+		p.log.Debug("sse publish probe failed", "error", err.Error())
+	}
 }
