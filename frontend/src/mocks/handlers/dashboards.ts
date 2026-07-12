@@ -43,16 +43,105 @@ function find(id: string): UserDashboard | undefined {
 
 // -- widget catalog (mirror of biz.widgetCatalog) ---------------------------
 
+// Mirror of biz.widgetCatalog (backend/internal/biz/widget_catalog.go) so the
+// builder shows the same catalog when running against the mock.
+const g = (
+  key: string,
+  category: string,
+  title: string,
+  description: string,
+  unit: string,
+  viz: WidgetCatalogEntry['viz'],
+  opts: Partial<Pick<WidgetCatalogEntry, 'supportsGroupBy' | 'groupByLabels' | 'defaultRange' | 'instant'>> = {},
+): WidgetCatalogEntry => ({
+  key,
+  category,
+  title,
+  description,
+  unit,
+  viz,
+  supportsGroupBy: opts.supportsGroupBy ?? false,
+  groupByLabels: opts.groupByLabels,
+  defaultRange: opts.defaultRange ?? '6h',
+  instant: opts.instant ?? false,
+})
+
 const widgetCatalog: WidgetCatalogEntry[] = [
-  { key: 'kumo_messages_delivered_rate', category: 'Messages', title: 'Delivered / sec', description: 'Successful deliveries per second.', unit: 'msg/s', viz: 'line', supportsGroupBy: true, groupByLabels: ['provider', 'pool', 'source'], defaultRange: '6h', instant: false },
-  { key: 'kumo_messages_received_rate', category: 'Messages', title: 'Received / sec', description: 'Inbound messages received per second.', unit: 'msg/s', viz: 'line', supportsGroupBy: false, defaultRange: '6h', instant: false },
-  { key: 'kumo_messages_fail_rate', category: 'Messages', title: 'Failed / sec', description: 'Permanent delivery failures (bounces) per second.', unit: 'msg/s', viz: 'line', supportsGroupBy: true, groupByLabels: ['provider', 'pool', 'source'], defaultRange: '6h', instant: false },
-  { key: 'kumo_message_count', category: 'Messages', title: 'Messages in system', description: 'Messages currently held in memory.', unit: 'count', viz: 'stat', supportsGroupBy: false, defaultRange: '1h', instant: true },
-  { key: 'kumo_scheduled_count', category: 'Queues', title: 'Scheduled queue depth', description: 'Messages awaiting their next delivery attempt.', unit: 'count', viz: 'line', supportsGroupBy: true, groupByLabels: ['provider', 'pool'], defaultRange: '6h', instant: false },
-  { key: 'kumo_ready_count', category: 'Queues', title: 'Ready queue depth', description: 'Messages ready to send right now.', unit: 'count', viz: 'line', supportsGroupBy: true, groupByLabels: ['provider', 'pool'], defaultRange: '6h', instant: false },
-  { key: 'kumo_connection_count', category: 'Connections', title: 'Active connections', description: 'Open outbound SMTP connections.', unit: 'count', viz: 'line', supportsGroupBy: true, groupByLabels: ['provider', 'pool'], defaultRange: '6h', instant: false },
-  { key: 'kumo_memory_usage', category: 'Resources', title: 'Memory usage', description: 'kumod process memory consumption.', unit: 'bytes', viz: 'line', supportsGroupBy: false, defaultRange: '6h', instant: false },
-  { key: 'iris_deliveries_rate', category: 'Iris', title: 'Deliveries / min', description: 'iris mail-flow deliveries per minute.', unit: 'msg/min', viz: 'area', supportsGroupBy: false, defaultRange: '6h', instant: false },
+  // Messages
+  g('kumo_messages_delivered_rate', 'Messages', 'Delivered / sec', 'Successful deliveries per second.', 'msg/s', 'line', { supportsGroupBy: true, groupByLabels: ['provider', 'source'] }),
+  g('kumo_messages_received_rate', 'Messages', 'Received / sec', 'Inbound messages accepted by listeners per second.', 'msg/s', 'line'),
+  g('kumo_messages_fail_rate', 'Messages', 'Failed (bounces) / sec', 'Permanent delivery failures per second.', 'msg/s', 'line', { supportsGroupBy: true, groupByLabels: ['provider', 'source'] }),
+  g('kumo_messages_transfail_rate', 'Messages', 'Transient failures / sec', 'Retryable (transient) failures per second.', 'msg/s', 'line', { supportsGroupBy: true, groupByLabels: ['provider', 'source'] }),
+  g('kumo_message_count', 'Messages', 'Messages in system', 'Messages currently spooled.', 'count', 'stat', { instant: true, defaultRange: '1h' }),
+  // Queues
+  g('kumo_scheduled_count', 'Queues', 'Scheduled queue depth', 'Messages awaiting their next delivery attempt.', 'count', 'line'),
+  g('kumo_ready_count', 'Queues', 'Ready queue depth', 'Messages ready to send right now.', 'count', 'line'),
+  g('kumo_queued_by', 'Queues', 'Queued by provider / pool', 'Queued messages, optionally grouped by provider or egress pool.', 'count', 'line', { supportsGroupBy: true, groupByLabels: ['provider', 'pool'] }),
+  g('kumo_scheduled_queue_count', 'Queues', 'Active scheduled queues', 'Number of live scheduler queues.', 'count', 'stat', { instant: true, defaultRange: '1h' }),
+  g('kumo_scheduled_by_domain', 'Queues', 'Scheduled by domain', 'Scheduled messages grouped by destination domain.', 'count', 'bar', { instant: true, defaultRange: '1h' }),
+  g('kumo_scheduled_by_tenant', 'Queues', 'Scheduled by tenant', 'Scheduled messages grouped by tenant.', 'count', 'bar', { instant: true, defaultRange: '1h' }),
+  g('kumo_ready_full_rate', 'Queues', 'Ready-queue-full events / sec', 'Rate at which the ready queue hit capacity.', 'events/s', 'line'),
+  // Connections
+  g('kumo_connection_count', 'Connections', 'Active connections', 'Open outbound SMTP connections.', 'count', 'line'),
+  g('kumo_connection_by', 'Connections', 'Connections by provider / pool', 'Open connections, optionally grouped by provider or egress pool.', 'count', 'line', { supportsGroupBy: true, groupByLabels: ['provider', 'pool'] }),
+  g('kumo_total_connections_rate', 'Connections', 'New connections / sec', 'Outbound connections opened per second.', 'conn/s', 'line'),
+  g('kumo_connections_denied_rate', 'Connections', 'Connections denied / sec', 'Inbound connections rejected per second.', 'conn/s', 'line'),
+  g('kumo_bind_failures_rate', 'Connections', 'Source bind failures / sec', 'Egress source binding errors per second.', 'events/s', 'line'),
+  // Throttling
+  g('kumo_throttle_message_rate', 'Throttling', 'Delayed: message-rate throttle / sec', 'Deliveries delayed by message-rate throttles.', 'events/s', 'line'),
+  g('kumo_throttle_ready_full_rate', 'Throttling', 'Delayed: ready queue full / sec', 'Deliveries delayed because the ready queue was full.', 'events/s', 'line'),
+  g('kumo_throttle_insert_ready_rate', 'Throttling', 'Delayed: throttle insert / sec', 'Deliveries delayed inserting into a throttled ready queue.', 'events/s', 'line'),
+  // SMTP server
+  g('kumo_smtp_rejections_rate', 'SMTP Server', 'SMTP rejections / sec', 'Inbound messages rejected, grouped by reason.', 'msg/s', 'line', { supportsGroupBy: true, groupByLabels: ['rejection_reason'] }),
+  // Latency
+  g('kumo_deliver_latency_p95', 'Latency', 'Delivery latency p95', '95th-percentile end-to-end delivery duration.', 'seconds', 'line'),
+  g('kumo_queue_insert_latency_p95', 'Latency', 'Queue insert latency p95', '95th-percentile queue insertion duration.', 'seconds', 'line'),
+  g('kumo_queue_resolve_latency_p95', 'Latency', 'Queue resolve latency p95', '95th-percentile queue resolution duration.', 'seconds', 'line'),
+  g('kumo_ready_insert_latency_p95', 'Latency', 'Ready-queue insert latency p95', '95th-percentile ready-queue insertion duration.', 'seconds', 'line'),
+  g('kumo_smtp_txn_duration_p95', 'Latency', 'SMTP transaction p95', '95th-percentile inbound SMTP transaction duration.', 'seconds', 'line'),
+  g('kumo_smtp_process_data_p95', 'Latency', 'SMTP data processing p95', '95th-percentile message-processing duration.', 'seconds', 'line'),
+  g('kumo_message_save_latency_p95', 'Latency', 'Spool save latency p95', '95th-percentile message persistence duration.', 'seconds', 'line'),
+  // Resources
+  g('kumo_memory_usage', 'Resources', 'Memory usage', 'kumod heap allocation.', 'bytes', 'line'),
+  g('kumo_memory_usage_rust', 'Resources', 'Rust allocator memory', 'Rust allocator memory usage.', 'bytes', 'line'),
+  g('kumo_memory_over_limit_rate', 'Resources', 'Memory over-limit events / sec', 'Rate of memory-limit-exceeded events.', 'events/s', 'line'),
+  g('kumo_cpu_normalized', 'Resources', 'kumod CPU', 'kumod CPU usage relative to core count (0-1).', 'ratio', 'line'),
+  g('kumo_system_cpu_normalized', 'Resources', 'System CPU', 'Host CPU usage relative to core count (0-1).', 'ratio', 'line'),
+  g('kumo_thread_pool_parked', 'Resources', 'Parked threads', 'Idle worker threads.', 'count', 'line'),
+  g('kumo_thread_pool_size', 'Resources', 'Thread pool size', 'Total worker threads.', 'count', 'line'),
+  // Disk
+  g('kumo_disk_free_percent', 'Disk', 'Disk free %', 'Minimum free disk space across spool volumes.', 'percent', 'gauge', { instant: true, defaultRange: '1h' }),
+  g('kumo_disk_free_bytes', 'Disk', 'Disk free bytes', 'Minimum free disk space in bytes.', 'bytes', 'stat', { instant: true, defaultRange: '1h' }),
+  g('kumo_disk_free_inodes_percent', 'Disk', 'Disk free inodes %', 'Minimum free inodes across spool volumes.', 'percent', 'gauge', { instant: true, defaultRange: '1h' }),
+  // Spool
+  g('kumo_data_resident_count', 'Spool', 'Resident message bodies', 'Message bodies held in memory.', 'count', 'line'),
+  g('kumo_meta_resident_count', 'Spool', 'Resident metadata', 'Message metadata held in memory.', 'count', 'line'),
+  g('kumo_rocks_cache_total', 'Spool', 'RocksDB cache size', 'RocksDB spool block-cache size.', 'bytes', 'line'),
+  g('kumo_rocks_compaction_pending', 'Spool', 'RocksDB pending compactions', 'Queued RocksDB compactions.', 'count', 'line'),
+  g('kumo_rocks_bg_errors_rate', 'Spool', 'RocksDB background errors / sec', 'RocksDB background operation failures.', 'events/s', 'line'),
+  // DNS/DKIM/DANE
+  g('kumo_dns_mx_resolve_rate', 'DNS/DKIM/DANE', 'MX resolutions / sec', 'Successful MX lookups per second.', 'ops/s', 'line'),
+  g('kumo_dns_mx_fail_rate', 'DNS/DKIM/DANE', 'MX resolve failures / sec', 'Failed MX lookups per second.', 'ops/s', 'line'),
+  g('kumo_dns_mx_inflight', 'DNS/DKIM/DANE', 'MX lookups in progress', 'Ongoing MX resolutions.', 'count', 'stat', { instant: true, defaultRange: '1h' }),
+  g('kumo_dkim_sign_rate', 'DNS/DKIM/DANE', 'DKIM signatures / sec', 'DKIM signing operations per second.', 'ops/s', 'line'),
+  g('kumo_dane_result_rate', 'DNS/DKIM/DANE', 'DANE results / sec', 'DANE validation outcomes per second.', 'ops/s', 'line', { supportsGroupBy: true, groupByLabels: ['result'] }),
+  // Egress
+  g('kumo_egress_suspended', 'Egress', 'Suspended egress sources', 'Egress sources currently health-suspended.', 'count', 'line', { supportsGroupBy: true, groupByLabels: ['source'] }),
+  g('kumo_egress_conn_failures_rate', 'Egress', 'Egress connection failures / sec', 'Egress-source connection failures per second.', 'events/s', 'line', { supportsGroupBy: true, groupByLabels: ['source'] }),
+  // Lua
+  g('kumo_lua_count', 'Lua', 'Active Lua contexts', 'Live Lua runtime contexts.', 'count', 'line'),
+  g('kumo_lua_events_rate', 'Lua', 'Lua events / sec', 'Lua event-handler invocations per second.', 'ops/s', 'line'),
+  g('kumo_lua_event_latency_p95', 'Lua', 'Lua event latency p95', '95th-percentile Lua event-handler duration.', 'seconds', 'line'),
+  // Logging
+  g('kumo_log_hook_backlog', 'Logging', 'Log hook backlog', 'Pending log-hook executions.', 'count', 'line'),
+  g('kumo_log_dropped_rate', 'Logging', 'Dropped log events / sec', 'Log events dropped because the buffer was full.', 'events/s', 'line'),
+  // Maintenance
+  g('kumo_qmaint_runs_rate', 'Maintenance', 'Queue maintenance runs / sec', 'Scheduled-queue maintenance cycles per second.', 'ops/s', 'line'),
+  g('kumo_readyq_runs_rate', 'Maintenance', 'Ready-queue runs / sec', 'Ready-queue maintenance cycles per second.', 'ops/s', 'line'),
+  // Iris
+  g('iris_cpu_percent', 'Iris', 'Host CPU %', 'iris host CPU utilization.', 'percent', 'gauge', { instant: true, defaultRange: '1h' }),
+  g('iris_memory_percent', 'Iris', 'Host memory %', 'iris host memory utilization.', 'percent', 'gauge', { instant: true, defaultRange: '1h' }),
+  g('iris_deliveries_rate', 'Iris', 'Deliveries / min', 'iris mail-flow deliveries per minute.', 'msg/min', 'area'),
 ]
 
 // -- widget-data generator --------------------------------------------------
@@ -89,6 +178,10 @@ const GROUP_MEMBERS: Record<string, string[]> = {
   provider: ['gmail', 'yahoo', 'microsoft'],
   pool: ['pool-a', 'pool-b'],
   source: ['ip-1', 'ip-2'],
+  result: ['secure', 'insecure', 'tempfail'],
+  rejection_reason: ['relay-denied', 'rate-limited', 'bad-recipient'],
+  domain: ['gmail.com', 'yahoo.com', 'outlook.com', 'example.com'],
+  tenant: ['tenant-a', 'tenant-b', 'tenant-c'],
 }
 
 function widgetData(ctx: RouteCtx): MetricsTimeseries {
