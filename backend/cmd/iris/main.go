@@ -414,6 +414,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		InjectionCreds:  injectionCredUC,
 		SysMon:          sysMonUC,
 		Monitoring:      monitoringUC,
+		UserDashboards:  biz.NewUserDashboardUsecase(data.NewUserDashboardRepo(db)),
 	}
 
 	svc := service.NewService(deps)

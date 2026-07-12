@@ -1206,6 +1206,62 @@ export interface MetricsTimeseries {
   prometheusAvailable: boolean
 }
 
+// --- Per-user custom dashboards ---
+
+export type WidgetViz = 'line' | 'area' | 'bar' | 'gauge' | 'stat'
+export type WidgetSource = 'catalog' | 'promql'
+export type WidgetRange = '1h' | '6h' | '24h' | '7d'
+
+// WidgetConfig is one widget on a dashboard: its grid geometry plus its metric
+// source. This shape is owned by the frontend and serialized verbatim into the
+// dashboard's opaque `widgetsJson` — the backend never interprets it.
+export interface WidgetConfig {
+  id: string
+  x: number
+  y: number
+  w: number
+  h: number
+  title: string
+  source: WidgetSource
+  catalogKey?: string
+  promql?: string
+  range: WidgetRange
+  viz: WidgetViz
+  groupBy?: string
+  unit?: string
+}
+
+export interface UserDashboard {
+  id: string
+  name: string
+  isDefault: boolean
+  widgetsJson: string // JSON array of WidgetConfig, carried verbatim
+  createdAt: number
+  updatedAt: number
+}
+
+export interface WidgetCatalogEntry {
+  key: string
+  category: string
+  title: string
+  description: string
+  unit: string
+  viz: WidgetViz
+  supportsGroupBy: boolean
+  groupByLabels?: string[]
+  defaultRange: WidgetRange
+  instant: boolean
+}
+
+// Parameters for GET /dashboard/widget-data.
+export interface WidgetDataParams {
+  source: WidgetSource
+  catalogKey?: string
+  promql?: string
+  range?: string
+  groupBy?: string
+}
+
 // Delivery queue-time distribution (from the iris_mail_queue_time_seconds
 // histogram). Counts are int64 → JSON strings.
 export interface QueueTimeBucket {

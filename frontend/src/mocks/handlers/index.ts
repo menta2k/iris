@@ -6,6 +6,7 @@ import type { Route } from '../router'
 import { authRoutes } from './auth'
 import { bounceRulesRoutes } from './bounce-rules'
 import { dashboardRoutes } from './dashboard'
+import { dashboardsRoutes } from './dashboards'
 import { eventProcessorsRoutes } from './event-processors'
 import { domainSafetyRoutes } from './domain-safety'
 import { inboundHandlers } from './inbound'
@@ -20,6 +21,7 @@ import { toolsRoutes } from './tools'
 export const routes: Route[] = [
   ...authRoutes,
   ...dashboardRoutes,
+  ...dashboardsRoutes,
   ...outboundRoutes,
   ...bounceRulesRoutes,
   ...eventProcessorsRoutes,

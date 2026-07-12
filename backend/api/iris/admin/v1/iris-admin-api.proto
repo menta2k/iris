@@ -382,6 +382,37 @@ service IrisAdminService {
     option (google.api.http) = { get: "/v1/domain-check/{domain}" };
   }
 
+  // --- Per-user custom dashboards ---
+  // ListUserDashboards returns the calling user's custom dashboards.
+  rpc ListUserDashboards(ListUserDashboardsRequest) returns (ListUserDashboardsResponse) {
+    option (google.api.http) = { get: "/v1/dashboards" };
+  }
+  // CreateUserDashboard creates a dashboard for the calling user.
+  rpc CreateUserDashboard(CreateUserDashboardRequest) returns (UserDashboard) {
+    option (google.api.http) = { post: "/v1/dashboards", body: "*" };
+  }
+  // UpdateUserDashboard edits the calling user's dashboard (name + layout).
+  rpc UpdateUserDashboard(UpdateUserDashboardRequest) returns (UserDashboard) {
+    option (google.api.http) = { put: "/v1/dashboards/{id}", body: "*" };
+  }
+  // DeleteUserDashboard removes the calling user's dashboard.
+  rpc DeleteUserDashboard(DeleteUserDashboardRequest) returns (DeleteUserDashboardResponse) {
+    option (google.api.http) = { delete: "/v1/dashboards/{id}" };
+  }
+  // SetDefaultUserDashboard marks one of the user's dashboards as default.
+  rpc SetDefaultUserDashboard(SetDefaultUserDashboardRequest) returns (UserDashboard) {
+    option (google.api.http) = { post: "/v1/dashboards/{id}:set-default", body: "*" };
+  }
+  // ListWidgetCatalog returns the curated metric widget catalog.
+  rpc ListWidgetCatalog(ListWidgetCatalogRequest) returns (ListWidgetCatalogResponse) {
+    option (google.api.http) = { get: "/v1/dashboard/widget-catalog" };
+  }
+  // GetWidgetData executes one widget's metric query (catalog or raw PromQL,
+  // guarded) and returns time-series in the shared MetricsTimeseries shape.
+  rpc GetWidgetData(GetWidgetDataRequest) returns (MetricsTimeseries) {
+    option (google.api.http) = { get: "/v1/dashboard/widget-data" };
+  }
+
   // Tools ---------------------------------------------------------------------
   // Diagnose reports how mail from a given address is handled and whether the
   // sending domain is set up correctly (DKIM/SPF/DMARC/MX/FBL + routing preview).
@@ -1740,6 +1771,66 @@ message MetricsTimeseries {
   string range = 2;            // echoed effective range
   int64 step_seconds = 3;      // resolution between points
   bool prometheus_available = 4; // false when no Prometheus URL is configured
+}
+
+// UserDashboard is one operator-owned custom dashboard. widgets_json is an
+// opaque JSON array of widget configs (gridstack geometry + metric source) that
+// the frontend owns; the backend only validates it is a JSON array within a
+// size cap.
+message UserDashboard {
+  string id = 1;
+  string name = 2;
+  bool is_default = 3;
+  string widgets_json = 4;   // JSON array, carried verbatim
+  int64 created_at = 5;      // unix seconds
+  int64 updated_at = 6;      // unix seconds
+}
+message ListUserDashboardsRequest {}
+message ListUserDashboardsResponse {
+  repeated UserDashboard dashboards = 1;
+}
+message CreateUserDashboardRequest {
+  string name = 1;
+  string widgets_json = 2;
+  bool make_default = 3;
+}
+message UpdateUserDashboardRequest {
+  string id = 1;
+  string name = 2;
+  string widgets_json = 3;
+}
+message DeleteUserDashboardRequest {
+  string id = 1;
+}
+message DeleteUserDashboardResponse {}
+message SetDefaultUserDashboardRequest {
+  string id = 1;
+}
+
+// WidgetCatalogEntry describes one curated metric widget offered in the builder.
+message WidgetCatalogEntry {
+  string key = 1;
+  string category = 2;
+  string title = 3;
+  string description = 4;
+  string unit = 5;
+  string viz = 6;               // line | area | bar | gauge | stat
+  bool supports_group_by = 7;
+  repeated string group_by_labels = 8;
+  string default_range = 9;
+  bool instant = 10;
+}
+message ListWidgetCatalogRequest {}
+message ListWidgetCatalogResponse {
+  repeated WidgetCatalogEntry widgets = 1;
+}
+// GetWidgetData resolves one widget's query. source = "catalog" | "promql".
+message GetWidgetDataRequest {
+  string source = 1;
+  string catalog_key = 2;
+  string promql = 3;
+  string range = 4;
+  string group_by = 5;
 }
 
 // GetWarmupDeliveryStats selects the lookback window: "1h" | "6h" | "24h" | "7d"

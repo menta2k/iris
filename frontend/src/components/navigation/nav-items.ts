@@ -22,6 +22,12 @@ export const navItems: NavItem[] = [
     permission: 'dashboard:read',
   },
   {
+    label: 'Dashboards',
+    to: '/dashboards',
+    icon: 'mdi-view-grid-plus-outline',
+    permission: 'dashboard:read',
+  },
+  {
     label: 'Sending',
     icon: 'mdi-email-fast-outline',
     children: [

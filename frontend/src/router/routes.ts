@@ -34,6 +34,12 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/Dashboard.vue'),
         meta: { permission: 'dashboard:read', title: 'Dashboard' },
       },
+      {
+        path: 'dashboards',
+        name: 'dashboards',
+        component: () => import('@/pages/DashboardsPage.vue'),
+        meta: { permission: 'dashboard:read', title: 'Dashboards' },
+      },
 
       // Outbound config
       {

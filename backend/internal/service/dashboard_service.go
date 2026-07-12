@@ -4,6 +4,7 @@ import (
 	"context"
 
 	adminv1 "github.com/menta2k/iris/backend/api/iris/admin/v1"
+	"github.com/menta2k/iris/backend/internal/biz"
 )
 
 // GetDashboardSummary returns the operator dashboard summary (US6).
@@ -34,6 +35,11 @@ func (s *Service) GetMetricsTimeseries(ctx context.Context, req *adminv1.GetMetr
 	if err != nil {
 		return nil, s.fail(ctx, "GetMetricsTimeseries", err)
 	}
+	return toProtoTimeseries(ts), nil
+}
+
+// toProtoTimeseries maps a biz.MetricsTimeseries to its proto form.
+func toProtoTimeseries(ts *biz.MetricsTimeseries) *adminv1.MetricsTimeseries {
 	out := &adminv1.MetricsTimeseries{
 		Range:               ts.Range,
 		StepSeconds:         ts.StepSeconds,
@@ -46,7 +52,7 @@ func (s *Service) GetMetricsTimeseries(ctx context.Context, req *adminv1.GetMetr
 		}
 		out.Series = append(out.Series, ps)
 	}
-	return out, nil
+	return out
 }
 
 // GetQueueTimeHistogram returns the delivery queue-time distribution over the

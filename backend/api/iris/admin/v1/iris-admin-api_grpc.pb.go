@@ -118,6 +118,13 @@ const (
 	IrisAdminService_GetMailClassStats_FullMethodName              = "/iris.admin.v1.IrisAdminService/GetMailClassStats"
 	IrisAdminService_GetRecipientDomainStats_FullMethodName        = "/iris.admin.v1.IrisAdminService/GetRecipientDomainStats"
 	IrisAdminService_CheckDomainBounceSetup_FullMethodName         = "/iris.admin.v1.IrisAdminService/CheckDomainBounceSetup"
+	IrisAdminService_ListUserDashboards_FullMethodName             = "/iris.admin.v1.IrisAdminService/ListUserDashboards"
+	IrisAdminService_CreateUserDashboard_FullMethodName            = "/iris.admin.v1.IrisAdminService/CreateUserDashboard"
+	IrisAdminService_UpdateUserDashboard_FullMethodName            = "/iris.admin.v1.IrisAdminService/UpdateUserDashboard"
+	IrisAdminService_DeleteUserDashboard_FullMethodName            = "/iris.admin.v1.IrisAdminService/DeleteUserDashboard"
+	IrisAdminService_SetDefaultUserDashboard_FullMethodName        = "/iris.admin.v1.IrisAdminService/SetDefaultUserDashboard"
+	IrisAdminService_ListWidgetCatalog_FullMethodName              = "/iris.admin.v1.IrisAdminService/ListWidgetCatalog"
+	IrisAdminService_GetWidgetData_FullMethodName                  = "/iris.admin.v1.IrisAdminService/GetWidgetData"
 	IrisAdminService_Diagnose_FullMethodName                       = "/iris.admin.v1.IrisAdminService/Diagnose"
 	IrisAdminService_RblCheck_FullMethodName                       = "/iris.admin.v1.IrisAdminService/RblCheck"
 	IrisAdminService_GetDmarcStats_FullMethodName                  = "/iris.admin.v1.IrisAdminService/GetDmarcStats"
@@ -321,6 +328,22 @@ type IrisAdminServiceClient interface {
 	// CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
 	// (authorizes our egress IPs), and DKIM (selector records) via live DNS.
 	CheckDomainBounceSetup(ctx context.Context, in *CheckDomainBounceSetupRequest, opts ...grpc.CallOption) (*DomainBounceCheck, error)
+	// --- Per-user custom dashboards ---
+	// ListUserDashboards returns the calling user's custom dashboards.
+	ListUserDashboards(ctx context.Context, in *ListUserDashboardsRequest, opts ...grpc.CallOption) (*ListUserDashboardsResponse, error)
+	// CreateUserDashboard creates a dashboard for the calling user.
+	CreateUserDashboard(ctx context.Context, in *CreateUserDashboardRequest, opts ...grpc.CallOption) (*UserDashboard, error)
+	// UpdateUserDashboard edits the calling user's dashboard (name + layout).
+	UpdateUserDashboard(ctx context.Context, in *UpdateUserDashboardRequest, opts ...grpc.CallOption) (*UserDashboard, error)
+	// DeleteUserDashboard removes the calling user's dashboard.
+	DeleteUserDashboard(ctx context.Context, in *DeleteUserDashboardRequest, opts ...grpc.CallOption) (*DeleteUserDashboardResponse, error)
+	// SetDefaultUserDashboard marks one of the user's dashboards as default.
+	SetDefaultUserDashboard(ctx context.Context, in *SetDefaultUserDashboardRequest, opts ...grpc.CallOption) (*UserDashboard, error)
+	// ListWidgetCatalog returns the curated metric widget catalog.
+	ListWidgetCatalog(ctx context.Context, in *ListWidgetCatalogRequest, opts ...grpc.CallOption) (*ListWidgetCatalogResponse, error)
+	// GetWidgetData executes one widget's metric query (catalog or raw PromQL,
+	// guarded) and returns time-series in the shared MetricsTimeseries shape.
+	GetWidgetData(ctx context.Context, in *GetWidgetDataRequest, opts ...grpc.CallOption) (*MetricsTimeseries, error)
 	// Tools ---------------------------------------------------------------------
 	// Diagnose reports how mail from a given address is handled and whether the
 	// sending domain is set up correctly (DKIM/SPF/DMARC/MX/FBL + routing preview).
@@ -1370,6 +1393,76 @@ func (c *irisAdminServiceClient) CheckDomainBounceSetup(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) ListUserDashboards(ctx context.Context, in *ListUserDashboardsRequest, opts ...grpc.CallOption) (*ListUserDashboardsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListUserDashboardsResponse)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListUserDashboards_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) CreateUserDashboard(ctx context.Context, in *CreateUserDashboardRequest, opts ...grpc.CallOption) (*UserDashboard, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserDashboard)
+	err := c.cc.Invoke(ctx, IrisAdminService_CreateUserDashboard_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) UpdateUserDashboard(ctx context.Context, in *UpdateUserDashboardRequest, opts ...grpc.CallOption) (*UserDashboard, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserDashboard)
+	err := c.cc.Invoke(ctx, IrisAdminService_UpdateUserDashboard_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) DeleteUserDashboard(ctx context.Context, in *DeleteUserDashboardRequest, opts ...grpc.CallOption) (*DeleteUserDashboardResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteUserDashboardResponse)
+	err := c.cc.Invoke(ctx, IrisAdminService_DeleteUserDashboard_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) SetDefaultUserDashboard(ctx context.Context, in *SetDefaultUserDashboardRequest, opts ...grpc.CallOption) (*UserDashboard, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserDashboard)
+	err := c.cc.Invoke(ctx, IrisAdminService_SetDefaultUserDashboard_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ListWidgetCatalog(ctx context.Context, in *ListWidgetCatalogRequest, opts ...grpc.CallOption) (*ListWidgetCatalogResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListWidgetCatalogResponse)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListWidgetCatalog_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) GetWidgetData(ctx context.Context, in *GetWidgetDataRequest, opts ...grpc.CallOption) (*MetricsTimeseries, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MetricsTimeseries)
+	err := c.cc.Invoke(ctx, IrisAdminService_GetWidgetData_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) Diagnose(ctx context.Context, in *DiagnoseRequest, opts ...grpc.CallOption) (*DiagnoseResult, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DiagnoseResult)
@@ -1868,6 +1961,22 @@ type IrisAdminServiceServer interface {
 	// CheckDomainBounceSetup verifies a domain's MX (accepts bounces here), SPF
 	// (authorizes our egress IPs), and DKIM (selector records) via live DNS.
 	CheckDomainBounceSetup(context.Context, *CheckDomainBounceSetupRequest) (*DomainBounceCheck, error)
+	// --- Per-user custom dashboards ---
+	// ListUserDashboards returns the calling user's custom dashboards.
+	ListUserDashboards(context.Context, *ListUserDashboardsRequest) (*ListUserDashboardsResponse, error)
+	// CreateUserDashboard creates a dashboard for the calling user.
+	CreateUserDashboard(context.Context, *CreateUserDashboardRequest) (*UserDashboard, error)
+	// UpdateUserDashboard edits the calling user's dashboard (name + layout).
+	UpdateUserDashboard(context.Context, *UpdateUserDashboardRequest) (*UserDashboard, error)
+	// DeleteUserDashboard removes the calling user's dashboard.
+	DeleteUserDashboard(context.Context, *DeleteUserDashboardRequest) (*DeleteUserDashboardResponse, error)
+	// SetDefaultUserDashboard marks one of the user's dashboards as default.
+	SetDefaultUserDashboard(context.Context, *SetDefaultUserDashboardRequest) (*UserDashboard, error)
+	// ListWidgetCatalog returns the curated metric widget catalog.
+	ListWidgetCatalog(context.Context, *ListWidgetCatalogRequest) (*ListWidgetCatalogResponse, error)
+	// GetWidgetData executes one widget's metric query (catalog or raw PromQL,
+	// guarded) and returns time-series in the shared MetricsTimeseries shape.
+	GetWidgetData(context.Context, *GetWidgetDataRequest) (*MetricsTimeseries, error)
 	// Tools ---------------------------------------------------------------------
 	// Diagnose reports how mail from a given address is handled and whether the
 	// sending domain is set up correctly (DKIM/SPF/DMARC/MX/FBL + routing preview).
@@ -2223,6 +2332,27 @@ func (UnimplementedIrisAdminServiceServer) GetRecipientDomainStats(context.Conte
 }
 func (UnimplementedIrisAdminServiceServer) CheckDomainBounceSetup(context.Context, *CheckDomainBounceSetupRequest) (*DomainBounceCheck, error) {
 	return nil, status.Error(codes.Unimplemented, "method CheckDomainBounceSetup not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListUserDashboards(context.Context, *ListUserDashboardsRequest) (*ListUserDashboardsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListUserDashboards not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) CreateUserDashboard(context.Context, *CreateUserDashboardRequest) (*UserDashboard, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateUserDashboard not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) UpdateUserDashboard(context.Context, *UpdateUserDashboardRequest) (*UserDashboard, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateUserDashboard not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) DeleteUserDashboard(context.Context, *DeleteUserDashboardRequest) (*DeleteUserDashboardResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteUserDashboard not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) SetDefaultUserDashboard(context.Context, *SetDefaultUserDashboardRequest) (*UserDashboard, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetDefaultUserDashboard not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListWidgetCatalog(context.Context, *ListWidgetCatalogRequest) (*ListWidgetCatalogResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListWidgetCatalog not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) GetWidgetData(context.Context, *GetWidgetDataRequest) (*MetricsTimeseries, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetWidgetData not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) Diagnose(context.Context, *DiagnoseRequest) (*DiagnoseResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method Diagnose not implemented")
@@ -4126,6 +4256,132 @@ func _IrisAdminService_CheckDomainBounceSetup_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_ListUserDashboards_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListUserDashboardsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListUserDashboards(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListUserDashboards_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListUserDashboards(ctx, req.(*ListUserDashboardsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_CreateUserDashboard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateUserDashboardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).CreateUserDashboard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_CreateUserDashboard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).CreateUserDashboard(ctx, req.(*CreateUserDashboardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_UpdateUserDashboard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserDashboardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).UpdateUserDashboard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_UpdateUserDashboard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).UpdateUserDashboard(ctx, req.(*UpdateUserDashboardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_DeleteUserDashboard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteUserDashboardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).DeleteUserDashboard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_DeleteUserDashboard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).DeleteUserDashboard(ctx, req.(*DeleteUserDashboardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_SetDefaultUserDashboard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetDefaultUserDashboardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).SetDefaultUserDashboard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_SetDefaultUserDashboard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).SetDefaultUserDashboard(ctx, req.(*SetDefaultUserDashboardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListWidgetCatalog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListWidgetCatalogRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListWidgetCatalog(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListWidgetCatalog_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListWidgetCatalog(ctx, req.(*ListWidgetCatalogRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_GetWidgetData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetWidgetDataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).GetWidgetData(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_GetWidgetData_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).GetWidgetData(ctx, req.(*GetWidgetDataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_Diagnose_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DiagnoseRequest)
 	if err := dec(in); err != nil {
@@ -5122,6 +5378,34 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CheckDomainBounceSetup",
 			Handler:    _IrisAdminService_CheckDomainBounceSetup_Handler,
+		},
+		{
+			MethodName: "ListUserDashboards",
+			Handler:    _IrisAdminService_ListUserDashboards_Handler,
+		},
+		{
+			MethodName: "CreateUserDashboard",
+			Handler:    _IrisAdminService_CreateUserDashboard_Handler,
+		},
+		{
+			MethodName: "UpdateUserDashboard",
+			Handler:    _IrisAdminService_UpdateUserDashboard_Handler,
+		},
+		{
+			MethodName: "DeleteUserDashboard",
+			Handler:    _IrisAdminService_DeleteUserDashboard_Handler,
+		},
+		{
+			MethodName: "SetDefaultUserDashboard",
+			Handler:    _IrisAdminService_SetDefaultUserDashboard_Handler,
+		},
+		{
+			MethodName: "ListWidgetCatalog",
+			Handler:    _IrisAdminService_ListWidgetCatalog_Handler,
+		},
+		{
+			MethodName: "GetWidgetData",
+			Handler:    _IrisAdminService_GetWidgetData_Handler,
 		},
 		{
 			MethodName: "Diagnose",

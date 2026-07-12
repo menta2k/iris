@@ -432,3 +432,214 @@ func (uc *MetricsUsecase) queryRange(ctx context.Context, base, query string, st
 	}
 	return pts, nil
 }
+
+// Widget guardrails: raw-PromQL and catalog widgets share these bounds.
+const (
+	widgetQueryTimeout = 10 * time.Second
+	maxWidgetSeries    = 20
+	maxPromQLLen       = 2048
+)
+
+// WidgetDataRequest asks for one dashboard widget's data. Source is
+// "catalog" (CatalogKey resolves a curated WidgetDef) or "promql" (PromQL is a
+// raw expression, guarded). GroupBy applies only to catalog widgets that support
+// it and is sanitized against the def's label allow-list.
+type WidgetDataRequest struct {
+	Source     string
+	CatalogKey string
+	PromQL     string
+	Range      string
+	GroupBy    string
+}
+
+// WidgetData resolves and executes one widget's query, returning the same
+// MetricsTimeseries shape the overview uses. Guardrails: a hard 10s timeout
+// independent of the caller ctx, a 20-series cap, and a bounded step derived
+// from the range. Read-only by construction (only Prometheus query endpoints are
+// called). When Prometheus is unconfigured it returns PrometheusAvailable=false.
+func (uc *MetricsUsecase) WidgetData(ctx context.Context, req WidgetDataRequest) (*MetricsTimeseries, error) {
+	if _, err := RequirePermission(ctx, PermDashboardRead); err != nil {
+		return nil, err
+	}
+
+	lookback, step, window, eff := rangeParams(req.Range)
+	out := &MetricsTimeseries{Range: eff, StepSeconds: int64(step.Seconds())}
+
+	// Resolve the query + whether it is an instant (single-value) widget.
+	var query string
+	instant := false
+	switch strings.TrimSpace(req.Source) {
+	case "catalog", "":
+		def, ok := lookupWidget(req.CatalogKey)
+		if !ok {
+			return nil, Invalid("WIDGET_UNKNOWN", "unknown widget %q", req.CatalogKey)
+		}
+		query = def.resolveTemplate(window, req.GroupBy)
+		instant = def.Instant
+	case "promql":
+		q := strings.TrimSpace(req.PromQL)
+		if q == "" {
+			return nil, Invalid("WIDGET_PROMQL_REQUIRED", "promql expression is required")
+		}
+		if len(q) > maxPromQLLen {
+			return nil, Invalid("WIDGET_PROMQL_TOO_LONG", "promql exceeds %d characters", maxPromQLLen)
+		}
+		query = strings.ReplaceAll(q, "$window", window)
+	default:
+		return nil, Invalid("WIDGET_SOURCE_INVALID", "source must be catalog or promql")
+	}
+
+	base := ""
+	if uc.urls != nil {
+		base = strings.TrimRight(strings.TrimSpace(uc.urls.PrometheusURLNow(ctx)), "/")
+	}
+	if base == "" {
+		out.PrometheusAvailable = false
+		return out, nil
+	}
+	out.PrometheusAvailable = true
+
+	// Hard timeout independent of the caller so a heavy PromQL can't tie up the
+	// request indefinitely.
+	qctx, cancel := context.WithTimeout(ctx, widgetQueryTimeout)
+	defer cancel()
+
+	end := uc.now()
+	if instant {
+		samples, err := uc.queryInstant(qctx, base, query)
+		if err != nil {
+			return nil, Internal(err, "prometheus widget query")
+		}
+		out.Series = instantSamplesToSeries(samples)
+		return out, nil
+	}
+
+	series, err := uc.queryRangeMulti(qctx, base, query, end.Add(-lookback), end, step)
+	if err != nil {
+		return nil, Internal(err, "prometheus widget query")
+	}
+	out.Series = series
+	return out, nil
+}
+
+// instantSamplesToSeries turns instant vector samples into single-point series,
+// capped at maxWidgetSeries. Each sample's distinguishing label becomes the key.
+func instantSamplesToSeries(samples []promSample) []MetricsSeries {
+	ts := int64(0)
+	var out []MetricsSeries
+	for i, s := range samples {
+		if i >= maxWidgetSeries {
+			break
+		}
+		label := seriesLabel(s.Metric)
+		out = append(out, MetricsSeries{
+			Key:    label,
+			Label:  label,
+			Points: []MetricPoint{{Timestamp: ts, Value: s.Value}},
+		})
+	}
+	return out
+}
+
+// queryRangeMulti calls /api/v1/query_range and decodes ALL matrix rows into
+// separate series (unlike queryRange, which flattens only the first row). Series
+// are capped at maxWidgetSeries; each row's label set names the series.
+func (uc *MetricsUsecase) queryRangeMulti(ctx context.Context, base, query string, start, end time.Time, step time.Duration) ([]MetricsSeries, error) {
+	q := url.Values{}
+	q.Set("query", query)
+	q.Set("start", strconv.FormatInt(start.Unix(), 10))
+	q.Set("end", strconv.FormatInt(end.Unix(), 10))
+	q.Set("step", strconv.FormatInt(int64(step.Seconds()), 10))
+	endpoint := base + "/api/v1/query_range?" + q.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := uc.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("prometheus returned HTTP %d", resp.StatusCode)
+	}
+
+	var pr struct {
+		Status string `json:"status"`
+		Error  string `json:"error"`
+		Data   struct {
+			Result []struct {
+				Metric map[string]string `json:"metric"`
+				Values [][]any           `json:"values"`
+			} `json:"result"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&pr); err != nil {
+		return nil, err
+	}
+	if pr.Status != "success" {
+		return nil, fmt.Errorf("prometheus query failed: %s", pr.Error)
+	}
+
+	var out []MetricsSeries
+	single := len(pr.Data.Result) == 1
+	for i, r := range pr.Data.Result {
+		if i >= maxWidgetSeries {
+			break
+		}
+		pts := make([]MetricPoint, 0, len(r.Values))
+		for _, v := range r.Values {
+			if len(v) != 2 {
+				continue
+			}
+			tsF, ok := v[0].(float64)
+			if !ok {
+				continue
+			}
+			raw, ok := v[1].(string)
+			if !ok {
+				continue
+			}
+			val, err := strconv.ParseFloat(raw, 64)
+			if err != nil {
+				continue // NaN/Inf strings are skipped
+			}
+			pts = append(pts, MetricPoint{Timestamp: int64(tsF), Value: val})
+		}
+		label := seriesLabel(r.Metric)
+		if single && label == "" {
+			label = "value"
+		}
+		out = append(out, MetricsSeries{Key: label, Label: label, Points: pts})
+	}
+	return out, nil
+}
+
+// seriesLabel derives a stable display label from a Prometheus metric's label
+// set. A single non-name label (the common group-by case) is used verbatim;
+// otherwise the remaining labels are joined so series stay distinguishable.
+func seriesLabel(metric map[string]string) string {
+	if len(metric) == 0 {
+		return ""
+	}
+	keys := make([]string, 0, len(metric))
+	for k := range metric {
+		if k == "__name__" {
+			continue
+		}
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	if len(keys) == 1 {
+		return metric[keys[0]]
+	}
+	parts := make([]string, 0, len(keys))
+	for _, k := range keys {
+		parts = append(parts, k+"="+metric[k])
+	}
+	if len(parts) == 0 {
+		return metric["__name__"]
+	}
+	return strings.Join(parts, ", ")
+}

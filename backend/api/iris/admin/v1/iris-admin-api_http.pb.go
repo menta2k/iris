@@ -39,6 +39,7 @@ const OperationIrisAdminServiceCreateSubjectClassification = "/iris.admin.v1.Iri
 const OperationIrisAdminServiceCreateSuppression = "/iris.admin.v1.IrisAdminService/CreateSuppression"
 const OperationIrisAdminServiceCreateTLSPolicy = "/iris.admin.v1.IrisAdminService/CreateTLSPolicy"
 const OperationIrisAdminServiceCreateUser = "/iris.admin.v1.IrisAdminService/CreateUser"
+const OperationIrisAdminServiceCreateUserDashboard = "/iris.admin.v1.IrisAdminService/CreateUserDashboard"
 const OperationIrisAdminServiceCreateVMTA = "/iris.admin.v1.IrisAdminService/CreateVMTA"
 const OperationIrisAdminServiceCreateVMTAGroups = "/iris.admin.v1.IrisAdminService/CreateVMTAGroups"
 const OperationIrisAdminServiceCreateWarmupSchedule = "/iris.admin.v1.IrisAdminService/CreateWarmupSchedule"
@@ -52,6 +53,7 @@ const OperationIrisAdminServiceDeleteInjectionCredential = "/iris.admin.v1.IrisA
 const OperationIrisAdminServiceDeleteMonitoringAccount = "/iris.admin.v1.IrisAdminService/DeleteMonitoringAccount"
 const OperationIrisAdminServiceDeleteSubjectClassification = "/iris.admin.v1.IrisAdminService/DeleteSubjectClassification"
 const OperationIrisAdminServiceDeleteTLSPolicy = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
+const OperationIrisAdminServiceDeleteUserDashboard = "/iris.admin.v1.IrisAdminService/DeleteUserDashboard"
 const OperationIrisAdminServiceDiagnose = "/iris.admin.v1.IrisAdminService/Diagnose"
 const OperationIrisAdminServiceDisableMFA = "/iris.admin.v1.IrisAdminService/DisableMFA"
 const OperationIrisAdminServiceEnrollMFA = "/iris.admin.v1.IrisAdminService/EnrollMFA"
@@ -72,6 +74,7 @@ const OperationIrisAdminServiceGetRecipientDomainStats = "/iris.admin.v1.IrisAdm
 const OperationIrisAdminServiceGetSystemMetrics = "/iris.admin.v1.IrisAdminService/GetSystemMetrics"
 const OperationIrisAdminServiceGetSystemMonitor = "/iris.admin.v1.IrisAdminService/GetSystemMonitor"
 const OperationIrisAdminServiceGetWarmupDeliveryStats = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
+const OperationIrisAdminServiceGetWidgetData = "/iris.admin.v1.IrisAdminService/GetWidgetData"
 const OperationIrisAdminServiceKumoConfigStatus = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
 const OperationIrisAdminServiceListAcmeCertificates = "/iris.admin.v1.IrisAdminService/ListAcmeCertificates"
 const OperationIrisAdminServiceListAcmeDnsProviders = "/iris.admin.v1.IrisAdminService/ListAcmeDnsProviders"
@@ -102,10 +105,12 @@ const OperationIrisAdminServiceListSubjectClassifications = "/iris.admin.v1.Iris
 const OperationIrisAdminServiceListSuppressionDsnMessages = "/iris.admin.v1.IrisAdminService/ListSuppressionDsnMessages"
 const OperationIrisAdminServiceListSuppressions = "/iris.admin.v1.IrisAdminService/ListSuppressions"
 const OperationIrisAdminServiceListTLSPolicies = "/iris.admin.v1.IrisAdminService/ListTLSPolicies"
+const OperationIrisAdminServiceListUserDashboards = "/iris.admin.v1.IrisAdminService/ListUserDashboards"
 const OperationIrisAdminServiceListUsers = "/iris.admin.v1.IrisAdminService/ListUsers"
 const OperationIrisAdminServiceListVMTAGroups = "/iris.admin.v1.IrisAdminService/ListVMTAGroups"
 const OperationIrisAdminServiceListVMTAs = "/iris.admin.v1.IrisAdminService/ListVMTAs"
 const OperationIrisAdminServiceListWarmupSchedules = "/iris.admin.v1.IrisAdminService/ListWarmupSchedules"
+const OperationIrisAdminServiceListWidgetCatalog = "/iris.admin.v1.IrisAdminService/ListWidgetCatalog"
 const OperationIrisAdminServiceListWorkerErrorLogs = "/iris.admin.v1.IrisAdminService/ListWorkerErrorLogs"
 const OperationIrisAdminServiceLogin = "/iris.admin.v1.IrisAdminService/Login"
 const OperationIrisAdminServiceLogout = "/iris.admin.v1.IrisAdminService/Logout"
@@ -123,6 +128,7 @@ const OperationIrisAdminServiceSeedDeliveryBlueprints = "/iris.admin.v1.IrisAdmi
 const OperationIrisAdminServiceSendMonitoringProbe = "/iris.admin.v1.IrisAdminService/SendMonitoringProbe"
 const OperationIrisAdminServiceSetAcmeDnsProvider = "/iris.admin.v1.IrisAdminService/SetAcmeDnsProvider"
 const OperationIrisAdminServiceSetAutomationRuleStatus = "/iris.admin.v1.IrisAdminService/SetAutomationRuleStatus"
+const OperationIrisAdminServiceSetDefaultUserDashboard = "/iris.admin.v1.IrisAdminService/SetDefaultUserDashboard"
 const OperationIrisAdminServiceSetDeliveryBlueprintStatus = "/iris.admin.v1.IrisAdminService/SetDeliveryBlueprintStatus"
 const OperationIrisAdminServiceSetInjectionCredentialPassword = "/iris.admin.v1.IrisAdminService/SetInjectionCredentialPassword"
 const OperationIrisAdminServiceSetMonitoringAccountPassword = "/iris.admin.v1.IrisAdminService/SetMonitoringAccountPassword"
@@ -146,6 +152,7 @@ const OperationIrisAdminServiceUpdateRoutingRule = "/iris.admin.v1.IrisAdminServ
 const OperationIrisAdminServiceUpdateSubjectClassification = "/iris.admin.v1.IrisAdminService/UpdateSubjectClassification"
 const OperationIrisAdminServiceUpdateSuppression = "/iris.admin.v1.IrisAdminService/UpdateSuppression"
 const OperationIrisAdminServiceUpdateUser = "/iris.admin.v1.IrisAdminService/UpdateUser"
+const OperationIrisAdminServiceUpdateUserDashboard = "/iris.admin.v1.IrisAdminService/UpdateUserDashboard"
 const OperationIrisAdminServiceUpdateVMTA = "/iris.admin.v1.IrisAdminService/UpdateVMTA"
 const OperationIrisAdminServiceUpdateVMTAGroup = "/iris.admin.v1.IrisAdminService/UpdateVMTAGroup"
 const OperationIrisAdminServiceUpdateWarmupSchedule = "/iris.admin.v1.IrisAdminService/UpdateWarmupSchedule"
@@ -178,6 +185,8 @@ type IrisAdminServiceHTTPServer interface {
 	CreateSuppression(context.Context, *CreateSuppressionRequest) (*Suppression, error)
 	CreateTLSPolicy(context.Context, *CreateTLSPolicyRequest) (*TLSPolicy, error)
 	CreateUser(context.Context, *CreateUserRequest) (*User, error)
+	// CreateUserDashboard CreateUserDashboard creates a dashboard for the calling user.
+	CreateUserDashboard(context.Context, *CreateUserDashboardRequest) (*UserDashboard, error)
 	CreateVMTA(context.Context, *CreateVMTARequest) (*VMTA, error)
 	CreateVMTAGroups(context.Context, *CreateVMTAGroupRequest) (*VMTAGroup, error)
 	CreateWarmupSchedule(context.Context, *CreateWarmupScheduleRequest) (*WarmupSchedule, error)
@@ -193,6 +202,8 @@ type IrisAdminServiceHTTPServer interface {
 	DeleteMonitoringAccount(context.Context, *DeleteMonitoringAccountRequest) (*DeleteMonitoringAccountReply, error)
 	DeleteSubjectClassification(context.Context, *DeleteSubjectClassificationRequest) (*DeleteSubjectClassificationReply, error)
 	DeleteTLSPolicy(context.Context, *DeleteTLSPolicyRequest) (*DeleteTLSPolicyReply, error)
+	// DeleteUserDashboard DeleteUserDashboard removes the calling user's dashboard.
+	DeleteUserDashboard(context.Context, *DeleteUserDashboardRequest) (*DeleteUserDashboardResponse, error)
 	// Diagnose Tools ---------------------------------------------------------------------
 	// Diagnose reports how mail from a given address is handled and whether the
 	// sending domain is set up correctly (DKIM/SPF/DMARC/MX/FBL + routing preview).
@@ -240,6 +251,9 @@ type IrisAdminServiceHTTPServer interface {
 	// GetWarmupDeliveryStats GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
 	// bounce rates over a lookback window — used to watch IP-warmup health.
 	GetWarmupDeliveryStats(context.Context, *GetWarmupDeliveryStatsRequest) (*WarmupDeliveryStats, error)
+	// GetWidgetData GetWidgetData executes one widget's metric query (catalog or raw PromQL,
+	// guarded) and returns time-series in the shared MetricsTimeseries shape.
+	GetWidgetData(context.Context, *GetWidgetDataRequest) (*MetricsTimeseries, error)
 	// KumoConfigStatus KumoConfigStatus reports whether the current configuration has drifted from
 	// the last applied policy (a regenerate/apply is pending).
 	KumoConfigStatus(context.Context, *KumoConfigStatusRequest) (*KumoConfigStatusReply, error)
@@ -296,6 +310,9 @@ type IrisAdminServiceHTTPServer interface {
 	ListSuppressions(context.Context, *ListSuppressionsRequest) (*ListSuppressionsReply, error)
 	// ListTLSPolicies Require-TLS policies (outbound delivery must use TLS for these domains) ---
 	ListTLSPolicies(context.Context, *ListTLSPoliciesRequest) (*ListTLSPoliciesReply, error)
+	// ListUserDashboards --- Per-user custom dashboards ---
+	// ListUserDashboards returns the calling user's custom dashboards.
+	ListUserDashboards(context.Context, *ListUserDashboardsRequest) (*ListUserDashboardsResponse, error)
 	// ListUsers Security administration --------------------------------------------------
 	ListUsers(context.Context, *ListUsersRequest) (*ListUsersReply, error)
 	ListVMTAGroups(context.Context, *ListVMTAGroupsRequest) (*ListVMTAGroupsReply, error)
@@ -303,6 +320,8 @@ type IrisAdminServiceHTTPServer interface {
 	ListVMTAs(context.Context, *ListVMTAsRequest) (*ListVMTAsReply, error)
 	// ListWarmupSchedules IP warmup: ramp a VMTA's volume per receiving-domain family over a curve.
 	ListWarmupSchedules(context.Context, *ListWarmupSchedulesRequest) (*ListWarmupSchedulesReply, error)
+	// ListWidgetCatalog ListWidgetCatalog returns the curated metric widget catalog.
+	ListWidgetCatalog(context.Context, *ListWidgetCatalogRequest) (*ListWidgetCatalogResponse, error)
 	// ListWorkerErrorLogs Generic worker error log: Warn/Error events emitted by background workers
 	// (e.g. an unparseable DMARC report dropped by the dmarc worker).
 	ListWorkerErrorLogs(context.Context, *ListWorkerErrorLogsRequest) (*ListWorkerErrorLogsReply, error)
@@ -336,6 +355,8 @@ type IrisAdminServiceHTTPServer interface {
 	SendMonitoringProbe(context.Context, *SendMonitoringProbeRequest) (*MonitoringProbe, error)
 	SetAcmeDnsProvider(context.Context, *SetAcmeDnsProviderRequest) (*AcmeDnsProvider, error)
 	SetAutomationRuleStatus(context.Context, *SetAutomationRuleStatusRequest) (*AutomationRule, error)
+	// SetDefaultUserDashboard SetDefaultUserDashboard marks one of the user's dashboards as default.
+	SetDefaultUserDashboard(context.Context, *SetDefaultUserDashboardRequest) (*UserDashboard, error)
 	SetDeliveryBlueprintStatus(context.Context, *SetDeliveryBlueprintStatusRequest) (*DeliveryBlueprint, error)
 	SetInjectionCredentialPassword(context.Context, *SetInjectionCredentialPasswordRequest) (*InjectionCredential, error)
 	SetMonitoringAccountPassword(context.Context, *SetMonitoringAccountPasswordRequest) (*MonitoringAccount, error)
@@ -359,6 +380,8 @@ type IrisAdminServiceHTTPServer interface {
 	UpdateSubjectClassification(context.Context, *UpdateSubjectClassificationRequest) (*SubjectClassification, error)
 	UpdateSuppression(context.Context, *UpdateSuppressionRequest) (*Suppression, error)
 	UpdateUser(context.Context, *UpdateUserRequest) (*User, error)
+	// UpdateUserDashboard UpdateUserDashboard edits the calling user's dashboard (name + layout).
+	UpdateUserDashboard(context.Context, *UpdateUserDashboardRequest) (*UserDashboard, error)
 	UpdateVMTA(context.Context, *UpdateVMTARequest) (*VMTA, error)
 	UpdateVMTAGroup(context.Context, *UpdateVMTAGroupRequest) (*VMTAGroup, error)
 	UpdateWarmupSchedule(context.Context, *UpdateWarmupScheduleRequest) (*WarmupSchedule, error)
@@ -469,6 +492,13 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.GET("/v1/dashboard/mailclass-stats", _IrisAdminService_GetMailClassStats0_HTTP_Handler(srv))
 	r.GET("/v1/dashboard/recipient-domain-stats", _IrisAdminService_GetRecipientDomainStats0_HTTP_Handler(srv))
 	r.GET("/v1/domain-check/{domain}", _IrisAdminService_CheckDomainBounceSetup0_HTTP_Handler(srv))
+	r.GET("/v1/dashboards", _IrisAdminService_ListUserDashboards0_HTTP_Handler(srv))
+	r.POST("/v1/dashboards", _IrisAdminService_CreateUserDashboard0_HTTP_Handler(srv))
+	r.PUT("/v1/dashboards/{id}", _IrisAdminService_UpdateUserDashboard0_HTTP_Handler(srv))
+	r.DELETE("/v1/dashboards/{id}", _IrisAdminService_DeleteUserDashboard0_HTTP_Handler(srv))
+	r.POST("/v1/dashboards/{id}:set-default", _IrisAdminService_SetDefaultUserDashboard0_HTTP_Handler(srv))
+	r.GET("/v1/dashboard/widget-catalog", _IrisAdminService_ListWidgetCatalog0_HTTP_Handler(srv))
+	r.GET("/v1/dashboard/widget-data", _IrisAdminService_GetWidgetData0_HTTP_Handler(srv))
 	r.POST("/v1/tools/diagnose", _IrisAdminService_Diagnose0_HTTP_Handler(srv))
 	r.POST("/v1/tools/rbl-check", _IrisAdminService_RblCheck0_HTTP_Handler(srv))
 	r.GET("/v1/dmarc/stats", _IrisAdminService_GetDmarcStats0_HTTP_Handler(srv))
@@ -2625,6 +2655,157 @@ func _IrisAdminService_CheckDomainBounceSetup0_HTTP_Handler(srv IrisAdminService
 	}
 }
 
+func _IrisAdminService_ListUserDashboards0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListUserDashboardsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListUserDashboards)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListUserDashboards(ctx, req.(*ListUserDashboardsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListUserDashboardsResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CreateUserDashboard0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateUserDashboardRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCreateUserDashboard)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateUserDashboard(ctx, req.(*CreateUserDashboardRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*UserDashboard)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateUserDashboard0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateUserDashboardRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateUserDashboard)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateUserDashboard(ctx, req.(*UpdateUserDashboardRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*UserDashboard)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_DeleteUserDashboard0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteUserDashboardRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceDeleteUserDashboard)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteUserDashboard(ctx, req.(*DeleteUserDashboardRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteUserDashboardResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_SetDefaultUserDashboard0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SetDefaultUserDashboardRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceSetDefaultUserDashboard)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SetDefaultUserDashboard(ctx, req.(*SetDefaultUserDashboardRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*UserDashboard)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ListWidgetCatalog0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListWidgetCatalogRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListWidgetCatalog)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListWidgetCatalog(ctx, req.(*ListWidgetCatalogRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListWidgetCatalogResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_GetWidgetData0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetWidgetDataRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetWidgetData)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetWidgetData(ctx, req.(*GetWidgetDataRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*MetricsTimeseries)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_Diagnose0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in DiagnoseRequest
@@ -3368,6 +3549,8 @@ type IrisAdminServiceHTTPClient interface {
 	CreateSuppression(ctx context.Context, req *CreateSuppressionRequest, opts ...http.CallOption) (rsp *Suppression, err error)
 	CreateTLSPolicy(ctx context.Context, req *CreateTLSPolicyRequest, opts ...http.CallOption) (rsp *TLSPolicy, err error)
 	CreateUser(ctx context.Context, req *CreateUserRequest, opts ...http.CallOption) (rsp *User, err error)
+	// CreateUserDashboard CreateUserDashboard creates a dashboard for the calling user.
+	CreateUserDashboard(ctx context.Context, req *CreateUserDashboardRequest, opts ...http.CallOption) (rsp *UserDashboard, err error)
 	CreateVMTA(ctx context.Context, req *CreateVMTARequest, opts ...http.CallOption) (rsp *VMTA, err error)
 	CreateVMTAGroups(ctx context.Context, req *CreateVMTAGroupRequest, opts ...http.CallOption) (rsp *VMTAGroup, err error)
 	CreateWarmupSchedule(ctx context.Context, req *CreateWarmupScheduleRequest, opts ...http.CallOption) (rsp *WarmupSchedule, err error)
@@ -3383,6 +3566,8 @@ type IrisAdminServiceHTTPClient interface {
 	DeleteMonitoringAccount(ctx context.Context, req *DeleteMonitoringAccountRequest, opts ...http.CallOption) (rsp *DeleteMonitoringAccountReply, err error)
 	DeleteSubjectClassification(ctx context.Context, req *DeleteSubjectClassificationRequest, opts ...http.CallOption) (rsp *DeleteSubjectClassificationReply, err error)
 	DeleteTLSPolicy(ctx context.Context, req *DeleteTLSPolicyRequest, opts ...http.CallOption) (rsp *DeleteTLSPolicyReply, err error)
+	// DeleteUserDashboard DeleteUserDashboard removes the calling user's dashboard.
+	DeleteUserDashboard(ctx context.Context, req *DeleteUserDashboardRequest, opts ...http.CallOption) (rsp *DeleteUserDashboardResponse, err error)
 	// Diagnose Tools ---------------------------------------------------------------------
 	// Diagnose reports how mail from a given address is handled and whether the
 	// sending domain is set up correctly (DKIM/SPF/DMARC/MX/FBL + routing preview).
@@ -3430,6 +3615,9 @@ type IrisAdminServiceHTTPClient interface {
 	// GetWarmupDeliveryStats GetWarmupDeliveryStats returns per-VMTA, per-recipient-domain delivery and
 	// bounce rates over a lookback window — used to watch IP-warmup health.
 	GetWarmupDeliveryStats(ctx context.Context, req *GetWarmupDeliveryStatsRequest, opts ...http.CallOption) (rsp *WarmupDeliveryStats, err error)
+	// GetWidgetData GetWidgetData executes one widget's metric query (catalog or raw PromQL,
+	// guarded) and returns time-series in the shared MetricsTimeseries shape.
+	GetWidgetData(ctx context.Context, req *GetWidgetDataRequest, opts ...http.CallOption) (rsp *MetricsTimeseries, err error)
 	// KumoConfigStatus KumoConfigStatus reports whether the current configuration has drifted from
 	// the last applied policy (a regenerate/apply is pending).
 	KumoConfigStatus(ctx context.Context, req *KumoConfigStatusRequest, opts ...http.CallOption) (rsp *KumoConfigStatusReply, err error)
@@ -3486,6 +3674,9 @@ type IrisAdminServiceHTTPClient interface {
 	ListSuppressions(ctx context.Context, req *ListSuppressionsRequest, opts ...http.CallOption) (rsp *ListSuppressionsReply, err error)
 	// ListTLSPolicies Require-TLS policies (outbound delivery must use TLS for these domains) ---
 	ListTLSPolicies(ctx context.Context, req *ListTLSPoliciesRequest, opts ...http.CallOption) (rsp *ListTLSPoliciesReply, err error)
+	// ListUserDashboards --- Per-user custom dashboards ---
+	// ListUserDashboards returns the calling user's custom dashboards.
+	ListUserDashboards(ctx context.Context, req *ListUserDashboardsRequest, opts ...http.CallOption) (rsp *ListUserDashboardsResponse, err error)
 	// ListUsers Security administration --------------------------------------------------
 	ListUsers(ctx context.Context, req *ListUsersRequest, opts ...http.CallOption) (rsp *ListUsersReply, err error)
 	ListVMTAGroups(ctx context.Context, req *ListVMTAGroupsRequest, opts ...http.CallOption) (rsp *ListVMTAGroupsReply, err error)
@@ -3493,6 +3684,8 @@ type IrisAdminServiceHTTPClient interface {
 	ListVMTAs(ctx context.Context, req *ListVMTAsRequest, opts ...http.CallOption) (rsp *ListVMTAsReply, err error)
 	// ListWarmupSchedules IP warmup: ramp a VMTA's volume per receiving-domain family over a curve.
 	ListWarmupSchedules(ctx context.Context, req *ListWarmupSchedulesRequest, opts ...http.CallOption) (rsp *ListWarmupSchedulesReply, err error)
+	// ListWidgetCatalog ListWidgetCatalog returns the curated metric widget catalog.
+	ListWidgetCatalog(ctx context.Context, req *ListWidgetCatalogRequest, opts ...http.CallOption) (rsp *ListWidgetCatalogResponse, err error)
 	// ListWorkerErrorLogs Generic worker error log: Warn/Error events emitted by background workers
 	// (e.g. an unparseable DMARC report dropped by the dmarc worker).
 	ListWorkerErrorLogs(ctx context.Context, req *ListWorkerErrorLogsRequest, opts ...http.CallOption) (rsp *ListWorkerErrorLogsReply, err error)
@@ -3526,6 +3719,8 @@ type IrisAdminServiceHTTPClient interface {
 	SendMonitoringProbe(ctx context.Context, req *SendMonitoringProbeRequest, opts ...http.CallOption) (rsp *MonitoringProbe, err error)
 	SetAcmeDnsProvider(ctx context.Context, req *SetAcmeDnsProviderRequest, opts ...http.CallOption) (rsp *AcmeDnsProvider, err error)
 	SetAutomationRuleStatus(ctx context.Context, req *SetAutomationRuleStatusRequest, opts ...http.CallOption) (rsp *AutomationRule, err error)
+	// SetDefaultUserDashboard SetDefaultUserDashboard marks one of the user's dashboards as default.
+	SetDefaultUserDashboard(ctx context.Context, req *SetDefaultUserDashboardRequest, opts ...http.CallOption) (rsp *UserDashboard, err error)
 	SetDeliveryBlueprintStatus(ctx context.Context, req *SetDeliveryBlueprintStatusRequest, opts ...http.CallOption) (rsp *DeliveryBlueprint, err error)
 	SetInjectionCredentialPassword(ctx context.Context, req *SetInjectionCredentialPasswordRequest, opts ...http.CallOption) (rsp *InjectionCredential, err error)
 	SetMonitoringAccountPassword(ctx context.Context, req *SetMonitoringAccountPasswordRequest, opts ...http.CallOption) (rsp *MonitoringAccount, err error)
@@ -3549,6 +3744,8 @@ type IrisAdminServiceHTTPClient interface {
 	UpdateSubjectClassification(ctx context.Context, req *UpdateSubjectClassificationRequest, opts ...http.CallOption) (rsp *SubjectClassification, err error)
 	UpdateSuppression(ctx context.Context, req *UpdateSuppressionRequest, opts ...http.CallOption) (rsp *Suppression, err error)
 	UpdateUser(ctx context.Context, req *UpdateUserRequest, opts ...http.CallOption) (rsp *User, err error)
+	// UpdateUserDashboard UpdateUserDashboard edits the calling user's dashboard (name + layout).
+	UpdateUserDashboard(ctx context.Context, req *UpdateUserDashboardRequest, opts ...http.CallOption) (rsp *UserDashboard, err error)
 	UpdateVMTA(ctx context.Context, req *UpdateVMTARequest, opts ...http.CallOption) (rsp *VMTA, err error)
 	UpdateVMTAGroup(ctx context.Context, req *UpdateVMTAGroupRequest, opts ...http.CallOption) (rsp *VMTAGroup, err error)
 	UpdateWarmupSchedule(ctx context.Context, req *UpdateWarmupScheduleRequest, opts ...http.CallOption) (rsp *WarmupSchedule, err error)
@@ -3831,6 +4028,20 @@ func (c *IrisAdminServiceHTTPClientImpl) CreateUser(ctx context.Context, in *Cre
 	return &out, nil
 }
 
+// CreateUserDashboard CreateUserDashboard creates a dashboard for the calling user.
+func (c *IrisAdminServiceHTTPClientImpl) CreateUserDashboard(ctx context.Context, in *CreateUserDashboardRequest, opts ...http.CallOption) (*UserDashboard, error) {
+	var out UserDashboard
+	pattern := "/v1/dashboards"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateUserDashboard))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) CreateVMTA(ctx context.Context, in *CreateVMTARequest, opts ...http.CallOption) (*VMTA, error) {
 	var out VMTA
 	pattern := "/v1/vmtas"
@@ -3994,6 +4205,20 @@ func (c *IrisAdminServiceHTTPClientImpl) DeleteTLSPolicy(ctx context.Context, in
 	pattern := "/v1/tls-policies/{id}"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteTLSPolicy))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// DeleteUserDashboard DeleteUserDashboard removes the calling user's dashboard.
+func (c *IrisAdminServiceHTTPClientImpl) DeleteUserDashboard(ctx context.Context, in *DeleteUserDashboardRequest, opts ...http.CallOption) (*DeleteUserDashboardResponse, error) {
+	var out DeleteUserDashboardResponse
+	pattern := "/v1/dashboards/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteUserDashboard))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {
@@ -4281,6 +4506,21 @@ func (c *IrisAdminServiceHTTPClientImpl) GetWarmupDeliveryStats(ctx context.Cont
 	pattern := "/v1/dashboard/warmup-stats"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceGetWarmupDeliveryStats))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetWidgetData GetWidgetData executes one widget's metric query (catalog or raw PromQL,
+// guarded) and returns time-series in the shared MetricsTimeseries shape.
+func (c *IrisAdminServiceHTTPClientImpl) GetWidgetData(ctx context.Context, in *GetWidgetDataRequest, opts ...http.CallOption) (*MetricsTimeseries, error) {
+	var out MetricsTimeseries
+	pattern := "/v1/dashboard/widget-data"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetWidgetData))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -4705,6 +4945,21 @@ func (c *IrisAdminServiceHTTPClientImpl) ListTLSPolicies(ctx context.Context, in
 	return &out, nil
 }
 
+// ListUserDashboards --- Per-user custom dashboards ---
+// ListUserDashboards returns the calling user's custom dashboards.
+func (c *IrisAdminServiceHTTPClientImpl) ListUserDashboards(ctx context.Context, in *ListUserDashboardsRequest, opts ...http.CallOption) (*ListUserDashboardsResponse, error) {
+	var out ListUserDashboardsResponse
+	pattern := "/v1/dashboards"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListUserDashboards))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // ListUsers Security administration --------------------------------------------------
 func (c *IrisAdminServiceHTTPClientImpl) ListUsers(ctx context.Context, in *ListUsersRequest, opts ...http.CallOption) (*ListUsersReply, error) {
 	var out ListUsersReply
@@ -4752,6 +5007,20 @@ func (c *IrisAdminServiceHTTPClientImpl) ListWarmupSchedules(ctx context.Context
 	pattern := "/v1/warmup-schedules"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListWarmupSchedules))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListWidgetCatalog ListWidgetCatalog returns the curated metric widget catalog.
+func (c *IrisAdminServiceHTTPClientImpl) ListWidgetCatalog(ctx context.Context, in *ListWidgetCatalogRequest, opts ...http.CallOption) (*ListWidgetCatalogResponse, error) {
+	var out ListWidgetCatalogResponse
+	pattern := "/v1/dashboard/widget-catalog"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListWidgetCatalog))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -4989,6 +5258,20 @@ func (c *IrisAdminServiceHTTPClientImpl) SetAutomationRuleStatus(ctx context.Con
 	pattern := "/v1/automation-rules/{id}:status"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceSetAutomationRuleStatus))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// SetDefaultUserDashboard SetDefaultUserDashboard marks one of the user's dashboards as default.
+func (c *IrisAdminServiceHTTPClientImpl) SetDefaultUserDashboard(ctx context.Context, in *SetDefaultUserDashboardRequest, opts ...http.CallOption) (*UserDashboard, error) {
+	var out UserDashboard
+	pattern := "/v1/dashboards/{id}:set-default"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceSetDefaultUserDashboard))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -5288,6 +5571,20 @@ func (c *IrisAdminServiceHTTPClientImpl) UpdateUser(ctx context.Context, in *Upd
 	pattern := "/v1/users/{id}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateUser))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// UpdateUserDashboard UpdateUserDashboard edits the calling user's dashboard (name + layout).
+func (c *IrisAdminServiceHTTPClientImpl) UpdateUserDashboard(ctx context.Context, in *UpdateUserDashboardRequest, opts ...http.CallOption) (*UserDashboard, error) {
+	var out UserDashboard
+	pattern := "/v1/dashboards/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateUserDashboard))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {

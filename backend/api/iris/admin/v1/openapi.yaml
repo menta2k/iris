@@ -618,6 +618,156 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/WarmupDeliveryStats'
+    /v1/dashboard/widget-catalog:
+        get:
+            tags:
+                - IrisAdminService
+            description: ListWidgetCatalog returns the curated metric widget catalog.
+            operationId: IrisAdminService_ListWidgetCatalog
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListWidgetCatalogResponse'
+    /v1/dashboard/widget-data:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                GetWidgetData executes one widget's metric query (catalog or raw PromQL,
+                 guarded) and returns time-series in the shared MetricsTimeseries shape.
+            operationId: IrisAdminService_GetWidgetData
+            parameters:
+                - name: source
+                  in: query
+                  schema:
+                    type: string
+                - name: catalog_key
+                  in: query
+                  schema:
+                    type: string
+                - name: promql
+                  in: query
+                  schema:
+                    type: string
+                - name: range
+                  in: query
+                  schema:
+                    type: string
+                - name: group_by
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MetricsTimeseries'
+    /v1/dashboards:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                --- Per-user custom dashboards ---
+                 ListUserDashboards returns the calling user's custom dashboards.
+            operationId: IrisAdminService_ListUserDashboards
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListUserDashboardsResponse'
+        post:
+            tags:
+                - IrisAdminService
+            description: CreateUserDashboard creates a dashboard for the calling user.
+            operationId: IrisAdminService_CreateUserDashboard
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateUserDashboardRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UserDashboard'
+    /v1/dashboards/{id}:
+        put:
+            tags:
+                - IrisAdminService
+            description: UpdateUserDashboard edits the calling user's dashboard (name + layout).
+            operationId: IrisAdminService_UpdateUserDashboard
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateUserDashboardRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UserDashboard'
+        delete:
+            tags:
+                - IrisAdminService
+            description: DeleteUserDashboard removes the calling user's dashboard.
+            operationId: IrisAdminService_DeleteUserDashboard
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteUserDashboardResponse'
+    /v1/dashboards/{id}:set-default:
+        post:
+            tags:
+                - IrisAdminService
+            description: SetDefaultUserDashboard marks one of the user's dashboards as default.
+            operationId: IrisAdminService_SetDefaultUserDashboard
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/SetDefaultUserDashboardRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UserDashboard'
     /v1/delivery-blueprints:
         get:
             tags:
@@ -3237,6 +3387,15 @@ components:
                     type: string
                 mode:
                     type: string
+        CreateUserDashboardRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                widgets_json:
+                    type: string
+                make_default:
+                    type: boolean
         CreateUserRequest:
             type: object
             properties:
@@ -3366,6 +3525,9 @@ components:
                 ok:
                     type: boolean
         DeleteTLSPolicyReply:
+            type: object
+            properties: {}
+        DeleteUserDashboardResponse:
             type: object
             properties: {}
         DeliveryBlueprint:
@@ -4180,6 +4342,13 @@ components:
                         $ref: '#/components/schemas/TLSPolicy'
                 page:
                     $ref: '#/components/schemas/PageReply'
+        ListUserDashboardsResponse:
+            type: object
+            properties:
+                dashboards:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/UserDashboard'
         ListUsersReply:
             type: object
             properties:
@@ -4220,6 +4389,13 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/WarmupCurve'
+        ListWidgetCatalogResponse:
+            type: object
+            properties:
+                widgets:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/WidgetCatalogEntry'
         ListWorkerErrorLogsReply:
             type: object
             properties:
@@ -5034,6 +5210,11 @@ components:
                     type: string
                 status:
                     type: string
+        SetDefaultUserDashboardRequest:
+            type: object
+            properties:
+                id:
+                    type: string
         SetDeliveryBlueprintStatusRequest:
             type: object
             properties:
@@ -5641,6 +5822,15 @@ components:
                     type: string
                 status:
                     type: string
+        UpdateUserDashboardRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                widgets_json:
+                    type: string
         UpdateUserRequest:
             type: object
             properties:
@@ -5722,6 +5912,26 @@ components:
                     items:
                         type: string
             description: Security administration ---------------------------------------------------
+        UserDashboard:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                is_default:
+                    type: boolean
+                widgets_json:
+                    type: string
+                created_at:
+                    type: string
+                updated_at:
+                    type: string
+            description: |-
+                UserDashboard is one operator-owned custom dashboard. widgets_json is an
+                 opaque JSON array of widget configs (gridstack geometry + metric source) that
+                 the frontend owns; the backend only validates it is a JSON array within a
+                 size cap.
         VMTA:
             type: object
             properties:
@@ -5908,6 +6118,32 @@ components:
                         type: integer
                         format: int32
             description: '---- IP warmup ----'
+        WidgetCatalogEntry:
+            type: object
+            properties:
+                key:
+                    type: string
+                category:
+                    type: string
+                title:
+                    type: string
+                description:
+                    type: string
+                unit:
+                    type: string
+                viz:
+                    type: string
+                supports_group_by:
+                    type: boolean
+                group_by_labels:
+                    type: array
+                    items:
+                        type: string
+                default_range:
+                    type: string
+                instant:
+                    type: boolean
+            description: WidgetCatalogEntry describes one curated metric widget offered in the builder.
         WorkerErrorLog:
             type: object
             properties:
