@@ -439,15 +439,23 @@ onBeforeUnmount(() => {
       <v-btn color="primary" prepend-icon="mdi-plus" @click="openNewDashboard">Create dashboard</v-btn>
     </v-card>
 
-    <!-- Grid (kept mounted so gridstack keeps its DOM; hidden while empty) -->
-    <div v-show="dashboards.length > 0 && !loading && !error && !notImplemented">
+    <!-- Grid (kept mounted so gridstack keeps its DOM; hidden while empty).
+         The edit-mode class lives on THIS wrapper, never on the .grid-stack
+         element itself: gridstack imperatively adds a `gs-id-N` class to that
+         element (its injected height CSS is scoped to it), and a Vue :class
+         binding on the same element would clobber `gs-id-N` on every toggle,
+         collapsing all items to 0px height. -->
+    <div
+      v-show="dashboards.length > 0 && !loading && !error && !notImplemented"
+      :class="{ 'grid-stack--editing': editMode }"
+    >
       <div
         v-if="activeId && widgets.length === 0"
         class="text-center text-medium-emphasis text-body-2 py-8"
       >
         This dashboard is empty. Click <strong>Add widget</strong> to get started.
       </div>
-      <div ref="gridEl" class="grid-stack" :class="{ 'grid-stack--editing': editMode }" />
+      <div ref="gridEl" class="grid-stack" />
     </div>
 
     <AddWidgetDialog v-model="addOpen" @add="addWidget" />
