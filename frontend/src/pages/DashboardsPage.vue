@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { createApp, h, onBeforeUnmount, onMounted, reactive, ref, shallowRef, type App } from 'vue'
+import { createApp, h, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch, type App } from 'vue'
 import { GridStack, type GridStackNode } from 'gridstack'
 import 'gridstack/dist/gridstack.min.css'
 import PageHeader from '@/components/common/PageHeader.vue'
 import MetricWidget from '@/components/dashboard/MetricWidget.vue'
 import AddWidgetDialog from '@/components/dashboard/AddWidgetDialog.vue'
+import RangeToggle from '@/components/dashboard/RangeToggle.vue'
 import { vuetify } from '@/plugins/vuetify'
 import { useEventStream } from '@/composables/useEventStream'
 import { useToast } from '@/composables/useToast'
@@ -22,7 +23,7 @@ const grid = shallowRef<GridStack | null>(null)
 // can push config updates / refresh ticks into the mounted MetricWidget.
 interface CellEntry {
   app: App
-  state: { config: WidgetConfig; refreshKey: number }
+  state: { config: WidgetConfig; refreshKey: number; rangeOverride: WidgetConfig['range'] }
   el: HTMLElement
 }
 const cells = new Map<string, CellEntry>()
@@ -37,12 +38,19 @@ const notImplemented = ref(false)
 const editMode = ref(false)
 const addOpen = ref(false)
 
-// Widget-edit dialog (title + range tweaks).
+// Dashboard-wide time range: a single toggle that drives every chart, like the
+// Overview. It overrides each widget's stored range for display.
+const RANGE_OPTIONS: WidgetConfig['range'][] = ['1h', '6h', '24h', '7d']
+const dashboardRange = ref<WidgetConfig['range']>('6h')
+// Push the selected range into every mounted cell so all charts reload together.
+watch(dashboardRange, (r) => {
+  for (const entry of cells.values()) entry.state.rangeOverride = r
+})
+
+// Widget-edit dialog (title only; range is dashboard-wide).
 const editOpen = ref(false)
 const editingId = ref<string>('')
 const editTitle = ref('')
-const editRange = ref<WidgetConfig['range']>('6h')
-const RANGES: WidgetConfig['range'][] = ['1h', '6h', '24h', '7d']
 
 // New/rename dashboard dialog.
 const nameDialogOpen = ref(false)
@@ -73,12 +81,13 @@ function mountCell(cfg: WidgetConfig) {
   const el = g.addWidget({ x: cfg.x, y: cfg.y, w: cfg.w, h: cfg.h, id: cfg.id })
   const content = el.querySelector('.grid-stack-item-content') as HTMLElement | null
   if (!content) return
-  const state = reactive({ config: cfg, refreshKey: 0 }) as CellEntry['state']
+  const state = reactive({ config: cfg, refreshKey: 0, rangeOverride: dashboardRange.value }) as CellEntry['state']
   const app = createApp({
     render: () =>
       h(MetricWidget, {
         config: state.config,
         refreshKey: state.refreshKey,
+        rangeOverride: state.rangeOverride,
         onEdit: () => openEditWidget(cfg.id),
         onRemove: () => removeWidget(cfg.id),
       }),
@@ -156,7 +165,7 @@ function onGridChange() {
 
 // -- Widget CRUD ------------------------------------------------------------
 
-function addWidget(partial: Omit<WidgetConfig, 'id' | 'x' | 'y' | 'w' | 'h'>) {
+function addWidget(partial: Omit<WidgetConfig, 'id' | 'x' | 'y' | 'w' | 'h' | 'range'>) {
   const isStat = partial.viz === 'stat' || partial.viz === 'gauge'
   const cfg: WidgetConfig = {
     ...partial,
@@ -165,6 +174,8 @@ function addWidget(partial: Omit<WidgetConfig, 'id' | 'x' | 'y' | 'w' | 'h'>) {
     y: 0, // gridstack finds an open slot via float/compact
     w: isStat ? 3 : 6,
     h: isStat ? 3 : 4,
+    // New widgets adopt the dashboard-wide range; the header toggle drives it.
+    range: dashboardRange.value,
   }
   widgets.value = [...widgets.value, cfg]
   mountCell(cfg)
@@ -183,7 +194,6 @@ function openEditWidget(id: string) {
   if (!w) return
   editingId.value = id
   editTitle.value = w.title
-  editRange.value = w.range
   editOpen.value = true
 }
 
@@ -191,7 +201,7 @@ function applyEditWidget() {
   const id = editingId.value
   const idx = widgets.value.findIndex((w) => w.id === id)
   if (idx === -1) return
-  const next = { ...widgets.value[idx], title: editTitle.value.trim() || widgets.value[idx].title, range: editRange.value }
+  const next = { ...widgets.value[idx], title: editTitle.value.trim() || widgets.value[idx].title }
   widgets.value = widgets.value.map((w) => (w.id === id ? next : w))
   // Push the new config into the mounted cell reactively.
   const entry = cells.get(id)
@@ -380,6 +390,7 @@ onBeforeUnmount(() => {
           style="min-width: 200px"
           @update:model-value="selectDashboard"
         />
+        <RangeToggle v-if="activeId" v-model="dashboardRange" :options="RANGE_OPTIONS" />
         <v-btn
           v-if="activeId"
           :color="editMode ? 'primary' : undefined"
@@ -465,8 +476,10 @@ onBeforeUnmount(() => {
       <v-card>
         <v-card-title>Edit widget</v-card-title>
         <v-card-text>
-          <v-text-field v-model="editTitle" label="Title" density="compact" hide-details class="mb-3" />
-          <v-select v-model="editRange" :items="RANGES" label="Range" density="compact" hide-details />
+          <v-text-field v-model="editTitle" label="Title" density="compact" hide-details class="mb-1" />
+          <p class="text-caption text-medium-emphasis mt-2 mb-0">
+            The time range is controlled for the whole dashboard by the range toggle in the header.
+          </p>
         </v-card-text>
         <v-card-actions>
           <v-spacer />

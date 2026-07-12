@@ -2,22 +2,16 @@
 import { computed, ref, watch } from 'vue'
 import { metricsService } from '@/services/metrics'
 import { ApiError } from '@/services/http'
-import type {
-  WidgetCatalogEntry,
-  WidgetConfig,
-  WidgetRange,
-  WidgetSource,
-  WidgetViz,
-} from '@/types'
+import type { WidgetCatalogEntry, WidgetConfig, WidgetSource, WidgetViz } from '@/types'
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{
   (e: 'update:modelValue', v: boolean): void
-  // A widget config WITHOUT geometry/id — the page assigns x/y/w/h/id.
-  (e: 'add', widget: Omit<WidgetConfig, 'id' | 'x' | 'y' | 'w' | 'h'>): void
+  // A widget config WITHOUT geometry/id/range — the page assigns x/y/w/h/id and
+  // the dashboard-wide range.
+  (e: 'add', widget: Omit<WidgetConfig, 'id' | 'x' | 'y' | 'w' | 'h' | 'range'>): void
 }>()
 
-const RANGES: WidgetRange[] = ['1h', '6h', '24h', '7d']
 const PROMQL_VIZ: WidgetViz[] = ['line', 'area', 'bar', 'stat']
 
 const tab = ref<WidgetSource>('catalog')
@@ -63,14 +57,14 @@ const promqlViz = ref<WidgetViz>('line')
 
 // --- Common fields ---
 const title = ref('')
-const range = ref<WidgetRange>('6h')
 
-// When picking a catalog widget, default the title/range/group-by from its def.
+// When picking a catalog widget, default the title/group-by from its def. The
+// time range is dashboard-wide (set via the header toggle), so it is not chosen
+// here.
 watch(selectedKey, () => {
   const e = selectedEntry.value
   if (!e) return
   if (!title.value.trim()) title.value = e.title
-  range.value = e.defaultRange || '6h'
   catalogGroupBy.value = ''
 })
 
@@ -87,7 +81,6 @@ function reset() {
   promql.value = ''
   promqlViz.value = 'line'
   title.value = ''
-  range.value = '6h'
 }
 
 function close() {
@@ -103,7 +96,6 @@ function submit() {
       title: title.value.trim(),
       source: 'catalog',
       catalogKey: e.key,
-      range: range.value,
       viz: e.viz,
       groupBy: e.supportsGroupBy ? catalogGroupBy.value || undefined : undefined,
       unit: e.unit || undefined,
@@ -113,7 +105,6 @@ function submit() {
       title: title.value.trim(),
       source: 'promql',
       promql: promql.value.trim(),
-      range: range.value,
       viz: promqlViz.value,
     })
   }
@@ -220,23 +211,15 @@ watch(
 
         <v-divider class="my-3" />
 
-        <div class="d-flex flex-wrap ga-3">
-          <v-text-field
-            v-model="title"
-            label="Widget title"
-            density="compact"
-            hide-details
-            style="min-width: 220px; flex: 1 1 220px"
-          />
-          <v-select
-            v-model="range"
-            :items="RANGES"
-            label="Range"
-            density="compact"
-            hide-details
-            style="max-width: 140px"
-          />
-        </div>
+        <v-text-field
+          v-model="title"
+          label="Widget title"
+          density="compact"
+          hide-details
+        />
+        <p class="text-caption text-medium-emphasis mt-2 mb-0">
+          Time range is set for the whole dashboard from the header toggle.
+        </p>
       </v-card-text>
 
       <v-divider />

@@ -15,7 +15,13 @@ const props = defineProps<{
   config: WidgetConfig
   // Bumped by the parent to trigger a coordinated refresh (SSE tick / interval).
   refreshKey?: number
+  // Dashboard-wide range that overrides the widget's own range when set.
+  rangeOverride?: string
 }>()
+
+// The effective lookback: the dashboard-wide toggle wins over the widget's
+// stored default so a single control drives every chart.
+const effectiveRange = computed(() => props.rangeOverride || props.config.range)
 
 const emit = defineEmits<{
   (e: 'edit'): void
@@ -131,7 +137,7 @@ async function load() {
       source: props.config.source,
       catalogKey: props.config.catalogKey,
       promql: props.config.promql,
-      range: props.config.range,
+      range: effectiveRange.value,
       groupBy: props.config.groupBy,
     })
     if (!res.prometheusAvailable) {
@@ -175,7 +181,7 @@ onBeforeUnmount(() => {
 
 // Reload when the widget's query config changes or the parent forces a refresh.
 watch(
-  () => [props.config.source, props.config.catalogKey, props.config.promql, props.config.range, props.config.groupBy, props.refreshKey],
+  () => [props.config.source, props.config.catalogKey, props.config.promql, effectiveRange.value, props.config.groupBy, props.refreshKey],
   load,
 )
 // (Re)render on data / theme / viz change; (re)create the canvas if the viz
