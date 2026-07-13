@@ -139,9 +139,24 @@ const widgetCatalog: WidgetCatalogEntry[] = [
   g('kumo_qmaint_runs_rate', 'Maintenance', 'Queue maintenance runs / sec', 'Scheduled-queue maintenance cycles per second.', 'ops/s', 'line'),
   g('kumo_readyq_runs_rate', 'Maintenance', 'Ready-queue runs / sec', 'Ready-queue maintenance cycles per second.', 'ops/s', 'line'),
   // Iris
-  g('iris_cpu_percent', 'Iris', 'Host CPU %', 'iris host CPU utilization.', 'percent', 'gauge', { instant: true, defaultRange: '1h' }),
-  g('iris_memory_percent', 'Iris', 'Host memory %', 'iris host memory utilization.', 'percent', 'gauge', { instant: true, defaultRange: '1h' }),
   g('iris_deliveries_rate', 'Iris', 'Deliveries / min', 'iris mail-flow deliveries per minute.', 'msg/min', 'area'),
+  g('iris_receptions_rate', 'Iris', 'Receptions / min', 'iris messages received per minute.', 'msg/min', 'line'),
+  g('iris_deferrals_rate', 'Iris', 'Deferrals / min', 'iris messages deferred per minute.', 'msg/min', 'line'),
+  g('iris_mail_events_rate', 'Iris', 'Mail events / min', 'iris mail events per minute, optionally grouped by status, class, or recipient domain.', 'msg/min', 'line', { supportsGroupBy: true, groupByLabels: ['status', 'mailclass', 'recipient_domain'] }),
+  g('iris_mail_by_domain', 'Iris', 'Mail by recipient domain (top)', 'Busiest recipient domains by mail volume per minute.', 'msg/min', 'bar'),
+  g('iris_mail_by_class', 'Iris', 'Mail by class / min', 'Mail volume per minute grouped by mail class.', 'msg/min', 'line'),
+  g('iris_bounces_rate', 'Iris', 'Bounces / min', 'iris bounces per minute.', 'msg/min', 'line', { supportsGroupBy: true, groupByLabels: ['type', 'mailclass'] }),
+  g('iris_vmta_events_rate', 'Iris', 'VMTA events / min', 'Outbound events per minute, optionally grouped by VMTA or status.', 'msg/min', 'line', { supportsGroupBy: true, groupByLabels: ['vmta', 'status'] }),
+  g('iris_webhook_rate', 'Iris', 'Webhook executions / min', 'Webhook deliveries per minute, optionally grouped by webhook or result.', 'ops/min', 'line', { supportsGroupBy: true, groupByLabels: ['webhook', 'result'] }),
+  g('iris_queue_time_p50', 'Iris', 'Queue time p50', 'Median time from reception to delivery.', 'seconds', 'line'),
+  g('iris_queue_time_p95', 'Iris', 'Queue time p95', '95th-percentile time from reception to delivery.', 'seconds', 'line'),
+  g('iris_cpu_percent', 'Iris', 'Host CPU %', 'iris host CPU utilization.', 'percent', 'gauge', { instant: true, defaultRange: '1h' }),
+  g('iris_cpu_percent_trend', 'Iris', 'Host CPU % (trend)', 'iris host CPU utilization over time.', 'percent', 'area'),
+  g('iris_memory_percent', 'Iris', 'Host memory %', 'iris host memory utilization.', 'percent', 'gauge', { instant: true, defaultRange: '1h' }),
+  g('iris_memory_percent_trend', 'Iris', 'Host memory % (trend)', 'iris host memory utilization over time.', 'percent', 'area'),
+  g('iris_memory_used_bytes', 'Iris', 'Host memory used', 'iris host memory used in bytes.', 'bytes', 'line'),
+  g('iris_disk_used_percent', 'Iris', 'Disk used % (max)', 'Highest filesystem usage across monitored mounts.', 'percent', 'gauge', { instant: true, defaultRange: '1h' }),
+  g('iris_disk_used_by_path', 'Iris', 'Disk used % by mount', 'Filesystem usage grouped by mount path.', 'percent', 'bar', { instant: true, defaultRange: '1h' }),
 ]
 
 // -- widget-data generator --------------------------------------------------
@@ -182,6 +197,12 @@ const GROUP_MEMBERS: Record<string, string[]> = {
   rejection_reason: ['relay-denied', 'rate-limited', 'bad-recipient'],
   domain: ['gmail.com', 'yahoo.com', 'outlook.com', 'example.com'],
   tenant: ['tenant-a', 'tenant-b', 'tenant-c'],
+  status: ['sent', 'received', 'deferred', 'bounced'],
+  mailclass: ['default', 'transactional', 'bulk'],
+  recipient_domain: ['gmail.com', 'yahoo.com', 'outlook.com'],
+  type: ['hard', 'soft', 'dsn'],
+  vmta: ['vmta-1', 'vmta-2', 'vmta-3'],
+  webhook: ['orders', 'alerts'],
 }
 
 function widgetData(ctx: RouteCtx): MetricsTimeseries {

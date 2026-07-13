@@ -338,13 +338,33 @@ function toggleEdit() {
   grid.value?.setStatic(!editMode.value)
 }
 
-// -- Refresh (SSE tick + interval) -----------------------------------------
+// -- Refresh (auto: SSE tick + interval; gated by the Auto-refresh toggle) --
+
+const REFRESH_MS = 60_000
+const autoRefresh = ref(true)
 
 function refreshAll() {
   for (const entry of cells.values()) entry.state.refreshKey += 1
 }
 let refreshTimer: ReturnType<typeof setInterval> | undefined
-const dashStream = useEventStream('dashboard', () => refreshAll())
+const dashStream = useEventStream('dashboard', () => {
+  if (autoRefresh.value) refreshAll()
+})
+
+// Start/stop the polling interval and live SSE tick with the toggle.
+watch(
+  autoRefresh,
+  (on) => {
+    clearInterval(refreshTimer)
+    if (on) {
+      refreshTimer = setInterval(refreshAll, REFRESH_MS)
+      dashStream.start()
+    } else {
+      dashStream.stop()
+    }
+  },
+  { immediate: true },
+)
 
 onMounted(() => {
   if (gridEl.value) {
@@ -362,8 +382,6 @@ onMounted(() => {
     grid.value.on('change', onGridChange)
   }
   loadDashboards()
-  dashStream.start()
-  refreshTimer = setInterval(refreshAll, 60_000)
 })
 
 onBeforeUnmount(() => {
@@ -391,6 +409,23 @@ onBeforeUnmount(() => {
           @update:model-value="selectDashboard"
         />
         <RangeToggle v-if="activeId" v-model="dashboardRange" :options="RANGE_OPTIONS" />
+        <v-switch
+          v-if="activeId"
+          v-model="autoRefresh"
+          label="Auto-refresh"
+          color="primary"
+          density="compact"
+          hide-details
+          class="flex-grow-0"
+        />
+        <v-btn
+          v-if="activeId"
+          icon="mdi-refresh"
+          variant="text"
+          size="small"
+          aria-label="Refresh now"
+          @click="refreshAll"
+        />
         <v-btn
           v-if="activeId"
           :color="editMode ? 'primary' : undefined"

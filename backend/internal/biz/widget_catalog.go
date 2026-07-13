@@ -185,13 +185,54 @@ var widgetCatalog = []WidgetDef{
 	{Key: "kumo_readyq_runs_rate", Category: "Maintenance", Title: "Ready-queue runs / sec", Description: "Ready-queue maintenance cycles per second.", Unit: "ops/s", Viz: WidgetVizLine,
 		PromQLTemplate: `sum(rate(total_readyq_runs[$window]))`, DefaultRange: "6h"},
 
-	// --- Iris (own exported metrics, already scraped) ---
-	{Key: "iris_cpu_percent", Category: "Iris", Title: "Host CPU %", Description: "iris host CPU utilization.", Unit: "percent", Viz: WidgetVizGauge, Instant: true,
-		PromQLTemplate: `iris_system_cpu_percent`, DefaultRange: "1h"},
-	{Key: "iris_memory_percent", Category: "Iris", Title: "Host memory %", Description: "iris host memory utilization.", Unit: "percent", Viz: WidgetVizGauge, Instant: true,
-		PromQLTemplate: `iris_system_memory_percent`, DefaultRange: "1h"},
+	// --- Iris (own exported metrics, always scraped) ---
+	// Mail flow — iris_mail_events_total carries status/mailclass/recipient_domain.
 	{Key: "iris_deliveries_rate", Category: "Iris", Title: "Deliveries / min", Description: "iris mail-flow deliveries per minute.", Unit: "msg/min", Viz: WidgetVizArea,
 		PromQLTemplate: `sum(rate(iris_mail_events_total{status="` + MailSent + `"}[$window])) * 60`, DefaultRange: "6h"},
+	{Key: "iris_receptions_rate", Category: "Iris", Title: "Receptions / min", Description: "iris messages received per minute.", Unit: "msg/min", Viz: WidgetVizLine,
+		PromQLTemplate: `sum(rate(iris_mail_events_total{status="` + MailReceived + `"}[$window])) * 60`, DefaultRange: "6h"},
+	{Key: "iris_deferrals_rate", Category: "Iris", Title: "Deferrals / min", Description: "iris messages deferred per minute.", Unit: "msg/min", Viz: WidgetVizLine,
+		PromQLTemplate: `sum(rate(iris_mail_events_total{status="` + MailDeferred + `"}[$window])) * 60`, DefaultRange: "6h"},
+	{Key: "iris_mail_events_rate", Category: "Iris", Title: "Mail events / min", Description: "iris mail events per minute, optionally grouped by status, class, or recipient domain.", Unit: "msg/min", Viz: WidgetVizLine,
+		PromQLTemplate: `sum(rate(iris_mail_events_total[$window])) $groupBy * 60`, SupportsGroupBy: true, GroupByLabels: []string{"status", "mailclass", "recipient_domain"}, DefaultRange: "6h"},
+	{Key: "iris_mail_by_domain", Category: "Iris", Title: "Mail by recipient domain (top)", Description: "Busiest recipient domains by mail volume per minute.", Unit: "msg/min", Viz: WidgetVizBar,
+		PromQLTemplate: `topk(10, sum(rate(iris_mail_events_total[$window])) by (recipient_domain)) * 60`, DefaultRange: "6h"},
+	{Key: "iris_mail_by_class", Category: "Iris", Title: "Mail by class / min", Description: "Mail volume per minute grouped by mail class.", Unit: "msg/min", Viz: WidgetVizLine,
+		PromQLTemplate: `sum(rate(iris_mail_events_total[$window])) by (mailclass) * 60`, DefaultRange: "6h"},
+
+	// Bounces — iris_bounces_total carries type/mailclass.
+	{Key: "iris_bounces_rate", Category: "Iris", Title: "Bounces / min", Description: "iris bounces per minute.", Unit: "msg/min", Viz: WidgetVizLine,
+		PromQLTemplate: `sum(rate(iris_bounces_total[$window])) $groupBy * 60`, SupportsGroupBy: true, GroupByLabels: []string{"type", "mailclass"}, DefaultRange: "6h"},
+
+	// Per-VMTA egress — iris_vmta_events_total carries vmta/status.
+	{Key: "iris_vmta_events_rate", Category: "Iris", Title: "VMTA events / min", Description: "Outbound events per minute, optionally grouped by VMTA or status.", Unit: "msg/min", Viz: WidgetVizLine,
+		PromQLTemplate: `sum(rate(iris_vmta_events_total[$window])) $groupBy * 60`, SupportsGroupBy: true, GroupByLabels: []string{"vmta", "status"}, DefaultRange: "6h"},
+
+	// Webhooks — iris_webhook_executions_total carries webhook/result.
+	{Key: "iris_webhook_rate", Category: "Iris", Title: "Webhook executions / min", Description: "Webhook deliveries per minute, optionally grouped by webhook or result.", Unit: "ops/min", Viz: WidgetVizLine,
+		PromQLTemplate: `sum(rate(iris_webhook_executions_total[$window])) $groupBy * 60`, SupportsGroupBy: true, GroupByLabels: []string{"webhook", "result"}, DefaultRange: "6h"},
+
+	// Queue time — iris_mail_queue_time_seconds histogram (Reception → Delivery).
+	{Key: "iris_queue_time_p50", Category: "Iris", Title: "Queue time p50", Description: "Median time from reception to delivery.", Unit: "seconds", Viz: WidgetVizLine,
+		PromQLTemplate: `histogram_quantile(0.50, sum(rate(iris_mail_queue_time_seconds_bucket[$window])) by (le))`, DefaultRange: "6h"},
+	{Key: "iris_queue_time_p95", Category: "Iris", Title: "Queue time p95", Description: "95th-percentile time from reception to delivery.", Unit: "seconds", Viz: WidgetVizLine,
+		PromQLTemplate: `histogram_quantile(0.95, sum(rate(iris_mail_queue_time_seconds_bucket[$window])) by (le))`, DefaultRange: "6h"},
+
+	// Host resources — iris_system_* gauges (refreshed by the monitor worker).
+	{Key: "iris_cpu_percent", Category: "Iris", Title: "Host CPU %", Description: "iris host CPU utilization.", Unit: "percent", Viz: WidgetVizGauge, Instant: true,
+		PromQLTemplate: `iris_system_cpu_percent`, DefaultRange: "1h"},
+	{Key: "iris_cpu_percent_trend", Category: "Iris", Title: "Host CPU % (trend)", Description: "iris host CPU utilization over time.", Unit: "percent", Viz: WidgetVizArea,
+		PromQLTemplate: `avg(iris_system_cpu_percent)`, DefaultRange: "6h"},
+	{Key: "iris_memory_percent", Category: "Iris", Title: "Host memory %", Description: "iris host memory utilization.", Unit: "percent", Viz: WidgetVizGauge, Instant: true,
+		PromQLTemplate: `iris_system_memory_percent`, DefaultRange: "1h"},
+	{Key: "iris_memory_percent_trend", Category: "Iris", Title: "Host memory % (trend)", Description: "iris host memory utilization over time.", Unit: "percent", Viz: WidgetVizArea,
+		PromQLTemplate: `avg(iris_system_memory_percent)`, DefaultRange: "6h"},
+	{Key: "iris_memory_used_bytes", Category: "Iris", Title: "Host memory used", Description: "iris host memory used in bytes.", Unit: "bytes", Viz: WidgetVizLine,
+		PromQLTemplate: `sum(iris_system_memory_used_bytes)`, DefaultRange: "6h"},
+	{Key: "iris_disk_used_percent", Category: "Iris", Title: "Disk used % (max)", Description: "Highest filesystem usage across monitored mounts.", Unit: "percent", Viz: WidgetVizGauge, Instant: true,
+		PromQLTemplate: `max(iris_system_disk_used_percent)`, DefaultRange: "1h"},
+	{Key: "iris_disk_used_by_path", Category: "Iris", Title: "Disk used % by mount", Description: "Filesystem usage grouped by mount path.", Unit: "percent", Viz: WidgetVizBar, Instant: true,
+		PromQLTemplate: `max(iris_system_disk_used_percent) by (path)`, DefaultRange: "1h"},
 }
 
 // WidgetCatalog returns a copy of the curated widget catalog for the API.
