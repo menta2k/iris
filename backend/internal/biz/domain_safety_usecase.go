@@ -178,6 +178,20 @@ func deriveDKIMFingerprint(d *DKIMDomain) error {
 	return nil
 }
 
+// SuppressionSortKeys is the set of columns the suppression list may be sorted
+// by. The value is the whitelist that guards SQL ORDER BY against injection —
+// only these keys are ever interpolated into the query.
+var SuppressionSortKeys = map[string]bool{
+	"value":      true,
+	"type":       true,
+	"source":     true,
+	"status":     true,
+	"mailclass":  true,
+	"reason":     true,
+	"created_at": true,
+	"expires_at": true,
+}
+
 // SuppressionFilter is a validated, bounded set of suppression query filters.
 type SuppressionFilter struct {
 	// Search is a case-insensitive substring match on the suppressed value.
@@ -191,6 +205,10 @@ type SuppressionFilter struct {
 	// Mailclass is a case-insensitive substring match on the triggering event's
 	// class (so a fragment like "acme" matches "acme_k").
 	Mailclass string
+	// Sort is the column to order by (one of SuppressionSortKeys); empty/unknown
+	// defaults to "value". Desc requests descending order.
+	Sort string
+	Desc bool
 }
 
 // NormalizeSuppressionFilter sanitizes and bounds the free-text filter fields.
@@ -200,6 +218,10 @@ func NormalizeSuppressionFilter(f SuppressionFilter) SuppressionFilter {
 	f.Status = strings.ToLower(SanitizeFilter(f.Status))
 	f.Source = strings.ToLower(SanitizeFilter(f.Source))
 	f.Mailclass = SanitizeFilter(f.Mailclass)
+	f.Sort = strings.ToLower(SanitizeFilter(f.Sort))
+	if !SuppressionSortKeys[f.Sort] {
+		f.Sort = "value"
+	}
 	return f
 }
 

@@ -6794,13 +6794,17 @@ func (x *GenerateDKIMKeyReply) GetPublicKeyFingerprint() string {
 }
 
 type ListSuppressionsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Page          *PageRequest           `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
-	Search        string                 `protobuf:"bytes,2,opt,name=search,proto3" json:"search,omitempty"`       // case-insensitive substring match on the suppressed value
-	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`           // email | domain; empty = all
-	Status        string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`       // active | disabled | expired; empty = all
-	Source        string                 `protobuf:"bytes,5,opt,name=source,proto3" json:"source,omitempty"`       // manual | bounce | feedback | dsn; empty = all
-	Mailclass     string                 `protobuf:"bytes,6,opt,name=mailclass,proto3" json:"mailclass,omitempty"` // exact match; empty = all
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Page      *PageRequest           `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
+	Search    string                 `protobuf:"bytes,2,opt,name=search,proto3" json:"search,omitempty"`       // case-insensitive substring match on the suppressed value
+	Type      string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`           // email | domain; empty = all
+	Status    string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`       // active | disabled | expired; empty = all
+	Source    string                 `protobuf:"bytes,5,opt,name=source,proto3" json:"source,omitempty"`       // manual | bounce | feedback | dsn; empty = all
+	Mailclass string                 `protobuf:"bytes,6,opt,name=mailclass,proto3" json:"mailclass,omitempty"` // exact match; empty = all
+	// sort column: value|type|source|status|mailclass|reason|created_at|expires_at
+	// (empty/unknown defaults to value). desc requests descending order.
+	Sort          string `protobuf:"bytes,7,opt,name=sort,proto3" json:"sort,omitempty"`
+	Desc          bool   `protobuf:"varint,8,opt,name=desc,proto3" json:"desc,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6875,6 +6879,20 @@ func (x *ListSuppressionsRequest) GetMailclass() string {
 		return x.Mailclass
 	}
 	return ""
+}
+
+func (x *ListSuppressionsRequest) GetSort() string {
+	if x != nil {
+		return x.Sort
+	}
+	return ""
+}
+
+func (x *ListSuppressionsRequest) GetDesc() bool {
+	if x != nil {
+		return x.Desc
+	}
+	return false
 }
 
 type ListSuppressionsReply struct {
@@ -20123,14 +20141,16 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\vrecord_name\x18\x02 \x01(\tR\n" +
 	"recordName\x12!\n" +
 	"\frecord_value\x18\x03 \x01(\tR\vrecordValue\x124\n" +
-	"\x16public_key_fingerprint\x18\x04 \x01(\tR\x14publicKeyFingerprint\"\xc3\x01\n" +
+	"\x16public_key_fingerprint\x18\x04 \x01(\tR\x14publicKeyFingerprint\"\xeb\x01\n" +
 	"\x17ListSuppressionsRequest\x12.\n" +
 	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\x12\x16\n" +
 	"\x06search\x18\x02 \x01(\tR\x06search\x12\x12\n" +
 	"\x04type\x18\x03 \x01(\tR\x04type\x12\x16\n" +
 	"\x06status\x18\x04 \x01(\tR\x06status\x12\x16\n" +
 	"\x06source\x18\x05 \x01(\tR\x06source\x12\x1c\n" +
-	"\tmailclass\x18\x06 \x01(\tR\tmailclass\"w\n" +
+	"\tmailclass\x18\x06 \x01(\tR\tmailclass\x12\x12\n" +
+	"\x04sort\x18\a \x01(\tR\x04sort\x12\x12\n" +
+	"\x04desc\x18\b \x01(\bR\x04desc\"w\n" +
 	"\x15ListSuppressionsReply\x120\n" +
 	"\x05items\x18\x01 \x03(\v2\x1a.iris.admin.v1.SuppressionR\x05items\x12,\n" +
 	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\\\n" +

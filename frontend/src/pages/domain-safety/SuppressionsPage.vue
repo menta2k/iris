@@ -51,11 +51,32 @@ const filters = ref<SuppressionFilters>({
   source: '',
 })
 
+// Sort is applied by the backend (SQL ORDER BY over the full result set, not
+// just the current page). Default matches the previous fixed order: value asc.
+const sortKey = ref('value')
+const sortDesc = ref(false)
+
+function toggleSort(key: string) {
+  if (sortKey.value === key) {
+    sortDesc.value = !sortDesc.value
+  } else {
+    sortKey.value = key
+    sortDesc.value = false
+  }
+  reload()
+}
+
+function sortIcon(key: string): string {
+  if (sortKey.value !== key) return 'mdi-unfold-more-horizontal'
+  return sortDesc.value ? 'mdi-arrow-down' : 'mdi-arrow-up'
+}
+
 // v-text-field `clearable` writes null; the loader reads filters at call time.
 function buildFilters(): SuppressionFilters {
-  return Object.fromEntries(
+  const base = Object.fromEntries(
     Object.entries(filters.value).map(([k, v]) => [k, v ?? '']),
-  ) as SuppressionFilters
+  )
+  return { ...base, sort: sortKey.value, desc: sortDesc.value ? 'true' : '' } as SuppressionFilters
 }
 
 const {
@@ -396,14 +417,46 @@ async function viewDsn(s: Suppression) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Value</TableHead>
-                <TableHead>Mailclass</TableHead>
-                <TableHead>Reason</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Suppressed</TableHead>
-                <TableHead>Expires</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>
+                  <button type="button" class="sort-th" @click="toggleSort('type')">
+                    Type <v-icon :icon="sortIcon('type')" size="14" class="sort-th__icon" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" class="sort-th" @click="toggleSort('value')">
+                    Value <v-icon :icon="sortIcon('value')" size="14" class="sort-th__icon" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" class="sort-th" @click="toggleSort('mailclass')">
+                    Mailclass <v-icon :icon="sortIcon('mailclass')" size="14" class="sort-th__icon" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" class="sort-th" @click="toggleSort('reason')">
+                    Reason <v-icon :icon="sortIcon('reason')" size="14" class="sort-th__icon" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" class="sort-th" @click="toggleSort('source')">
+                    Source <v-icon :icon="sortIcon('source')" size="14" class="sort-th__icon" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" class="sort-th" @click="toggleSort('created_at')">
+                    Suppressed <v-icon :icon="sortIcon('created_at')" size="14" class="sort-th__icon" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" class="sort-th" @click="toggleSort('expires_at')">
+                    Expires <v-icon :icon="sortIcon('expires_at')" size="14" class="sort-th__icon" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button type="button" class="sort-th" @click="toggleSort('status')">
+                    Status <v-icon :icon="sortIcon('status')" size="14" class="sort-th__icon" />
+                  </button>
+                </TableHead>
                 <TableHead class="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -562,6 +615,28 @@ async function viewDsn(s: Suppression) {
 </template>
 
 <style scoped>
+/* Clickable column headers for backend sorting. */
+.sort-th {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sort-th:hover {
+  color: rgb(var(--v-theme-primary));
+}
+.sort-th__icon {
+  opacity: 0.5;
+}
+.sort-th:hover .sort-th__icon {
+  opacity: 0.9;
+}
 .dsn-raw {
   max-height: 50vh;
   overflow: auto;

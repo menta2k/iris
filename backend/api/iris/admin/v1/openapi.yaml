@@ -2253,6 +2253,17 @@ paths:
                   in: query
                   schema:
                     type: string
+                - name: sort
+                  in: query
+                  description: |-
+                    sort column: value|type|source|status|mailclass|reason|created_at|expires_at
+                     (empty/unknown defaults to value). desc requests descending order.
+                  schema:
+                    type: string
+                - name: desc
+                  in: query
+                  schema:
+                    type: boolean
             responses:
                 "200":
                     description: OK

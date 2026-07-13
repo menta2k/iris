@@ -1203,6 +1203,10 @@ message ListSuppressionsRequest {
   string status = 4;    // active | disabled | expired; empty = all
   string source = 5;    // manual | bounce | feedback | dsn; empty = all
   string mailclass = 6; // exact match; empty = all
+  // sort column: value|type|source|status|mailclass|reason|created_at|expires_at
+  // (empty/unknown defaults to value). desc requests descending order.
+  string sort = 7;
+  bool desc = 8;
 }
 message ListSuppressionsReply {
   repeated Suppression items = 1;

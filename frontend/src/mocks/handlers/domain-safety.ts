@@ -81,6 +81,29 @@ export const domainSafetyRoutes: Route[] = [
         if (mailclass && !(s.mailclass ?? '').toLowerCase().includes(mailclass.toLowerCase())) return false
         return true
       })
+
+      // Backend-driven sort: whitelist of columns, mapped to the row fields.
+      const sortFields: Record<string, string> = {
+        value: 'value',
+        type: 'type',
+        source: 'source',
+        status: 'status',
+        mailclass: 'mailclass',
+        reason: 'reason',
+        created_at: 'createdAt',
+        expires_at: 'expiresAt',
+      }
+      const field = sortFields[q('sort')] ?? 'value'
+      const desc = (ctx.query.desc || '').toString() === 'true'
+      rows.sort((a, b) => {
+        const av = ((a as unknown as Record<string, unknown>)[field] ?? '') as string
+        const bv = ((b as unknown as Record<string, unknown>)[field] ?? '') as string
+        // Empty values sort last regardless of direction (NULLS LAST parity).
+        if (av === '' && bv !== '') return 1
+        if (bv === '' && av !== '') return -1
+        const cmp = String(av).localeCompare(String(bv))
+        return desc ? -cmp : cmp
+      })
       return ok(paged(rows, ctx.query))
     },
   },

@@ -213,7 +213,18 @@ func (r *DomainSafetyRepo) ClearAllSuppressions(ctx context.Context) (int64, err
 // expected pre-lowercased by NormalizeSuppressionFilter; value is stored
 // lowercased, so a plain substring match suffices — no wildcards).
 func (r *DomainSafetyRepo) ListSuppressions(ctx context.Context, f biz.SuppressionFilter, page biz.Page) ([]*biz.SuppressionEntry, error) {
-	rows, err := r.db.Pool.Query(ctx, `
+	// Sort column is whitelisted by NormalizeSuppressionFilter (only keys in
+	// biz.SuppressionSortKeys reach here), so it is safe to interpolate. `id` is
+	// the deterministic tiebreak; NULLS LAST keeps null expires_at at the end.
+	sortCol := f.Sort
+	if !biz.SuppressionSortKeys[sortCol] {
+		sortCol = "value"
+	}
+	dir := "ASC"
+	if f.Desc {
+		dir = "DESC"
+	}
+	query := fmt.Sprintf(`
 		SELECT id, type, value, reason, source, status, expires_at, mailclass, created_at
 		FROM suppression_entries
 		WHERE ($3 = '' OR position($3 in value) > 0)
@@ -222,8 +233,9 @@ func (r *DomainSafetyRepo) ListSuppressions(ctx context.Context, f biz.Suppressi
 		  AND ($6 = '' OR lower(source) = $6)
 		  -- Partial, case-insensitive so operators can filter by a mailclass
 		  -- fragment (e.g. "acme") rather than the exact class.
-		  AND ($7 = '' OR mailclass ILIKE '%' || $7 || '%')
-		ORDER BY value LIMIT $1 OFFSET $2`,
+		  AND ($7 = '' OR mailclass ILIKE '%%' || $7 || '%%')
+		ORDER BY %s %s NULLS LAST, id ASC LIMIT $1 OFFSET $2`, sortCol, dir)
+	rows, err := r.db.Pool.Query(ctx, query,
 		page.Size, page.Offset, f.Search, f.Type, f.Status, f.Source, f.Mailclass)
 	if err != nil {
 		return nil, fmt.Errorf("query suppressions: %w", err)

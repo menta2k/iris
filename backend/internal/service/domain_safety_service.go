@@ -71,6 +71,8 @@ func (s *Service) ListSuppressions(ctx context.Context, req *adminv1.ListSuppres
 		Status:    req.GetStatus(),
 		Source:    req.GetSource(),
 		Mailclass: req.GetMailclass(),
+		Sort:      req.GetSort(),
+		Desc:      req.GetDesc(),
 	}
 	items, err := s.domainSafety.ListSuppressions(ctx, f, page)
 	if err != nil {
