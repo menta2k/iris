@@ -4,6 +4,7 @@ import { GridStack, type GridStackNode } from 'gridstack'
 import 'gridstack/dist/gridstack.min.css'
 import PageHeader from '@/components/common/PageHeader.vue'
 import MetricWidget from '@/components/dashboard/MetricWidget.vue'
+import PanelWidget from '@/components/dashboard/PanelWidget.vue'
 import AddWidgetDialog from '@/components/dashboard/AddWidgetDialog.vue'
 import RangeToggle from '@/components/dashboard/RangeToggle.vue'
 import { vuetify } from '@/plugins/vuetify'
@@ -47,10 +48,19 @@ watch(dashboardRange, (r) => {
   for (const entry of cells.values()) entry.state.rangeOverride = r
 })
 
-// Widget-edit dialog (title only; range is dashboard-wide).
+// Widget-edit dialog (title + visualization; range is dashboard-wide).
 const editOpen = ref(false)
 const editingId = ref<string>('')
 const editTitle = ref('')
+const editViz = ref<WidgetConfig['viz']>('line')
+const editIsPanel = ref(false)
+const VIZ_OPTIONS: { title: string; value: WidgetConfig['viz'] }[] = [
+  { title: 'Line', value: 'line' },
+  { title: 'Area', value: 'area' },
+  { title: 'Bar', value: 'bar' },
+  { title: 'Table', value: 'table' },
+  { title: 'Stat (single value)', value: 'stat' },
+]
 
 // New/rename dashboard dialog.
 const nameDialogOpen = ref(false)
@@ -84,7 +94,7 @@ function mountCell(cfg: WidgetConfig) {
   const state = reactive({ config: cfg, refreshKey: 0, rangeOverride: dashboardRange.value }) as CellEntry['state']
   const app = createApp({
     render: () =>
-      h(MetricWidget, {
+      h(state.config.source === 'panel' ? PanelWidget : MetricWidget, {
         config: state.config,
         refreshKey: state.refreshKey,
         rangeOverride: state.rangeOverride,
@@ -167,13 +177,14 @@ function onGridChange() {
 
 function addWidget(partial: Omit<WidgetConfig, 'id' | 'x' | 'y' | 'w' | 'h' | 'range'>) {
   const isStat = partial.viz === 'stat' || partial.viz === 'gauge'
+  const isPanel = partial.source === 'panel'
   const cfg: WidgetConfig = {
     ...partial,
     id: genId(),
     x: 0,
     y: 0, // gridstack finds an open slot via float/compact
-    w: isStat ? 3 : 6,
-    h: isStat ? 3 : 4,
+    w: isPanel ? 6 : isStat ? 3 : 6,
+    h: isPanel ? 5 : isStat ? 3 : 4,
     // New widgets adopt the dashboard-wide range; the header toggle drives it.
     range: dashboardRange.value,
   }
@@ -194,6 +205,8 @@ function openEditWidget(id: string) {
   if (!w) return
   editingId.value = id
   editTitle.value = w.title
+  editViz.value = w.viz
+  editIsPanel.value = w.source === 'panel'
   editOpen.value = true
 }
 
@@ -201,7 +214,11 @@ function applyEditWidget() {
   const id = editingId.value
   const idx = widgets.value.findIndex((w) => w.id === id)
   if (idx === -1) return
-  const next = { ...widgets.value[idx], title: editTitle.value.trim() || widgets.value[idx].title }
+  const next = {
+    ...widgets.value[idx],
+    title: editTitle.value.trim() || widgets.value[idx].title,
+    viz: editViz.value,
+  }
   widgets.value = widgets.value.map((w) => (w.id === id ? next : w))
   // Push the new config into the mounted cell reactively.
   const entry = cells.get(id)
@@ -258,6 +275,54 @@ function openRenameDashboard() {
   nameDialogMode.value = 'rename'
   nameDialogValue.value = dash.name
   nameDialogOpen.value = true
+}
+
+// buildOverviewWidgets reproduces the fixed Overview page's graphs as movable
+// widgets, laid out on the 12-column grid. Each maps to a catalog metric.
+function buildOverviewWidgets(): WidgetConfig[] {
+  const w = (
+    partial: Omit<WidgetConfig, 'id' | 'range'>,
+  ): WidgetConfig => ({ ...partial, id: genId(), range: dashboardRange.value })
+  return [
+    // Mail flow — deliveries/receptions/deferrals/bounces in one chart.
+    w({ x: 0, y: 0, w: 8, h: 4, title: 'Mail flow / min', source: 'catalog', catalogKey: 'iris_mail_events_rate', viz: 'line', groupBy: 'status', unit: 'msg/min' }),
+    w({ x: 8, y: 0, w: 4, h: 4, title: 'Messages in system', source: 'catalog', catalogKey: 'kumo_message_count', viz: 'stat', unit: 'count' }),
+    // Mail volume — by class and by recipient domain.
+    w({ x: 0, y: 4, w: 6, h: 4, title: 'Mail by class / min', source: 'catalog', catalogKey: 'iris_mail_by_class', viz: 'line', unit: 'msg/min' }),
+    w({ x: 6, y: 4, w: 6, h: 4, title: 'Top recipient domains', source: 'catalog', catalogKey: 'iris_mail_by_domain', viz: 'table', unit: 'msg/min' }),
+    // System stats — CPU, memory, disk.
+    w({ x: 0, y: 8, w: 4, h: 4, title: 'Host CPU %', source: 'catalog', catalogKey: 'iris_cpu_percent_trend', viz: 'area', unit: 'percent' }),
+    w({ x: 4, y: 8, w: 4, h: 4, title: 'Host memory %', source: 'catalog', catalogKey: 'iris_memory_percent_trend', viz: 'area', unit: 'percent' }),
+    w({ x: 8, y: 8, w: 4, h: 4, title: 'Disk used % by mount', source: 'catalog', catalogKey: 'iris_disk_used_by_path', viz: 'bar', unit: 'percent' }),
+    // Queue time + per-VMTA egress.
+    w({ x: 0, y: 12, w: 6, h: 4, title: 'Queue time p95', source: 'catalog', catalogKey: 'iris_queue_time_p95', viz: 'line', unit: 'seconds' }),
+    w({ x: 6, y: 12, w: 6, h: 4, title: 'Egress by VMTA', source: 'catalog', catalogKey: 'iris_vmta_events_rate', viz: 'table', groupBy: 'vmta', unit: 'msg/min' }),
+    // Data panels (iris endpoints, not metrics): service summary, warmup health,
+    // recent activity feeds.
+    w({ x: 0, y: 16, w: 4, h: 5, title: 'Service summary', source: 'panel', panelKey: 'service_summary', viz: 'table' }),
+    w({ x: 4, y: 16, w: 8, h: 5, title: 'IP warmup delivery', source: 'panel', panelKey: 'warmup_stats', viz: 'table' }),
+    w({ x: 0, y: 21, w: 6, h: 5, title: 'Recent mail activity', source: 'panel', panelKey: 'recent_mail', viz: 'table' }),
+    w({ x: 6, y: 21, w: 6, h: 5, title: 'Recent audit activity', source: 'panel', panelKey: 'recent_audit', viz: 'table' }),
+  ]
+}
+
+async function createFromOverview() {
+  try {
+    const created = await dashboardsService.create({
+      name: 'Overview',
+      widgetsJson: JSON.stringify(buildOverviewWidgets()),
+      makeDefault: dashboards.value.length === 0,
+    })
+    dashboards.value = [...dashboards.value, created]
+    selectDashboard(created.id)
+    toast({ title: 'Created "Overview" from the Overview template', variant: 'success' })
+  } catch (err) {
+    toast({
+      title: 'Could not create dashboard',
+      description: err instanceof Error ? err.message : 'Template creation failed.',
+      variant: 'destructive',
+    })
+  }
 }
 
 async function applyNameDialog() {
@@ -449,6 +514,11 @@ onBeforeUnmount(() => {
           </template>
           <v-list density="compact">
             <v-list-item prepend-icon="mdi-plus-box-outline" title="New dashboard" @click="openNewDashboard" />
+            <v-list-item
+              prepend-icon="mdi-view-dashboard-variant-outline"
+              title="New from Overview template"
+              @click="createFromOverview"
+            />
             <v-list-item prepend-icon="mdi-rename-outline" title="Rename" @click="openRenameDashboard" />
             <v-list-item prepend-icon="mdi-star-outline" title="Set as default" @click="setDefault" />
             <v-divider />
@@ -480,9 +550,18 @@ onBeforeUnmount(() => {
       <v-icon icon="mdi-view-grid-plus-outline" size="48" class="mb-3 text-medium-emphasis" />
       <div class="text-h6 mb-1">No dashboards yet</div>
       <p class="text-body-2 text-medium-emphasis mb-4">
-        Create your first dashboard and add metric widgets from the catalog.
+        Start from the Overview template, or build your own from the metric catalog.
       </p>
-      <v-btn color="primary" prepend-icon="mdi-plus" @click="openNewDashboard">Create dashboard</v-btn>
+      <div class="d-flex flex-wrap justify-center ga-2">
+        <v-btn
+          color="primary"
+          prepend-icon="mdi-view-dashboard-variant-outline"
+          @click="createFromOverview"
+        >
+          Create from Overview
+        </v-btn>
+        <v-btn variant="tonal" prepend-icon="mdi-plus" @click="openNewDashboard">Empty dashboard</v-btn>
+      </div>
     </v-card>
 
     <!-- Grid (kept mounted so gridstack keeps its DOM; hidden while empty).
@@ -511,7 +590,15 @@ onBeforeUnmount(() => {
       <v-card>
         <v-card-title>Edit widget</v-card-title>
         <v-card-text>
-          <v-text-field v-model="editTitle" label="Title" density="compact" hide-details class="mb-1" />
+          <v-text-field v-model="editTitle" label="Title" density="compact" hide-details class="mb-3" />
+          <v-select
+            v-if="!editIsPanel"
+            v-model="editViz"
+            :items="VIZ_OPTIONS"
+            label="Display as"
+            density="compact"
+            hide-details
+          />
           <p class="text-caption text-medium-emphasis mt-2 mb-0">
             The time range is controlled for the whole dashboard by the range toggle in the header.
           </p>

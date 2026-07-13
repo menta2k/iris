@@ -1208,8 +1208,8 @@ export interface MetricsTimeseries {
 
 // --- Per-user custom dashboards ---
 
-export type WidgetViz = 'line' | 'area' | 'bar' | 'gauge' | 'stat'
-export type WidgetSource = 'catalog' | 'promql'
+export type WidgetViz = 'line' | 'area' | 'bar' | 'gauge' | 'stat' | 'table'
+export type WidgetSource = 'catalog' | 'promql' | 'panel'
 export type WidgetRange = '1h' | '6h' | '24h' | '7d'
 
 // WidgetConfig is one widget on a dashboard: its grid geometry plus its metric
@@ -1225,6 +1225,8 @@ export interface WidgetConfig {
   source: WidgetSource
   catalogKey?: string
   promql?: string
+  /** Set when source==='panel': selects a built-in iris data panel. */
+  panelKey?: string
   range: WidgetRange
   viz: WidgetViz
   groupBy?: string

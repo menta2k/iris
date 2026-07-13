@@ -205,17 +205,30 @@ const GROUP_MEMBERS: Record<string, string[]> = {
   webhook: ['orders', 'alerts'],
 }
 
+// Some catalog widgets are inherently multi-series on the backend (the grouping
+// is baked into the PromQL, e.g. `... by (path)`), so the mock returns several
+// series for them even without an explicit group_by param — matching how they
+// render live.
+const IMPLICIT_MEMBERS: Record<string, string[]> = {
+  iris_mail_by_domain: GROUP_MEMBERS.recipient_domain,
+  iris_mail_by_class: GROUP_MEMBERS.mailclass,
+  iris_disk_used_by_path: ['/', '/var/spool/kumomta'],
+  kumo_queued_by_provider: GROUP_MEMBERS.provider,
+  kumo_scheduled_by_domain: GROUP_MEMBERS.domain,
+  kumo_scheduled_by_tenant: GROUP_MEMBERS.tenant,
+}
+
 function widgetData(ctx: RouteCtx): MetricsTimeseries {
   const range = ctx.query.range || '6h'
   const groupBy = ctx.query.groupBy || ''
+  const catalogKey = ctx.query.catalogKey || ''
   const spec = specForRange(range)
   const now = Date.now()
 
+  const members = (groupBy && GROUP_MEMBERS[groupBy]) || IMPLICIT_MEMBERS[catalogKey]
   let series: MetricsSeries[]
-  if (groupBy && GROUP_MEMBERS[groupBy]) {
-    series = GROUP_MEMBERS[groupBy].map((member, i) =>
-      buildSeries(member, member, 120 - i * 30, 60, i + 2, spec, now),
-    )
+  if (members) {
+    series = members.map((member, i) => buildSeries(member, member, 120 - i * 30, 60, i + 2, spec, now))
   } else {
     series = [buildSeries('value', 'value', 260, 140, 1, spec, now)]
   }
