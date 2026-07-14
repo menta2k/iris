@@ -9,7 +9,10 @@
 # Prerequisites on this node:
 #   - the `iris` binary installed at /usr/local/bin/iris
 #   - /etc/iris/iris.yaml with:
-#       kumomta:   stub: false, config_path, reload_command|reload_url, base_url
+#       kumomta:   stub: false, config_path, reload_command|reload_url, base_url,
+#                  and config_group (the group kumod runs as, e.g. "iris" when
+#                  kumod is started with --user iris) so kumod can read the
+#                  0640 policy this root agent writes.
 #       agent:     listen, ca_cert, cert, key  (the certs from `iris cluster enroll`)
 #   - the node registered + enrolled in iris (Cluster page -> Enroll)
 #

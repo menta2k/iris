@@ -157,6 +157,11 @@ type External struct {
 	Stub    bool          `yaml:"stub"`
 	// ConfigPath is where the generated KumoMTA policy is written (KumoMTA only).
 	ConfigPath string `yaml:"config_path"`
+	// ConfigGroup, when set, is the group the written policy files are chgrp'd
+	// to so kumod can read the 0640 policy when it runs as a different user than
+	// the writer (e.g. a root iris-agent + kumod started with --user iris: set
+	// config_group: iris). Empty keeps the writer's default group.
+	ConfigGroup string `yaml:"config_group"`
 	// ReloadCommand, when set, is executed to reload KumoMTA after a config
 	// write (e.g. "kcli reload" or "systemctl reload kumomta"). When empty and
 	// ReloadURL is set, an HTTP POST to ReloadURL is used instead.

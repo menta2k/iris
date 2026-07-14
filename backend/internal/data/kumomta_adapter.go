@@ -67,7 +67,7 @@ func (k *FileKumoMTA) DisableNodePrelude() { k.manageNodePrelude = false }
 
 // writeNodePreludeFile writes the per-node identity prelude next to the policy
 // (0644: only the node name, no secrets).
-func writeNodePreludeFile(configPath, nodeName string) error {
+func writeNodePreludeFile(configPath, configGroup, nodeName string) error {
 	if configPath == "" {
 		return biz.FailedPrecondition("KUMO_CONFIG_PATH_UNSET", "kumomta config_path is not configured")
 	}
@@ -79,7 +79,7 @@ func writeNodePreludeFile(configPath, nodeName string) error {
 	if err := os.WriteFile(path, []byte(biz.NodePreludeContent(nodeName)), 0o644); err != nil {
 		return biz.Internal(err, "write node prelude")
 	}
-	return nil
+	return chgrpConfig(path, configGroup)
 }
 
 // AttachCluster enables cluster-aware config distribution: nodes lists the
@@ -258,7 +258,7 @@ func (k *FileKumoMTA) ApplyConfig(ctx context.Context, rendered biz.RenderedConf
 		// policy but outside its checksum, keeping the policy identical
 		// cluster-wide while log records carry this node's name.
 		if t.transport == k.local && k.manageNodePrelude {
-			if err := writeNodePreludeFile(k.cfg.ConfigPath, t.name); err != nil {
+			if err := writeNodePreludeFile(k.cfg.ConfigPath, k.cfg.ConfigGroup, t.name); err != nil {
 				return k.cfg.ConfigPath, "", err
 			}
 		}

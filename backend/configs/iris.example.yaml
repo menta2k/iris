@@ -50,6 +50,11 @@ kumomta:
   stub: true
   # Where the generated KumoMTA policy (Lua) is written on apply.
   config_path: "/opt/kumomta/etc/policy/iris_generated.lua"
+  # Group to chgrp the written policy to, so kumod can read the 0640 policy when
+  # it runs as a DIFFERENT user than the writer. Classic case: a root iris-agent
+  # writes the policy but kumod runs `--user iris` — set config_group: iris so
+  # the policy is group-readable by kumod. Empty keeps the writer's own group.
+  config_group: ""
   # How to reload KumoMTA after writing the policy. kumod ALREADY watches its
   # config tree (/opt/kumomta/etc/**/*.{lua,json,toml,yaml}) every 10s and
   # reloads on a content change, so leaving both empty is usually correct as

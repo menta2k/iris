@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/menta2k/iris/backend/internal/biz"
@@ -44,6 +46,30 @@ type localTransport struct {
 	client *http.Client
 }
 
+// chgrpConfig sets the group of a written config file to group, so kumod can
+// read the 0640 policy when it runs as a different user than the writer. A
+// no-op when group is empty. Fails loudly on a bad group or an insufficient
+// caller — a silent skip would just reproduce the "kumod can't read its
+// policy" outage as a mysterious degraded state.
+func chgrpConfig(path, group string) error {
+	group = strings.TrimSpace(group)
+	if group == "" {
+		return nil
+	}
+	g, err := user.LookupGroup(group)
+	if err != nil {
+		return biz.Invalid("KUMO_CONFIG_GROUP_UNKNOWN", "kumomta.config_group %q not found: %v", group, err)
+	}
+	gid, err := strconv.Atoi(g.Gid)
+	if err != nil {
+		return biz.Internal(err, "parse gid for group %q", group)
+	}
+	if err := os.Chown(path, -1, gid); err != nil {
+		return biz.Internal(err, "chgrp %s to %q (the writer must own the file and belong to the group, or be root)", filepath.Base(path), group)
+	}
+	return nil
+}
+
 var _ nodeTransport = (*localTransport)(nil)
 
 // shapingFiles maps the sidecar file names to their rendered content.
@@ -73,14 +99,24 @@ func (t *localTransport) applyConfig(ctx context.Context, rendered biz.RenderedC
 	// iris runs as a different user. The policy itself stays 0640 below because it
 	// embeds DKIM private keys.
 	for name, body := range shapingFiles(rendered) {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
 			return "", biz.Internal(err, "write shaping %s", name)
 		}
+		if err := chgrpConfig(p, t.cfg.ConfigGroup); err != nil {
+			return "", err
+		}
 	}
-	// Write atomically: write to a temp file in the same dir then rename.
+	// Write atomically: write to a temp file in the same dir then rename. The
+	// 0640 policy embeds DKIM keys, so when kumod runs as a different user than
+	// the writer (e.g. a root agent + kumod --user iris), config_group must name
+	// the group kumod runs as, or kumod cannot read its own policy.
 	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, []byte(rendered.Content), 0o640); err != nil {
 		return "", biz.Internal(err, "write config")
+	}
+	if err := chgrpConfig(tmp, t.cfg.ConfigGroup); err != nil {
+		return "", err
 	}
 	if err := os.Rename(tmp, path); err != nil {
 		return "", biz.Internal(err, "install config")
