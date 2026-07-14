@@ -21,6 +21,10 @@ export const clusterService = {
   removeNode(id: string) {
     return http.delete<{ ok: boolean }>(`/cluster/nodes/${encodeURIComponent(id)}`)
   },
+  // Assignable IPs of a node ("local" = the co-located node) for the IP picker.
+  nodeIPs(id: string) {
+    return http.get<{ ips?: string[] }>(`/cluster/nodes/${encodeURIComponent(id || 'local')}/ips`)
+  },
   issueEnrollToken(id: string) {
     return http.post<EnrollTokenReply>(`/cluster/nodes/${encodeURIComponent(id)}:enroll-token`, { id })
   },

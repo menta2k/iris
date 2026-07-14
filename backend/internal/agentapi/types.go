@@ -12,7 +12,15 @@ const (
 	// PathKumodPrefix reverse-proxies to the node's localhost-bound kumod HTTP
 	// listener (admin API + metrics); the kumod path follows the prefix.
 	PathKumodPrefix = "/v1/kumod/"
+	// PathIPs returns the node's assignable IP addresses (for the listener/VMTA
+	// IP pickers in the UI).
+	PathIPs = "/v1/ips"
 )
+
+// NodeIPs is the agent's reply listing the host's assignable IP addresses.
+type NodeIPs struct {
+	IPs []string `json:"ips"`
+}
 
 // File is one config file in a bundle, integrity-checked by its SHA-256.
 type File struct {

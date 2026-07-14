@@ -2,17 +2,54 @@ package biz
 
 import "context"
 
+// NodeIPResolver returns a node's assignable IP addresses: the local host's
+// for the co-located node, or the remote node's (via its agent). Satisfied by
+// data.FileKumoMTA.
+type NodeIPResolver interface {
+	NodeIPs(ctx context.Context, node *MTANode) ([]string, error)
+}
+
 // MTANodeUsecase is the operator-facing CRUD for the KumoMTA cluster node
 // registry. Reads require cluster:read, mutations cluster:write. Enrollment
 // (tokens, CSR signing) lives in the cluster enrollment use case.
 type MTANodeUsecase struct {
 	repo    MTANodeRepo
 	auditor *Auditor
+	ips     NodeIPResolver // optional; nil disables the IP picker
 }
 
 // NewMTANodeUsecase constructs the use case.
 func NewMTANodeUsecase(repo MTANodeRepo, auditor *Auditor) *MTANodeUsecase {
 	return &MTANodeUsecase{repo: repo, auditor: auditor}
+}
+
+// WithIPResolver wires the IP resolver used by NodeIPs.
+func (uc *MTANodeUsecase) WithIPResolver(r NodeIPResolver) *MTANodeUsecase {
+	uc.ips = r
+	return uc
+}
+
+// NodeIPs returns the assignable IPs for the node with the given id, for the
+// UI's listener/VMTA IP pickers. An empty id (or the sentinel "local") returns
+// the co-located host's IPs, so the picker works even before any node is
+// registered.
+func (uc *MTANodeUsecase) NodeIPs(ctx context.Context, id string) ([]string, error) {
+	if _, err := RequirePermission(ctx, PermClusterRead); err != nil {
+		return nil, err
+	}
+	if uc.ips == nil {
+		return nil, FailedPrecondition("NODE_IPS_UNAVAILABLE", "node IP discovery is not available in this deployment")
+	}
+	var node *MTANode
+	if id != "" && id != "local" {
+		n, err := uc.repo.GetNode(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		node = n
+	}
+	// node==nil ⇒ the local co-located node.
+	return uc.ips.NodeIPs(ctx, node)
 }
 
 // List returns all registered nodes.

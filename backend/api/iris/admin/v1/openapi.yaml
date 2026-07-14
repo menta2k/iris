@@ -591,6 +591,27 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/DeleteMTANodeReply'
+    /v1/cluster/nodes/{id}/ips:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                Assignable IP addresses of a node, for the listener/VMTA IP pickers. id may
+                 be "local" (or empty via the query variant) for the co-located node.
+            operationId: IrisAdminService_GetMTANodeIPs
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GetMTANodeIPsReply'
     /v1/cluster/nodes/{id}:enroll-token:
         post:
             tags:
@@ -4019,6 +4040,13 @@ components:
                     type: string
                 selector:
                     type: string
+        GetMTANodeIPsReply:
+            type: object
+            properties:
+                ips:
+                    type: array
+                    items:
+                        type: string
         GlobalSettings:
             type: object
             properties:

@@ -243,6 +243,9 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// KumoMTA cluster node registry (see docs/kumomta-cluster-architecture.md).
 	mtaNodeRepo := data.NewMTANodeRepo(db)
 	mtaNodeUC := biz.NewMTANodeUsecase(mtaNodeRepo, auditor)
+	if fileKumo != nil {
+		mtaNodeUC = mtaNodeUC.WithIPResolver(fileKumo)
+	}
 	// Online agent enrollment: enabled when the cluster CA directory is
 	// configured (iris cluster init-ca).
 	var csrSigner biz.CSRSigner

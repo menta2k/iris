@@ -8,6 +8,18 @@ export const clusterRoutes: Route[] = [
   { method: 'GET', pattern: '/cluster/nodes', handler: () => ok({ items: all('mtaNodes') }) },
   {
     method: 'GET',
+    pattern: '/cluster/nodes/:id/ips',
+    handler: (ctx) => {
+      if (ctx.params.id === 'local') return ok({ ips: ['203.0.113.10', '203.0.113.11', '10.0.0.5'] })
+      const node = all('mtaNodes').find((n) => n.id === ctx.params.id)
+      if (!node) return notFound('Node not found')
+      // Fake per-node IPs derived from the proxy host for the mock UI.
+      const base = node.proxyHost || '198.51.100.1'
+      return ok({ ips: [base, base.replace(/\d+$/, '200'), base.replace(/\d+$/, '201')] })
+    },
+  },
+  {
+    method: 'GET',
     pattern: '/cluster/nodes/:id',
     handler: (ctx) => {
       const node = all('mtaNodes').find((n) => n.id === ctx.params.id)

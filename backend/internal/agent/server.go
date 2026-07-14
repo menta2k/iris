@@ -27,6 +27,7 @@ import (
 	"github.com/menta2k/iris/backend/internal/agentapi"
 	"github.com/menta2k/iris/backend/internal/biz"
 	"github.com/menta2k/iris/backend/internal/conf"
+	"github.com/menta2k/iris/backend/internal/netutil"
 )
 
 // maxBundleBytes bounds a staged config bundle (policy + shaping TOMLs).
@@ -123,6 +124,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST "+agentapi.PathStage, s.handleStage)
 	mux.HandleFunc("POST "+agentapi.PathActivate, s.handleActivate)
 	mux.HandleFunc("GET "+agentapi.PathHealth, s.handleHealth)
+	mux.HandleFunc("GET "+agentapi.PathIPs, s.handleIPs)
 	if s.kumodURL != nil {
 		mux.Handle(agentapi.PathKumodPrefix, s.kumodProxy())
 	}
@@ -249,6 +251,16 @@ func (s *Server) handleActivate(w http.ResponseWriter, r *http.Request) {
 	}
 	s.log.Info("activated config bundle", "checksum", s.state.AppliedChecksum, "action", action)
 	writeJSON(w, agentapi.ActivateReply{Action: action, AppliedChecksum: s.state.AppliedChecksum})
+}
+
+// handleIPs returns the node's assignable IP addresses for the UI's IP pickers.
+func (s *Server) handleIPs(w http.ResponseWriter, r *http.Request) {
+	ips, err := netutil.LocalIPs()
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "IPS_FAILED", err.Error())
+		return
+	}
+	writeJSON(w, agentapi.NodeIPs{IPs: ips})
 }
 
 // handleHealth reports agent and kumod state.

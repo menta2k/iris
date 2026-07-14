@@ -68,6 +68,7 @@ const OperationIrisAdminServiceGetDashboardSummary = "/iris.admin.v1.IrisAdminSe
 const OperationIrisAdminServiceGetDmarcStats = "/iris.admin.v1.IrisAdminService/GetDmarcStats"
 const OperationIrisAdminServiceGetGlobalSettings = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
 const OperationIrisAdminServiceGetMTANode = "/iris.admin.v1.IrisAdminService/GetMTANode"
+const OperationIrisAdminServiceGetMTANodeIPs = "/iris.admin.v1.IrisAdminService/GetMTANodeIPs"
 const OperationIrisAdminServiceGetMailClassStats = "/iris.admin.v1.IrisAdminService/GetMailClassStats"
 const OperationIrisAdminServiceGetMetricsTimeseries = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
 const OperationIrisAdminServiceGetMonitoringProbeRaw = "/iris.admin.v1.IrisAdminService/GetMonitoringProbeRaw"
@@ -237,6 +238,9 @@ type IrisAdminServiceHTTPServer interface {
 	// GetGlobalSettings Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error)
 	GetMTANode(context.Context, *GetMTANodeRequest) (*MTANode, error)
+	// GetMTANodeIPs Assignable IP addresses of a node, for the listener/VMTA IP pickers. id may
+	// be "local" (or empty via the query variant) for the co-located node.
+	GetMTANodeIPs(context.Context, *GetMTANodeIPsRequest) (*GetMTANodeIPsReply, error)
 	// GetMailClassStats GetMailClassStats returns mail volume grouped by mailclass over a lookback
 	// window — powers the dashboard "mail by class" panel.
 	GetMailClassStats(context.Context, *GetMailClassStatsRequest) (*MailClassStats, error)
@@ -540,6 +544,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.POST("/v1/cluster/nodes", _IrisAdminService_CreateMTANode0_HTTP_Handler(srv))
 	r.PUT("/v1/cluster/nodes/{id}", _IrisAdminService_UpdateMTANode0_HTTP_Handler(srv))
 	r.DELETE("/v1/cluster/nodes/{id}", _IrisAdminService_DeleteMTANode0_HTTP_Handler(srv))
+	r.GET("/v1/cluster/nodes/{id}/ips", _IrisAdminService_GetMTANodeIPs0_HTTP_Handler(srv))
 	r.POST("/v1/cluster/nodes/{id}:enroll-token", _IrisAdminService_IssueMTANodeEnrollToken0_HTTP_Handler(srv))
 	r.GET("/v1/monitoring/accounts", _IrisAdminService_ListMonitoringAccounts0_HTTP_Handler(srv))
 	r.POST("/v1/monitoring/accounts", _IrisAdminService_CreateMonitoringAccount0_HTTP_Handler(srv))
@@ -3366,6 +3371,28 @@ func _IrisAdminService_DeleteMTANode0_HTTP_Handler(srv IrisAdminServiceHTTPServe
 	}
 }
 
+func _IrisAdminService_GetMTANodeIPs0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetMTANodeIPsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetMTANodeIPs)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetMTANodeIPs(ctx, req.(*GetMTANodeIPsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetMTANodeIPsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_IssueMTANodeEnrollToken0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in IssueMTANodeEnrollTokenRequest
@@ -3752,6 +3779,9 @@ type IrisAdminServiceHTTPClient interface {
 	// GetGlobalSettings Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(ctx context.Context, req *GetGlobalSettingsRequest, opts ...http.CallOption) (rsp *GlobalSettings, err error)
 	GetMTANode(ctx context.Context, req *GetMTANodeRequest, opts ...http.CallOption) (rsp *MTANode, err error)
+	// GetMTANodeIPs Assignable IP addresses of a node, for the listener/VMTA IP pickers. id may
+	// be "local" (or empty via the query variant) for the co-located node.
+	GetMTANodeIPs(ctx context.Context, req *GetMTANodeIPsRequest, opts ...http.CallOption) (rsp *GetMTANodeIPsReply, err error)
 	// GetMailClassStats GetMailClassStats returns mail volume grouped by mailclass over a lookback
 	// window — powers the dashboard "mail by class" panel.
 	GetMailClassStats(ctx context.Context, req *GetMailClassStatsRequest, opts ...http.CallOption) (rsp *MailClassStats, err error)
@@ -4581,6 +4611,21 @@ func (c *IrisAdminServiceHTTPClientImpl) GetMTANode(ctx context.Context, in *Get
 	pattern := "/v1/cluster/nodes/{id}"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceGetMTANode))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// GetMTANodeIPs Assignable IP addresses of a node, for the listener/VMTA IP pickers. id may
+// be "local" (or empty via the query variant) for the co-located node.
+func (c *IrisAdminServiceHTTPClientImpl) GetMTANodeIPs(ctx context.Context, in *GetMTANodeIPsRequest, opts ...http.CallOption) (*GetMTANodeIPsReply, error) {
+	var out GetMTANodeIPsReply
+	pattern := "/v1/cluster/nodes/{id}/ips"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetMTANodeIPs))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

@@ -150,6 +150,7 @@ const (
 	IrisAdminService_CreateMTANode_FullMethodName                  = "/iris.admin.v1.IrisAdminService/CreateMTANode"
 	IrisAdminService_UpdateMTANode_FullMethodName                  = "/iris.admin.v1.IrisAdminService/UpdateMTANode"
 	IrisAdminService_DeleteMTANode_FullMethodName                  = "/iris.admin.v1.IrisAdminService/DeleteMTANode"
+	IrisAdminService_GetMTANodeIPs_FullMethodName                  = "/iris.admin.v1.IrisAdminService/GetMTANodeIPs"
 	IrisAdminService_IssueMTANodeEnrollToken_FullMethodName        = "/iris.admin.v1.IrisAdminService/IssueMTANodeEnrollToken"
 	IrisAdminService_ListMonitoringAccounts_FullMethodName         = "/iris.admin.v1.IrisAdminService/ListMonitoringAccounts"
 	IrisAdminService_CreateMonitoringAccount_FullMethodName        = "/iris.admin.v1.IrisAdminService/CreateMonitoringAccount"
@@ -391,6 +392,9 @@ type IrisAdminServiceClient interface {
 	CreateMTANode(ctx context.Context, in *CreateMTANodeRequest, opts ...grpc.CallOption) (*MTANode, error)
 	UpdateMTANode(ctx context.Context, in *UpdateMTANodeRequest, opts ...grpc.CallOption) (*MTANode, error)
 	DeleteMTANode(ctx context.Context, in *DeleteMTANodeRequest, opts ...grpc.CallOption) (*DeleteMTANodeReply, error)
+	// Assignable IP addresses of a node, for the listener/VMTA IP pickers. id may
+	// be "local" (or empty via the query variant) for the co-located node.
+	GetMTANodeIPs(ctx context.Context, in *GetMTANodeIPsRequest, opts ...grpc.CallOption) (*GetMTANodeIPsReply, error)
 	// Issue a single-use agent-enrollment bootstrap token for the node. The
 	// plaintext is returned exactly once; only its bcrypt hash is stored.
 	IssueMTANodeEnrollToken(ctx context.Context, in *IssueMTANodeEnrollTokenRequest, opts ...grpc.CallOption) (*IssueMTANodeEnrollTokenReply, error)
@@ -1729,6 +1733,16 @@ func (c *irisAdminServiceClient) DeleteMTANode(ctx context.Context, in *DeleteMT
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) GetMTANodeIPs(ctx context.Context, in *GetMTANodeIPsRequest, opts ...grpc.CallOption) (*GetMTANodeIPsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetMTANodeIPsReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_GetMTANodeIPs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) IssueMTANodeEnrollToken(ctx context.Context, in *IssueMTANodeEnrollTokenRequest, opts ...grpc.CallOption) (*IssueMTANodeEnrollTokenReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(IssueMTANodeEnrollTokenReply)
@@ -2094,6 +2108,9 @@ type IrisAdminServiceServer interface {
 	CreateMTANode(context.Context, *CreateMTANodeRequest) (*MTANode, error)
 	UpdateMTANode(context.Context, *UpdateMTANodeRequest) (*MTANode, error)
 	DeleteMTANode(context.Context, *DeleteMTANodeRequest) (*DeleteMTANodeReply, error)
+	// Assignable IP addresses of a node, for the listener/VMTA IP pickers. id may
+	// be "local" (or empty via the query variant) for the co-located node.
+	GetMTANodeIPs(context.Context, *GetMTANodeIPsRequest) (*GetMTANodeIPsReply, error)
 	// Issue a single-use agent-enrollment bootstrap token for the node. The
 	// plaintext is returned exactly once; only its bcrypt hash is stored.
 	IssueMTANodeEnrollToken(context.Context, *IssueMTANodeEnrollTokenRequest) (*IssueMTANodeEnrollTokenReply, error)
@@ -2514,6 +2531,9 @@ func (UnimplementedIrisAdminServiceServer) UpdateMTANode(context.Context, *Updat
 }
 func (UnimplementedIrisAdminServiceServer) DeleteMTANode(context.Context, *DeleteMTANodeRequest) (*DeleteMTANodeReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteMTANode not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) GetMTANodeIPs(context.Context, *GetMTANodeIPsRequest) (*GetMTANodeIPsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetMTANodeIPs not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) IssueMTANodeEnrollToken(context.Context, *IssueMTANodeEnrollTokenRequest) (*IssueMTANodeEnrollTokenReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method IssueMTANodeEnrollToken not implemented")
@@ -4936,6 +4956,24 @@ func _IrisAdminService_DeleteMTANode_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_GetMTANodeIPs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMTANodeIPsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).GetMTANodeIPs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_GetMTANodeIPs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).GetMTANodeIPs(ctx, req.(*GetMTANodeIPsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_IssueMTANodeEnrollToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IssueMTANodeEnrollTokenRequest)
 	if err := dec(in); err != nil {
@@ -5718,6 +5756,10 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteMTANode",
 			Handler:    _IrisAdminService_DeleteMTANode_Handler,
+		},
+		{
+			MethodName: "GetMTANodeIPs",
+			Handler:    _IrisAdminService_GetMTANodeIPs_Handler,
 		},
 		{
 			MethodName: "IssueMTANodeEnrollToken",

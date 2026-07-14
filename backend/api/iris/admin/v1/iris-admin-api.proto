@@ -511,6 +511,11 @@ service IrisAdminService {
   rpc DeleteMTANode(DeleteMTANodeRequest) returns (DeleteMTANodeReply) {
     option (google.api.http) = { delete: "/v1/cluster/nodes/{id}" };
   }
+  // Assignable IP addresses of a node, for the listener/VMTA IP pickers. id may
+  // be "local" (or empty via the query variant) for the co-located node.
+  rpc GetMTANodeIPs(GetMTANodeIPsRequest) returns (GetMTANodeIPsReply) {
+    option (google.api.http) = { get: "/v1/cluster/nodes/{id}/ips" };
+  }
   // Issue a single-use agent-enrollment bootstrap token for the node. The
   // plaintext is returned exactly once; only its bcrypt hash is stored.
   rpc IssueMTANodeEnrollToken(IssueMTANodeEnrollTokenRequest) returns (IssueMTANodeEnrollTokenReply) {
@@ -2469,6 +2474,12 @@ message DeleteMTANodeRequest {
 }
 message DeleteMTANodeReply {
   bool ok = 1;
+}
+message GetMTANodeIPsRequest {
+  string id = 1; // node id, or "local" for the co-located node
+}
+message GetMTANodeIPsReply {
+  repeated string ips = 1;
 }
 message IssueMTANodeEnrollTokenRequest {
   string id = 1;

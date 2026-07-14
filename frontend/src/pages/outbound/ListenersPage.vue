@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
 import { Card, CardContent } from '@/components/ui/card'
@@ -40,6 +40,23 @@ async function loadNodes() {
     availableNodes.value = []
   }
 }
+
+// Assignable IPs of the selected node (local host for "every node"), shown as a
+// dropdown for the IP field. Failure (agent down) leaves it empty — the
+// combobox still accepts a typed address.
+const nodeIPs = ref<string[]>([])
+const ipsLoading = ref(false)
+async function loadNodeIPs(nodeId: string) {
+  ipsLoading.value = true
+  try {
+    const res = await clusterService.nodeIPs(nodeId)
+    nodeIPs.value = res.ips ?? []
+  } catch {
+    nodeIPs.value = []
+  } finally {
+    ipsLoading.value = false
+  }
+}
 const { toast } = useToast()
 
 const LISTENER_STATUSES = ['active', 'disabled']
@@ -75,6 +92,8 @@ function emptyForm() {
   }
 }
 const form = ref(emptyForm())
+// Refresh the IP dropdown whenever the bind-node changes.
+watch(() => form.value.node_id, (id) => loadNodeIPs(id))
 
 const isEdit = computed(() => mode.value === 'edit')
 
@@ -100,6 +119,7 @@ function openCreate() {
   form.value = emptyForm()
   dialogOpen.value = true
   void loadNodes()
+  void loadNodeIPs(form.value.node_id)
 }
 
 function openEdit(l: Listener) {
@@ -122,6 +142,7 @@ function openEdit(l: Listener) {
   }
   dialogOpen.value = true
   void loadNodes()
+  void loadNodeIPs(form.value.node_id)
 }
 
 async function submit() {
@@ -280,8 +301,21 @@ async function submit() {
         <v-row dense>
           <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="listener-ip">IP Address</Label>
-            <Input id="listener-ip" v-model="form.ip_address" placeholder="203.0.113.10" />
-            <p class="text-caption text-medium-emphasis">A concrete IP — not 0.0.0.0.</p>
+            <v-combobox
+              id="listener-ip"
+              v-model="form.ip_address"
+              data-testid="listener-ip"
+              :items="nodeIPs"
+              :loading="ipsLoading"
+              variant="outlined"
+              density="compact"
+              hide-details
+              placeholder="203.0.113.10"
+            />
+            <p class="text-caption text-medium-emphasis">
+              Pick an address detected on
+              {{ form.node_id ? "the selected node" : "this host" }}, or type one. A concrete IP — not 0.0.0.0.
+            </p>
           </v-col>
           <v-col cols="6" class="d-flex flex-column ga-1">
             <Label for="listener-port">Port</Label>

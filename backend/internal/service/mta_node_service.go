@@ -97,6 +97,18 @@ func (s *Service) IssueMTANodeEnrollToken(ctx context.Context, req *adminv1.Issu
 	return &adminv1.IssueMTANodeEnrollTokenReply{Token: token, ExpiresAt: formatTime(expiresAt)}, nil
 }
 
+// GetMTANodeIPs returns a node's assignable IP addresses for the UI IP pickers.
+func (s *Service) GetMTANodeIPs(ctx context.Context, req *adminv1.GetMTANodeIPsRequest) (*adminv1.GetMTANodeIPsReply, error) {
+	if s.mtaNodes == nil {
+		return nil, notImplemented("GetMTANodeIPs")
+	}
+	ips, err := s.mtaNodes.NodeIPs(ctx, req.GetId())
+	if err != nil {
+		return nil, s.fail(ctx, "GetMTANodeIPs", err)
+	}
+	return &adminv1.GetMTANodeIPsReply{Ips: ips}, nil
+}
+
 func mtaNodeToProto(n *biz.MTANode) *adminv1.MTANode {
 	p := &adminv1.MTANode{
 		Id:              n.ID,

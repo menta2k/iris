@@ -118,6 +118,27 @@ func (t *agentTransport) inject(ctx context.Context, body []byte) error {
 	return kumodInject(ctx, t.client, t.kumodURL("/api/inject/v1"), body)
 }
 
+// nodeIPs fetches the node's assignable IP addresses from its agent.
+func (t *agentTransport) nodeIPs(ctx context.Context) ([]string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.baseURL+agentapi.PathIPs, nil)
+	if err != nil {
+		return nil, biz.Internal(err, "build agent ips request")
+	}
+	resp, err := t.client.Do(req)
+	if err != nil {
+		return nil, biz.Unavailable("MTA_NODE_AGENT_UNREACHABLE", "node %s agent unreachable: %v", t.nodeName, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, biz.Unavailable("MTA_NODE_AGENT_FAILED", "node %s agent ips returned status %d", t.nodeName, resp.StatusCode)
+	}
+	var out agentapi.NodeIPs
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&out); err != nil {
+		return nil, biz.Internal(err, "decode agent ips")
+	}
+	return out.IPs, nil
+}
+
 // health fetches the agent heartbeat (version, applied checksum, kumod state).
 func (t *agentTransport) health(ctx context.Context) (*agentapi.Health, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.baseURL+agentapi.PathHealth, nil)

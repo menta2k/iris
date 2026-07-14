@@ -12,6 +12,7 @@ import (
 
 	"github.com/menta2k/iris/backend/internal/biz"
 	"github.com/menta2k/iris/backend/internal/conf"
+	"github.com/menta2k/iris/backend/internal/netutil"
 )
 
 // ClusterNodes is the subset of the node registry the adapter needs to fan
@@ -181,6 +182,20 @@ func (k *FileKumoMTA) ApplyServiceControl(ctx context.Context, op biz.ServiceOpe
 	default:
 		return "", biz.Invalid("SERVICE_OPERATION_INVALID", "operation %q is not valid", op)
 	}
+}
+
+// NodeIPs returns the assignable IP addresses of a node: the local host's IPs
+// for the co-located node, or the remote node's IPs fetched from its agent.
+// Satisfies biz.NodeIPResolver.
+func (k *FileKumoMTA) NodeIPs(ctx context.Context, node *biz.MTANode) ([]string, error) {
+	if node == nil || node.Local() {
+		return netutil.LocalIPs()
+	}
+	if k.agentClient == nil {
+		return nil, biz.FailedPrecondition("CLUSTER_TLS_UNCONFIGURED",
+			"node %s is remote but cluster TLS is not configured", node.Name)
+	}
+	return newAgentTransport(node, k.agentClient).nodeIPs(ctx)
 }
 
 // CollectNodeHealth polls every registered (non-disabled) node's live health:
