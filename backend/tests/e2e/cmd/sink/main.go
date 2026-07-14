@@ -29,6 +29,11 @@ type captured struct {
 	MailFrom string   `json:"mailFrom"`
 	Rcpts    []string `json:"rcpts"`
 	Data     string   `json:"data"`
+	// PeerIP is the IP the delivery connection came from. For a direct
+	// delivery it is the sending node's egress source IP; for a delivery
+	// tunneled through a cluster node's kumo-proxy it is that proxy's IP — so
+	// it reveals which node a message physically egressed from.
+	PeerIP string `json:"peerIP"`
 }
 
 // rule programs a non-250 response for recipients containing Match, applied at
@@ -99,6 +104,10 @@ func (s *sink) handle(c net.Conn) {
 
 	write("220 sink ready\r\n")
 	var cur captured
+	if host, _, err := net.SplitHostPort(c.RemoteAddr().String()); err == nil {
+		cur.PeerIP = host
+	}
+	peerIP := cur.PeerIP
 	var lastRcpt string
 	inData := false
 	var data strings.Builder
@@ -116,12 +125,12 @@ func (s *sink) handle(c net.Conn) {
 					// Capture the message even when we reject at data, so a
 					// bounce scenario can still inspect what was sent.
 					s.record(cur)
-					cur = captured{}
+					cur = captured{PeerIP: peerIP}
 					write(fmt.Sprintf("%d %s\r\n", code, text))
 					continue
 				}
 				s.record(cur)
-				cur = captured{}
+				cur = captured{PeerIP: peerIP}
 				write("250 2.0.0 OK queued\r\n")
 				continue
 			}
@@ -152,7 +161,7 @@ func (s *sink) handle(c net.Conn) {
 			inData = true
 			write("354 send data\r\n")
 		case strings.HasPrefix(u, "RSET"):
-			cur = captured{}
+			cur = captured{PeerIP: peerIP}
 			write("250 OK\r\n")
 		case strings.HasPrefix(u, "QUIT"):
 			write("221 bye\r\n")

@@ -31,6 +31,13 @@ const (
 	e2eNetwork = "iris-e2e"
 	e2eSubnet  = "172.31.71.0/24"
 	kumodIP    = "172.31.71.50"
+
+	// Cluster egress test: a second node exposing only a kumo-proxy. node1
+	// (kumodIP) receives, then delivers a message routed to a VMTA owned by
+	// node2 THROUGH this proxy, so the sink sees the connection from proxyNodeIP.
+	proxyContainer = "iris-e2e-proxy"
+	proxyNodeIP    = "172.31.71.60"
+	proxyNodePort  = 5000
 )
 
 // network is the Docker network the rig attaches to.
@@ -44,6 +51,10 @@ type capturedMsg struct {
 	MailFrom string   `json:"mailFrom"`
 	Rcpts    []string `json:"rcpts"`
 	Data     string   `json:"data"`
+	// PeerIP is the address the delivery connection came from — the sending
+	// node's egress IP, or a cluster node's kumo-proxy IP for a cross-node
+	// delivery.
+	PeerIP string `json:"peerIP"`
 }
 
 // rig is a running kumod + sink pair wired so kumod loads an iris-generated
@@ -145,6 +156,22 @@ iris-redis 30 IN A %s
 } } }
 dofile('/policy/iris_generated.lua')
 `, r.sinkIP, r.redisIP)
+}
+
+// startClusterProxy launches a KumoMTA kumo-proxy (proxy-server) on the rig
+// network at proxyNodeIP, standing in for a second cluster node's egress proxy.
+// It returns the proxy's endpoint host:port for the node registry. Call it
+// before building the snapshot so the endpoint can be baked into the policy.
+func startClusterProxy(t *testing.T) string {
+	t.Helper()
+	ensureNetwork(t)
+	dockerRM(proxyContainer)
+	t.Cleanup(func() { dockerRM(proxyContainer) })
+	dockerRun(t,
+		"-d", "--name", proxyContainer, "--network", network(), "--ip", proxyNodeIP,
+		"--entrypoint", "/opt/kumomta/sbin/proxy-server", kumoImage(),
+		"--listen", fmt.Sprintf("0.0.0.0:%d", proxyNodePort))
+	return fmt.Sprintf("%s:%d", proxyNodeIP, proxyNodePort)
 }
 
 // startRspamdStub runs the fake rspamd /checkv2 endpoint as a container on the
