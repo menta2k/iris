@@ -31,22 +31,19 @@ const (
 )
 
 // Streams wraps a Redis client and exposes producer/consumer helpers for
-// consumer-group based stream processing with explicit acknowledgement.
+// consumer-group based stream processing with explicit acknowledgement. The
+// client is a UniversalClient so a single node, a Redis Cluster, or a Sentinel
+// failover set are all supported transparently — a Redis Cluster requires the
+// cluster client because a single-node client cannot follow MOVED/ASK slot
+// redirections.
 type Streams struct {
-	Client   *redis.Client
+	Client   redis.UniversalClient
 	consumer string
 }
 
 // NewStreams connects to Redis and returns a Streams helper.
 func NewStreams(ctx context.Context, c conf.Redis) (*Streams, func(), error) {
-	client := redis.NewClient(&redis.Options{
-		Addr:         c.Addr,
-		Password:     c.Password,
-		DB:           c.DB,
-		DialTimeout:  orDefault(c.DialTimeout, 5*time.Second),
-		ReadTimeout:  orDefault(c.ReadTimeout, 3*time.Second),
-		WriteTimeout: orDefault(c.WriteTimeout, 3*time.Second),
-	})
+	client := NewRedisClient(c)
 
 	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -62,6 +59,37 @@ func NewStreams(ctx context.Context, c conf.Redis) (*Streams, func(), error) {
 	s := &Streams{Client: client, consumer: consumer}
 	cleanup := func() { _ = client.Close() }
 	return s, cleanup, nil
+}
+
+// NewRedisClient builds the appropriate go-redis client for the configuration:
+// a cluster client (Redis Cluster), a Sentinel failover client, or a single
+// client. All three satisfy redis.UniversalClient. redis.NewUniversalClient
+// dispatches on MasterName / addr count, and ClusterMode forces the cluster
+// client when a Redis Cluster is fronted by a single seed address.
+func NewRedisClient(c conf.Redis) redis.UniversalClient {
+	dial := orDefault(c.DialTimeout, 5*time.Second)
+	read := orDefault(c.ReadTimeout, 3*time.Second)
+	write := orDefault(c.WriteTimeout, 3*time.Second)
+	// A Redis Cluster needs the cluster client explicitly: a single seed
+	// address must not collapse to a plain client that can't follow MOVED/ASK.
+	if c.IsCluster() {
+		return redis.NewClusterClient(&redis.ClusterOptions{
+			Addrs:        c.SeedAddrs(),
+			Password:     c.Password,
+			DialTimeout:  dial,
+			ReadTimeout:  read,
+			WriteTimeout: write,
+		})
+	}
+	return redis.NewUniversalClient(&redis.UniversalOptions{
+		Addrs:        c.SeedAddrs(),
+		MasterName:   c.MasterName,
+		Password:     c.Password,
+		DB:           c.DB,
+		DialTimeout:  dial,
+		ReadTimeout:  read,
+		WriteTimeout: write,
+	})
 }
 
 func orDefault(d, fallback time.Duration) time.Duration {

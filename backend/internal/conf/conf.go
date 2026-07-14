@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -81,15 +82,46 @@ type Database struct {
 	MigrateOnStart  bool          `yaml:"migrate_on_start"`
 }
 
-// Redis holds the Redis Streams connection settings.
+// Redis holds the Redis connection settings. It supports a single node, a
+// Redis Cluster, or a Sentinel-managed failover set:
+//   - single: set `addr` (or a one-element `addrs`).
+//   - cluster: set `addrs` to the seed nodes (or one seed + `cluster: true`).
+//     A single-node client cannot follow MOVED/ASK slot redirections, so a
+//     Redis Cluster REQUIRES cluster mode.
+//   - sentinel: set `master_name` plus the sentinel `addrs`.
 type Redis struct {
-	Addr         string        `yaml:"addr"`
+	// Addr is a single host:port (back-compat). Addrs, when non-empty, takes
+	// precedence and lists the cluster/sentinel seed nodes.
+	Addr  string   `yaml:"addr"`
+	Addrs []string `yaml:"addrs"`
+	// Cluster forces the cluster client even with a single seed address (needed
+	// when a Redis Cluster is fronted by one endpoint). Multiple addrs also
+	// implies cluster unless MasterName is set.
+	Cluster bool `yaml:"cluster"`
+	// MasterName, when set, selects Sentinel failover mode (addrs = sentinels).
+	MasterName   string        `yaml:"master_name"`
 	Password     string        `yaml:"password"`
 	DB           int           `yaml:"db"`
 	DialTimeout  time.Duration `yaml:"dial_timeout"`
 	ReadTimeout  time.Duration `yaml:"read_timeout"`
 	WriteTimeout time.Duration `yaml:"write_timeout"`
 	ConsumerName string        `yaml:"consumer_name"`
+}
+
+// SeedAddrs returns the effective address list: Addrs when set, else [Addr].
+func (r Redis) SeedAddrs() []string {
+	if len(r.Addrs) > 0 {
+		return r.Addrs
+	}
+	if r.Addr != "" {
+		return []string{r.Addr}
+	}
+	return nil
+}
+
+// IsCluster reports whether a Redis Cluster client is required.
+func (r Redis) IsCluster() bool {
+	return r.MasterName == "" && (r.Cluster || len(r.Addrs) > 1)
 }
 
 // Auth holds authentication and session configuration.
@@ -245,6 +277,23 @@ func (c *Config) applyEnv() {
 	}
 	if v := os.Getenv("IRIS_REDIS_ADDR"); v != "" {
 		c.Data.Redis.Addr = v
+	}
+	// Comma-separated seed nodes for a Redis Cluster / Sentinel set.
+	if v := os.Getenv("IRIS_REDIS_ADDRS"); v != "" {
+		parts := strings.Split(v, ",")
+		addrs := parts[:0]
+		for _, p := range parts {
+			if p = strings.TrimSpace(p); p != "" {
+				addrs = append(addrs, p)
+			}
+		}
+		c.Data.Redis.Addrs = addrs
+	}
+	if v := os.Getenv("IRIS_REDIS_CLUSTER"); v == "1" || v == "true" {
+		c.Data.Redis.Cluster = true
+	}
+	if v := os.Getenv("IRIS_REDIS_MASTER_NAME"); v != "" {
+		c.Data.Redis.MasterName = v
 	}
 	if v := os.Getenv("IRIS_REDIS_PASSWORD"); v != "" {
 		c.Data.Redis.Password = v

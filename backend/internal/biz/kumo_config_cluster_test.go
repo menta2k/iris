@@ -107,7 +107,7 @@ func TestRenderClusterRedisThrottles(t *testing.T) {
 	if !rMulti.Valid {
 		t.Fatalf("policy failed lint: %v", rMulti.LintIssues)
 	}
-	if !strings.Contains(rMulti.Content, `kumo.configure_redis_throttles { node = "redis://redis:6379" }`) {
+	if !strings.Contains(rMulti.Content, "kumo.configure_redis_throttles { node = LOGSTREAM_REDIS_NODE, cluster = LOGSTREAM_REDIS_CLUSTER }") {
 		t.Errorf("multi-node cluster must enable redis throttles:\n%s", rMulti.Content)
 	}
 	if rSingle.InitChecksum == rMulti.InitChecksum {
@@ -205,4 +205,62 @@ func TestRenderNodeAwareListeners(t *testing.T) {
 	if got := strings.Count(r.Content, "if NODE_NAME == "); got != 2 {
 		t.Errorf("expected exactly 2 node-guarded listeners, got %d", got)
 	}
+}
+
+// TestRenderRedisClusterConfig verifies the generated kumod policy uses a
+// cluster-enabled redis client (node array + cluster=true) when a Redis
+// Cluster is configured — so kumod follows MOVED/ASK just like the iris
+// cluster client, instead of failing on a single-node connection.
+func TestRenderRedisClusterConfig(t *testing.T) {
+	base := clusterSnap(nil, []*VMTA{{ID: "v1", Name: "vmta-a", IPAddress: "203.0.113.10", EHLOName: "a.example.com", Status: VMTAStatusActive}})
+
+	// Single node (default): plain string node, cluster=false.
+	single := base
+	single.LogStreamRedisURL = "redis://redis:6379"
+	rs, err := RenderKumoConfig(single)
+	if err != nil {
+		t.Fatalf("render single: %v", err)
+	}
+	if !strings.Contains(rs.Content, `local LOGSTREAM_REDIS_NODE = "redis://redis:6379"`) ||
+		!strings.Contains(rs.Content, "local LOGSTREAM_REDIS_CLUSTER = false") {
+		t.Errorf("single-node redis config wrong:\n%s", firstLines(rs.Content, 30))
+	}
+	if !strings.Contains(rs.Content, "redis.open { node = LOGSTREAM_REDIS_NODE, cluster = LOGSTREAM_REDIS_CLUSTER") {
+		t.Errorf("redis.open should reference the node+cluster locals")
+	}
+
+	// Cluster: multiple seed nodes → array node + cluster=true.
+	cluster := base
+	cluster.LogStreamRedisURL = "redis://10.1.114.1:7000"
+	cluster.LogStreamRedisNodes = []string{"redis://10.1.114.1:7000", "redis://10.1.114.2:7000", "redis://10.1.114.3:7000"}
+	rc, err := RenderKumoConfig(cluster)
+	if err != nil {
+		t.Fatalf("render cluster: %v", err)
+	}
+	if !strings.Contains(rc.Content, `local LOGSTREAM_REDIS_NODE = { "redis://10.1.114.1:7000", "redis://10.1.114.2:7000", "redis://10.1.114.3:7000" }`) {
+		t.Errorf("cluster node array wrong:\n%s", firstLines(rc.Content, 30))
+	}
+	if !strings.Contains(rc.Content, "local LOGSTREAM_REDIS_CLUSTER = true") {
+		t.Errorf("cluster flag should be true")
+	}
+
+	// Single seed but explicitly clustered (cluster fronted by one endpoint).
+	forced := base
+	forced.LogStreamRedisURL = "redis://redis-cluster:6379"
+	forced.LogStreamRedisCluster = true
+	rf, err := RenderKumoConfig(forced)
+	if err != nil {
+		t.Fatalf("render forced: %v", err)
+	}
+	if !strings.Contains(rf.Content, "local LOGSTREAM_REDIS_CLUSTER = true") {
+		t.Errorf("forced cluster flag should be true even with one seed")
+	}
+}
+
+func firstLines(s string, n int) string {
+	lines := strings.SplitN(s, "\n", n+1)
+	if len(lines) > n {
+		lines = lines[:n]
+	}
+	return strings.Join(lines, "\n")
 }

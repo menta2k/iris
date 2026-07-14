@@ -19,7 +19,12 @@ type KumoConfigSettings struct {
 	RspamdMode        string
 	RspamdURL         string
 	LogStreamRedisURL string
-	LogStreamName     string
+	// LogStreamRedisNodes/Cluster carry the Redis Cluster / multi-seed config
+	// through to the generated kumod policy (redis.open node array + cluster
+	// flag), so kumod follows MOVED/ASK just like the iris cluster client.
+	LogStreamRedisNodes   []string
+	LogStreamRedisCluster bool
+	LogStreamName         string
 	EsmtpListen       string
 	HTTPListen        string
 	EgressEHLODefault string
@@ -148,6 +153,8 @@ func (uc *KumoConfigUsecase) render(ctx context.Context) (RenderedConfig, error)
 	snap.RspamdMode = settings.RspamdMode
 	snap.RspamdURL = settings.RspamdURL
 	snap.LogStreamRedisURL = settings.LogStreamRedisURL
+	snap.LogStreamRedisNodes = settings.LogStreamRedisNodes
+	snap.LogStreamRedisCluster = settings.LogStreamRedisCluster
 	snap.LogStreamName = settings.LogStreamName
 	snap.EsmtpListen = settings.EsmtpListen
 	snap.HTTPListen = settings.HTTPListen

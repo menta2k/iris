@@ -15,7 +15,7 @@ import (
 // redisEventDriver appends each event to a Redis stream via XADD. Implements
 // biz.EventDriver. Durable delivery: the stream persists until consumers ack.
 type redisEventDriver struct {
-	rdb    *redis.Client
+	rdb    redis.UniversalClient
 	stream string
 	format string
 }
@@ -24,7 +24,7 @@ type redisEventDriver struct {
 // driver name. Config keys: stream (required); addr / password / db (optional —
 // when addr is set the events go to that Redis, otherwise to iris's own Redis
 // given here as defaultClient).
-func NewRedisEventDriverFactory(defaultClient *redis.Client) biz.EventDriverFactory {
+func NewRedisEventDriverFactory(defaultClient redis.UniversalClient) biz.EventDriverFactory {
 	return func(p *biz.EventProcessor) (biz.EventDriver, error) {
 		cfg := p.DriverConfig
 		stream := strings.TrimSpace(cfg["stream"])

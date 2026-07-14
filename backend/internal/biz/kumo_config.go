@@ -101,6 +101,16 @@ type ConfigSnapshot struct {
 	// mail_records hypertable. LogStreamName is the stream name.
 	LogStreamRedisURL string
 	LogStreamName     string
+	// LogStreamRedisNodes are the seed URLs for a Redis Cluster / multi-node
+	// deployment. When more than one is set (or LogStreamRedisCluster is true)
+	// kumod's redis.open uses a cluster-enabled client that follows MOVED/ASK
+	// slot redirections. Empty ⇒ the single LogStreamRedisURL is used.
+	LogStreamRedisNodes []string
+	// LogStreamRedisCluster forces the cluster client even with one seed URL
+	// (a Redis Cluster fronted by a single endpoint). Without it, kumod's
+	// redis client cannot follow MOVED and fails exactly as a single-node iris
+	// client does.
+	LogStreamRedisCluster bool
 
 	// EsmtpListen / HTTPListen are the default listener bind specs emitted in
 	// the policy init so the rendered config is self-contained.
@@ -583,7 +593,7 @@ func writeSuppression(b *strings.Builder, snap ConfigSnapshot) {
   local ok, res = pcall(function()
     local domain = recipient:match('@(.+)$') or ''
     local redis = require 'redis'
-    local conn = redis.open { node = LOGSTREAM_REDIS_URL, pool_size = 10 }
+    local conn = redis.open { node = LOGSTREAM_REDIS_NODE, cluster = LOGSTREAM_REDIS_CLUSTER, pool_size = 10 }
     local n = conn:query('EXISTS', 'supp:e:' .. recipient, 'supp:d:' .. domain)
     return (tonumber(n) or 0) > 0
   end)
@@ -765,7 +775,7 @@ local function iris_log_suppressed(msg, recipient)
       meta = { node = NODE_NAME },
     }
     local redis = require 'redis'
-    local conn = redis.open { node = LOGSTREAM_REDIS_URL, pool_size = 5 }
+    local conn = redis.open { node = LOGSTREAM_REDIS_NODE, cluster = LOGSTREAM_REDIS_CLUSTER, pool_size = 5 }
     conn:query('XADD', LOGSTREAM_NAME, 'MAXLEN', '~', LOGSTREAM_MAXLEN, '*',
                'type', 'Suppressed', 'data', payload)
   end)
@@ -1248,6 +1258,25 @@ func writeLogStreamConsts(b *strings.Builder, snap ConfigSnapshot) {
 	}
 	b.WriteString("-- ===== log stream (redis) =====\n")
 	fmt.Fprintf(b, "local LOGSTREAM_REDIS_URL = %s\n", MustLuaString(snap.LogStreamRedisURL))
+	// LOGSTREAM_REDIS_NODE is the value passed as redis.open's `node`: a single
+	// URL string, or a Lua array of seed URLs for a Redis Cluster.
+	// LOGSTREAM_REDIS_CLUSTER forces the cluster client (needed for a cluster,
+	// even with one seed — otherwise kumod cannot follow MOVED/ASK).
+	nodes := snap.LogStreamRedisNodes
+	if len(nodes) == 0 {
+		nodes = []string{snap.LogStreamRedisURL}
+	}
+	if len(nodes) > 1 {
+		parts := make([]string, len(nodes))
+		for i, n := range nodes {
+			parts[i] = MustLuaString(n)
+		}
+		fmt.Fprintf(b, "local LOGSTREAM_REDIS_NODE = { %s }\n", strings.Join(parts, ", "))
+	} else {
+		fmt.Fprintf(b, "local LOGSTREAM_REDIS_NODE = %s\n", MustLuaString(nodes[0]))
+	}
+	cluster := snap.LogStreamRedisCluster || len(snap.LogStreamRedisNodes) > 1
+	fmt.Fprintf(b, "local LOGSTREAM_REDIS_CLUSTER = %t\n", cluster)
 	fmt.Fprintf(b, "local LOGSTREAM_NAME      = %s\n", MustLuaString(name))
 	b.WriteString("local LOGSTREAM_TRACKER   = \"iris_logger\"\n")
 	b.WriteString("local LOGSTREAM_MAXLEN    = \"100000\"\n\n")
@@ -1291,7 +1320,9 @@ func writeInit(b *strings.Builder, snap ConfigSnapshot) {
 	// limits and connection caps must be leased through Redis or every node
 	// would apply the full limit independently (N× the intended volume).
 	if clusterThrottleNodes(snap.Nodes) > 1 && snap.LogStreamRedisURL != "" {
-		fmt.Fprintf(b, "  kumo.configure_redis_throttles { node = %s }\n", MustLuaString(snap.LogStreamRedisURL))
+		// Reference the LOGSTREAM_REDIS_* locals so cluster mode and the seed
+		// node set stay consistent with the log hook's connection.
+		b.WriteString("  kumo.configure_redis_throttles { node = LOGSTREAM_REDIS_NODE, cluster = LOGSTREAM_REDIS_CLUSTER }\n")
 	}
 
 	// Spools are mandatory: kumod refuses to start ("No spools have been
@@ -1862,7 +1893,7 @@ func writeDsnCatcher(b *strings.Builder, snap ConfigSnapshot) {
 	}
 	b.WriteString(`kumo.on('make.dsn_xadd', function(_domain, _tenant, _campaign)
   local redis = require 'redis'
-  local conn = redis.open { node = LOGSTREAM_REDIS_URL, pool_size = 5 }
+  local conn = redis.open { node = LOGSTREAM_REDIS_NODE, cluster = LOGSTREAM_REDIS_CLUSTER, pool_size = 5 }
   local connection = {}
   function connection:send(message)
     local rcpt = message:recipient()
@@ -1893,7 +1924,7 @@ func writeDMARCCatcher(b *strings.Builder, snap ConfigSnapshot) {
 	}
 	b.WriteString(`kumo.on('make.dmarc_xadd', function(_domain, _tenant, _campaign)
   local redis = require 'redis'
-  local conn = redis.open { node = LOGSTREAM_REDIS_URL, pool_size = 3 }
+  local conn = redis.open { node = LOGSTREAM_REDIS_NODE, cluster = LOGSTREAM_REDIS_CLUSTER, pool_size = 3 }
   local connection = {}
   function connection:send(message)
     local payload = message:get_data()
@@ -1961,7 +1992,7 @@ end)
 
 kumo.on('make.redis_tracker', function(_domain, _tenant, _campaign)
   local redis = require 'redis'
-  local conn = redis.open { node = LOGSTREAM_REDIS_URL, pool_size = 10 }
+  local conn = redis.open { node = LOGSTREAM_REDIS_NODE, cluster = LOGSTREAM_REDIS_CLUSTER, pool_size = 10 }
   local connection = {}
   function connection:send(message)
     local lr = message:get_meta 'log_record'
@@ -2076,7 +2107,7 @@ func writeRspamd(b *strings.Builder, snap ConfigSnapshot) {
   end
   local okx, errx = pcall(function()
     local redis = require 'redis'
-    local conn = redis.open { node = LOGSTREAM_REDIS_URL, pool_size = 5 }
+    local conn = redis.open { node = LOGSTREAM_REDIS_NODE, cluster = LOGSTREAM_REDIS_CLUSTER, pool_size = 5 }
     conn:query('XADD', RSPAMD_RESULTS_STREAM, 'MAXLEN', '~', '50000', '*',
                'message_id', tostring(msg:id()),
                'action', tostring(action),

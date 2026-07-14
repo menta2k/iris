@@ -178,6 +178,21 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	if logStreamRedisURL == "" && cfg.Data.Redis.Addr != "" {
 		logStreamRedisURL = "redis://" + cfg.Data.Redis.Addr
 	}
+	// Redis Cluster / multi-seed awareness for the generated kumod policy: when
+	// iris is configured for a cluster, kumod must use a cluster-enabled redis
+	// client too (else its log hook / suppression / throttles hit MOVED). Derive
+	// the seed URLs from the same redis config unless an explicit single
+	// kumomta.log_stream_redis_url is set.
+	var logStreamRedisNodes []string
+	logStreamRedisCluster := cfg.Data.Redis.IsCluster()
+	if cfg.KumoMTA.LogStreamRedisURL == "" {
+		for _, a := range cfg.Data.Redis.SeedAddrs() {
+			logStreamRedisNodes = append(logStreamRedisNodes, "redis://"+a)
+		}
+		if len(logStreamRedisNodes) == 1 {
+			logStreamRedisURL = logStreamRedisNodes[0]
+		}
+	}
 	// VERP signing key, derived from the session secret (shared by the policy
 	// generator and the DSN worker).
 	verpKey := biz.DeriveVerpKey(cfg.Auth.SessionToken)
@@ -185,8 +200,10 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	settingsDefaults := biz.KumoConfigSettings{
 		RspamdMode:        cfg.Rspamd.Mode,
 		RspamdURL:         cfg.Rspamd.BaseURL,
-		LogStreamRedisURL: logStreamRedisURL,
-		LogStreamName:     data.StreamMailEvents,
+		LogStreamRedisURL:     logStreamRedisURL,
+		LogStreamRedisNodes:   logStreamRedisNodes,
+		LogStreamRedisCluster: logStreamRedisCluster,
+		LogStreamName:         data.StreamMailEvents,
 		// KumoMTA ships the IANA bounce-classifier rules on standard installs.
 		// Set IRIS_BOUNCE_CLASSIFIER_FILE="" to disable on installs without it.
 		BounceClassifierFile: envOr("IRIS_BOUNCE_CLASSIFIER_FILE", "/opt/kumomta/share/bounce_classifier/iana.toml"),

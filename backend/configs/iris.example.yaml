@@ -20,7 +20,14 @@ data:
     conn_max_lifetime: 1h
     migrate_on_start: true
   redis:
+    # Single node: set addr. Redis Cluster: set addrs to the seed nodes (a
+    # single-node client CANNOT follow MOVED/ASK, so a cluster REQUIRES this).
+    # Sentinel failover: set master_name plus the sentinel addrs.
     addr: "localhost:6379"
+    # addrs: ["10.1.114.1:7000", "10.1.114.2:7000", "10.1.114.3:7000"]
+    # cluster: true          # force cluster client even with one seed endpoint
+    # master_name: "mymaster" # Sentinel mode (addrs = sentinels)
+    # Env: IRIS_REDIS_ADDRS (comma-separated), IRIS_REDIS_CLUSTER=1, IRIS_REDIS_MASTER_NAME
     password: ""
     db: 0
     dial_timeout: 5s

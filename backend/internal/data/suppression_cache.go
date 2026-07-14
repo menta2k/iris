@@ -31,11 +31,11 @@ func SuppressionKey(typ, value string) string {
 // keyed per address with a TTL so the list self-ages. All methods are no-ops on
 // a nil cache so deployments/tests without Redis fall back to DB-only behavior.
 type SuppressionCache struct {
-	rdb *redis.Client
+	rdb redis.UniversalClient
 }
 
 // NewSuppressionCache wraps a Redis client (nil-safe). Pass streams.Client.
-func NewSuppressionCache(rdb *redis.Client) *SuppressionCache {
+func NewSuppressionCache(rdb redis.UniversalClient) *SuppressionCache {
 	return &SuppressionCache{rdb: rdb}
 }
 
@@ -71,19 +71,38 @@ func (c *SuppressionCache) Clear(ctx context.Context) (int, error) {
 	if c == nil || c.rdb == nil {
 		return 0, nil
 	}
+	// Under Redis Cluster, SCAN only covers the node it is issued to and a
+	// multi-key DEL across slots errors with CROSSSLOT. Iterate every master
+	// and delete one key at a time so the same code path works for a single
+	// node, a cluster, or a sentinel primary.
+	if cc, ok := c.rdb.(*redis.ClusterClient); ok {
+		removed := 0
+		err := cc.ForEachMaster(ctx, func(ctx context.Context, node *redis.Client) error {
+			n, e := clearNode(ctx, node)
+			removed += n
+			return e
+		})
+		return removed, err
+	}
+	return clearNode(ctx, c.rdb)
+}
+
+// clearNode SCANs and DELs the suppression keys on one Redis node. DEL is issued
+// per key so it never spans hash slots (cluster-safe).
+func clearNode(ctx context.Context, rdb redis.Cmdable) (int, error) {
 	removed := 0
 	for _, pattern := range []string{"supp:e:*", "supp:d:*"} {
 		var cursor uint64
 		for {
-			keys, next, err := c.rdb.Scan(ctx, cursor, pattern, 500).Result()
+			keys, next, err := rdb.Scan(ctx, cursor, pattern, 500).Result()
 			if err != nil {
 				return removed, fmt.Errorf("suppression cache scan: %w", err)
 			}
-			if len(keys) > 0 {
-				if err := c.rdb.Del(ctx, keys...).Err(); err != nil {
+			for _, k := range keys {
+				if err := rdb.Del(ctx, k).Err(); err != nil {
 					return removed, fmt.Errorf("suppression cache clear: %w", err)
 				}
-				removed += len(keys)
+				removed++
 			}
 			if cursor = next; cursor == 0 {
 				break

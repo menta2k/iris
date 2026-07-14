@@ -322,6 +322,21 @@ Each phase ships independently and keeps single-node deployments green.
 Offline alternative: `iris cluster issue-cert -server -sans ... -name <node>`
 and copy the files manually.
 
+### Redis Cluster / Sentinel client (required if Redis is clustered)
+
+Both iris AND the kumod policy iris generates now use cluster-aware Redis
+clients. This is a correctness requirement, not a nicety: a single-node client
+cannot follow `MOVED`/`ASK` slot redirections, so against a Redis Cluster every
+stream read fails (`MOVED <slot> <host>`). Configure it in one place:
+
+- iris: `data.redis.addrs` (seed nodes) or `cluster: true`; Sentinel via
+  `master_name`. Env: `IRIS_REDIS_ADDRS`, `IRIS_REDIS_CLUSTER`,
+  `IRIS_REDIS_MASTER_NAME`.
+- kumod: iris derives the generated policy's `redis.open`/
+  `configure_redis_throttles` from the same config, emitting a seed-node array
+  and `cluster = true` so kumod's log hook, suppression lookups, DSN/DMARC/FBL
+  catchers, and shared throttles all use a cluster client.
+
 ### Redis hardening (required for multi-node)
 
 Redis is the cluster bus (log streams, suppressions, shared throttles). On a
