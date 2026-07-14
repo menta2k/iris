@@ -1368,6 +1368,10 @@ export interface KumoConfigStatus {
 // serialized as JSON strings, so the count fields are strings.
 export interface DashboardSummary {
   serviceState: string
+  /** Live kumod state aggregated across cluster nodes (worst state wins). */
+  kumoState?: string
+  /** Nodes dragging the aggregate down, e.g. "node2=unreachable"; empty when all run. */
+  kumoDetail?: string
   queuedMessages: string
   recentMailEvents: string
   recentAuditEvents: string
@@ -1616,6 +1620,8 @@ export interface MTANode {
   status: MTANodeStatus
   /** SHA-256 of the enrolled agent certificate; read-only. */
   certFingerprint: string
+  /** Live kumod state (running/degraded/unreachable/unknown); heartbeat-refreshed. */
+  kumoState?: string
   version: string
   appliedChecksum: string
   lastSeenAt?: string

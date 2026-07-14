@@ -27,6 +27,7 @@ export const clusterRoutes: Route[] = [
         proxyPort: body.proxyPort ?? 0,
         status: body.status || 'active',
         certFingerprint: '',
+        kumoState: '',
         version: '',
         appliedChecksum: '',
         notes: body.notes ?? '',

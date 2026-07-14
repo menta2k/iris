@@ -409,7 +409,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		Inbound:         inboundUC,
 		InboundRoutes:   inboundRouteUC,
 		FBL:             fblUC,
-		Dashboard:       biz.NewDashboardUsecase(data.NewDashboardRepo(db)).WithQueueAdmin(queueAdmin),
+		Dashboard:       biz.NewDashboardUsecase(data.NewDashboardRepo(db)).WithQueueAdmin(queueAdmin).WithKumo(kumo),
 		Metrics:         biz.NewMetricsUsecase(settingsUC, nil),
 		KumoConfig:      kumoConfigUC,
 		Settings:        settingsUC,
@@ -454,6 +454,12 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	startWorker(ctx, log, "event-processor", eventDispatcher.Run)
 	startWorker(ctx, log, "system-monitor", sysMonWorker.Run)
 	startWorker(ctx, log, "service-control", worker.NewServiceControlWorker(streams, mailOpsRepo, kumo, wlog("service-control")).Run)
+	// Cluster node heartbeats: keep kumod state / agent version / applied
+	// checksum / last_seen fresh in the registry so the Cluster page shows live
+	// health and config drift (not just apply-time snapshots).
+	if fileKumo != nil {
+		startWorker(ctx, log, "cluster-health", worker.NewClusterHealthWorker(fileKumo, mtaNodeRepo, wlog("cluster-health")).Run)
+	}
 	startWorker(ctx, log, "rspamd-ingest", worker.NewRspamdWorker(streams, inboundUC, wlog("rspamd-ingest")).Run)
 	// Ingest KumoMTA's structured logs (streamed by the generated policy's
 	// log_hook) into the mail_records hypertable that powers the Logs UI.

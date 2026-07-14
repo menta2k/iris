@@ -96,6 +96,7 @@ func mtaNodeToProto(n *biz.MTANode) *adminv1.MTANode {
 		CertFingerprint: n.CertFingerprint,
 		Version:         n.Version,
 		AppliedChecksum: n.AppliedChecksum,
+		KumoState:       n.KumoState,
 		Notes:           n.Notes,
 	}
 	if n.LastSeenAt != nil {

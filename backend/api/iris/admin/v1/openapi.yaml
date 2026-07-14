@@ -3616,6 +3616,13 @@ components:
                         deferred_in_queue counts messages currently deferred in the queue: they
                          logged a transient failure but no terminal delivery/bounce since — still
                          retrying, not yet bounced.
+                kumo_state:
+                    type: string
+                    description: |-
+                        Live kumod state aggregated across cluster nodes (worst state wins), and
+                         the nodes dragging it down (e.g. "node2=unreachable"); empty when all run.
+                kumo_detail:
+                    type: string
         DeleteAcmeCertificateReply:
             type: object
             properties: {}
@@ -4635,6 +4642,11 @@ components:
                     type: string
                 notes:
                     type: string
+                kumo_state:
+                    type: string
+                    description: |-
+                        Live kumod state (running/degraded/unreachable/unknown), refreshed by the
+                         cluster-health heartbeat worker. Read-only.
             description: |-
                 MTANode is one KumoMTA host iris controls. agent_url empty = legacy local
                  (co-located) node; proxy_host/proxy_port point at the node's kumo-proxy on

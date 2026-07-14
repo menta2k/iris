@@ -15,6 +15,12 @@ type DashboardSummary struct {
 	// DeferredInQueue counts messages currently deferred in the queue (a
 	// transient failure logged, no terminal delivery/bounce since).
 	DeferredInQueue int64
+	// KumoState is the live kumod state aggregated across cluster nodes
+	// (running/degraded/unreachable/unknown); KumoDetail names the nodes that
+	// are not running (e.g. "node2=unreachable") so the operator never has to
+	// guess which node degraded the aggregate.
+	KumoState  string
+	KumoDetail string
 }
 
 // WarmupDeliveryStat is one (VMTA, recipient-domain) delivery/bounce breakdown
@@ -105,6 +111,7 @@ type DashboardRepo interface {
 type DashboardUsecase struct {
 	repo  DashboardRepo
 	queue KumoQueueAdmin
+	kumo  KumoMTAAdapter
 }
 
 // NewDashboardUsecase constructs the use case.
@@ -114,6 +121,13 @@ func NewDashboardUsecase(repo DashboardRepo) *DashboardUsecase {
 
 // WithQueueAdmin wires kumod's live queue port so Queued Messages reflects the
 // real scheduled-queue depth rather than the (unsynced) mailclass_queues table.
+// WithKumo wires the KumoMTA adapter so the summary carries the live
+// (cluster-aggregated) kumod state and per-node degradation detail.
+func (uc *DashboardUsecase) WithKumo(k KumoMTAAdapter) *DashboardUsecase {
+	uc.kumo = k
+	return uc
+}
+
 func (uc *DashboardUsecase) WithQueueAdmin(q KumoQueueAdmin) *DashboardUsecase {
 	uc.queue = q
 	return uc
@@ -139,6 +153,15 @@ func (uc *DashboardUsecase) Summary(ctx context.Context) (*DashboardSummary, err
 				total += st.Depth
 			}
 			s.QueuedMessages = total
+		}
+	}
+	// Live kumod state (cluster-aggregated worst state + degraded-node names).
+	// Best-effort: an adapter error leaves the fields empty rather than failing
+	// the landing page.
+	if uc.kumo != nil {
+		if st, kerr := uc.kumo.Status(ctx); kerr == nil {
+			s.KumoState = st.State
+			s.KumoDetail = st.Detail
 		}
 	}
 	return s, nil

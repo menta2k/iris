@@ -110,7 +110,7 @@ onBeforeUnmount(() => {
       <div class="d-flex flex-column ga-6">
         <v-row dense>
           <v-col cols="12" sm="6" lg="3">
-            <ServiceStatusWidget :state="summary?.serviceState" />
+            <ServiceStatusWidget :state="summary?.kumoState || summary?.serviceState" :detail="summary?.kumoDetail" />
           </v-col>
           <v-col cols="12" sm="6" lg="3">
             <QueueHealthWidget :queued="summary?.queuedMessages" />

@@ -22,13 +22,13 @@ func NewMTANodeRepo(db *DB) *MTANodeRepo { return &MTANodeRepo{db: db} }
 var _ biz.MTANodeRepo = (*MTANodeRepo)(nil)
 
 const mtaNodeCols = `id, name, agent_url, proxy_host, proxy_port, status,
-	cert_fingerprint, version, applied_checksum, last_seen_at, notes`
+	cert_fingerprint, version, applied_checksum, kumo_state, last_seen_at, notes`
 
 func scanMTANode(row interface{ Scan(...any) error }) (*biz.MTANode, error) {
 	n := &biz.MTANode{}
 	if err := row.Scan(&n.ID, &n.Name, &n.AgentURL, &n.ProxyHost, &n.ProxyPort,
 		&n.Status, &n.CertFingerprint, &n.Version, &n.AppliedChecksum,
-		&n.LastSeenAt, &n.Notes); err != nil {
+		&n.KumoState, &n.LastSeenAt, &n.Notes); err != nil {
 		return nil, err
 	}
 	return n, nil
@@ -126,12 +126,15 @@ func (r *MTANodeRepo) SetNodeCertFingerprint(ctx context.Context, id, fingerprin
 }
 
 // RecordNodeHeartbeat stores agent-reported state and bumps last_seen_at.
-func (r *MTANodeRepo) RecordNodeHeartbeat(ctx context.Context, id, version, appliedChecksum string) error {
+// Empty values preserve the stored ones (see the interface contract).
+func (r *MTANodeRepo) RecordNodeHeartbeat(ctx context.Context, id, version, appliedChecksum, kumoState string) error {
 	tag, err := r.db.Pool.Exec(ctx, `
 		UPDATE mta_nodes
 		SET version = CASE WHEN $2 = '' THEN version ELSE $2 END,
-		    applied_checksum = $3, last_seen_at = now(), updated_at = now()
-		WHERE id = $1`, id, version, appliedChecksum)
+		    applied_checksum = CASE WHEN $3 = '' THEN applied_checksum ELSE $3 END,
+		    kumo_state = CASE WHEN $4 = '' THEN kumo_state ELSE $4 END,
+		    last_seen_at = now(), updated_at = now()
+		WHERE id = $1`, id, version, appliedChecksum, kumoState)
 	if err != nil {
 		return fmt.Errorf("record mta_node heartbeat: %w", err)
 	}

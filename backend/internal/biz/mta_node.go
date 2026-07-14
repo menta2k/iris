@@ -38,10 +38,13 @@ type MTANode struct {
 	// certificate; empty until enrollment completes.
 	CertFingerprint string
 
-	// Reported by the agent; read-only for operators.
+	// Reported by the agent/heartbeat worker; read-only for operators.
 	Version         string
 	AppliedChecksum string
-	LastSeenAt      *time.Time
+	// KumoState is the node's live kumod state (running/degraded/unreachable/
+	// unknown), refreshed by the cluster-health worker.
+	KumoState  string
+	LastSeenAt *time.Time
 
 	Notes string
 }
@@ -139,6 +142,18 @@ func (n *MTANode) ProxyEndpoint() string {
 // transport (the legacy co-located deployment) rather than a remote agent.
 func (n *MTANode) Local() bool { return n.AgentURL == "" }
 
+// MTANodeHealth is one node's live health snapshot as collected by the
+// cluster-health worker (agent /v1/health for remote nodes, local liveness
+// probe for the co-located node).
+type MTANodeHealth struct {
+	NodeID          string
+	Name            string
+	Version         string
+	AppliedChecksum string
+	// KumoState: running | degraded | unreachable | unknown.
+	KumoState string
+}
+
 // MTANodeEnrollToken is a single-use bootstrap token binding an agent
 // enrollment to a node row. The plaintext token is only available at issuance;
 // only its bcrypt hash is persisted.
@@ -167,8 +182,10 @@ type MTANodeRepo interface {
 	// SetNodeCertFingerprint pins the enrolled agent certificate.
 	SetNodeCertFingerprint(ctx context.Context, id, fingerprint string) error
 	// RecordNodeHeartbeat stores agent-reported state (version, applied config
-	// checksum) and bumps last_seen_at.
-	RecordNodeHeartbeat(ctx context.Context, id, version, appliedChecksum string) error
+	// checksum, live kumod state) and bumps last_seen_at. Empty values keep the
+	// stored ones (partial reporters: config applies know the checksum but not
+	// the kumod state; health polls may lack a checksum before the first apply).
+	RecordNodeHeartbeat(ctx context.Context, id, version, appliedChecksum, kumoState string) error
 
 	// Enrollment tokens (single-use, bcrypt-hashed).
 	CreateEnrollToken(ctx context.Context, t *MTANodeEnrollToken) (*MTANodeEnrollToken, error)

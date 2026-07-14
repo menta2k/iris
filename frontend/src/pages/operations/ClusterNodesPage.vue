@@ -32,6 +32,15 @@ function statusVariant(s: MTANodeStatus): 'success' | 'secondary' | 'warning' {
   return 'secondary'
 }
 
+// Live kumod health chip, refreshed by the backend heartbeat worker (~30s).
+function healthVariant(state?: string): 'success' | 'secondary' | 'warning' | 'destructive' {
+  const s = (state ?? '').toLowerCase()
+  if (s === 'running') return 'success'
+  if (s === 'degraded') return 'warning'
+  if (s === 'unreachable') return 'destructive'
+  return 'secondary'
+}
+
 /**
  * Config drift: the expected checksum is the one most recently applied across
  * the cluster (nodes report theirs on every heartbeat). A node that disagrees
@@ -206,6 +215,7 @@ async function remove(n: MTANode) {
                 <TableHead>Agent</TableHead>
                 <TableHead>kumo-proxy</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Health</TableHead>
                 <TableHead>Config</TableHead>
                 <TableHead>Last seen</TableHead>
                 <TableHead class="text-right">Actions</TableHead>
@@ -226,6 +236,11 @@ async function remove(n: MTANode) {
                 </TableCell>
                 <TableCell>
                   <Badge :variant="statusVariant(n.status)">{{ n.status }}</Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge :variant="healthVariant(n.kumoState)" :data-testid="`health-${n.id}`">
+                    {{ n.kumoState || 'unknown' }}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <div class="d-flex align-center ga-2">

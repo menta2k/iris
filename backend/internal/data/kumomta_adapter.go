@@ -18,7 +18,7 @@ import (
 // configuration out across the cluster. Satisfied by MTANodeRepo.
 type ClusterNodes interface {
 	ListNodes(ctx context.Context) ([]*biz.MTANode, error)
-	RecordNodeHeartbeat(ctx context.Context, id, version, appliedChecksum string) error
+	RecordNodeHeartbeat(ctx context.Context, id, version, appliedChecksum, kumoState string) error
 }
 
 // FileKumoMTA is the production KumoMTA adapter. It manages the co-located
@@ -183,6 +183,40 @@ func (k *FileKumoMTA) ApplyServiceControl(ctx context.Context, op biz.ServiceOpe
 	}
 }
 
+// CollectNodeHealth polls every registered (non-disabled) node's live health:
+// remote nodes via their agent's /v1/health (version, applied checksum, kumod
+// state), the local node via a kumod liveness probe. An unreachable node
+// reports state "unreachable" rather than an error, so the heartbeat worker
+// records outages instead of skipping them.
+func (k *FileKumoMTA) CollectNodeHealth(ctx context.Context) ([]biz.MTANodeHealth, error) {
+	targets, err := k.applyTargets(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var out []biz.MTANodeHealth
+	for _, t := range targets {
+		if t.nodeID == "" {
+			continue // implicit local node without a registry row: nothing to record
+		}
+		h := biz.MTANodeHealth{NodeID: t.nodeID, Name: t.name}
+		switch tr := t.transport.(type) {
+		case *agentTransport:
+			ah, err := tr.health(ctx)
+			if err != nil {
+				h.KumoState = "unreachable"
+			} else {
+				h.Version = ah.Version
+				h.AppliedChecksum = ah.AppliedChecksum
+				h.KumoState = ah.Kumo
+			}
+		default:
+			h.KumoState = t.transport.status(ctx).State
+		}
+		out = append(out, h)
+	}
+	return out, nil
+}
+
 // ApplyQueueAction is not yet wired to a KumoMTA queue API; it records intent.
 func (k *FileKumoMTA) ApplyQueueAction(_ context.Context, mailclass string, action biz.QueueAction) (string, error) {
 	return fmt.Sprintf("queue action %s requested for %s", action, mailclass), nil
@@ -225,7 +259,7 @@ func (k *FileKumoMTA) ApplyConfig(ctx context.Context, rendered biz.RenderedConf
 		if t.nodeID != "" && k.nodes != nil {
 			// Best effort: reflect the applied checksum in the registry so the UI
 			// can flag drift; the agent heartbeat keeps it fresh afterwards.
-			if err := k.nodes.RecordNodeHeartbeat(ctx, t.nodeID, "", rendered.Checksum); err != nil {
+			if err := k.nodes.RecordNodeHeartbeat(ctx, t.nodeID, "", rendered.Checksum, ""); err != nil {
 				biz.LoggerFrom(ctx).Error("record node heartbeat failed", "node", t.name, "error", err.Error())
 			}
 		}

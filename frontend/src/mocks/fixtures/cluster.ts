@@ -12,6 +12,7 @@ export const mtaNodes: MTANode[] = [
     proxyPort: 0,
     status: 'active',
     certFingerprint: '',
+    kumoState: 'running',
     version: '',
     appliedChecksum: 'a3f9c2e1',
     lastSeenAt: daysAgo(0),
@@ -25,6 +26,7 @@ export const mtaNodes: MTANode[] = [
     proxyPort: 1080,
     status: 'active',
     certFingerprint: '9c1c6f3f7a2e4b8d9c1c6f3f7a2e4b8d9c1c6f3f7a2e4b8d9c1c6f3f7a2e4b8d',
+    kumoState: 'running',
     version: 'iris-agent/1',
     appliedChecksum: 'a3f9c2e1',
     lastSeenAt: daysAgo(0),
@@ -38,6 +40,7 @@ export const mtaNodes: MTANode[] = [
     proxyPort: 1080,
     status: 'draining',
     certFingerprint: '5e8d4a2b6c9f1e3d5e8d4a2b6c9f1e3d5e8d4a2b6c9f1e3d5e8d4a2b6c9f1e3d',
+    kumoState: 'unreachable',
     version: 'iris-agent/1',
     appliedChecksum: '77b0d4f2', // differs from expected -> drift badge in the UI
     lastSeenAt: daysAgo(2),

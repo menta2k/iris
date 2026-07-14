@@ -18,6 +18,8 @@ func (s *Service) GetDashboardSummary(ctx context.Context, req *adminv1.GetDashb
 	}
 	return &adminv1.DashboardSummary{
 		ServiceState:      summary.ServiceState,
+		KumoState:         summary.KumoState,
+		KumoDetail:        summary.KumoDetail,
 		QueuedMessages:    summary.QueuedMessages,
 		RecentMailEvents:  summary.RecentMailEvents,
 		RecentAuditEvents: summary.RecentAuditEvents,

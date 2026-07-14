@@ -20,6 +20,8 @@ import { mailRecords } from './operations'
 
 export const dashboardSummary: DashboardSummary = {
   serviceState: 'healthy',
+  kumoState: 'degraded',
+  kumoDetail: 'mta-eu-3=unreachable',
   queuedMessages: '2114',
   recentMailEvents: '56',
   recentAuditEvents: '40',

@@ -13761,8 +13761,12 @@ type DashboardSummary struct {
 	// logged a transient failure but no terminal delivery/bounce since — still
 	// retrying, not yet bounced.
 	DeferredInQueue int64 `protobuf:"varint,5,opt,name=deferred_in_queue,json=deferredInQueue,proto3" json:"deferred_in_queue,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Live kumod state aggregated across cluster nodes (worst state wins), and
+	// the nodes dragging it down (e.g. "node2=unreachable"); empty when all run.
+	KumoState     string `protobuf:"bytes,6,opt,name=kumo_state,json=kumoState,proto3" json:"kumo_state,omitempty"`
+	KumoDetail    string `protobuf:"bytes,7,opt,name=kumo_detail,json=kumoDetail,proto3" json:"kumo_detail,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DashboardSummary) Reset() {
@@ -13828,6 +13832,20 @@ func (x *DashboardSummary) GetDeferredInQueue() int64 {
 		return x.DeferredInQueue
 	}
 	return 0
+}
+
+func (x *DashboardSummary) GetKumoState() string {
+	if x != nil {
+		return x.KumoState
+	}
+	return ""
+}
+
+func (x *DashboardSummary) GetKumoDetail() string {
+	if x != nil {
+		return x.KumoDetail
+	}
+	return ""
 }
 
 // GetMetricsTimeseries selects the lookback window: "1h" | "6h" | "24h" | "7d"
@@ -19568,8 +19586,11 @@ type MTANode struct {
 	AppliedChecksum string                 `protobuf:"bytes,9,opt,name=applied_checksum,json=appliedChecksum,proto3" json:"applied_checksum,omitempty"`
 	LastSeenAt      string                 `protobuf:"bytes,10,opt,name=last_seen_at,json=lastSeenAt,proto3" json:"last_seen_at,omitempty"`
 	Notes           string                 `protobuf:"bytes,11,opt,name=notes,proto3" json:"notes,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Live kumod state (running/degraded/unreachable/unknown), refreshed by the
+	// cluster-health heartbeat worker. Read-only.
+	KumoState     string `protobuf:"bytes,12,opt,name=kumo_state,json=kumoState,proto3" json:"kumo_state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MTANode) Reset() {
@@ -19675,6 +19696,13 @@ func (x *MTANode) GetLastSeenAt() string {
 func (x *MTANode) GetNotes() string {
 	if x != nil {
 		return x.Notes
+	}
+	return ""
+}
+
+func (x *MTANode) GetKumoState() string {
+	if x != nil {
+		return x.KumoState
 	}
 	return ""
 }
@@ -21254,13 +21282,17 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"table_name\x18\x01 \x01(\tR\ttableName\"#\n" +
 	"\x11RunRetentionReply\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\"\x1c\n" +
-	"\x1aGetDashboardSummaryRequest\"\xea\x01\n" +
+	"\x1aGetDashboardSummaryRequest\"\xaa\x02\n" +
 	"\x10DashboardSummary\x12#\n" +
 	"\rservice_state\x18\x01 \x01(\tR\fserviceState\x12'\n" +
 	"\x0fqueued_messages\x18\x02 \x01(\x03R\x0equeuedMessages\x12,\n" +
 	"\x12recent_mail_events\x18\x03 \x01(\x03R\x10recentMailEvents\x12.\n" +
 	"\x13recent_audit_events\x18\x04 \x01(\x03R\x11recentAuditEvents\x12*\n" +
-	"\x11deferred_in_queue\x18\x05 \x01(\x03R\x0fdeferredInQueue\"3\n" +
+	"\x11deferred_in_queue\x18\x05 \x01(\x03R\x0fdeferredInQueue\x12\x1d\n" +
+	"\n" +
+	"kumo_state\x18\x06 \x01(\tR\tkumoState\x12\x1f\n" +
+	"\vkumo_detail\x18\a \x01(\tR\n" +
+	"kumoDetail\"3\n" +
 	"\x1bGetMetricsTimeseriesRequest\x12\x14\n" +
 	"\x05range\x18\x01 \x01(\tR\x05range\"/\n" +
 	"\x17GetSystemMetricsRequest\x12\x14\n" +
@@ -21754,7 +21786,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\bsettings\x18\x01 \x01(\v2\x1e.iris.admin.v1.MonitorSettingsR\bsettings\"D\n" +
 	"\x1cTestMonitorNotificationReply\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05error\"\xc8\x02\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"\xe7\x02\n" +
 	"\aMTANode\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1b\n" +
@@ -21770,7 +21802,9 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\flast_seen_at\x18\n" +
 	" \x01(\tR\n" +
 	"lastSeenAt\x12\x14\n" +
-	"\x05notes\x18\v \x01(\tR\x05notes\"\x15\n" +
+	"\x05notes\x18\v \x01(\tR\x05notes\x12\x1d\n" +
+	"\n" +
+	"kumo_state\x18\f \x01(\tR\tkumoState\"\x15\n" +
 	"\x13ListMTANodesRequest\"A\n" +
 	"\x11ListMTANodesReply\x12,\n" +
 	"\x05items\x18\x01 \x03(\v2\x16.iris.admin.v1.MTANodeR\x05items\"#\n" +

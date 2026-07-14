@@ -72,7 +72,7 @@ func (f *fakeMTANodeRepo) SetNodeCertFingerprint(ctx context.Context, id, fp str
 	return nil
 }
 
-func (f *fakeMTANodeRepo) RecordNodeHeartbeat(ctx context.Context, id, version, checksum string) error {
+func (f *fakeMTANodeRepo) RecordNodeHeartbeat(ctx context.Context, id, version, checksum, kumoState string) error {
 	n, ok := f.nodes[id]
 	if !ok {
 		return NotFound("MTA_NODE_NOT_FOUND", "mta node %s not found", id)

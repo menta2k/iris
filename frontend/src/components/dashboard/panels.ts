@@ -60,6 +60,7 @@ export const panelRegistry: PanelDef[] = [
       const s = await dashboardService.getSummary()
       return [
         { label: 'Service state', value: s.serviceState || '—' },
+        { label: 'KumoMTA state', value: s.kumoDetail ? `${s.kumoState} (${s.kumoDetail})` : s.kumoState || '—' },
         { label: 'Queued messages', value: s.queuedMessages ?? '0' },
         { label: 'Deferred in queue', value: s.deferredInQueue ?? '0' },
         { label: 'Recent mail events', value: s.recentMailEvents ?? '0' },

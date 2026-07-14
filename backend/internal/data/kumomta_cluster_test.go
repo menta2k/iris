@@ -24,7 +24,7 @@ func (f *fakeClusterNodes) ListNodes(ctx context.Context) ([]*biz.MTANode, error
 	return f.nodes, nil
 }
 
-func (f *fakeClusterNodes) RecordNodeHeartbeat(ctx context.Context, id, version, checksum string) error {
+func (f *fakeClusterNodes) RecordNodeHeartbeat(ctx context.Context, id, version, checksum, kumoState string) error {
 	if f.heartbeats == nil {
 		f.heartbeats = map[string]string{}
 	}

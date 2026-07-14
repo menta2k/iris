@@ -1780,6 +1780,10 @@ message DashboardSummary {
   // logged a transient failure but no terminal delivery/bounce since — still
   // retrying, not yet bounced.
   int64 deferred_in_queue = 5;
+  // Live kumod state aggregated across cluster nodes (worst state wins), and
+  // the nodes dragging it down (e.g. "node2=unreachable"); empty when all run.
+  string kumo_state = 6;
+  string kumo_detail = 7;
 }
 
 // GetMetricsTimeseries selects the lookback window: "1h" | "6h" | "24h" | "7d"
@@ -2422,6 +2426,9 @@ message MTANode {
   string applied_checksum = 9;
   string last_seen_at = 10;
   string notes = 11;
+  // Live kumod state (running/degraded/unreachable/unknown), refreshed by the
+  // cluster-health heartbeat worker. Read-only.
+  string kumo_state = 12;
 }
 message ListMTANodesRequest {}
 message ListMTANodesReply {
