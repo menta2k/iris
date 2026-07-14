@@ -67,8 +67,11 @@ kumomta:
   # log hook) — those need restart_command below.
   reload_command: ""
   reload_url: ""
-  # For init-block changes a full process restart is required:
-  # restart_command: "systemctl restart kumomta"
+  # For init-block changes a full process restart is required. On a remote node
+  # where the agent runs as a NON-root user (e.g. iris), grant it via sudo (see
+  # deploy/systemd/iris-agent.sudoers):
+  # restart_command: "sudo systemctl restart kumomta"
+  # If the agent runs as root, drop the "sudo".
   # Redis URL embedded in the generated policy's log_hook — the address KumoMTA
   # reaches Redis at (may differ from the backend's own redis addr). Empty
   # derives "redis://<data.redis.addr>". Enables mail logging when set.

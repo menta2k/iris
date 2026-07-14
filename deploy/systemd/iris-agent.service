@@ -6,18 +6,28 @@
 # reloads/restarts kumod, reports health, and reverse-proxies kumod's localhost
 # admin API. See docs/kumomta-cluster-architecture.md.
 #
+# Runs as the SAME user kumod runs as (iris in the typical `kumod --user iris`
+# setup), so the policy files it writes are owned by that user and kumod can
+# read them directly — no config_group/setgid needed. Because a non-root user
+# cannot ask systemd to restart a service, restarts (needed only for init-block
+# changes: listeners/spool/log hook) go through sudo; install the companion
+# iris-agent.sudoers to allow exactly those two systemctl calls.
+#
 # Prerequisites on this node:
 #   - the `iris` binary installed at /usr/local/bin/iris
+#   - the policy dir writable by iris:  chown -R iris:iris /opt/kumomta/etc/policy
 #   - /etc/iris/iris.yaml with:
-#       kumomta:   stub: false, config_path, reload_command|reload_url, base_url,
-#                  and config_group (the group kumod runs as, e.g. "iris" when
-#                  kumod is started with --user iris) so kumod can read the
-#                  0640 policy this root agent writes.
+#       kumomta:   stub: false, config_path, base_url,
+#                  restart_command: "sudo systemctl restart kumomta"
+#                  (reloads use kumod's 10s file-watcher — leave reload_* empty)
 #       agent:     listen, ca_cert, cert, key  (the certs from `iris cluster enroll`)
+#   - install the sudoers rule:  cp iris-agent.sudoers /etc/sudoers.d/iris-agent
+#     (then: chmod 440 /etc/sudoers.d/iris-agent && visudo -c)
 #   - the node registered + enrolled in iris (Cluster page -> Enroll)
 #
 # Install:
 #   cp iris-agent.service /etc/systemd/system/iris-agent.service
+#   cp iris-agent.sudoers /etc/sudoers.d/iris-agent && chmod 440 /etc/sudoers.d/iris-agent
 #   systemctl daemon-reload
 #   systemctl enable --now iris-agent
 #   journalctl -u iris-agent -f
@@ -30,15 +40,14 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-# The agent writes kumod's policy file and reloads/restarts the service, so it
-# needs write access to the kumod config dir and the reload mechanism. Root is
-# the simplest. To harden: run as a user that can write config_path AND reload
-# kumod (e.g. group-write on the policy dir + a sudoers rule or the HTTP
-# bump-config-epoch reload_url instead of `systemctl reload kumomta`).
-User=root
+# Run as the user kumod runs as, so policy files are readable by kumod without
+# config_group/setgid. Change this if kumod runs as a different user (e.g.
+# `kumod`), and update the sudoers file's user to match.
+User=iris
+Group=iris
 
-# Optional overrides (the agent needs no DB/Redis; it reads kumomta:/agent: from
-# the yaml). `-` = tolerate a missing file.
+# The agent needs no DB/Redis; it reads kumomta:/agent: from the yaml.
+# `-` = tolerate a missing file.
 EnvironmentFile=-/etc/iris/iris.env
 
 # NOTE: -config MUST come BEFORE the `agent` subcommand (Go flag parsing stops
@@ -47,6 +56,14 @@ ExecStart=/usr/local/bin/iris -config /etc/iris/iris.yaml agent
 
 Restart=on-failure
 RestartSec=5s
+
+# Hardening — the agent only needs to read its config/certs, write the kumod
+# policy dir, and reach the network (its mTLS listener + localhost kumod).
+# NoNewPrivileges must stay false: the agent shells out to
+# `sudo systemctl restart kumomta`, and sudo needs to raise privileges.
+NoNewPrivileges=false
+PrivateTmp=true
+ProtectHome=true
 
 [Install]
 WantedBy=multi-user.target

@@ -1,0 +1,14 @@
+# Allow the iris-agent (running as the iris user) to restart/reload kumod for
+# init-block config changes, without granting broader root. kumod reloads pick
+# up policy changes via its own 10s file-watcher and need no privilege; only a
+# restart (listeners/spool/log hook changes) needs this.
+#
+# Install:
+#   cp iris-agent.sudoers /etc/sudoers.d/iris-agent
+#   chmod 440 /etc/sudoers.d/iris-agent
+#   visudo -c            # validate syntax
+#
+# Adjust the user (iris) and the systemctl path if your system differs
+# (`command -v systemctl` — commonly /usr/bin/systemctl or /bin/systemctl).
+# Then set in iris.yaml:  kumomta.restart_command: "sudo systemctl restart kumomta"
+iris ALL=(root) NOPASSWD: /usr/bin/systemctl restart kumomta, /usr/bin/systemctl reload kumomta
