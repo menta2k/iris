@@ -50,6 +50,7 @@ type Service struct {
 	monitoring      *biz.MonitoringUsecase
 	userDashboards  *biz.UserDashboardUsecase
 	mtaNodes        *biz.MTANodeUsecase
+	clusterEnroll   *biz.ClusterEnrollUsecase
 }
 
 // Deps bundles the use cases the service delegates to. Fields may be nil for
@@ -87,6 +88,7 @@ type Deps struct {
 	Monitoring      *biz.MonitoringUsecase
 	UserDashboards  *biz.UserDashboardUsecase
 	MTANodes        *biz.MTANodeUsecase
+	ClusterEnroll   *biz.ClusterEnrollUsecase
 }
 
 // NewService constructs the admin API service.
@@ -128,6 +130,7 @@ func NewService(d Deps) *Service {
 		monitoring:      d.Monitoring,
 		userDashboards:  d.UserDashboards,
 		mtaNodes:        d.MTANodes,
+		clusterEnroll:   d.ClusterEnroll,
 	}
 }
 

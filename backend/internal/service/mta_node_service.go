@@ -85,6 +85,18 @@ func (s *Service) DeleteMTANode(ctx context.Context, req *adminv1.DeleteMTANodeR
 	return &adminv1.DeleteMTANodeReply{Ok: true}, nil
 }
 
+// IssueMTANodeEnrollToken mints a single-use agent-enrollment bootstrap token.
+func (s *Service) IssueMTANodeEnrollToken(ctx context.Context, req *adminv1.IssueMTANodeEnrollTokenRequest) (*adminv1.IssueMTANodeEnrollTokenReply, error) {
+	if s.clusterEnroll == nil {
+		return nil, notImplemented("IssueMTANodeEnrollToken")
+	}
+	token, expiresAt, err := s.clusterEnroll.IssueToken(ctx, req.GetId())
+	if err != nil {
+		return nil, s.fail(ctx, "IssueMTANodeEnrollToken", err)
+	}
+	return &adminv1.IssueMTANodeEnrollTokenReply{Token: token, ExpiresAt: formatTime(expiresAt)}, nil
+}
+
 func mtaNodeToProto(n *biz.MTANode) *adminv1.MTANode {
 	p := &adminv1.MTANode{
 		Id:              n.ID,

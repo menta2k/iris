@@ -511,6 +511,11 @@ service IrisAdminService {
   rpc DeleteMTANode(DeleteMTANodeRequest) returns (DeleteMTANodeReply) {
     option (google.api.http) = { delete: "/v1/cluster/nodes/{id}" };
   }
+  // Issue a single-use agent-enrollment bootstrap token for the node. The
+  // plaintext is returned exactly once; only its bcrypt hash is stored.
+  rpc IssueMTANodeEnrollToken(IssueMTANodeEnrollTokenRequest) returns (IssueMTANodeEnrollTokenReply) {
+    option (google.api.http) = { post: "/v1/cluster/nodes/{id}:enroll-token" body: "*" };
+  }
 
   // Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
   rpc ListMonitoringAccounts(ListMonitoringAccountsRequest) returns (ListMonitoringAccountsReply) {
@@ -2459,4 +2464,12 @@ message DeleteMTANodeRequest {
 }
 message DeleteMTANodeReply {
   bool ok = 1;
+}
+message IssueMTANodeEnrollTokenRequest {
+  string id = 1;
+}
+message IssueMTANodeEnrollTokenReply {
+  // Shown once; redeem with `iris cluster enroll` on the node within the TTL.
+  string token = 1;
+  string expires_at = 2;
 }

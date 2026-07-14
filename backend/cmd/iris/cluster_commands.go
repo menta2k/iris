@@ -150,8 +150,41 @@ func runClusterCommand(cfg *conf.Config, args []string) int {
 			fmt.Println("and record the fingerprint on the node entry in iris (cert pinning).")
 		}
 		return 0
+	case "enroll":
+		fs := flag.NewFlagSet("cluster enroll", flag.ExitOnError)
+		irisURL := fs.String("iris-url", "", "iris admin base URL, e.g. https://iris.internal:8080")
+		name := fs.String("name", "", "this node's name as registered in iris")
+		token := fs.String("token", "", "single-use bootstrap token issued in iris")
+		sans := fs.String("sans", "", "comma-separated DNS names/IPs the cert must cover (the agent URL host)")
+		out := fs.String("out", "/etc/iris/cluster", "directory to write agent.crt/agent.key/ca.crt into")
+		serverCA := fs.String("iris-ca", "", "CA bundle to verify the iris HTTPS endpoint (recommended)")
+		insecure := fs.Bool("insecure", false, "skip iris TLS verification (bootstrap relies on the token alone)")
+		_ = fs.Parse(args[1:])
+		opts := clusterca.EnrollOptions{
+			IrisURL: *irisURL, NodeName: *name, Token: *token,
+			OutDir: *out, ServerCA: *serverCA, Insecure: *insecure,
+		}
+		for _, san := range strings.Split(*sans, ",") {
+			san = strings.TrimSpace(san)
+			if san == "" {
+				continue
+			}
+			if ip := net.ParseIP(san); ip != nil {
+				opts.IPs = append(opts.IPs, ip)
+			} else {
+				opts.DNSNames = append(opts.DNSNames, san)
+			}
+		}
+		certPath, keyPath, caPath, err := clusterca.Enroll(opts)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "enroll:", err)
+			return 1
+		}
+		fmt.Printf("enrolled: %s, %s (0600), %s\n", certPath, keyPath, caPath)
+		fmt.Println("Reference these in the node's agent: config section, then start `iris agent`.")
+		return 0
 	default:
-		fmt.Fprintf(os.Stderr, "unknown cluster subcommand %q (want init-ca or issue-cert)\n", args[0])
+		fmt.Fprintf(os.Stderr, "unknown cluster subcommand %q (want init-ca, issue-cert, or enroll)\n", args[0])
 		return 2
 	}
 }

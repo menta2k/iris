@@ -51,6 +51,18 @@ export const clusterRoutes: Route[] = [
     },
   },
   {
+    method: 'POST',
+    pattern: '/cluster/nodes/:id:enroll-token',
+    handler: (ctx) => {
+      const node = all('mtaNodes').find((n) => n.id === ctx.params.id)
+      if (!node) return notFound('Node not found')
+      return ok({
+        token: 'mock-' + Math.random().toString(36).slice(2, 18),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      })
+    },
+  },
+  {
     method: 'DELETE',
     pattern: '/cluster/nodes/:id',
     handler: (ctx) => (removeRow('mtaNodes', ctx.params.id) ? ok({ ok: true }) : notFound('Node not found')),

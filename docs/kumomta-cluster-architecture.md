@@ -300,7 +300,64 @@ Each phase ships independently and keeps single-node deployments green.
    kumo-proxy, replay protection, cert rotation, security review pass
    (`security-reviewer`), load/failover testing, ops runbook.
 
-## 9. Open questions for the operator
+## 9. Deployment & hardening guide (P5)
+
+### Enrollment (online, recommended)
+
+1. On the iris host: `iris cluster init-ca -dir /etc/iris/cluster-ca`, set
+   `cluster.ca_dir: /etc/iris/cluster-ca`, and issue iris's own client cert:
+   `iris cluster issue-cert -name iris-control-plane` (reference it in
+   `cluster.client_cert/client_key`, plus `cluster.ca_cert: .../ca.crt`).
+2. Register the node on the Cluster page and click **Enroll** — iris mints a
+   single-use bootstrap token (bcrypt-hashed at rest, 1 h TTL) and shows the
+   exact command once.
+3. On the node: `iris cluster enroll -iris-url https://iris -name <node>
+   -sans <agent ip/dns> -token <token> [-iris-ca <iris server ca>]` — the node
+   generates its key locally (never leaves the host), sends a CSR, and writes
+   `agent.crt/agent.key/ca.crt` (key 0600). The issued certificate's
+   fingerprint is pinned on the node record; the token is consumed even if
+   signing fails (issue a fresh one on retry).
+4. Reference the files in the node's `agent:` section and start `iris agent`.
+
+Offline alternative: `iris cluster issue-cert -server -sans ... -name <node>`
+and copy the files manually.
+
+### Redis hardening (required for multi-node)
+
+Redis is the cluster bus (log streams, suppressions, shared throttles). On a
+multi-node deployment:
+
+- **Never expose Redis publicly**; bind it to the private cluster network.
+- **Require AUTH + TLS** (`rediss://user:pass@host:6379` works everywhere a
+  Redis URL is configured: `data.redis`, `kumomta.log_stream_redis_url`).
+- **Scope kumod's ACL user** to what the policy actually does:
+
+  ```
+  user kumod on >SECRET ~iris.* ~supp:* &* -@all +xadd +exists +get +ping +hello
+  user iris  on >SECRET2 ~* &* +@all -@admin
+  ```
+
+  (kumod XADDs onto `iris.*` streams, EXISTS/GET on `supp:*` suppression keys;
+  the shared-throttle keyspace additionally needs `+@scripting +set +incr
+  +expire` on `throttle*` / lease keys when `configure_redis_throttles` is on —
+  verify against your KumoMTA version's throttle implementation.)
+
+### kumo-proxy isolation (hard requirement)
+
+kumo-proxy is unauthenticated. iris already refuses to render egress sources
+pointing at public proxy IPs, but the network must enforce it too: bind
+kumo-proxy to the private VLAN/WireGuard address only and firewall ingress to
+cluster peers. Anyone who can reach a kumo-proxy can send traffic from your
+reputation-bearing IPs.
+
+### Certificate rotation
+
+Leaf certs live 2 years. To rotate an agent: issue a new enroll token and
+re-run `iris cluster enroll` (the pinned fingerprint updates), then restart
+the agent. To rotate iris's client cert: `iris cluster issue-cert` again and
+restart iris. CA rotation = new CA + re-enroll everything (plan a window).
+
+## 10. Open questions for the operator
 
 1. Private network between nodes: existing VLAN, or should the plan include a
    WireGuard mesh (agent-managed)?

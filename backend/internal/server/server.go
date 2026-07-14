@@ -27,7 +27,7 @@ type ReadinessChecker interface {
 // NewHTTPServer builds the HTTP transport, registers the admin service, and
 // exposes health/readiness endpoints plus the OpenAPI document. When tlsConf is
 // non-nil the server serves HTTPS on the same address.
-func NewHTTPServer(c conf.Server, svc adminv1.IrisAdminServiceHTTPServer, openapi []byte, checks []ReadinessChecker, tlsConf *tls.Config, sseHandler http.Handler, mws ...middleware.Middleware) *kratoshttp.Server {
+func NewHTTPServer(c conf.Server, svc adminv1.IrisAdminServiceHTTPServer, openapi []byte, checks []ReadinessChecker, tlsConf *tls.Config, sseHandler http.Handler, enrollHandler http.Handler, mws ...middleware.Middleware) *kratoshttp.Server {
 	opts := []kratoshttp.ServerOption{
 		kratoshttp.Middleware(append([]middleware.Middleware{recovery.Recovery()}, mws...)...),
 	}
@@ -68,6 +68,12 @@ func NewHTTPServer(c conf.Server, svc adminv1.IrisAdminServiceHTTPServer, openap
 	}
 	// Prometheus metrics (mail/VMTA/bounce/webhook counters driven by the workers).
 	srv.Handle("/metrics", promhttp.Handler())
+
+	// Agent enrollment (token -> CSR -> signed cert). Outside the admin JWT by
+	// design: the single-use bcrypt token is the bootstrap authentication.
+	if enrollHandler != nil {
+		srv.Handle(EnrollPath, enrollHandler)
+	}
 
 	adminv1.RegisterIrisAdminServiceHTTPServer(srv, svc)
 

@@ -150,6 +150,7 @@ const (
 	IrisAdminService_CreateMTANode_FullMethodName                  = "/iris.admin.v1.IrisAdminService/CreateMTANode"
 	IrisAdminService_UpdateMTANode_FullMethodName                  = "/iris.admin.v1.IrisAdminService/UpdateMTANode"
 	IrisAdminService_DeleteMTANode_FullMethodName                  = "/iris.admin.v1.IrisAdminService/DeleteMTANode"
+	IrisAdminService_IssueMTANodeEnrollToken_FullMethodName        = "/iris.admin.v1.IrisAdminService/IssueMTANodeEnrollToken"
 	IrisAdminService_ListMonitoringAccounts_FullMethodName         = "/iris.admin.v1.IrisAdminService/ListMonitoringAccounts"
 	IrisAdminService_CreateMonitoringAccount_FullMethodName        = "/iris.admin.v1.IrisAdminService/CreateMonitoringAccount"
 	IrisAdminService_UpdateMonitoringAccount_FullMethodName        = "/iris.admin.v1.IrisAdminService/UpdateMonitoringAccount"
@@ -390,6 +391,9 @@ type IrisAdminServiceClient interface {
 	CreateMTANode(ctx context.Context, in *CreateMTANodeRequest, opts ...grpc.CallOption) (*MTANode, error)
 	UpdateMTANode(ctx context.Context, in *UpdateMTANodeRequest, opts ...grpc.CallOption) (*MTANode, error)
 	DeleteMTANode(ctx context.Context, in *DeleteMTANodeRequest, opts ...grpc.CallOption) (*DeleteMTANodeReply, error)
+	// Issue a single-use agent-enrollment bootstrap token for the node. The
+	// plaintext is returned exactly once; only its bcrypt hash is stored.
+	IssueMTANodeEnrollToken(ctx context.Context, in *IssueMTANodeEnrollTokenRequest, opts ...grpc.CallOption) (*IssueMTANodeEnrollTokenReply, error)
 	// Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
 	ListMonitoringAccounts(ctx context.Context, in *ListMonitoringAccountsRequest, opts ...grpc.CallOption) (*ListMonitoringAccountsReply, error)
 	CreateMonitoringAccount(ctx context.Context, in *CreateMonitoringAccountRequest, opts ...grpc.CallOption) (*MonitoringAccount, error)
@@ -1725,6 +1729,16 @@ func (c *irisAdminServiceClient) DeleteMTANode(ctx context.Context, in *DeleteMT
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) IssueMTANodeEnrollToken(ctx context.Context, in *IssueMTANodeEnrollTokenRequest, opts ...grpc.CallOption) (*IssueMTANodeEnrollTokenReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IssueMTANodeEnrollTokenReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_IssueMTANodeEnrollToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) ListMonitoringAccounts(ctx context.Context, in *ListMonitoringAccountsRequest, opts ...grpc.CallOption) (*ListMonitoringAccountsReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListMonitoringAccountsReply)
@@ -2080,6 +2094,9 @@ type IrisAdminServiceServer interface {
 	CreateMTANode(context.Context, *CreateMTANodeRequest) (*MTANode, error)
 	UpdateMTANode(context.Context, *UpdateMTANodeRequest) (*MTANode, error)
 	DeleteMTANode(context.Context, *DeleteMTANodeRequest) (*DeleteMTANodeReply, error)
+	// Issue a single-use agent-enrollment bootstrap token for the node. The
+	// plaintext is returned exactly once; only its bcrypt hash is stored.
+	IssueMTANodeEnrollToken(context.Context, *IssueMTANodeEnrollTokenRequest) (*IssueMTANodeEnrollTokenReply, error)
 	// Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
 	ListMonitoringAccounts(context.Context, *ListMonitoringAccountsRequest) (*ListMonitoringAccountsReply, error)
 	CreateMonitoringAccount(context.Context, *CreateMonitoringAccountRequest) (*MonitoringAccount, error)
@@ -2497,6 +2514,9 @@ func (UnimplementedIrisAdminServiceServer) UpdateMTANode(context.Context, *Updat
 }
 func (UnimplementedIrisAdminServiceServer) DeleteMTANode(context.Context, *DeleteMTANodeRequest) (*DeleteMTANodeReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteMTANode not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) IssueMTANodeEnrollToken(context.Context, *IssueMTANodeEnrollTokenRequest) (*IssueMTANodeEnrollTokenReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method IssueMTANodeEnrollToken not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) ListMonitoringAccounts(context.Context, *ListMonitoringAccountsRequest) (*ListMonitoringAccountsReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListMonitoringAccounts not implemented")
@@ -4916,6 +4936,24 @@ func _IrisAdminService_DeleteMTANode_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_IssueMTANodeEnrollToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IssueMTANodeEnrollTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).IssueMTANodeEnrollToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_IssueMTANodeEnrollToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).IssueMTANodeEnrollToken(ctx, req.(*IssueMTANodeEnrollTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_ListMonitoringAccounts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListMonitoringAccountsRequest)
 	if err := dec(in); err != nil {
@@ -5680,6 +5718,10 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteMTANode",
 			Handler:    _IrisAdminService_DeleteMTANode_Handler,
+		},
+		{
+			MethodName: "IssueMTANodeEnrollToken",
+			Handler:    _IrisAdminService_IssueMTANodeEnrollToken_Handler,
 		},
 		{
 			MethodName: "ListMonitoringAccounts",

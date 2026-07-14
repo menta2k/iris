@@ -13,7 +13,7 @@ import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
 import { clusterService } from '@/services'
 import { ApiError } from '@/services/http'
-import type { MTANode, MTANodeStatus } from '@/types'
+import type { EnrollTokenReply, MTANode, MTANodeStatus } from '@/types'
 
 const { items, loading, error, notImplemented, load } = useAsyncList<MTANode>({
   loader: () => clusterService.listNodes(),
@@ -172,6 +172,45 @@ async function setStatus(n: MTANode, status: MTANodeStatus) {
   }
 }
 
+// ---- Agent enrollment token (shown once) ----
+const enrollDialogOpen = ref(false)
+const enrollNode = ref<MTANode | null>(null)
+const enrollToken = ref<EnrollTokenReply | null>(null)
+const enrollLoading = ref(false)
+
+const enrollCommand = computed(() => {
+  if (!enrollNode.value || !enrollToken.value) return ''
+  const host = enrollNode.value.agentUrl
+    ? new URL(enrollNode.value.agentUrl).hostname
+    : '<agent host>'
+  return `iris cluster enroll -iris-url ${window.location.origin} -name ${enrollNode.value.name} -sans ${host} -token ${enrollToken.value.token}`
+})
+
+async function issueEnrollToken(n: MTANode) {
+  enrollNode.value = n
+  enrollToken.value = null
+  enrollDialogOpen.value = true
+  enrollLoading.value = true
+  try {
+    enrollToken.value = await clusterService.issueEnrollToken(n.id)
+  } catch (err) {
+    const msg = err instanceof ApiError ? err.message : 'Failed to issue enrollment token.'
+    toast({ title: 'Enrollment token failed', description: msg, variant: 'destructive' })
+    enrollDialogOpen.value = false
+  } finally {
+    enrollLoading.value = false
+  }
+}
+
+async function copyEnrollCommand() {
+  try {
+    await navigator.clipboard.writeText(enrollCommand.value)
+    toast({ title: 'Copied', description: 'Enrollment command copied to clipboard.', variant: 'success' })
+  } catch {
+    toast({ title: 'Copy failed', description: 'Select and copy the command manually.', variant: 'destructive' })
+  }
+}
+
 const deletingId = ref<string | null>(null)
 async function remove(n: MTANode) {
   deletingId.value = n.id
@@ -278,6 +317,15 @@ async function remove(n: MTANode) {
                     >
                       Disable
                     </Button>
+                    <Button
+                      v-if="n.agentUrl"
+                      variant="outline"
+                      size="sm"
+                      :data-testid="`enroll-${n.id}`"
+                      @click="issueEnrollToken(n)"
+                    >
+                      Enroll
+                    </Button>
                     <Button variant="outline" size="sm" :data-testid="`edit-${n.id}`" @click="openEdit(n)">Edit</Button>
                     <Button
                       variant="outline"
@@ -354,6 +402,39 @@ async function remove(n: MTANode) {
           </Button>
         </DialogFooter>
       </form>
+    </Dialog>
+
+    <!-- Enrollment token dialog (token shown once) -->
+    <Dialog v-model:open="enrollDialogOpen">
+      <DialogHeader>
+        <DialogTitle>Enroll agent — {{ enrollNode?.name }}</DialogTitle>
+      </DialogHeader>
+      <div class="d-flex flex-column ga-4">
+        <p class="text-body-2 text-medium-emphasis">
+          Run this on the node to obtain its mTLS certificate. The token is
+          <strong>single-use</strong>, expires in one hour, and is shown only once.
+        </p>
+        <div v-if="enrollLoading" class="text-body-2">Issuing token…</div>
+        <template v-else-if="enrollToken">
+          <div class="d-flex flex-column ga-1">
+            <Label>Command</Label>
+            <code
+              class="font-mono text-caption pa-3 rounded bg-surface-light"
+              style="word-break: break-all"
+              data-testid="enroll-command"
+            >{{ enrollCommand }}</code>
+            <p class="text-caption text-medium-emphasis">
+              Adjust -sans to every DNS name/IP the agent URL uses, and add
+              -iris-ca to verify this server's certificate. Expires
+              {{ new Date(enrollToken.expiresAt).toLocaleTimeString(undefined, { hour12: false }) }}.
+            </p>
+          </div>
+        </template>
+        <DialogFooter>
+          <Button type="button" variant="outline" @click="enrollDialogOpen = false">Close</Button>
+          <Button type="button" :disabled="!enrollToken" @click="copyEnrollCommand">Copy command</Button>
+        </DialogFooter>
+      </div>
     </Dialog>
   </div>
 </template>

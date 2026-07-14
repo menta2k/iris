@@ -591,6 +591,33 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/DeleteMTANodeReply'
+    /v1/cluster/nodes/{id}:enroll-token:
+        post:
+            tags:
+                - IrisAdminService
+            description: |-
+                Issue a single-use agent-enrollment bootstrap token for the node. The
+                 plaintext is returned exactly once; only its bcrypt hash is stored.
+            operationId: IrisAdminService_IssueMTANodeEnrollToken
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/IssueMTANodeEnrollTokenRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/IssueMTANodeEnrollTokenReply'
     /v1/dashboard/mailclass-stats:
         get:
             tags:
@@ -4190,6 +4217,19 @@ components:
             description: |-
                 InjectionCredential is one API login for the injection listener. The password
                  is write-only: it is never returned.
+        IssueMTANodeEnrollTokenReply:
+            type: object
+            properties:
+                token:
+                    type: string
+                    description: Shown once; redeem with `iris cluster enroll` on the node within the TTL.
+                expires_at:
+                    type: string
+        IssueMTANodeEnrollTokenRequest:
+            type: object
+            properties:
+                id:
+                    type: string
         KumoConfig:
             type: object
             properties:

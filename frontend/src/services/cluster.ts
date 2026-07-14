@@ -1,5 +1,5 @@
 import { http } from './http'
-import type { MTANode, CreateMTANodeRequest, UpdateMTANodeRequest } from '@/types'
+import type { MTANode, CreateMTANodeRequest, UpdateMTANodeRequest, EnrollTokenReply } from '@/types'
 
 interface ListReply {
   items?: MTANode[]
@@ -20,5 +20,8 @@ export const clusterService = {
   },
   removeNode(id: string) {
     return http.delete<{ ok: boolean }>(`/cluster/nodes/${encodeURIComponent(id)}`)
+  },
+  issueEnrollToken(id: string) {
+    return http.post<EnrollTokenReply>(`/cluster/nodes/${encodeURIComponent(id)}:enroll-token`, { id })
   },
 }

@@ -146,6 +146,64 @@ func IssueCert(caDir, outDir, name string, opts IssueOptions) (fingerprint strin
 	return hex.EncodeToString(sum[:]), nil
 }
 
+// Signer adapts a CA directory to the biz.CSRSigner interface.
+type Signer struct {
+	Dir string
+}
+
+// SignCSR implements biz.CSRSigner against the CA in Dir.
+func (s Signer) SignCSR(csrPEM []byte) (certPEM, fingerprint, caPEM string, err error) {
+	return SignCSR(s.Dir, csrPEM)
+}
+
+// SignCSR signs a PEM-encoded certificate signing request with the CA in dir
+// and returns the certificate PEM, its SHA-256 fingerprint (hex), and the CA
+// certificate PEM (for the client's trust store). The issued certificate
+// carries client+server EKU and ONLY the SANs present in the CSR — the caller
+// (enrollment use case) is responsible for authenticating the requester.
+func SignCSR(dir string, csrPEM []byte) (certPEM, fingerprint, caPEM string, err error) {
+	block, _ := pem.Decode(csrPEM)
+	if block == nil || block.Type != "CERTIFICATE REQUEST" {
+		return "", "", "", fmt.Errorf("payload is not a PEM certificate request")
+	}
+	csr, err := x509.ParseCertificateRequest(block.Bytes)
+	if err != nil {
+		return "", "", "", fmt.Errorf("parse CSR: %w", err)
+	}
+	if err := csr.CheckSignature(); err != nil {
+		return "", "", "", fmt.Errorf("CSR signature invalid: %w", err)
+	}
+	caCert, caKey, err := loadCA(dir)
+	if err != nil {
+		return "", "", "", err
+	}
+	serial, err := randomSerial()
+	if err != nil {
+		return "", "", "", err
+	}
+	tpl := &x509.Certificate{
+		SerialNumber: serial,
+		Subject:      csr.Subject,
+		NotBefore:    time.Now().Add(-5 * time.Minute),
+		NotAfter:     time.Now().Add(leafValidity),
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		DNSNames:     csr.DNSNames,
+		IPAddresses:  csr.IPAddresses,
+	}
+	der, err := x509.CreateCertificate(rand.Reader, tpl, caCert, csr.PublicKey, caKey)
+	if err != nil {
+		return "", "", "", fmt.Errorf("sign certificate: %w", err)
+	}
+	sum := sha256.Sum256(der)
+	caRaw, err := os.ReadFile(filepath.Join(dir, CACertFile))
+	if err != nil {
+		return "", "", "", fmt.Errorf("read CA certificate: %w", err)
+	}
+	return string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})),
+		hex.EncodeToString(sum[:]), string(caRaw), nil
+}
+
 // Fingerprint returns the SHA-256 fingerprint (hex) of a PEM certificate file.
 func Fingerprint(certPath string) (string, error) {
 	raw, err := os.ReadFile(certPath)

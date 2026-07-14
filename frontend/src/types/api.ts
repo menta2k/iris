@@ -1640,3 +1640,9 @@ export interface CreateMTANodeRequest {
 export interface UpdateMTANodeRequest extends CreateMTANodeRequest {
   id: string
 }
+
+export interface EnrollTokenReply {
+  /** Shown once; redeem on the node with `iris cluster enroll` within the TTL. */
+  token: string
+  expiresAt: string
+}

@@ -78,6 +78,7 @@ const OperationIrisAdminServiceGetSystemMetrics = "/iris.admin.v1.IrisAdminServi
 const OperationIrisAdminServiceGetSystemMonitor = "/iris.admin.v1.IrisAdminService/GetSystemMonitor"
 const OperationIrisAdminServiceGetWarmupDeliveryStats = "/iris.admin.v1.IrisAdminService/GetWarmupDeliveryStats"
 const OperationIrisAdminServiceGetWidgetData = "/iris.admin.v1.IrisAdminService/GetWidgetData"
+const OperationIrisAdminServiceIssueMTANodeEnrollToken = "/iris.admin.v1.IrisAdminService/IssueMTANodeEnrollToken"
 const OperationIrisAdminServiceKumoConfigStatus = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
 const OperationIrisAdminServiceListAcmeCertificates = "/iris.admin.v1.IrisAdminService/ListAcmeCertificates"
 const OperationIrisAdminServiceListAcmeDnsProviders = "/iris.admin.v1.IrisAdminService/ListAcmeDnsProviders"
@@ -262,6 +263,9 @@ type IrisAdminServiceHTTPServer interface {
 	// GetWidgetData GetWidgetData executes one widget's metric query (catalog or raw PromQL,
 	// guarded) and returns time-series in the shared MetricsTimeseries shape.
 	GetWidgetData(context.Context, *GetWidgetDataRequest) (*MetricsTimeseries, error)
+	// IssueMTANodeEnrollToken Issue a single-use agent-enrollment bootstrap token for the node. The
+	// plaintext is returned exactly once; only its bcrypt hash is stored.
+	IssueMTANodeEnrollToken(context.Context, *IssueMTANodeEnrollTokenRequest) (*IssueMTANodeEnrollTokenReply, error)
 	// KumoConfigStatus KumoConfigStatus reports whether the current configuration has drifted from
 	// the last applied policy (a regenerate/apply is pending).
 	KumoConfigStatus(context.Context, *KumoConfigStatusRequest) (*KumoConfigStatusReply, error)
@@ -536,6 +540,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.POST("/v1/cluster/nodes", _IrisAdminService_CreateMTANode0_HTTP_Handler(srv))
 	r.PUT("/v1/cluster/nodes/{id}", _IrisAdminService_UpdateMTANode0_HTTP_Handler(srv))
 	r.DELETE("/v1/cluster/nodes/{id}", _IrisAdminService_DeleteMTANode0_HTTP_Handler(srv))
+	r.POST("/v1/cluster/nodes/{id}:enroll-token", _IrisAdminService_IssueMTANodeEnrollToken0_HTTP_Handler(srv))
 	r.GET("/v1/monitoring/accounts", _IrisAdminService_ListMonitoringAccounts0_HTTP_Handler(srv))
 	r.POST("/v1/monitoring/accounts", _IrisAdminService_CreateMonitoringAccount0_HTTP_Handler(srv))
 	r.PUT("/v1/monitoring/accounts/{id}", _IrisAdminService_UpdateMonitoringAccount0_HTTP_Handler(srv))
@@ -3361,6 +3366,31 @@ func _IrisAdminService_DeleteMTANode0_HTTP_Handler(srv IrisAdminServiceHTTPServe
 	}
 }
 
+func _IrisAdminService_IssueMTANodeEnrollToken0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in IssueMTANodeEnrollTokenRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceIssueMTANodeEnrollToken)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.IssueMTANodeEnrollToken(ctx, req.(*IssueMTANodeEnrollTokenRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*IssueMTANodeEnrollTokenReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_ListMonitoringAccounts0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in ListMonitoringAccountsRequest
@@ -3748,6 +3778,9 @@ type IrisAdminServiceHTTPClient interface {
 	// GetWidgetData GetWidgetData executes one widget's metric query (catalog or raw PromQL,
 	// guarded) and returns time-series in the shared MetricsTimeseries shape.
 	GetWidgetData(ctx context.Context, req *GetWidgetDataRequest, opts ...http.CallOption) (rsp *MetricsTimeseries, err error)
+	// IssueMTANodeEnrollToken Issue a single-use agent-enrollment bootstrap token for the node. The
+	// plaintext is returned exactly once; only its bcrypt hash is stored.
+	IssueMTANodeEnrollToken(ctx context.Context, req *IssueMTANodeEnrollTokenRequest, opts ...http.CallOption) (rsp *IssueMTANodeEnrollTokenReply, err error)
 	// KumoConfigStatus KumoConfigStatus reports whether the current configuration has drifted from
 	// the last applied policy (a regenerate/apply is pending).
 	KumoConfigStatus(ctx context.Context, req *KumoConfigStatusRequest, opts ...http.CallOption) (rsp *KumoConfigStatusReply, err error)
@@ -4696,6 +4729,21 @@ func (c *IrisAdminServiceHTTPClientImpl) GetWidgetData(ctx context.Context, in *
 	opts = append(opts, http.Operation(OperationIrisAdminServiceGetWidgetData))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// IssueMTANodeEnrollToken Issue a single-use agent-enrollment bootstrap token for the node. The
+// plaintext is returned exactly once; only its bcrypt hash is stored.
+func (c *IrisAdminServiceHTTPClientImpl) IssueMTANodeEnrollToken(ctx context.Context, in *IssueMTANodeEnrollTokenRequest, opts ...http.CallOption) (*IssueMTANodeEnrollTokenReply, error) {
+	var out IssueMTANodeEnrollTokenReply
+	pattern := "/v1/cluster/nodes/{id}:enroll-token"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceIssueMTANodeEnrollToken))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

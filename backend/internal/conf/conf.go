@@ -144,6 +144,9 @@ type Cluster struct {
 	// ClientCert/ClientKey authenticate iris to the agents.
 	ClientCert string `yaml:"client_cert"`
 	ClientKey  string `yaml:"client_key"`
+	// CADir holds the cluster CA (ca.crt/ca.key, from `iris cluster init-ca`).
+	// Setting it enables online agent enrollment (token -> CSR -> signed cert).
+	CADir string `yaml:"ca_dir"`
 }
 
 // Enabled reports whether cluster mTLS is fully configured.

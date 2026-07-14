@@ -22,6 +22,7 @@ import (
 	adminv1 "github.com/menta2k/iris/backend/api/iris/admin/v1"
 	"github.com/menta2k/iris/backend/internal/acme"
 	"github.com/menta2k/iris/backend/internal/biz"
+	"github.com/menta2k/iris/backend/internal/clusterca"
 	"github.com/menta2k/iris/backend/internal/conf"
 	"github.com/menta2k/iris/backend/internal/data"
 	"github.com/menta2k/iris/backend/internal/errlog"
@@ -226,6 +227,13 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// KumoMTA cluster node registry (see docs/kumomta-cluster-architecture.md).
 	mtaNodeRepo := data.NewMTANodeRepo(db)
 	mtaNodeUC := biz.NewMTANodeUsecase(mtaNodeRepo, auditor)
+	// Online agent enrollment: enabled when the cluster CA directory is
+	// configured (iris cluster init-ca).
+	var csrSigner biz.CSRSigner
+	if cfg.Cluster.CADir != "" {
+		csrSigner = clusterca.Signer{Dir: cfg.Cluster.CADir}
+	}
+	clusterEnrollUC := biz.NewClusterEnrollUsecase(mtaNodeRepo, csrSigner, auditor)
 	// Cluster-aware config distribution: with cluster mTLS configured, config
 	// applies fan out to every registered node through its iris-agent. Without
 	// it, remote nodes are refused and the adapter behaves single-node.
@@ -431,6 +439,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		Monitoring:      monitoringUC,
 		UserDashboards:  biz.NewUserDashboardUsecase(data.NewUserDashboardRepo(db)),
 		MTANodes:        mtaNodeUC,
+		ClusterEnroll:   clusterEnrollUC,
 	}
 
 	svc := service.NewService(deps)
@@ -506,7 +515,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 
 	// sseSrv (built above, before the log-stream worker) is mounted same-origin
 	// on the admin server at /sse.
-	httpSrv := server.NewHTTPServer(adminServerConf, svc, adminv1.OpenAPISpec, checks, adminTLS, sseSrv, authMW)
+	httpSrv := server.NewHTTPServer(adminServerConf, svc, adminv1.OpenAPISpec, checks, adminTLS, sseSrv, server.NewEnrollHandler(clusterEnrollUC), authMW)
 	grpcSrv := server.NewGRPCServer(cfg.Server, svc, authMW)
 
 	servers := []transport.Server{httpSrv, grpcSrv}

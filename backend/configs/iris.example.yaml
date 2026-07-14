@@ -63,6 +63,11 @@ cluster:
   ca_cert: ""       # e.g. /etc/iris/cluster/ca.crt
   client_cert: ""   # e.g. /etc/iris/cluster/iris-control-plane.crt
   client_key: ""    # e.g. /etc/iris/cluster/iris-control-plane.key
+  # ca_dir enables ONLINE agent enrollment: point it at the CA created by
+  # `iris cluster init-ca` (holds ca.crt + ca.key). Operators then issue
+  # single-use tokens from the Cluster page and nodes run
+  # `iris cluster enroll` — no manual cert copying.
+  ca_dir: ""        # e.g. /etc/iris/cluster-ca
 
 # iris-agent daemon (run with `iris agent` ON EACH KumoMTA node; not on the
 # central iris host). Uses the kumomta: section above for kumod control (config
