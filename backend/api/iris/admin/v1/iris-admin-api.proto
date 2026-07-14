@@ -586,6 +586,9 @@ message Listener {
   repeated string relay_hosts = 11;
   string status = 12;
   string role = 13; // "inbound" (MX) | "submission"
+  // Cluster node this listener binds on; empty = every node. node_name read-only.
+  string node_id = 14;
+  string node_name = 15;
 }
 message ListListenersRequest { PageRequest page = 1; }
 message ListListenersReply {
@@ -604,6 +607,7 @@ message CreateListenerRequest {
   int64 max_message_size = 9;
   repeated string relay_hosts = 10;
   string role = 11; // "inbound" (default) | "submission"
+  string node_id = 12; // cluster node to bind on (empty = every node)
 }
 message UpdateListenerRequest {
   string id = 1;
@@ -619,6 +623,7 @@ message UpdateListenerRequest {
   repeated string relay_hosts = 11;
   string status = 12;
   string role = 13; // "inbound" | "submission"
+  string node_id = 14; // cluster node to bind on (empty = every node)
 }
 
 // VMTA is a self-contained outbound sending identity that OWNS its egress

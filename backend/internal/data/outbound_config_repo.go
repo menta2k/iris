@@ -146,13 +146,15 @@ func (r *OutboundConfigRepo) VMTAExists(ctx context.Context, id string) (bool, e
 
 // --- Listeners --------------------------------------------------------------
 
-const listenerSelect = `id, name, host(ip_address), port, hostname, tls_enabled,
-	tls_cert_path, tls_key_path, require_auth, max_message_size, relay_hosts, status, role`
+const listenerSelect = `l.id, l.name, host(l.ip_address), l.port, l.hostname, l.tls_enabled,
+	l.tls_cert_path, l.tls_key_path, l.require_auth, l.max_message_size, l.relay_hosts, l.status, l.role,
+	coalesce(l.node_id::text, ''), coalesce(m.name, '')`
 
 func scanListener(row interface{ Scan(...any) error }) (*biz.Listener, error) {
 	l := &biz.Listener{}
 	if err := row.Scan(&l.ID, &l.Name, &l.IPAddress, &l.Port, &l.Hostname, &l.TLSEnabled,
-		&l.TLSCertPath, &l.TLSKeyPath, &l.RequireAuth, &l.MaxMessageSize, &l.RelayHosts, &l.Status, &l.Role); err != nil {
+		&l.TLSCertPath, &l.TLSKeyPath, &l.RequireAuth, &l.MaxMessageSize, &l.RelayHosts, &l.Status, &l.Role,
+		&l.NodeID, &l.NodeName); err != nil {
 		return nil, err
 	}
 	return l, nil
@@ -161,12 +163,16 @@ func scanListener(row interface{ Scan(...any) error }) (*biz.Listener, error) {
 // CreateListener inserts a listener.
 func (r *OutboundConfigRepo) CreateListener(ctx context.Context, l *biz.Listener) (*biz.Listener, error) {
 	out, err := scanListener(r.db.Pool.QueryRow(ctx, `
-		INSERT INTO listeners (name, ip_address, port, hostname, tls_enabled,
-			tls_cert_path, tls_key_path, require_auth, max_message_size, relay_hosts, status, role)
-		VALUES ($1, $2::inet, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-		RETURNING `+listenerSelect,
+		WITH ins AS (
+			INSERT INTO listeners (name, ip_address, port, hostname, tls_enabled,
+				tls_cert_path, tls_key_path, require_auth, max_message_size, relay_hosts, status, role, node_id)
+			VALUES ($1, $2::inet, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+			RETURNING id, name, ip_address, port, hostname, tls_enabled, tls_cert_path, tls_key_path,
+				require_auth, max_message_size, relay_hosts, status, role, node_id
+		)
+		SELECT `+listenerSelect+` FROM ins l LEFT JOIN mta_nodes m ON m.id = l.node_id`,
 		l.Name, l.IPAddress, l.Port, l.Hostname, l.TLSEnabled, l.TLSCertPath, l.TLSKeyPath,
-		l.RequireAuth, l.MaxMessageSize, nonNilStrings(l.RelayHosts), l.Status, l.Role))
+		l.RequireAuth, l.MaxMessageSize, nonNilStrings(l.RelayHosts), l.Status, l.Role, nullableUUID(l.NodeID)))
 	if err != nil {
 		return nil, mapConstraint(err, "listener")
 	}
@@ -176,13 +182,17 @@ func (r *OutboundConfigRepo) CreateListener(ctx context.Context, l *biz.Listener
 // UpdateListener updates a listener by id.
 func (r *OutboundConfigRepo) UpdateListener(ctx context.Context, id string, l *biz.Listener) (*biz.Listener, error) {
 	out, err := scanListener(r.db.Pool.QueryRow(ctx, `
-		UPDATE listeners SET name = $2, ip_address = $3::inet, port = $4, hostname = $5,
-			tls_enabled = $6, tls_cert_path = $7, tls_key_path = $8, require_auth = $9,
-			max_message_size = $10, relay_hosts = $11, status = $12, role = $13, updated_at = now()
-		WHERE id = $1
-		RETURNING `+listenerSelect,
+		WITH upd AS (
+			UPDATE listeners SET name = $2, ip_address = $3::inet, port = $4, hostname = $5,
+				tls_enabled = $6, tls_cert_path = $7, tls_key_path = $8, require_auth = $9,
+				max_message_size = $10, relay_hosts = $11, status = $12, role = $13, node_id = $14, updated_at = now()
+			WHERE id = $1
+			RETURNING id, name, ip_address, port, hostname, tls_enabled, tls_cert_path, tls_key_path,
+				require_auth, max_message_size, relay_hosts, status, role, node_id
+		)
+		SELECT `+listenerSelect+` FROM upd l LEFT JOIN mta_nodes m ON m.id = l.node_id`,
 		id, l.Name, l.IPAddress, l.Port, l.Hostname, l.TLSEnabled, l.TLSCertPath, l.TLSKeyPath,
-		l.RequireAuth, l.MaxMessageSize, nonNilStrings(l.RelayHosts), l.Status, l.Role))
+		l.RequireAuth, l.MaxMessageSize, nonNilStrings(l.RelayHosts), l.Status, l.Role, nullableUUID(l.NodeID)))
 	if err != nil {
 		return nil, mapConstraint(err, "listener")
 	}
@@ -201,7 +211,7 @@ func nonNilStrings(s []string) []string {
 // ListListeners returns listeners with bounded pagination.
 func (r *OutboundConfigRepo) ListListeners(ctx context.Context, page biz.Page) ([]*biz.Listener, error) {
 	rows, err := r.db.Pool.Query(ctx, `SELECT `+listenerSelect+`
-		FROM listeners ORDER BY name LIMIT $1 OFFSET $2`, page.Size, page.Offset)
+		FROM listeners l LEFT JOIN mta_nodes m ON m.id = l.node_id ORDER BY l.name LIMIT $1 OFFSET $2`, page.Size, page.Offset)
 	if err != nil {
 		return nil, fmt.Errorf("query listeners: %w", err)
 	}

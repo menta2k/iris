@@ -75,6 +75,13 @@ type Listener struct {
 	// "inbound" (MX) forbids relay hosts; "submission" requires at least one.
 	// Defaults to "inbound".
 	Role string
+
+	// NodeID optionally pins the listener to one cluster node, so it binds only
+	// on that node (rendered under an `if NODE_NAME == '<node>'` guard). Empty =
+	// bind on every node (the shared/single-node behavior). NodeName is the
+	// resolved display name, read-only.
+	NodeID   string
+	NodeName string
 }
 
 // ListenAddr returns the "ip:port" bind string for the listener.
@@ -88,6 +95,7 @@ func (l *Listener) Validate() error {
 	l.IPAddress = strings.TrimSpace(l.IPAddress)
 	l.Hostname = strings.TrimSpace(l.Hostname)
 	l.TLSCertPath = strings.TrimSpace(l.TLSCertPath)
+	l.NodeID = strings.TrimSpace(l.NodeID)
 	l.TLSKeyPath = strings.TrimSpace(l.TLSKeyPath)
 	l.Role = strings.TrimSpace(l.Role)
 	if l.Role == "" {

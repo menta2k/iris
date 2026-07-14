@@ -137,8 +137,11 @@ type Listener struct {
 	RelayHosts     []string               `protobuf:"bytes,11,rep,name=relay_hosts,json=relayHosts,proto3" json:"relay_hosts,omitempty"`
 	Status         string                 `protobuf:"bytes,12,opt,name=status,proto3" json:"status,omitempty"`
 	Role           string                 `protobuf:"bytes,13,opt,name=role,proto3" json:"role,omitempty"` // "inbound" (MX) | "submission"
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Cluster node this listener binds on; empty = every node. node_name read-only.
+	NodeId        string `protobuf:"bytes,14,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	NodeName      string `protobuf:"bytes,15,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Listener) Reset() {
@@ -262,6 +265,20 @@ func (x *Listener) GetRole() string {
 	return ""
 }
 
+func (x *Listener) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *Listener) GetNodeName() string {
+	if x != nil {
+		return x.NodeName
+	}
+	return ""
+}
+
 type ListListenersRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Page          *PageRequest           `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
@@ -370,7 +387,8 @@ type CreateListenerRequest struct {
 	RequireAuth    bool                   `protobuf:"varint,8,opt,name=require_auth,json=requireAuth,proto3" json:"require_auth,omitempty"`
 	MaxMessageSize int64                  `protobuf:"varint,9,opt,name=max_message_size,json=maxMessageSize,proto3" json:"max_message_size,omitempty"`
 	RelayHosts     []string               `protobuf:"bytes,10,rep,name=relay_hosts,json=relayHosts,proto3" json:"relay_hosts,omitempty"`
-	Role           string                 `protobuf:"bytes,11,opt,name=role,proto3" json:"role,omitempty"` // "inbound" (default) | "submission"
+	Role           string                 `protobuf:"bytes,11,opt,name=role,proto3" json:"role,omitempty"`                   // "inbound" (default) | "submission"
+	NodeId         string                 `protobuf:"bytes,12,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"` // cluster node to bind on (empty = every node)
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -482,6 +500,13 @@ func (x *CreateListenerRequest) GetRole() string {
 	return ""
 }
 
+func (x *CreateListenerRequest) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
 type UpdateListenerRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -496,7 +521,8 @@ type UpdateListenerRequest struct {
 	MaxMessageSize int64                  `protobuf:"varint,10,opt,name=max_message_size,json=maxMessageSize,proto3" json:"max_message_size,omitempty"`
 	RelayHosts     []string               `protobuf:"bytes,11,rep,name=relay_hosts,json=relayHosts,proto3" json:"relay_hosts,omitempty"`
 	Status         string                 `protobuf:"bytes,12,opt,name=status,proto3" json:"status,omitempty"`
-	Role           string                 `protobuf:"bytes,13,opt,name=role,proto3" json:"role,omitempty"` // "inbound" | "submission"
+	Role           string                 `protobuf:"bytes,13,opt,name=role,proto3" json:"role,omitempty"`                   // "inbound" | "submission"
+	NodeId         string                 `protobuf:"bytes,14,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"` // cluster node to bind on (empty = every node)
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -618,6 +644,13 @@ func (x *UpdateListenerRequest) GetStatus() string {
 func (x *UpdateListenerRequest) GetRole() string {
 	if x != nil {
 		return x.Role
+	}
+	return ""
+}
+
+func (x *UpdateListenerRequest) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
 	}
 	return ""
 }
@@ -20202,7 +20235,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\"3\n" +
 	"\tPageReply\x12&\n" +
-	"\x0fnext_page_token\x18\x01 \x01(\tR\rnextPageToken\"\xfe\x02\n" +
+	"\x0fnext_page_token\x18\x01 \x01(\tR\rnextPageToken\"\xb4\x03\n" +
 	"\bListener\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
@@ -20221,12 +20254,14 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\vrelay_hosts\x18\v \x03(\tR\n" +
 	"relayHosts\x12\x16\n" +
 	"\x06status\x18\f \x01(\tR\x06status\x12\x12\n" +
-	"\x04role\x18\r \x01(\tR\x04role\"F\n" +
+	"\x04role\x18\r \x01(\tR\x04role\x12\x17\n" +
+	"\anode_id\x18\x0e \x01(\tR\x06nodeId\x12\x1b\n" +
+	"\tnode_name\x18\x0f \x01(\tR\bnodeName\"F\n" +
 	"\x14ListListenersRequest\x12.\n" +
 	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\"q\n" +
 	"\x12ListListenersReply\x12-\n" +
 	"\x05items\x18\x01 \x03(\v2\x17.iris.admin.v1.ListenerR\x05items\x12,\n" +
-	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\xe3\x02\n" +
+	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\xfc\x02\n" +
 	"\x15CreateListenerRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
@@ -20243,7 +20278,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\vrelay_hosts\x18\n" +
 	" \x03(\tR\n" +
 	"relayHosts\x12\x12\n" +
-	"\x04role\x18\v \x01(\tR\x04role\"\x8b\x03\n" +
+	"\x04role\x18\v \x01(\tR\x04role\x12\x17\n" +
+	"\anode_id\x18\f \x01(\tR\x06nodeId\"\xa4\x03\n" +
 	"\x15UpdateListenerRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
@@ -20262,7 +20298,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\vrelay_hosts\x18\v \x03(\tR\n" +
 	"relayHosts\x12\x16\n" +
 	"\x06status\x18\f \x01(\tR\x06status\x12\x12\n" +
-	"\x04role\x18\r \x01(\tR\x04role\"\xd4\x02\n" +
+	"\x04role\x18\r \x01(\tR\x04role\x12\x17\n" +
+	"\anode_id\x18\x0e \x01(\tR\x06nodeId\"\xd4\x02\n" +
 	"\x04VMTA\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +

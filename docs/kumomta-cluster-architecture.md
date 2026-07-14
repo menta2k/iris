@@ -440,12 +440,16 @@ safe to downgrade the iris binary.
 
 ### Prerequisite / known gap for this migration
 
-- **Listener binds are node-local and not yet node-aware.** The renderer emits
-  the shared snapshot's listener on one IP. That is fine when submission stays
-  centralized (node1 receives; other nodes are egress-only — the recommended
-  v1 topology). If you need **every** node to accept submission, node-local
-  listener binds (bind `0.0.0.0`, or per-node via the identity prelude) are a
-  prerequisite that is not implemented yet — see open question 4.
+- **Node-aware listener binds are supported** (migration 0068): pin a listener
+  to a node so every node accepts submission on its own address from one
+  identical policy. See open question 4.
+- **Every node that OWNS VMTAs must run a kumo-proxy** for those VMTAs to be
+  reachable from other nodes. A VMTA on a proxy-less node can only egress on
+  its own node; if another node routes to it, that node cannot bind the source
+  IP and the message defers. In a multi-submission cluster where any node may
+  receive mail for any VMTA, give **every** egress-owning node a kumo-proxy.
+  (Verified: with node1 proxy-less, a `promo` message submitted on node2 and
+  routed to node1's VMTA deferred until node1 got its own proxy.)
 
 ## 10. Operator decisions & open questions
 
@@ -459,5 +463,9 @@ safe to downgrade the iris binary.
 2. Redis HA flavor: Sentinel self-hosted vs managed?
 3. Expected cluster size (2–5 vs dozens) — decides whether one TSA daemon is
    enough (it is for small N).
-4. Should the iris GA-compat injection listener also run per-node (edge
-   submission) or stay only on the iris host? (Plan assumes central for v1.)
+4. **DONE: node-aware listener binds implemented.** A listener may be pinned to
+   a node (`listeners.node_id`, migration 0068) and renders inside an
+   `if NODE_NAME == '<node>'` guard, so every node can accept submission on its
+   own address from ONE byte-identical policy; an unpinned listener binds on
+   every node. Proven end-to-end (both kumods bind only their own port from the
+   same policy md5).

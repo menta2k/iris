@@ -1,0 +1,129 @@
+# Iris backend example configuration. Copy to configs/iris.yaml and adjust.
+# Secrets should be supplied via environment variables (see conf.go applyEnv):
+#   IRIS_DATABASE_DSN, IRIS_REDIS_ADDR, IRIS_REDIS_PASSWORD,
+#   IRIS_SESSION_SECRET, IRIS_HTTP_ADDR, IRIS_GRPC_ADDR, IRIS_LOG_LEVEL,
+#   IRIS_AUTH_DEV_BYPASS
+
+server:
+  http:
+    addr: ":8080"
+    timeout: 30s
+  grpc:
+    addr: ":9090"
+    timeout: 30s
+
+data:
+  database:
+    dsn: "postgres://iris:iris@localhost:5432/iris?sslmode=disable"
+    max_conns: 10
+    min_conns: 2
+    conn_max_lifetime: 1h
+    migrate_on_start: true
+  redis:
+    addr: "localhost:6379"
+    password: ""
+    db: 0
+    dial_timeout: 5s
+    read_timeout: 3s
+    write_timeout: 3s
+    consumer_name: "iris-1"
+
+auth:
+  session_ttl: 12h
+  session_token_secret: "local-test-secret-do-not-use-in-prod"
+  mfa_required: false
+  # dev_bypass injects a full-permission identity for local development only.
+  dev_bypass: false
+
+kumomta:
+  base_url: "http://localhost:8000"
+  timeout: 10s
+  # stub: true uses an in-memory adapter (no real KumoMTA). Set to false to
+  # write the generated policy to config_path and reload the real service.
+  stub: true
+  # Where the generated KumoMTA policy (Lua) is written on apply.
+  config_path: "/opt/kumomta/etc/policy/iris_generated.lua"
+  # How to reload KumoMTA after writing the policy. Use ONE of:
+  #   reload_command: a shell command, e.g. "kcli reload" or "systemctl reload kumomta"
+  #   reload_url: KumoMTA admin endpoint to POST, e.g.
+  #     "http://localhost:8000/api/admin/bump-config-epoch/v1"
+  # If neither is set, the file is written and KumoMTA is expected to pick it up
+  # on its own config epoch.
+  reload_command: ""
+  reload_url: ""
+  # Redis URL embedded in the generated policy's log_hook — the address KumoMTA
+  # reaches Redis at (may differ from the backend's own redis addr). Empty
+  # derives "redis://<data.redis.addr>". Enables mail logging when set.
+  log_stream_redis_url: ""
+
+# KumoMTA cluster control plane (iris side). Set all three to let iris manage
+# remote nodes through their iris-agents over mutual TLS. Create the material
+# with:  iris cluster init-ca   and   iris cluster issue-cert -name iris-control-plane
+cluster:
+  ca_cert: ""       # e.g. /etc/iris/cluster/ca.crt
+  client_cert: ""   # e.g. /etc/iris/cluster/iris-control-plane.crt
+  client_key: ""    # e.g. /etc/iris/cluster/iris-control-plane.key
+  # ca_dir enables ONLINE agent enrollment: point it at the CA created by
+  # `iris cluster init-ca` (holds ca.crt + ca.key). Operators then issue
+  # single-use tokens from the Cluster page and nodes run
+  # `iris cluster enroll` — no manual cert copying.
+  ca_dir: ""        # e.g. /etc/iris/cluster-ca
+
+# iris-agent daemon (run with `iris agent` ON EACH KumoMTA node; not on the
+# central iris host). Uses the kumomta: section above for kumod control (config
+# path, reload/restart, base_url) and this section for its own mTLS listener.
+# The listener must only be reachable on the private cluster network.
+agent:
+  listen: ":8447"
+  ca_cert: ""       # cluster CA certificate (verifies iris's client cert)
+  cert: ""          # this node's server certificate (issue-cert -server -sans <node ip/dns>)
+  key: ""           # this node's private key
+  # state_path: ""  # default: <config_path dir>/iris-agent-state.json
+
+rspamd:
+  base_url: "http://localhost:11334"
+  timeout: 10s
+  stub: true
+  # Inbound spam filtering emitted into the generated KumoMTA policy:
+  #   "" / "off" — disabled
+  #   "tag"      — scan + X-Spam headers, never reject (monitor mode)
+  #   "enforce"  — honor rspamd's reject (550) / greylist (451) verdict
+  # Scoped to inbound mail for hosted domains (derived from DKIM domains);
+  # fail-open if rspamd is unreachable.
+  mode: ""
+
+# GreenArrow-compatible mail-injection API. Runs on its OWN HTTP listener
+# (separate port from the admin API above) so it can be firewalled independently
+# and never exposes the admin surface. Callers authenticate with the body
+# username/password (not the admin JWT). Messages are forwarded to KumoMTA's
+# /api/inject/v1. Point an existing GreenArrow client's API URL at
+# http://<host><addr><path> — the request/response contract is unchanged.
+injection:
+  enabled: false
+  addr: ":8025"          # MUST differ from server.http / server.grpc
+  path: "/api/inject"
+  timeout: 30s
+  # Supply credentials via env in production:
+  #   IRIS_INJECTION_ENABLED, IRIS_INJECTION_USERNAME, IRIS_INJECTION_PASSWORD
+  username: ""
+  password: ""
+  # Serve the injection listener over HTTPS. When tls is true you MUST provide a
+  # certificate one of two ways (else startup fails — it never falls back to
+  # plaintext): an iris/ACME-managed cert by domain, OR an explicit key pair.
+  # Toggle via IRIS_INJECTION_TLS.
+  tls: false
+  # tls_cert_domain: "inject.example.com"   # reuse an iris/ACME-issued cert
+  # tls_cert_file: "/etc/iris/inject.crt"   # or an explicit key pair
+  # tls_key_file:  "/etc/iris/inject.key"
+
+# Mail provider (inbox-placement) monitoring. Env-only:
+#   IRIS_MONITORING_KEY   passphrase for AES-GCM encryption of mailbox passwords
+#                         (required to store IMAP/POP3 credentials; unset = probes
+#                         without stored creds only).
+#   IRIS_MONITORING_RECONCILE_INTERVAL (30s), IRIS_MONITORING_SCHEDULE_INTERVAL (1m),
+#   IRIS_MONITORING_FETCH_INTERVAL (1m) set the background worker scan cadence.
+# The probe sender and pipeline tuning (reconcile lookback, fetch timeout,
+# fetch give-up) are UI-managed in Global Settings -> Inbox Monitoring.
+
+log:
+  level: "info"

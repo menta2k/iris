@@ -1265,13 +1265,17 @@ func writeInit(b *strings.Builder, snap ConfigSnapshot) {
 	b.WriteString("kumo.on('init', function()\n")
 
 	// One start_esmtp_listener per active listener. If none are configured,
-	// fall back to a default so the policy still binds and receives.
+	// fall back to a default so the policy still binds and receives. A listener
+	// pinned to a node is guarded by NODE_NAME so only that node starts it —
+	// which lets every node accept submission on its own address from ONE
+	// identical policy.
+	nodeNameByID := nodeNamesByID(snap.Nodes)
 	active := 0
 	for _, l := range sortedListeners(snap.Listeners) {
 		if l.Status != ListenerStatusActive {
 			continue
 		}
-		writeEsmtpListener(b, l)
+		writeGuardedEsmtpListener(b, l, nodeNameByID)
 		active++
 	}
 	if active == 0 {
@@ -1370,6 +1374,40 @@ func clusterThrottleNodes(nodes []*MTANode) int {
 // on-box processes (local injection / submission) can always relay, independent
 // of the operator-configured list.
 const loopbackRelayHost = "127.0.0.1/32"
+
+// nodeNamesByID indexes non-disabled cluster nodes by id → name, for resolving
+// a listener's node guard.
+func nodeNamesByID(nodes []*MTANode) map[string]string {
+	if len(nodes) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(nodes))
+	for _, n := range nodes {
+		out[n.ID] = n.Name
+	}
+	return out
+}
+
+// writeGuardedEsmtpListener emits a listener block, wrapping it in an
+// `if NODE_NAME == '<node>' then ... end` guard when the listener is pinned to
+// a node. A listener whose NodeID resolves to no known node is skipped (its
+// owning node is gone). An unpinned listener (NodeID empty) binds on every node.
+func writeGuardedEsmtpListener(b *strings.Builder, l *Listener, nodeNames map[string]string) {
+	if l.NodeID == "" {
+		writeEsmtpListener(b, l)
+		return
+	}
+	name := l.NodeName
+	if name == "" {
+		name = nodeNames[l.NodeID]
+	}
+	if name == "" {
+		return // pinned to an unknown/removed node: do not bind anywhere
+	}
+	fmt.Fprintf(b, "  if NODE_NAME == %s then\n", MustLuaString(name))
+	writeEsmtpListener(b, l)
+	b.WriteString("  end\n")
+}
 
 // writeEsmtpListener emits one kumo.start_esmtp_listener block for a listener.
 func writeEsmtpListener(b *strings.Builder, l *Listener) {

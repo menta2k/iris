@@ -158,3 +158,51 @@ func TestRenderNodeIdentity(t *testing.T) {
 		t.Errorf("NodePreludeContent = %q", got)
 	}
 }
+
+// TestRenderNodeAwareListeners verifies node-pinned listeners render inside a
+// NODE_NAME guard (so only that node binds them) while an unpinned listener
+// binds on every node — all from one byte-identical policy.
+func TestRenderNodeAwareListeners(t *testing.T) {
+	snap := ConfigSnapshot{
+		Nodes: []*MTANode{
+			{ID: "n1", Name: "node1", Status: MTANodeStatusActive},
+			{ID: "n2", Name: "node2", Status: MTANodeStatusActive, ProxyHost: "10.0.0.2", ProxyPort: 1080},
+		},
+		Listeners: []*Listener{
+			{ID: "l1", Name: "sub-node1", IPAddress: "10.0.0.1", Port: 2587, Hostname: "mx1.example.com",
+				RelayHosts: []string{"10.0.0.0/8"}, Role: ListenerRoleSubmission, Status: ListenerStatusActive,
+				NodeID: "n1", NodeName: "node1"},
+			{ID: "l2", Name: "sub-node2", IPAddress: "10.0.0.2", Port: 2587, Hostname: "mx2.example.com",
+				RelayHosts: []string{"10.0.0.0/8"}, Role: ListenerRoleSubmission, Status: ListenerStatusActive,
+				NodeID: "n2", NodeName: "node2"},
+			{ID: "l3", Name: "mx-all", IPAddress: "10.0.0.9", Port: 2525, Hostname: "mx.example.com",
+				Role: ListenerRoleInbound, Status: ListenerStatusActive}, // unpinned: every node
+		},
+		VMTAs: []*VMTA{{ID: "v1", Name: "vmta-a", IPAddress: "203.0.113.10", EHLOName: "a.example.com", Status: VMTAStatusActive}},
+		DKIM:  []*DKIMDomain{{ID: "d1", Domain: "example.com", Selector: "s1", PrivateKeyRef: testDKIMKeyPEM, Status: DKIMReady}},
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	if !r.Valid {
+		t.Fatalf("policy failed lint: %v", r.LintIssues)
+	}
+	// node1's listener is guarded to node1, node2's to node2.
+	if !strings.Contains(r.Content, `if NODE_NAME == "node1" then`) ||
+		!strings.Contains(r.Content, `if NODE_NAME == "node2" then`) {
+		t.Errorf("expected per-node NODE_NAME listener guards:\n%s", r.Content)
+	}
+	if !strings.Contains(r.Content, `listen = "10.0.0.1:2587"`) || !strings.Contains(r.Content, `listen = "10.0.0.2:2587"`) {
+		t.Errorf("expected both node submission binds rendered")
+	}
+	// The unpinned inbound listener is NOT wrapped in a guard.
+	idx := strings.Index(r.Content, `listen = "10.0.0.9:2525"`)
+	if idx < 0 {
+		t.Fatalf("unpinned listener not rendered")
+	}
+	// Sanity: guard count equals the two pinned listeners.
+	if got := strings.Count(r.Content, "if NODE_NAME == "); got != 2 {
+		t.Errorf("expected exactly 2 node-guarded listeners, got %d", got)
+	}
+}

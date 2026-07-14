@@ -225,6 +225,7 @@ func (s *Service) UpdateListener(ctx context.Context, req *adminv1.UpdateListene
 		TLSCertPath: req.GetTlsCertPath(), TLSKeyPath: req.GetTlsKeyPath(),
 		RequireAuth: req.GetRequireAuth(), MaxMessageSize: req.GetMaxMessageSize(),
 		RelayHosts: req.GetRelayHosts(), Status: req.GetStatus(), Role: req.GetRole(),
+		NodeID: req.GetNodeId(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "UpdateListener", err)
@@ -239,6 +240,7 @@ func listenerFromCreate(req *adminv1.CreateListenerRequest) *biz.Listener {
 		TLSCertPath: req.GetTlsCertPath(), TLSKeyPath: req.GetTlsKeyPath(),
 		RequireAuth: req.GetRequireAuth(), MaxMessageSize: req.GetMaxMessageSize(),
 		RelayHosts: req.GetRelayHosts(), Role: req.GetRole(),
+		NodeID: req.GetNodeId(),
 	}
 }
 
@@ -247,7 +249,7 @@ func listenerToProto(l *biz.Listener) *adminv1.Listener {
 		Id: l.ID, Name: l.Name, IpAddress: l.IPAddress, Port: int32(l.Port), Hostname: l.Hostname,
 		TlsEnabled: l.TLSEnabled, TlsCertPath: l.TLSCertPath, TlsKeyPath: l.TLSKeyPath,
 		RequireAuth: l.RequireAuth, MaxMessageSize: l.MaxMessageSize, RelayHosts: l.RelayHosts,
-		Status: l.Status, Role: l.Role,
+		Status: l.Status, Role: l.Role, NodeId: l.NodeID, NodeName: l.NodeName,
 	}
 }
 
