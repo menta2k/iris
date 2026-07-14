@@ -95,6 +95,29 @@ func (t *agentTransport) status(ctx context.Context) biz.KumoStatus {
 	return biz.KumoStatus{State: h.Kumo}
 }
 
+// adminAvailable: the agent always proxies its localhost kumod listener.
+func (t *agentTransport) adminAvailable() bool { return true }
+
+// kumodURL maps a kumod path onto the agent's authenticated reverse proxy.
+func (t *agentTransport) kumodURL(path string) string {
+	return t.baseURL + strings.TrimRight(agentapi.PathKumodPrefix, "/") + path
+}
+
+// adminGET fetches a kumod admin/metrics path through the agent proxy.
+func (t *agentTransport) adminGET(ctx context.Context, path string) ([]byte, error) {
+	return kumodGET(ctx, t.client, t.kumodURL(path), path)
+}
+
+// adminJSON sends a JSON admin request through the agent proxy.
+func (t *agentTransport) adminJSON(ctx context.Context, method, path string, payload any) error {
+	return kumodJSON(ctx, t.client, method, t.kumodURL(path), path, payload)
+}
+
+// inject posts a built message to the node's kumod injection API via the agent.
+func (t *agentTransport) inject(ctx context.Context, body []byte) error {
+	return kumodInject(ctx, t.client, t.kumodURL("/api/inject/v1"), body)
+}
+
 // health fetches the agent heartbeat (version, applied checksum, kumod state).
 func (t *agentTransport) health(ctx context.Context) (*agentapi.Health, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.baseURL+agentapi.PathHealth, nil)

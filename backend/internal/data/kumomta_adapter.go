@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/menta2k/iris/backend/internal/biz"
@@ -40,6 +41,8 @@ type FileKumoMTA struct {
 	// agent disables it because it writes the prelude from the bundle's
 	// NodeName instead.
 	manageNodePrelude bool
+	// injectRR distributes HTTP injections across active nodes round-robin.
+	injectRR atomic.Uint32
 }
 
 // NewFileKumoMTA constructs a file/exec/HTTP-based KumoMTA adapter.

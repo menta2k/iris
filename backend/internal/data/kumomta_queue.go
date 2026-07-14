@@ -15,9 +15,11 @@ import (
 	"github.com/menta2k/iris/backend/internal/biz"
 )
 
-// kumod admin queue control. The KumoMTA HTTP listener (k.cfg.BaseURL) exposes
-// Prometheus metrics for live queue depths and /api/admin/{suspend,bounce}/v1 for
-// control. Callers must be a trusted host on that listener (iris is co-located).
+// kumod admin queue control. Each node's kumod HTTP listener exposes
+// Prometheus metrics for live queue depths and /api/admin/{suspend,bounce}/v1
+// for control. Local nodes are reached directly (trusted, co-located); remote
+// nodes through their agent's mTLS /v1/kumod reverse proxy. Queues exist
+// independently on every node, so summaries aggregate and actions fan out.
 
 // scheduledByDomainRe matches a `scheduled_by_domain{...domain="X"...} N`
 // Prometheus line (kumod's per-destination scheduled depth), capturing the label
@@ -27,36 +29,74 @@ var scheduledByDomainRe = regexp.MustCompile(`^scheduled_by_domain\{([^}]*)\}\s+
 
 var domainLabelRe = regexp.MustCompile(`domain="([^"]*)"`)
 
-// QueueSummary returns live per-domain scheduled-queue depths from kumod's
-// metrics, annotated with any active suspensions. Empty (not an error) when no
-// admin base URL is configured.
-func (k *FileKumoMTA) QueueSummary(ctx context.Context) ([]*biz.QueueState, error) {
-	if strings.TrimSpace(k.cfg.BaseURL) == "" {
-		return nil, nil
-	}
-	body, err := k.adminGET(ctx, "/metrics")
+// adminTargets returns the nodes whose kumod admin channel is reachable.
+func (k *FileKumoMTA) adminTargets(ctx context.Context) ([]applyTarget, error) {
+	targets, err := k.applyTargets(ctx)
 	if err != nil {
 		return nil, err
 	}
-	byDomain := map[string]int64{}
-	for _, line := range strings.Split(string(body), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" || line[0] == '#' {
-			continue
+	out := targets[:0:0]
+	for _, t := range targets {
+		if t.transport.adminAvailable() {
+			out = append(out, t)
 		}
-		m := scheduledByDomainRe.FindStringSubmatch(line)
-		if m == nil {
-			continue
-		}
-		dm := domainLabelRe.FindStringSubmatch(m[1])
-		if dm == nil {
-			continue
-		}
-		v, _ := strconv.ParseFloat(m[2], 64)
-		byDomain[strings.ToLower(dm[1])] += int64(v)
+	}
+	return out, nil
+}
+
+// QueueSummary returns live per-domain scheduled-queue depths aggregated
+// across every participating node, annotated with active suspensions (a domain
+// counts as suspended when it is suspended on ANY node). Empty (not an error)
+// when no admin channel is configured. Unreachable nodes are skipped
+// best-effort; the error is returned only when every node fails.
+func (k *FileKumoMTA) QueueSummary(ctx context.Context) ([]*biz.QueueState, error) {
+	targets, err := k.adminTargets(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(targets) == 0 {
+		return nil, nil
 	}
 
-	suspended := k.suspensionsByDomain(ctx)
+	byDomain := map[string]int64{}
+	suspended := map[string]kumoSuspension{}
+	var scraped int
+	var firstErr error
+	for _, t := range targets {
+		body, err := t.transport.adminGET(ctx, "/metrics")
+		if err != nil {
+			if firstErr == nil {
+				firstErr = fmt.Errorf("node %s: %w", t.name, err)
+			}
+			biz.LoggerFrom(ctx).Warn("queue summary: node scrape failed", "node", t.name, "error", err.Error())
+			continue
+		}
+		scraped++
+		for _, line := range strings.Split(string(body), "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" || line[0] == '#' {
+				continue
+			}
+			m := scheduledByDomainRe.FindStringSubmatch(line)
+			if m == nil {
+				continue
+			}
+			dm := domainLabelRe.FindStringSubmatch(m[1])
+			if dm == nil {
+				continue
+			}
+			v, _ := strconv.ParseFloat(m[2], 64)
+			byDomain[strings.ToLower(dm[1])] += int64(v)
+		}
+		for d, s := range suspensionsByDomain(ctx, t.transport) {
+			if _, ok := suspended[d]; !ok {
+				suspended[d] = s
+			}
+		}
+	}
+	if scraped == 0 {
+		return nil, firstErr
+	}
 
 	out := make([]*biz.QueueState, 0, len(byDomain))
 	for d, depth := range byDomain {
@@ -90,11 +130,12 @@ type kumoSuspension struct {
 	Reason string
 }
 
-// suspensionsByDomain fetches active scheduled-queue suspensions, keyed by
-// domain. Best-effort: a failure yields an empty map so depths still render.
-func (k *FileKumoMTA) suspensionsByDomain(ctx context.Context) map[string]kumoSuspension {
+// suspensionsByDomain fetches one node's active scheduled-queue suspensions,
+// keyed by domain. Best-effort: a failure yields an empty map so depths still
+// render.
+func suspensionsByDomain(ctx context.Context, t nodeTransport) map[string]kumoSuspension {
 	out := map[string]kumoSuspension{}
-	body, err := k.adminGET(ctx, "/api/admin/suspend/v1")
+	body, err := t.adminGET(ctx, "/api/admin/suspend/v1")
 	if err != nil {
 		return out
 	}
@@ -115,57 +156,103 @@ func (k *FileKumoMTA) suspensionsByDomain(ctx context.Context) map[string]kumoSu
 	return out
 }
 
-// SuspendQueue suspends the scheduled queue for a destination domain.
+// fanOutQueueAction runs a per-node action on every admin-reachable node and
+// composes a summary. Partial failure is an error naming the failed nodes so
+// the operator knows some nodes still hold the previous state.
+func (k *FileKumoMTA) fanOutQueueAction(ctx context.Context, verb string, action func(t applyTarget) error) (string, error) {
+	targets, err := k.adminTargets(ctx)
+	if err != nil {
+		return "", err
+	}
+	if len(targets) == 0 {
+		return "", biz.Unavailable("KUMO_ADMIN_UNCONFIGURED", "no kumod admin endpoint configured")
+	}
+	var okNodes, failed []string
+	var firstErr error
+	for _, t := range targets {
+		if err := action(t); err != nil {
+			failed = append(failed, t.name)
+			if firstErr == nil {
+				firstErr = fmt.Errorf("node %s: %w", t.name, err)
+			}
+			continue
+		}
+		okNodes = append(okNodes, t.name)
+	}
+	if len(failed) > 0 {
+		if len(okNodes) == 0 {
+			return "", firstErr
+		}
+		return "", fmt.Errorf("%s succeeded on %s but FAILED on %s: %w",
+			verb, strings.Join(okNodes, ", "), strings.Join(failed, ", "), firstErr)
+	}
+	if len(targets) == 1 {
+		return verb, nil
+	}
+	return fmt.Sprintf("%s on %s", verb, strings.Join(okNodes, ", ")), nil
+}
+
+// SuspendQueue suspends the scheduled queue for a destination domain on every
+// participating node.
 func (k *FileKumoMTA) SuspendQueue(ctx context.Context, domain, reason string) (string, error) {
 	if reason == "" {
 		reason = "suspended via iris"
 	}
-	if err := k.adminJSON(ctx, http.MethodPost, "/api/admin/suspend/v1", map[string]any{
-		"domain": domain, "reason": reason,
-	}); err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("suspended queue for %s", domain), nil
+	return k.fanOutQueueAction(ctx, fmt.Sprintf("suspended queue for %s", domain), func(t applyTarget) error {
+		return t.transport.adminJSON(ctx, http.MethodPost, "/api/admin/suspend/v1", map[string]any{
+			"domain": domain, "reason": reason,
+		})
+	})
 }
 
-// ResumeQueue clears the suspension(s) for a destination domain.
+// ResumeQueue clears the suspension(s) for a destination domain on every node
+// that holds one (suspension ids are per node).
 func (k *FileKumoMTA) ResumeQueue(ctx context.Context, domain string) (string, error) {
 	domain = strings.ToLower(strings.TrimSpace(domain))
 	found := false
-	for d, s := range k.suspensionsByDomain(ctx) {
-		if d != domain || s.ID == "" {
-			continue
+	summary, err := k.fanOutQueueAction(ctx, fmt.Sprintf("resumed queue for %s", domain), func(t applyTarget) error {
+		for d, s := range suspensionsByDomain(ctx, t.transport) {
+			if d != domain || s.ID == "" {
+				continue
+			}
+			found = true
+			if err := t.transport.adminJSON(ctx, http.MethodDelete, "/api/admin/suspend/v1/"+s.ID, nil); err != nil {
+				return err
+			}
 		}
-		found = true
-		if err := k.adminJSON(ctx, http.MethodDelete, "/api/admin/suspend/v1/"+s.ID, nil); err != nil {
-			return "", err
-		}
+		return nil
+	})
+	if err != nil {
+		return "", err
 	}
 	if !found {
 		return "", biz.NotFound("QUEUE_NOT_SUSPENDED", "no active suspension for %s", domain)
 	}
-	return fmt.Sprintf("resumed queue for %s", domain), nil
+	return summary, nil
 }
 
-// BounceQueue administratively bounces (purges) queued messages for a domain.
+// BounceQueue administratively bounces (purges) queued messages for a domain
+// on every participating node.
 func (k *FileKumoMTA) BounceQueue(ctx context.Context, domain, reason string) (string, error) {
 	if reason == "" {
 		reason = "bounced via iris"
 	}
-	if err := k.adminJSON(ctx, http.MethodPost, "/api/admin/bounce/v1", map[string]any{
-		"domain": domain, "reason": reason,
-	}); err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("bounced queued messages for %s", domain), nil
+	return k.fanOutQueueAction(ctx, fmt.Sprintf("bounced queued messages for %s", domain), func(t applyTarget) error {
+		return t.transport.adminJSON(ctx, http.MethodPost, "/api/admin/bounce/v1", map[string]any{
+			"domain": domain, "reason": reason,
+		})
+	})
 }
 
-func (k *FileKumoMTA) adminGET(ctx context.Context, path string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, k.adminURL(path), nil)
+// ---- shared kumod HTTP helpers (used by both transports) -------------------
+
+// kumodGET fetches a kumod admin/metrics URL. path is used in error messages.
+func kumodGET(ctx context.Context, client *http.Client, url, path string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, biz.Internal(err, "build kumod request")
 	}
-	resp, err := k.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, biz.Unavailable("KUMO_ADMIN_UNREACHABLE", "kumod admin endpoint unreachable: %v", err)
 	}
@@ -177,7 +264,8 @@ func (k *FileKumoMTA) adminGET(ctx context.Context, path string) ([]byte, error)
 	return body, nil
 }
 
-func (k *FileKumoMTA) adminJSON(ctx context.Context, method, path string, payload any) error {
+// kumodJSON sends a JSON admin request to a kumod URL.
+func kumodJSON(ctx context.Context, client *http.Client, method, url, path string, payload any) error {
 	var body io.Reader
 	if payload != nil {
 		b, err := json.Marshal(payload)
@@ -186,14 +274,14 @@ func (k *FileKumoMTA) adminJSON(ctx context.Context, method, path string, payloa
 		}
 		body = bytes.NewReader(b)
 	}
-	req, err := http.NewRequestWithContext(ctx, method, k.adminURL(path), body)
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return biz.Internal(err, "build kumod request")
 	}
 	if payload != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	resp, err := k.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return biz.Unavailable("KUMO_ADMIN_UNREACHABLE", "kumod admin endpoint unreachable: %v", err)
 	}
@@ -205,8 +293,24 @@ func (k *FileKumoMTA) adminJSON(ctx context.Context, method, path string, payloa
 	return nil
 }
 
-func (k *FileKumoMTA) adminURL(path string) string {
-	return strings.TrimRight(k.cfg.BaseURL, "/") + path
+// kumodInject posts a built message to a kumod /api/inject/v1 URL.
+func kumodInject(ctx context.Context, client *http.Client, url string, body []byte) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return biz.Internal(err, "build kumo inject request")
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return biz.Unavailable("KUMO_INJECT_UNREACHABLE", "kumod injection endpoint unreachable: %v", err)
+	}
+	defer resp.Body.Close()
+	payload, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return biz.Unavailable("KUMO_INJECT_FAILED", "kumod /api/inject/v1 returned %d: %s",
+			resp.StatusCode, strings.TrimSpace(string(payload)))
+	}
+	return nil
 }
 
 func stringField(m map[string]any, key string) string {

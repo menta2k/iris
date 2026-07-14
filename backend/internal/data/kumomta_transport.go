@@ -26,6 +26,15 @@ type nodeTransport interface {
 	reload(ctx context.Context) error
 	// status reports kumod liveness on the node.
 	status(ctx context.Context) biz.KumoStatus
+
+	// Admin channel to the node's kumod HTTP listener (metrics scrape, queue
+	// suspend/bounce, HTTP injection). Local nodes talk to it directly; remote
+	// nodes go through the agent's authenticated /v1/kumod reverse proxy.
+	// adminAvailable reports whether the channel is configured at all.
+	adminAvailable() bool
+	adminGET(ctx context.Context, path string) ([]byte, error)
+	adminJSON(ctx context.Context, method, path string, payload any) error
+	inject(ctx context.Context, body []byte) error
 }
 
 // localTransport manages the co-located KumoMTA through the filesystem and the
@@ -159,6 +168,30 @@ func (t *localTransport) reload(ctx context.Context) error {
 	// No reload mechanism configured: the config was written and KumoMTA is
 	// expected to pick it up on its own config epoch. Treat as success.
 	return nil
+}
+
+// adminAvailable reports whether a kumod admin base URL is configured.
+func (t *localTransport) adminAvailable() bool {
+	return strings.TrimSpace(t.cfg.BaseURL) != ""
+}
+
+func (t *localTransport) adminURL(path string) string {
+	return strings.TrimRight(t.cfg.BaseURL, "/") + path
+}
+
+// adminGET fetches a kumod admin/metrics path directly on the local listener.
+func (t *localTransport) adminGET(ctx context.Context, path string) ([]byte, error) {
+	return kumodGET(ctx, t.client, t.adminURL(path), path)
+}
+
+// adminJSON sends a JSON admin request directly to the local kumod listener.
+func (t *localTransport) adminJSON(ctx context.Context, method, path string, payload any) error {
+	return kumodJSON(ctx, t.client, method, t.adminURL(path), path, payload)
+}
+
+// inject posts a built message to the local kumod HTTP injection API.
+func (t *localTransport) inject(ctx context.Context, body []byte) error {
+	return kumodInject(ctx, t.client, t.adminURL("/api/inject/v1"), body)
 }
 
 // status reports kumod liveness via the admin base URL, or unknown when none is
