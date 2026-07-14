@@ -114,6 +114,13 @@ injection:
   #   IRIS_INJECTION_ENABLED, IRIS_INJECTION_USERNAME, IRIS_INJECTION_PASSWORD
   username: ""
   password: ""
+  # Header(s) the injected message's `mailclass` field is stamped into, so
+  # HTTP-injected mail is classified by the SAME routing rules as SMTP mail.
+  # Comma-separated. Empty = "X-Mail-Class". For GreenArrow rule parity set it
+  # to the header(s) your rules match, e.g.:
+  # mailclass_header: "X-GreenArrow-MailClass,X-GreenArrow"
+  # Env: IRIS_INJECTION_MAILCLASS_HEADER
+  mailclass_header: ""
   # Serve the injection listener over HTTPS. When tls is true you MUST provide a
   # certificate one of two ways (else startup fails — it never falls back to
   # plaintext): an iris/ACME-managed cert by domain, OR an explicit key pair.

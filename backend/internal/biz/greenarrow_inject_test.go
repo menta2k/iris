@@ -278,3 +278,33 @@ func TestInjectMailclassRestriction(t *testing.T) {
 		t.Error("forbidden mailclass must not inject")
 	}
 }
+
+// TestInjectMailClassMultipleHeaders verifies a configured comma-separated
+// header list stamps the mailclass into EVERY header, so HTTP-injected mail
+// classifies against routing rules that key on any of them (the production
+// X-Mail-Class vs X-GreenArrow mismatch fix).
+func TestInjectMailClassMultipleHeaders(t *testing.T) {
+	inj := &captureInjector{}
+	uc := NewGreenArrowInjectUsecase(inj, "u", "p", "X-GreenArrow-MailClass, X-GreenArrow")
+	err := uc.Inject(context.Background(), &GAInjectRequest{
+		Username: "u", Password: "p",
+		Message: GAMessage{
+			Mailclass: "kmx-test",
+			FromEmail: "no-reply@cars.bg",
+			To:        []GARecipient{{Email: "vesco@jobs.bg"}},
+			HTML:      "<p>hi</p>",
+			Subject:   "test",
+		},
+	})
+	if err != nil {
+		t.Fatalf("inject: %v", err)
+	}
+	h := inj.last.Content.Headers
+	if h["X-GreenArrow-MailClass"] != "kmx-test" || h["X-GreenArrow"] != "kmx-test" {
+		t.Fatalf("both GreenArrow headers must carry the mailclass, got %+v", h)
+	}
+	// The old default header is NOT stamped when a custom list is configured.
+	if _, ok := h[DefaultMailClassHeader]; ok {
+		t.Errorf("X-Mail-Class should not be set when a custom header list is configured: %+v", h)
+	}
+}

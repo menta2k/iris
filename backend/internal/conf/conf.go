@@ -44,6 +44,12 @@ type Injection struct {
 	// compatibility). Required when Enabled; supply via env in production.
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
+	// MailClassHeader is a comma-separated list of the header(s) the injected
+	// message's `mailclass` field is stamped into, so HTTP-injected mail is
+	// classified by the same routing rules as SMTP mail. Empty defaults to
+	// "X-Mail-Class"; set to your rules' convention, e.g.
+	// "X-GreenArrow-MailClass,X-GreenArrow".
+	MailClassHeader string `yaml:"mailclass_header"`
 	// TLS serves the injection listener over HTTPS. Provide the certificate
 	// EITHER as an iris/ACME-managed cert by domain (TLSCertDomain) OR as an
 	// explicit key pair (TLSCertFile + TLSKeyFile). When TLS is true but no
@@ -309,6 +315,9 @@ func (c *Config) applyEnv() {
 	}
 	if v := os.Getenv("IRIS_REDIS_PASSWORD"); v != "" {
 		c.Data.Redis.Password = v
+	}
+	if v := os.Getenv("IRIS_INJECTION_MAILCLASS_HEADER"); v != "" {
+		c.Injection.MailClassHeader = v
 	}
 	if v := os.Getenv("IRIS_HTTP_ADDR"); v != "" {
 		c.Server.HTTP.Addr = v

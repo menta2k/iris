@@ -101,27 +101,54 @@ type InjectionCredentialVerifier interface {
 // KumoMTA. It performs no RBAC/JWT check — the caller is authenticated purely by
 // the body credentials, on a dedicated listener isolated from the admin API.
 type GreenArrowInjectUsecase struct {
-	injector        KumoInjector
-	creds           InjectionCredentialVerifier // DB-managed keys; nil disables them
-	username        string
-	password        string
-	mailClassHeader string
+	injector         KumoInjector
+	creds            InjectionCredentialVerifier // DB-managed keys; nil disables them
+	username         string
+	password         string
+	mailClassHeaders []string
 }
 
 // NewGreenArrowInjectUsecase constructs the use case with the configured static
-// API credential (the fallback). mailClassHeader is the header kumod classifies
-// mailclass from (DefaultMailClassHeader when empty). Attach DB-managed
-// credentials with WithCredentialStore.
+// API credential (the fallback). mailClassHeader is a comma-separated list of
+// the header(s) the injected message's `mailclass` field is stamped into, so
+// kumod's routing rules can classify HTTP-injected mail the same way they
+// classify SMTP-submitted mail. Empty defaults to DefaultMailClassHeader
+// ("X-Mail-Class"); set it to your rules' convention, e.g.
+// "X-GreenArrow-MailClass,X-GreenArrow", so the JSON `mailclass` reaches the
+// same headers your GreenArrow SMTP senders add. Attach DB-managed credentials
+// with WithCredentialStore.
 func NewGreenArrowInjectUsecase(injector KumoInjector, username, password, mailClassHeader string) *GreenArrowInjectUsecase {
-	if mailClassHeader == "" {
-		mailClassHeader = DefaultMailClassHeader
+	headers := parseHeaderList(mailClassHeader)
+	if len(headers) == 0 {
+		headers = []string{DefaultMailClassHeader}
 	}
 	return &GreenArrowInjectUsecase{
-		injector:        injector,
-		username:        username,
-		password:        password,
-		mailClassHeader: mailClassHeader,
+		injector:         injector,
+		username:         username,
+		password:         password,
+		mailClassHeaders: headers,
 	}
+}
+
+// matchesAny reports whether name case-insensitively equals any of headers.
+func matchesAny(name string, headers []string) bool {
+	for _, h := range headers {
+		if strings.EqualFold(name, h) {
+			return true
+		}
+	}
+	return false
+}
+
+// parseHeaderList splits a comma-separated header list, trimming blanks.
+func parseHeaderList(s string) []string {
+	var out []string
+	for _, h := range strings.Split(s, ",") {
+		if h = strings.TrimSpace(h); h != "" {
+			out = append(out, h)
+		}
+	}
+	return out
 }
 
 // WithCredentialStore attaches the DB-managed credential store. These are
@@ -219,17 +246,22 @@ func (uc *GreenArrowInjectUsecase) build(m GAMessage) (KumoInjectRequest, error)
 	}
 
 	headers := map[string]string{}
-	// mailclass drives kumod's routing/shaping via the classification header.
-	if mc := strings.TrimSpace(m.Mailclass); mc != "" {
-		headers[uc.mailClassHeader] = mc
+	// mailclass drives kumod's routing/shaping via the classification header(s).
+	// Stamp it into every configured header so HTTP-injected mail classifies
+	// against the same routing rules as SMTP-submitted mail.
+	mc := strings.TrimSpace(m.Mailclass)
+	if mc != "" {
+		for _, h := range uc.mailClassHeaders {
+			headers[h] = mc
+		}
 	}
 	// Flatten GreenArrow's [{name:value}] header list. Later entries win on a
-	// duplicate name; the mailclass header is not overridden by a custom header
-	// of the same name (operator intent stays authoritative).
+	// duplicate name; the mailclass header(s) are not overridden by a custom
+	// header of the same name (operator intent stays authoritative).
 	for _, h := range m.Headers {
 		for name, value := range h {
 			name = strings.TrimSpace(name)
-			if name == "" || strings.EqualFold(name, uc.mailClassHeader) {
+			if name == "" || (mc != "" && matchesAny(name, uc.mailClassHeaders)) {
 				continue
 			}
 			headers[name] = value

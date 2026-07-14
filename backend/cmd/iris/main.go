@@ -556,7 +556,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 			injTLS = tc
 			log.Info("injection HTTPS enabled", "addr", injCfg.Addr)
 		}
-		injectUC := biz.NewGreenArrowInjectUsecase(injector, injCfg.Username, injCfg.Password, "").
+		injectUC := biz.NewGreenArrowInjectUsecase(injector, injCfg.Username, injCfg.Password, injCfg.MailClassHeader).
 			WithCredentialStore(injectionCredRepo)
 		if injSrv := server.NewInjectionServer(injCfg, injectUC, injTLS, log); injSrv != nil {
 			servers = append(servers, injSrv)
