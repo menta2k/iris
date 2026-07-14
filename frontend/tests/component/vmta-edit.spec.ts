@@ -132,6 +132,7 @@ describe('VmtasPage edit dialog', () => {
       tls_mode: '',
       status: 'disabled',
       notes: 'updated notes',
+      node_id: '',
     })
 
     wrapper.unmount()

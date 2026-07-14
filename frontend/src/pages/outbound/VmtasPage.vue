@@ -18,9 +18,9 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
-import { outboundConfigService } from '@/services'
+import { clusterService, outboundConfigService } from '@/services'
 import { ApiError } from '@/services/http'
-import type { Listener, VMTA } from '@/types'
+import type { Listener, MTANode, VMTA } from '@/types'
 
 const { items, loading, error, notImplemented, load } = useAsyncList<VMTA>({
   loader: () => outboundConfigService.listVmtas(),
@@ -33,6 +33,25 @@ const vmtaStatusItems = VMTA_STATUSES.map((s) => ({ title: s, value: s }))
 // Listeners a VMTA can attach to, loaded when the dialog opens so the Listener
 // field is a dropdown (and IP/EHLO can be previewed in the form).
 const availableListeners = ref<Listener[]>([])
+
+// Cluster nodes for the optional node-ownership selector ('' = local node).
+const availableNodes = ref<MTANode[]>([])
+const nodeItems = computed(() => [
+  { title: '\u2014 Local node \u2014', value: '' },
+  ...availableNodes.value.map((n) => ({
+    title: n.proxyHost ? `${n.name} (proxy ${n.proxyHost}:${n.proxyPort})` : n.name,
+    value: n.id,
+  })),
+])
+
+async function loadNodes() {
+  try {
+    const res = await clusterService.listNodes()
+    availableNodes.value = (res.items ?? []).filter((n) => n.status !== 'disabled')
+  } catch {
+    availableNodes.value = []
+  }
+}
 
 const dialogOpen = ref(false)
 const saving = ref(false)
@@ -47,6 +66,7 @@ const form = ref({
   tls_mode: '',
   status: 'active',
   notes: '',
+  node_id: '',
 })
 
 // Per-VMTA outbound TLS override. '' = follow the per-domain TLS Policy / default.
@@ -110,9 +130,10 @@ async function openCreate() {
     tls_mode: '',
     status: 'active',
     notes: '',
+    node_id: '',
   }
   dialogOpen.value = true
-  await loadListeners()
+  await Promise.all([loadListeners(), loadNodes()])
 }
 
 async function openEdit(v: VMTA) {
@@ -127,9 +148,10 @@ async function openEdit(v: VMTA) {
     tls_mode: v.tlsMode ?? '',
     status: (v.status || 'active').toLowerCase(),
     notes: v.notes ?? '',
+    node_id: v.nodeId ?? '',
   }
   dialogOpen.value = true
-  await loadListeners()
+  await Promise.all([loadListeners(), loadNodes()])
 }
 
 async function submit() {
@@ -146,6 +168,7 @@ async function submit() {
         status: form.value.status,
         notes: form.value.notes,
         tls_mode: form.value.tls_mode,
+        node_id: form.value.node_id,
       })
       toast({ title: 'VMTA updated', description: form.value.name, variant: 'success' })
     } else {
@@ -156,6 +179,7 @@ async function submit() {
         listener_id: form.value.listener_id,
         max_connections: Number(form.value.max_connections),
         tls_mode: form.value.tls_mode,
+        node_id: form.value.node_id,
       })
       toast({ title: 'VMTA created', description: form.value.name, variant: 'success' })
     }
@@ -198,6 +222,7 @@ async function submit() {
                 <TableHead>Listener</TableHead>
                 <TableHead>IP Address</TableHead>
                 <TableHead>EHLO Name</TableHead>
+                <TableHead>Node</TableHead>
                 <TableHead>Max Conn</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead class="text-right">Actions</TableHead>
@@ -209,6 +234,7 @@ async function submit() {
                 <TableCell>{{ v.listenerName || '—' }}</TableCell>
                 <TableCell class="font-mono text-caption">{{ v.ipAddress }}</TableCell>
                 <TableCell>{{ v.ehloName }}</TableCell>
+                <TableCell>{{ v.nodeName || 'local' }}</TableCell>
                 <TableCell class="tabular-nums">
                   {{ v.maxConnections === 0 ? 'unlimited' : v.maxConnections }}
                 </TableCell>
@@ -269,6 +295,22 @@ async function submit() {
           <p class="text-caption text-medium-emphasis">
             Optional association (e.g. the listener that receives this IP's bounces). Selecting one
             pre-fills the IP/EHLO above if they're empty — the VMTA owns those values.
+          </p>
+        </div>
+        <div class="d-flex flex-column ga-1">
+          <Label for="vmta-node">Cluster node</Label>
+          <v-select
+            id="vmta-node"
+            v-model="form.node_id"
+            data-testid="vmta-node"
+            :items="nodeItems"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
+          <p class="text-caption text-medium-emphasis">
+            The node this VMTA's IP is physically bound on. Mail routed to this VMTA from other
+            nodes is delivered through that node's kumo-proxy, so it always egresses from this IP.
           </p>
         </div>
         <div class="d-flex flex-column ga-1">

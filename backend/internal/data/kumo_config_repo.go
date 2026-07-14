@@ -18,11 +18,12 @@ type KumoConfigRepo struct {
 	blueprint   *BlueprintRepo
 	automation  *AutomationRepo
 	bounceRules *BounceRuleRepo
+	nodes       *MTANodeRepo
 }
 
 // NewKumoConfigRepo constructs the snapshot loader.
-func NewKumoConfigRepo(outbound *OutboundConfigRepo, safety *DomainSafetyRepo, inbound *InboundRepo, routes *InboundRouteRepo, fbl *FBLRepo, warmup *WarmupRepo, blueprint *BlueprintRepo, automation *AutomationRepo, bounceRules *BounceRuleRepo) *KumoConfigRepo {
-	return &KumoConfigRepo{outbound: outbound, safety: safety, inbound: inbound, routes: routes, fbl: fbl, warmup: warmup, blueprint: blueprint, automation: automation, bounceRules: bounceRules}
+func NewKumoConfigRepo(outbound *OutboundConfigRepo, safety *DomainSafetyRepo, inbound *InboundRepo, routes *InboundRouteRepo, fbl *FBLRepo, warmup *WarmupRepo, blueprint *BlueprintRepo, automation *AutomationRepo, bounceRules *BounceRuleRepo, nodes *MTANodeRepo) *KumoConfigRepo {
+	return &KumoConfigRepo{outbound: outbound, safety: safety, inbound: inbound, routes: routes, fbl: fbl, warmup: warmup, blueprint: blueprint, automation: automation, bounceRules: bounceRules, nodes: nodes}
 }
 
 var _ biz.ConfigSnapshotLoader = (*KumoConfigRepo)(nil)
@@ -42,6 +43,11 @@ func (r *KumoConfigRepo) Snapshot(ctx context.Context) (biz.ConfigSnapshot, erro
 	}
 	if snap.Groups, err = r.outbound.ListVMTAGroups(ctx, page); err != nil {
 		return snap, err
+	}
+	if r.nodes != nil {
+		if snap.Nodes, err = r.nodes.ListNodes(ctx); err != nil {
+			return snap, err
+		}
 	}
 	if snap.Routes, err = r.outbound.ListRoutingRules(ctx, "", "", page); err != nil {
 		return snap, err

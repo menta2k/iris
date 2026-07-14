@@ -3556,6 +3556,8 @@ components:
                     type: string
                 tls_mode:
                     type: string
+                node_id:
+                    type: string
         CreateWarmupScheduleRequest:
             type: object
             properties:
@@ -6059,6 +6061,8 @@ components:
                     type: string
                 tls_mode:
                     type: string
+                node_id:
+                    type: string
         UpdateWarmupScheduleRequest:
             type: object
             properties:
@@ -6138,6 +6142,13 @@ components:
                         Per-VMTA outbound TLS override applied to any delivery from this egress
                          source: "" (none) | required | required_insecure | opportunistic_insecure |
                          disabled. A per-domain TLS policy takes precedence when both apply.
+                node_id:
+                    type: string
+                    description: |-
+                        Cluster node this VMTA's IP lives on; empty = the local co-located node.
+                         node_name is read-only.
+                node_name:
+                    type: string
             description: |-
                 VMTA is a self-contained outbound sending identity that OWNS its egress
                  ip_address and ehlo_name (3.0.0). listener_id/listener_name are an optional

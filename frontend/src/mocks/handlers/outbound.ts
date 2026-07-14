@@ -60,6 +60,8 @@ function vmtaFromCreate(body: CreateVMTARequest): VMTA {
     ehloName: body.ehlo_name,
     maxConnections: body.max_connections,
     tlsMode: body.tls_mode ?? '',
+    nodeId: body.node_id ?? '',
+    nodeName: (body.node_id ? findRow('mtaNodes', body.node_id)?.name : '') ?? '',
   }
 }
 
@@ -104,6 +106,8 @@ export const outboundRoutes: Route[] = [
         status: body.status,
         notes: body.notes,
         tlsMode: body.tls_mode ?? '',
+        nodeId: body.node_id ?? '',
+        nodeName: (body.node_id ? findRow('mtaNodes', body.node_id)?.name : '') ?? '',
       }
       const updated = updateRow('vmtas', ctx.params.id, patch)
       return updated ? ok(updated) : notFound('VMTA not found')

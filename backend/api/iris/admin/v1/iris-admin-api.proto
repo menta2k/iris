@@ -633,6 +633,10 @@ message VMTA {
   // source: "" (none) | required | required_insecure | opportunistic_insecure |
   // disabled. A per-domain TLS policy takes precedence when both apply.
   string tls_mode = 10;
+  // Cluster node this VMTA's IP lives on; empty = the local co-located node.
+  // node_name is read-only.
+  string node_id = 11;
+  string node_name = 12;
 }
 message VMTAGroup {
   string id = 1;
@@ -960,6 +964,7 @@ message CreateVMTARequest {
   string ip_address = 4; // egress source IP (required)
   string ehlo_name = 5;  // outbound EHLO hostname (required)
   string tls_mode = 6;   // optional per-VMTA outbound TLS override
+  string node_id = 7;    // cluster node owning this IP (empty = local node)
 }
 message UpdateVMTARequest {
   string id = 1;
@@ -971,6 +976,7 @@ message UpdateVMTARequest {
   string ip_address = 7; // egress source IP (required)
   string ehlo_name = 8;  // outbound EHLO hostname (required)
   string tls_mode = 9;   // optional per-VMTA outbound TLS override
+  string node_id = 10;   // cluster node owning this IP (empty = local node)
 }
 message ListVMTAGroupsRequest {
   PageRequest page = 1;

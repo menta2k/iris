@@ -639,7 +639,11 @@ type VMTA struct {
 	// Per-VMTA outbound TLS override applied to any delivery from this egress
 	// source: "" (none) | required | required_insecure | opportunistic_insecure |
 	// disabled. A per-domain TLS policy takes precedence when both apply.
-	TlsMode       string `protobuf:"bytes,10,opt,name=tls_mode,json=tlsMode,proto3" json:"tls_mode,omitempty"`
+	TlsMode string `protobuf:"bytes,10,opt,name=tls_mode,json=tlsMode,proto3" json:"tls_mode,omitempty"`
+	// Cluster node this VMTA's IP lives on; empty = the local co-located node.
+	// node_name is read-only.
+	NodeId        string `protobuf:"bytes,11,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	NodeName      string `protobuf:"bytes,12,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -740,6 +744,20 @@ func (x *VMTA) GetMaxConnections() int32 {
 func (x *VMTA) GetTlsMode() string {
 	if x != nil {
 		return x.TlsMode
+	}
+	return ""
+}
+
+func (x *VMTA) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *VMTA) GetNodeName() string {
+	if x != nil {
+		return x.NodeName
 	}
 	return ""
 }
@@ -4176,6 +4194,7 @@ type CreateVMTARequest struct {
 	IpAddress      string                 `protobuf:"bytes,4,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"` // egress source IP (required)
 	EhloName       string                 `protobuf:"bytes,5,opt,name=ehlo_name,json=ehloName,proto3" json:"ehlo_name,omitempty"`    // outbound EHLO hostname (required)
 	TlsMode        string                 `protobuf:"bytes,6,opt,name=tls_mode,json=tlsMode,proto3" json:"tls_mode,omitempty"`       // optional per-VMTA outbound TLS override
+	NodeId         string                 `protobuf:"bytes,7,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`          // cluster node owning this IP (empty = local node)
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -4252,6 +4271,13 @@ func (x *CreateVMTARequest) GetTlsMode() string {
 	return ""
 }
 
+func (x *CreateVMTARequest) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
 type UpdateVMTARequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -4263,6 +4289,7 @@ type UpdateVMTARequest struct {
 	IpAddress      string                 `protobuf:"bytes,7,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"` // egress source IP (required)
 	EhloName       string                 `protobuf:"bytes,8,opt,name=ehlo_name,json=ehloName,proto3" json:"ehlo_name,omitempty"`    // outbound EHLO hostname (required)
 	TlsMode        string                 `protobuf:"bytes,9,opt,name=tls_mode,json=tlsMode,proto3" json:"tls_mode,omitempty"`       // optional per-VMTA outbound TLS override
+	NodeId         string                 `protobuf:"bytes,10,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`         // cluster node owning this IP (empty = local node)
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -4356,6 +4383,13 @@ func (x *UpdateVMTARequest) GetEhloName() string {
 func (x *UpdateVMTARequest) GetTlsMode() string {
 	if x != nil {
 		return x.TlsMode
+	}
+	return ""
+}
+
+func (x *UpdateVMTARequest) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
 	}
 	return ""
 }
@@ -20084,7 +20118,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\vrelay_hosts\x18\v \x03(\tR\n" +
 	"relayHosts\x12\x16\n" +
 	"\x06status\x18\f \x01(\tR\x06status\x12\x12\n" +
-	"\x04role\x18\r \x01(\tR\x04role\"\x9e\x02\n" +
+	"\x04role\x18\r \x01(\tR\x04role\"\xd4\x02\n" +
 	"\x04VMTA\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
@@ -20098,7 +20132,9 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\rlistener_name\x18\b \x01(\tR\flistenerName\x12'\n" +
 	"\x0fmax_connections\x18\t \x01(\x05R\x0emaxConnections\x12\x19\n" +
 	"\btls_mode\x18\n" +
-	" \x01(\tR\atlsMode\"\x81\x01\n" +
+	" \x01(\tR\atlsMode\x12\x17\n" +
+	"\anode_id\x18\v \x01(\tR\x06nodeId\x12\x1b\n" +
+	"\tnode_name\x18\f \x01(\tR\bnodeName\"\x81\x01\n" +
 	"\tVMTAGroup\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
@@ -20414,7 +20450,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06status\x18\x02 \x01(\tR\x06status\"i\n" +
 	"\x0eListVMTAsReply\x12)\n" +
 	"\x05items\x18\x01 \x03(\v2\x13.iris.admin.v1.VMTAR\x05items\x12,\n" +
-	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\xc8\x01\n" +
+	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\xe1\x01\n" +
 	"\x11CreateVMTARequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
 	"\vlistener_id\x18\x02 \x01(\tR\n" +
@@ -20423,7 +20459,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\n" +
 	"ip_address\x18\x04 \x01(\tR\tipAddress\x12\x1b\n" +
 	"\tehlo_name\x18\x05 \x01(\tR\behloName\x12\x19\n" +
-	"\btls_mode\x18\x06 \x01(\tR\atlsMode\"\x86\x02\n" +
+	"\btls_mode\x18\x06 \x01(\tR\atlsMode\x12\x17\n" +
+	"\anode_id\x18\a \x01(\tR\x06nodeId\"\x9f\x02\n" +
 	"\x11UpdateVMTARequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
@@ -20435,7 +20472,9 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\n" +
 	"ip_address\x18\a \x01(\tR\tipAddress\x12\x1b\n" +
 	"\tehlo_name\x18\b \x01(\tR\behloName\x12\x19\n" +
-	"\btls_mode\x18\t \x01(\tR\atlsMode\"G\n" +
+	"\btls_mode\x18\t \x01(\tR\atlsMode\x12\x17\n" +
+	"\anode_id\x18\n" +
+	" \x01(\tR\x06nodeId\"G\n" +
 	"\x15ListVMTAGroupsRequest\x12.\n" +
 	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\"s\n" +
 	"\x13ListVMTAGroupsReply\x12.\n" +

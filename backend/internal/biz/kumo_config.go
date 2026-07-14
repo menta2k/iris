@@ -22,6 +22,14 @@ type ConfigSnapshot struct {
 	// skipped at render time.
 	TLSPolicies []*TLSPolicy
 
+	// Nodes is the cluster node registry. A VMTA whose NodeID points at a node
+	// with a kumo-proxy endpoint renders its egress source with a SOCKS5 proxy
+	// pointer, so every node (including the owner) delivers through the owning
+	// node's IP and the policy stays byte-identical cluster-wide. With more
+	// than one participating node, cluster-shared Redis throttles are enabled
+	// in the init block.
+	Nodes []*MTANode
+
 	// Blueprints are the active base shaping rules (per provider/MX pattern)
 	// rendered into the base shaping config.
 	Blueprints []*DeliveryBlueprint
@@ -314,8 +322,8 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	writeFBLSink(&b, snap)
 	// VERP envelope rewrite (outbound return-path → bounce domain).
 	writeBounceVerp(&b, snap)
-	// Egress sources (one per active VMTA).
-	rendered := writeEgressSources(&b, snap.VMTAs, snap.EgressEHLODefault)
+	// Egress sources (one per active VMTA), proxy-aware for cluster nodes.
+	rendered := writeEgressSources(&b, snap.VMTAs, snap.EgressEHLODefault, proxyNodesByID(snap.Nodes))
 	// Egress pools: a singleton pool per VMTA + one per active group.
 	pools := writeEgressPools(&b, snap.VMTAs, snap.Groups, vmtaName, snap.PinEgressPerMessage)
 	// Per-VMTA connection limits (max_connections) via the egress path config.
@@ -364,7 +372,26 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	}, nil
 }
 
-func writeEgressSources(b *strings.Builder, vmtas []*VMTA, ehloDefault string) int {
+// proxyNodesByID indexes non-disabled cluster nodes that expose a kumo-proxy
+// endpoint. VMTAs owned by one of these render a SOCKS5 proxy pointer instead
+// of a local source_address, so every node in the cluster delivers that
+// VMTA's mail through the owning node's IP and the policy stays byte-identical
+// cluster-wide (the owner just dials through its own local proxy).
+func proxyNodesByID(nodes []*MTANode) map[string]*MTANode {
+	if len(nodes) == 0 {
+		return nil
+	}
+	out := make(map[string]*MTANode, len(nodes))
+	for _, n := range nodes {
+		if n.Status == MTANodeStatusDisabled || n.ProxyHost == "" {
+			continue
+		}
+		out[n.ID] = n
+	}
+	return out
+}
+
+func writeEgressSources(b *strings.Builder, vmtas []*VMTA, ehloDefault string, proxyNodes map[string]*MTANode) int {
 	b.WriteString("-- ===== egress sources (one per VMTA) =====\n")
 	fmt.Fprintf(b, "local EGRESS_EHLO_DEFAULT = %s\n", MustLuaString(strings.TrimSpace(ehloDefault)))
 	b.WriteString("local SOURCES = {}\n")
@@ -373,14 +400,28 @@ func writeEgressSources(b *strings.Builder, vmtas []*VMTA, ehloDefault string) i
 		if v.Status != VMTAStatusActive && v.Status != VMTAStatusDraining {
 			continue
 		}
-		fmt.Fprintf(b, "SOURCES[%s] = { source_address = %s, ehlo_domain = %s }\n",
-			MustLuaString(v.Name), MustLuaString(v.IPAddress), MustLuaString(v.EHLOName))
+		if node := proxyNodes[v.NodeID]; node != nil {
+			// The VMTA's IP is bound on `node`: connect via its kumo-proxy with
+			// the VMTA IP as the proxy-side source. No local source_address —
+			// the proxy owns the bind.
+			fmt.Fprintf(b, "SOURCES[%s] = { socks5_proxy_server = %s, socks5_proxy_source_address = %s, ehlo_domain = %s }\n",
+				MustLuaString(v.Name), MustLuaString(node.ProxyEndpoint()), MustLuaString(v.IPAddress), MustLuaString(v.EHLOName))
+		} else {
+			fmt.Fprintf(b, "SOURCES[%s] = { source_address = %s, ehlo_domain = %s }\n",
+				MustLuaString(v.Name), MustLuaString(v.IPAddress), MustLuaString(v.EHLOName))
+		}
 		n++
 	}
 	b.WriteString(`
 kumo.on('get_egress_source', function(name)
   local cfg = SOURCES[name] or {}
-  local clean = { name = name, source_address = cfg.source_address, ehlo_domain = cfg.ehlo_domain }
+  local clean = {
+    name = name,
+    source_address = cfg.source_address,
+    ehlo_domain = cfg.ehlo_domain,
+    socks5_proxy_server = cfg.socks5_proxy_server,
+    socks5_proxy_source_address = cfg.socks5_proxy_source_address,
+  }
   if (clean.ehlo_domain == nil or clean.ehlo_domain == '') and EGRESS_EHLO_DEFAULT ~= '' then
     clean.ehlo_domain = EGRESS_EHLO_DEFAULT
   end
@@ -1229,6 +1270,13 @@ func writeInit(b *strings.Builder, snap ConfigSnapshot) {
 	}
 	fmt.Fprintf(b, "  kumo.start_http_listener { listen = %s }\n", MustLuaString(httpListen))
 
+	// Cluster-shared throttles: with more than one participating node, rate
+	// limits and connection caps must be leased through Redis or every node
+	// would apply the full limit independently (N× the intended volume).
+	if clusterThrottleNodes(snap.Nodes) > 1 && snap.LogStreamRedisURL != "" {
+		fmt.Fprintf(b, "  kumo.configure_redis_throttles { node = %s }\n", MustLuaString(snap.LogStreamRedisURL))
+	}
+
 	// Spools are mandatory: kumod refuses to start ("No spools have been
 	// defined") without them. Use the standard KumoMTA layout. configure_local_logs
 	// records every log record (including Rejections, which are excluded from the
@@ -1262,6 +1310,18 @@ func writeInit(b *strings.Builder, snap ConfigSnapshot) {
 `, luaLogHeaderList(snap.Routes))
 	}
 	b.WriteString("end)\n\n")
+}
+
+// clusterThrottleNodes counts nodes that participate in delivery (active or
+// draining); shared Redis throttles are only needed when more than one does.
+func clusterThrottleNodes(nodes []*MTANode) int {
+	n := 0
+	for _, node := range nodes {
+		if node.Status != MTANodeStatusDisabled {
+			n++
+		}
+	}
+	return n
 }
 
 // loopbackRelayHost is always added to every listener's relay allowlist so

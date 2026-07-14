@@ -75,6 +75,9 @@ export interface VMTA {
   maxConnections: number
   /** Per-VMTA outbound TLS override: '' | required | required_insecure | opportunistic_insecure | disabled. */
   tlsMode?: string
+  /** Cluster node this VMTA's IP lives on; empty/absent = local node. */
+  nodeId?: string
+  nodeName?: string
 }
 
 export type VMTATLSMode = '' | 'required' | 'required_insecure' | 'opportunistic_insecure' | 'disabled'
@@ -87,6 +90,7 @@ export interface CreateVMTARequest {
   listener_id?: string
   max_connections: number
   tls_mode?: string
+  node_id?: string
 }
 
 // Update body: status and notes become editable on edit.
@@ -98,6 +102,7 @@ export interface UpdateVMTARequest {
   max_connections: number
   status: string
   notes: string
+  node_id?: string
   tls_mode?: string
 }
 

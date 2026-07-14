@@ -38,9 +38,15 @@ type VMTA struct {
 	Status  string
 	Notes   string
 
-	// ListenerName is the resolved name of the optional listener, read-only for
-	// display; empty when unattached.
+	// NodeID optionally binds the VMTA to the cluster node its IP lives on.
+	// Empty = the local/legacy co-located node. When the owning node exposes a
+	// kumo-proxy, other nodes deliver through it so packets always egress from
+	// this VMTA's IP.
+	NodeID string
+
+	// ListenerName / NodeName are resolved display names, read-only.
 	ListenerName string
+	NodeName     string
 }
 
 // ValidVMTAStatus reports whether status is a known VMTA status.
@@ -57,6 +63,7 @@ func ValidVMTAStatus(status string) bool {
 func (v *VMTA) Validate() error {
 	v.Name = strings.TrimSpace(v.Name)
 	v.ListenerID = strings.TrimSpace(v.ListenerID)
+	v.NodeID = strings.TrimSpace(v.NodeID)
 	v.IPAddress = strings.TrimSpace(v.IPAddress)
 	v.EHLOName = strings.TrimSpace(v.EHLOName)
 	if v.Status == "" {
