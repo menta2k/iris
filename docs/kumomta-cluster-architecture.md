@@ -357,6 +357,96 @@ re-run `iris cluster enroll` (the pinned fingerprint updates), then restart
 the agent. To rotate iris's client cert: `iris cluster issue-cert` again and
 restart iris. CA rotation = new CA + re-enroll everything (plan a window).
 
+## 10a. Migration: non-clustered production → clustered
+
+The single-node install IS "a cluster of one." Every schema change is additive
+with safe defaults and empty-registry ⇒ local transport, so the path is a
+sequence of independent, individually-reversible steps. The existing node keeps
+serving throughout; nothing routes to a new node until you assign a VMTA to it.
+
+### Phase 0 — Upgrade in place (no cluster, safe rollback point)
+
+1. Deploy the new iris binary. Migrations 0064–0067 apply automatically
+   (`migrate_on_start`): they only ADD `mta_nodes`, enrollment tokens,
+   `vmtas.node_id` (nullable, NULL = local node), `mail_records.node`,
+   `mta_nodes.kumo_state` — all with defaults. **No behavior change**: with an
+   empty registry the adapter uses the local file/reload transport exactly as
+   before.
+2. (Optional) Register the existing co-located node on the Cluster page with an
+   EMPTY agent URL. That keeps it on the local transport (iris still writes the
+   policy to its filesystem) but makes it visible, health-checked, and the
+   receiving-node label populate. Leave its VMTAs' node ownership NULL.
+3. Verify parity with the pre-upgrade behavior. Rollback = redeploy the old
+   binary; the new columns are simply ignored.
+
+### Phase 1 — Prepare shared infrastructure (still single-node)
+
+Do this BEFORE a second node depends on it:
+
+- **Redis** becomes the cluster bus (log stream, suppressions, shared
+  throttles). Harden it now — AUTH + TLS + per-user ACLs (§6.4) — and make it
+  HA (Sentinel or managed). iris/kumod just reconnect with the new `rediss://`
+  URL; single-node keeps working.
+- **Private network**: ensure the future nodes share it; plan to bind
+  kumo-proxy, agents (:8447), Redis, and TSA to private addresses only.
+- **Cluster CA**: `iris cluster init-ca`, issue iris's client cert, set
+  `cluster.ca_dir` + `cluster.ca_cert/client_cert/client_key`. No effect on the
+  running node; it just enables enrollment.
+- **TSA** (if used): for a small cluster one shared daemon is enough; point
+  `IRIS_TSA_URL` at a host all nodes can reach.
+
+### Phase 2 — Bring up the new node (no traffic yet)
+
+1. Provision the host: kumod, `proxy-server` (kumo-proxy) bound to its private
+   IP and firewalled to cluster peers, and the iris binary (for `iris agent`).
+2. Register the node in iris (name, `agent_url` https, `proxy_host/proxy_port`).
+3. Enroll: issue a token on the Cluster page → run `iris cluster enroll` on the
+   node → start `iris agent`. The node reports healthy.
+4. Apply config. It fans out to both nodes; the policy is identical and still
+   egress-only-on-node1, so this is a no-op for mail — it just proves the
+   rollout path and pins the new node's applied checksum.
+
+### Phase 3 — Shift egress to the new node
+
+1. Assign VMTAs to the new node (`node_id` = node2) — either new egress IPs, or
+   re-home an existing warmed IP.
+   - **Re-homing a warmed IP is the delicate step.** Reputation follows the
+     IP, not the host. Do it in a window: pause/drain that IP's queue on node1,
+     move the IP (and its PTR/rDNS) onto node2 (or its proxy), set the VMTA's
+     `node_id` to node2, then apply. Warmup state is preserved because the IP is
+     unchanged.
+2. Point the relevant routing rules at the node2 VMTAs (or add new rules).
+   Existing traffic is unaffected until a rule targets a node2 VMTA.
+3. Apply → rolling, health-gated. Mail routed to node2's VMTAs now egresses via
+   node2's kumo-proxy, received-node logging intact (§2 of this doc).
+
+### Phase 4 — Cluster-wide throttles + validation
+
+- Crossing from 1 → 2 participating nodes makes the renderer emit
+  `kumo.configure_redis_throttles` (an INIT-block change), so the next apply
+  **restarts** kumod on each node (rolling). Expect and schedule that restart.
+  Without it, two nodes would each apply the full rate limit (2× intended
+  volume).
+- Validate: Mail Logs shows both nodes' receptions with correct node
+  attribution; per-node metrics (`node` label) populate; the cluster health
+  page is green; deliverability steady.
+
+### Rollback at any phase
+
+The local node keeps working throughout. To back out a new node: repoint its
+routing rules and reassign its VMTAs back to node1, apply, then set the node
+`disabled` (or delete it). Only after egress no longer depends on node2 is it
+safe to downgrade the iris binary.
+
+### Prerequisite / known gap for this migration
+
+- **Listener binds are node-local and not yet node-aware.** The renderer emits
+  the shared snapshot's listener on one IP. That is fine when submission stays
+  centralized (node1 receives; other nodes are egress-only — the recommended
+  v1 topology). If you need **every** node to accept submission, node-local
+  listener binds (bind `0.0.0.0`, or per-node via the identity prelude) are a
+  prerequisite that is not implemented yet — see open question 4.
+
 ## 10. Operator decisions & open questions
 
 1. **DECIDED (2026-07-14): nodes are connected over an existing private
