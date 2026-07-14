@@ -1,0 +1,69 @@
+# systemd unit for KumoMTA's kumo-proxy (SOCKS5 egress proxy).
+#
+# In an iris cluster, kumo-proxy is what lets a message received on one node
+# egress from a VMTA whose IP lives on THIS node: other nodes tunnel their
+# outbound SMTP through it. See docs/kumomta-cluster-architecture.md.
+#
+# SECURITY (critical): kumo-proxy has NO authentication. It MUST listen only on
+# the private cluster network, and the host firewall MUST restrict ingress on
+# its port to cluster peers. Anyone who can reach it can send mail from your
+# reputation-bearing IPs. iris refuses to render egress sources pointing at a
+# public proxy IP, but the network isolation is your responsibility.
+#
+# Install:
+#   cp kumo-proxy.service       /etc/systemd/system/kumo-proxy.service
+#   cp kumo-proxy.env.example   /etc/kumomta/kumo-proxy.env   # then edit
+#   systemctl daemon-reload
+#   systemctl enable --now kumo-proxy
+#
+# Set KUMO_PROXY_LISTEN in /etc/kumomta/kumo-proxy.env to this node's PRIVATE
+# address, e.g. "10.20.0.12:5000" — never 0.0.0.0 on a public interface.
+
+[Unit]
+Description=KumoMTA kumo-proxy (SOCKS5 egress proxy)
+Documentation=https://docs.kumomta.com/userguide/clustering/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kumod
+Group=kumod
+
+# KUMO_PROXY_LISTEN — the private host:port this node's proxy binds.
+EnvironmentFile=/etc/kumomta/kumo-proxy.env
+
+ExecStart=/opt/kumomta/sbin/proxy-server --listen ${KUMO_PROXY_LISTEN}
+
+Restart=on-failure
+RestartSec=5s
+# A proxy handles many concurrent connections; lift the default FD ceiling.
+LimitNOFILE=262144
+
+# --- Capabilities ---------------------------------------------------------
+# Needed only if the proxy binds a listener on a privileged port (< 1024);
+# 5000 does not, so this is a no-op unless you move the listener. Egress
+# source-IP binding: if every VMTA IP is actually configured on this host's
+# interfaces, no capability is required. If you use non-local source IPs via
+# IP_FREEBIND / transparent proxying, add CAP_NET_RAW (and CAP_NET_ADMIN) to
+# BOTH lines below.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+# --- Hardening ------------------------------------------------------------
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+# The proxy is a pure network relay: TCP in/out plus local sockets.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

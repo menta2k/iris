@@ -1,0 +1,49 @@
+# systemd unit for iris-agent — the KumoMTA cluster node agent.
+#
+# Runs on EACH remote KumoMTA node (not the central iris host). It is the same
+# `iris` binary invoked with the `agent` subcommand: an mTLS server that receives
+# config bundles from the iris control plane, writes kumod's generated policy,
+# reloads/restarts kumod, reports health, and reverse-proxies kumod's localhost
+# admin API. See docs/kumomta-cluster-architecture.md.
+#
+# Prerequisites on this node:
+#   - the `iris` binary installed at /usr/local/bin/iris
+#   - /etc/iris/iris.yaml with:
+#       kumomta:   stub: false, config_path, reload_command|reload_url, base_url
+#       agent:     listen, ca_cert, cert, key  (the certs from `iris cluster enroll`)
+#   - the node registered + enrolled in iris (Cluster page -> Enroll)
+#
+# Install:
+#   cp iris-agent.service /etc/systemd/system/iris-agent.service
+#   systemctl daemon-reload
+#   systemctl enable --now iris-agent
+#   journalctl -u iris-agent -f
+
+[Unit]
+Description=iris-agent — KumoMTA cluster node agent (mTLS control plane)
+Documentation=https://github.com/menta2k/iris
+After=network-online.target kumomta.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# The agent writes kumod's policy file and reloads/restarts the service, so it
+# needs write access to the kumod config dir and the reload mechanism. Root is
+# the simplest. To harden: run as a user that can write config_path AND reload
+# kumod (e.g. group-write on the policy dir + a sudoers rule or the HTTP
+# bump-config-epoch reload_url instead of `systemctl reload kumomta`).
+User=root
+
+# Optional overrides (the agent needs no DB/Redis; it reads kumomta:/agent: from
+# the yaml). `-` = tolerate a missing file.
+EnvironmentFile=-/etc/iris/iris.env
+
+# NOTE: -config MUST come BEFORE the `agent` subcommand (Go flag parsing stops
+# at the first positional argument).
+ExecStart=/usr/local/bin/iris -config /etc/iris/iris.yaml agent
+
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
