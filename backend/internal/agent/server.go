@@ -19,6 +19,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -49,6 +50,9 @@ type Server struct {
 	// kumodURL is the localhost kumod HTTP listener the /v1/kumod/* proxy
 	// forwards to (from the kumomta: config section).
 	kumodURL *url.URL
+	// configDir is where the per-node identity prelude is written (the policy
+	// directory); empty disables prelude writing.
+	configDir string
 
 	mu     sync.Mutex
 	staged *agentapi.ConfigBundle
@@ -63,9 +67,11 @@ type persistedState struct {
 }
 
 // New constructs the agent server. version is the agent build version reported
-// in health; kumodBaseURL may be empty to disable the admin proxy.
-func New(cfg conf.Agent, kumo Applier, kumodBaseURL, version string, log *slog.Logger) (*Server, error) {
-	s := &Server{cfg: cfg, kumo: kumo, log: log, version: version}
+// in health; kumodBaseURL may be empty to disable the admin proxy; configDir is
+// the policy directory the node identity prelude is written into (empty
+// disables it).
+func New(cfg conf.Agent, kumo Applier, kumodBaseURL, configDir, version string, log *slog.Logger) (*Server, error) {
+	s := &Server{cfg: cfg, kumo: kumo, log: log, version: version, configDir: configDir}
 	if kumodBaseURL != "" {
 		u, err := url.Parse(kumodBaseURL)
 		if err != nil {
@@ -209,6 +215,17 @@ func (s *Server) handleActivate(w http.ResponseWriter, r *http.Request) {
 			rendered.ShapingAutomation = f.Content
 		default:
 			writeErr(w, http.StatusBadRequest, "BUNDLE_UNKNOWN_FILE", "unexpected bundle file "+f.Name)
+			return
+		}
+	}
+
+	// Node identity prelude: written from the bundle's NodeName so this node's
+	// log records carry its registry name. Outside the policy checksum by
+	// design (the policy is identical on every node).
+	if s.staged.NodeName != "" && s.configDir != "" {
+		prelude := filepath.Join(s.configDir, biz.NodePreludeFile)
+		if err := os.WriteFile(prelude, []byte(biz.NodePreludeContent(s.staged.NodeName)), 0o644); err != nil {
+			writeErr(w, http.StatusInternalServerError, "PRELUDE_WRITE_FAILED", err.Error())
 			return
 		}
 	}

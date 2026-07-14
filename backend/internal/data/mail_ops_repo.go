@@ -26,7 +26,7 @@ var _ biz.MailOpsRepo = (*MailOpsRepo)(nil)
 func (r *MailOpsRepo) ListMailRecords(ctx context.Context, f biz.MailFilter, page biz.Page) ([]*biz.MailRecord, error) {
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT id, message_id, event_time, mailclass, sender, from_header, recipient,
-		       recipient_domain, coalesce(vmta_id::text,''), egress_source, status, record_type, smtp_status, diagnostic, classification
+		       recipient_domain, coalesce(vmta_id::text,''), egress_source, status, record_type, smtp_status, diagnostic, classification, node
 		FROM mail_records
 		WHERE ($1 = '' OR mailclass = $1)
 		  -- sender/recipient/from are partial, case-insensitive matches so an
@@ -41,9 +41,10 @@ func (r *MailOpsRepo) ListMailRecords(ctx context.Context, f biz.MailFilter, pag
 		  AND ($8 = '' OR status = $8)
 		  AND ($9 = '' OR record_type = $9)
 		  AND ($10 = '' OR diagnostic ILIKE '%' || $10 || '%')
+		  AND ($11 = '' OR node = $11)
 		ORDER BY event_time DESC
-		LIMIT $11 OFFSET $12`,
-		f.Mailclass, f.Sender, f.Recipient, f.VMTAID, f.FromTime, f.ToTime, f.From, f.Status, f.RecordType, f.Diagnostic, page.Size, page.Offset)
+		LIMIT $12 OFFSET $13`,
+		f.Mailclass, f.Sender, f.Recipient, f.VMTAID, f.FromTime, f.ToTime, f.From, f.Status, f.RecordType, f.Diagnostic, f.Node, page.Size, page.Offset)
 	if err != nil {
 		return nil, fmt.Errorf("query mail records: %w", err)
 	}
@@ -53,7 +54,7 @@ func (r *MailOpsRepo) ListMailRecords(ctx context.Context, f biz.MailFilter, pag
 		m := &biz.MailRecord{}
 		if err := rows.Scan(&m.ID, &m.MessageID, &m.EventTime, &m.Mailclass, &m.Sender,
 			&m.FromHeader, &m.Recipient, &m.RecipientDomain, &m.VMTAID, &m.EgressSource, &m.Status,
-			&m.RecordType, &m.SMTPStatus, &m.Diagnostic, &m.Classification); err != nil {
+			&m.RecordType, &m.SMTPStatus, &m.Diagnostic, &m.Classification, &m.Node); err != nil {
 			return nil, fmt.Errorf("scan mail record: %w", err)
 		}
 		out = append(out, m)
@@ -67,7 +68,7 @@ func (r *MailOpsRepo) ListMailRecords(ctx context.Context, f biz.MailFilter, pag
 func (r *MailOpsRepo) ListRecordsByMessageID(ctx context.Context, messageID string) ([]*biz.MailRecord, error) {
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT id, message_id, event_time, mailclass, sender, from_header, recipient,
-		       recipient_domain, coalesce(vmta_id::text,''), egress_source, status, record_type, smtp_status, diagnostic, classification
+		       recipient_domain, coalesce(vmta_id::text,''), egress_source, status, record_type, smtp_status, diagnostic, classification, node
 		FROM mail_records
 		WHERE message_id = $1
 		ORDER BY event_time
@@ -81,7 +82,7 @@ func (r *MailOpsRepo) ListRecordsByMessageID(ctx context.Context, messageID stri
 		m := &biz.MailRecord{}
 		if err := rows.Scan(&m.ID, &m.MessageID, &m.EventTime, &m.Mailclass, &m.Sender,
 			&m.FromHeader, &m.Recipient, &m.RecipientDomain, &m.VMTAID, &m.EgressSource, &m.Status,
-			&m.RecordType, &m.SMTPStatus, &m.Diagnostic, &m.Classification); err != nil {
+			&m.RecordType, &m.SMTPStatus, &m.Diagnostic, &m.Classification, &m.Node); err != nil {
 			return nil, fmt.Errorf("scan mail record: %w", err)
 		}
 		out = append(out, m)
@@ -293,11 +294,11 @@ func (r *MailOpsRepo) InsertMailEvent(ctx context.Context, rec *biz.MailRecord) 
 	// persisted record.
 	if err := r.db.Pool.QueryRow(ctx, `
 		INSERT INTO mail_records
-			(message_id, event_time, mailclass, sender, from_header, recipient, recipient_domain, egress_source, status, record_type, smtp_status, diagnostic)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			(message_id, event_time, mailclass, sender, from_header, recipient, recipient_domain, egress_source, status, record_type, smtp_status, diagnostic, node)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING id`,
 		rec.MessageID, rec.EventTime, rec.Mailclass, rec.Sender, rec.FromHeader, rec.Recipient,
-		rec.RecipientDomain, rec.EgressSource, rec.Status, rec.RecordType, rec.SMTPStatus, rec.Diagnostic).Scan(&rec.ID); err != nil {
+		rec.RecipientDomain, rec.EgressSource, rec.Status, rec.RecordType, rec.SMTPStatus, rec.Diagnostic, rec.Node).Scan(&rec.ID); err != nil {
 		return fmt.Errorf("insert mail event: %w", err)
 	}
 	return nil

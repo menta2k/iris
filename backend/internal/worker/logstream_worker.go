@@ -288,6 +288,7 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 		Recipient:       rec.Recipient,
 		RecipientDomain: rec.RecipientDomainOf(),
 		EgressSource:    strings.TrimSpace(rec.EgressSource),
+		Node:            rec.Node(),
 		Status:          status,
 		RecordType:      rec.Type,
 		Diagnostic:      strings.TrimSpace(rec.Response.Content),
@@ -307,8 +308,8 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 
 	// Metrics: mail events by status/class/domain, and outbound events by VMTA
 	// (egress source is present on Delivery/Bounce, absent on Reception).
-	metrics.RecordMailEvent(mr.Status, mr.Mailclass, mr.RecipientDomain)
-	metrics.RecordVMTAEvent(rec.EgressSource, mr.Status)
+	metrics.RecordMailEvent(mr.Status, mr.Mailclass, mr.RecipientDomain, mr.Node)
+	metrics.RecordVMTAEvent(rec.EgressSource, mr.Status, mr.Node)
 
 	// Queue latency: on a successful Delivery, observe how long the message sat
 	// in the queue (Reception → Delivery) into the histogram, by mail class.

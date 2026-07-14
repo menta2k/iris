@@ -204,9 +204,13 @@ var widgetCatalog = []WidgetDef{
 	{Key: "iris_bounces_rate", Category: "Iris", Title: "Bounces / min", Description: "iris bounces per minute.", Unit: "msg/min", Viz: WidgetVizLine,
 		PromQLTemplate: `sum(rate(iris_bounces_total[$window])) $groupBy * 60`, SupportsGroupBy: true, GroupByLabels: []string{"type", "mailclass"}, DefaultRange: "6h"},
 
-	// Per-VMTA egress — iris_vmta_events_total carries vmta/status.
-	{Key: "iris_vmta_events_rate", Category: "Iris", Title: "VMTA events / min", Description: "Outbound events per minute, optionally grouped by VMTA or status.", Unit: "msg/min", Viz: WidgetVizLine,
-		PromQLTemplate: `sum(rate(iris_vmta_events_total[$window])) $groupBy * 60`, SupportsGroupBy: true, GroupByLabels: []string{"vmta", "status"}, DefaultRange: "6h"},
+	// Per-VMTA egress — iris_vmta_events_total carries vmta/status/node.
+	{Key: "iris_vmta_events_rate", Category: "Iris", Title: "VMTA events / min", Description: "Outbound events per minute, optionally grouped by VMTA, status, or cluster node.", Unit: "msg/min", Viz: WidgetVizLine,
+		PromQLTemplate: `sum(rate(iris_vmta_events_total[$window])) $groupBy * 60`, SupportsGroupBy: true, GroupByLabels: []string{"vmta", "status", "node"}, DefaultRange: "6h"},
+
+	// Per-node mail flow — iris_mail_events_total carries node since v6.35.
+	{Key: "iris_node_events_rate", Category: "Iris", Title: "Mail events by node / min", Description: "Mail events per minute grouped by receiving cluster node.", Unit: "msg/min", Viz: WidgetVizLine,
+		PromQLTemplate: `sum(rate(iris_mail_events_total[$window])) $groupBy * 60`, SupportsGroupBy: true, GroupByLabels: []string{"node", "status"}, DefaultRange: "6h"},
 
 	// Webhooks — iris_webhook_executions_total carries webhook/result.
 	{Key: "iris_webhook_rate", Category: "Iris", Title: "Webhook executions / min", Description: "Webhook deliveries per minute, optionally grouped by webhook or result.", Unit: "ops/min", Viz: WidgetVizLine,

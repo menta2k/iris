@@ -809,7 +809,7 @@ func TestMailClassification(t *testing.T) {
 		t.Fatalf("classification not wired into reception:\n%s", r.Content)
 	}
 	// The log hook serializes the mailclass meta so the consumer can read it.
-	if !strings.Contains(r.Content, "meta = { 'tenant', 'mailclass' }") {
+	if !strings.Contains(r.Content, "meta = { 'tenant', 'mailclass', 'node' }") {
 		t.Fatalf("log hook must serialize the mailclass meta:\n%s", r.Content)
 	}
 }

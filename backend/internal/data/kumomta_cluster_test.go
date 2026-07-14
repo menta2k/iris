@@ -106,6 +106,15 @@ func TestApplyConfigClusterFanOut(t *testing.T) {
 	if _, err := os.Stat(path); err != nil {
 		t.Fatalf("local policy not written: %v", err)
 	}
+	// The local node's identity prelude is written next to the policy.
+	prelude, err := os.ReadFile(filepath.Join(dir, biz.NodePreludeFile))
+	if err != nil || string(prelude) != biz.NodePreludeContent("node1") {
+		t.Fatalf("local node prelude = %q, %v", prelude, err)
+	}
+	// The remote bundle carries the node name for the agent-side prelude.
+	if agent.staged.NodeName != "node2" {
+		t.Fatalf("bundle NodeName = %q", agent.staged.NodeName)
+	}
 	if agent.staged == nil || agent.staged.Checksum != "sum-1" {
 		t.Fatalf("remote bundle not staged: %+v", agent.staged)
 	}

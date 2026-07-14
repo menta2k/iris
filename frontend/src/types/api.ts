@@ -459,6 +459,8 @@ export interface MailRecord {
   diagnostic?: string
   /** Optional subject-derived label (≤2 words); empty when the feature is off. */
   classification?: string
+  /** Cluster node that received/queued the message; empty on pre-cluster rows. */
+  node?: string
 }
 
 export interface MailRecordFilters {
@@ -473,6 +475,8 @@ export interface MailRecordFilters {
   record_type?: string
   /** Case-insensitive substring match on the SMTP diagnostic / response text. */
   diagnostic?: string
+  /** Filter by receiving cluster node name. */
+  node?: string
   /** RFC3339 lower bound on event time. */
   from_time?: string
   /** RFC3339 upper bound on event time. */

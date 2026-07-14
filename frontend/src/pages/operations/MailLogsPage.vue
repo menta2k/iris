@@ -68,6 +68,7 @@ const filters = ref<MailRecordFilters>({
   record_type: '',
   status: '',
   diagnostic: '',
+  node: '',
 })
 const timeWindowMs = ref(0)
 
@@ -104,7 +105,7 @@ const {
 // Text fields apply as you type (debounced); selects apply immediately.
 let debounceTimer: ReturnType<typeof setTimeout> | undefined
 watch(
-  () => [filters.value.mailclass, filters.value.sender, filters.value.from, filters.value.recipient, filters.value.vmta_id, filters.value.diagnostic],
+  () => [filters.value.mailclass, filters.value.sender, filters.value.from, filters.value.recipient, filters.value.vmta_id, filters.value.diagnostic, filters.value.node],
   () => {
     clearTimeout(debounceTimer)
     debounceTimer = setTimeout(reload, 400)
@@ -127,6 +128,7 @@ function resetFilters() {
     record_type: '',
     status: '',
     diagnostic: '',
+    node: '',
   }
   timeWindowMs.value = 0
   reload()
@@ -147,6 +149,7 @@ function matchesFilters(rec: MailRecord): boolean {
   if (has(f.mailclass) && rec.mailclass !== f.mailclass) return false
   if (has(f.status) && rec.status !== f.status) return false
   if (has(f.record_type) && rec.recordType !== f.record_type) return false
+  if (has(f.node) && rec.node !== f.node) return false
   return sub(rec.sender, f.sender) && sub(rec.fromHeader, f.from) &&
     sub(rec.recipient, f.recipient) && sub(rec.egressSource, f.vmta_id) &&
     sub(rec.diagnostic, f.diagnostic)
@@ -175,6 +178,7 @@ const ALL_COLUMNS = [
   { key: 'recipient', title: 'Recipient' },
   { key: 'recipientDomain', title: 'Recipient Domain' },
   { key: 'vmta', title: 'VMTA' },
+  { key: 'node', title: 'Node' },
   { key: 'status', title: 'Status' },
   { key: 'type', title: 'Type' },
   { key: 'class', title: 'Class' },
@@ -186,7 +190,7 @@ type ColumnKey = (typeof ALL_COLUMNS)[number]['key']
 // Hidden until the operator opts in: low-signal columns that used to force a
 // horizontal scrollbar (domain repeats the recipient; the id is copyable from
 // the drawer and the Message ID column once re-enabled).
-const DEFAULT_HIDDEN: string[] = ['messageId', 'recipientDomain', 'class']
+const DEFAULT_HIDDEN: string[] = ['messageId', 'recipientDomain', 'class', 'node']
 
 const config = useConfigStore()
 
@@ -251,6 +255,7 @@ function cellValue(m: MailRecord, key: ColumnKey): string {
     case 'recipient': return m.recipient ?? ''
     case 'recipientDomain': return m.recipientDomain ?? ''
     case 'vmta': return m.egressSource || m.vmtaId || ''
+    case 'node': return m.node ?? ''
     case 'status': return m.status ?? ''
     case 'type': return m.recordType ?? ''
     case 'class': return m.classification ?? ''
@@ -386,6 +391,19 @@ onBeforeUnmount(() => {
               density="compact"
               hide-details
               clearable
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <v-text-field
+              v-model="filters.node"
+              label="Node"
+              placeholder="mta-eu-2"
+              prepend-inner-icon="mdi-server-outline"
+              variant="outlined"
+              density="compact"
+              hide-details
+              clearable
+              data-testid="filter-node"
             />
           </v-col>
           <v-col cols="12" sm="6" md="3">
@@ -535,6 +553,7 @@ onBeforeUnmount(() => {
                 <TableHead v-if="isVisible('recipient')">Recipient</TableHead>
                 <TableHead v-if="isVisible('recipientDomain')">Recipient Domain</TableHead>
                 <TableHead v-if="isVisible('vmta')">VMTA</TableHead>
+                <TableHead v-if="isVisible('node')">Node</TableHead>
                 <TableHead v-if="isVisible('status')">Status</TableHead>
                 <TableHead v-if="isVisible('type')">Type</TableHead>
                 <TableHead v-if="isVisible('class')">Class</TableHead>
@@ -582,6 +601,9 @@ onBeforeUnmount(() => {
                 }}</TableCell>
                 <TableCell v-if="isVisible('vmta')" class="font-mono text-caption">{{
                   m.egressSource || m.vmtaId || '—'
+                }}</TableCell>
+                <TableCell v-if="isVisible('node')" class="font-mono text-caption">{{
+                  m.node || '—'
                 }}</TableCell>
                 <TableCell v-if="isVisible('status')"><StatusBadge :status="m.status" /></TableCell>
                 <TableCell v-if="isVisible('type')" class="text-no-wrap text-caption text-medium-emphasis">{{

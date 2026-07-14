@@ -19,15 +19,15 @@ var (
 	// breakdowns.
 	MailEvents = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "iris_mail_events_total",
-		Help: "Mail events ingested from the KumoMTA log stream, by status, mail class, and recipient domain.",
-	}, []string{"status", "mailclass", "recipient_domain"})
+		Help: "Mail events ingested from the KumoMTA log stream, by status, mail class, recipient domain, and receiving cluster node.",
+	}, []string{"status", "mailclass", "recipient_domain", "node"})
 
 	// VMTAEvents counts outbound mail events by the egress source (VMTA) that
 	// handled them and the resulting status. Answers "mails per VMTA".
 	VMTAEvents = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "iris_vmta_events_total",
-		Help: "Outbound mail events by egress source (VMTA) and status.",
-	}, []string{"vmta", "status"})
+		Help: "Outbound mail events by egress source (VMTA), status, and queueing cluster node.",
+	}, []string{"vmta", "status", "node"})
 
 	// Bounces counts bounces by type (hard/soft/dsn) and mail class.
 	Bounces = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -116,17 +116,17 @@ func RecordSystem(cpuPercent, memPercent, memUsedBytes float64, disks []SystemDi
 }
 
 // RecordMailEvent records a single mail event (Reception/Delivery/Bounce).
-func RecordMailEvent(status, mailclass, recipientDomain string) {
-	MailEvents.WithLabelValues(or(status), or(mailclass), or(recipientDomain)).Inc()
+func RecordMailEvent(status, mailclass, recipientDomain, node string) {
+	MailEvents.WithLabelValues(or(status), or(mailclass), or(recipientDomain), or(node)).Inc()
 }
 
 // RecordVMTAEvent records an outbound mail event attributed to a VMTA (egress
 // source). A no-op when the VMTA is unknown (e.g. inbound receptions).
-func RecordVMTAEvent(vmta, status string) {
+func RecordVMTAEvent(vmta, status, node string) {
 	if vmta == "" {
 		return
 	}
-	VMTAEvents.WithLabelValues(vmta, or(status)).Inc()
+	VMTAEvents.WithLabelValues(vmta, or(status), or(node)).Inc()
 }
 
 // RecordBounce records a bounce by type and mail class.

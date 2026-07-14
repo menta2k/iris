@@ -307,3 +307,15 @@ func (r *KumoLogRecord) Mailclass() string {
 	}
 	return ""
 }
+
+// Node returns the receiving/queueing cluster node's name from the record meta
+// (stamped by the policy's node identity prelude), or "" when absent.
+func (r *KumoLogRecord) Node() string {
+	if r.Meta == nil {
+		return ""
+	}
+	if v, ok := r.Meta["node"].(string); ok {
+		return v
+	}
+	return ""
+}

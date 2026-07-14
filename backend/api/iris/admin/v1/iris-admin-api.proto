@@ -1059,6 +1059,9 @@ message MailRecord {
   // classification worker on the Reception row; empty when the feature is off or
   // not yet resolved. The raw subject is never returned — only the label.
   string classification = 15;
+  // Cluster node that received/queued the message; the whole lifecycle logs
+  // from this node. Empty on pre-cluster rows.
+  string node = 16;
 }
 message Bounce {
   string id = 1;
@@ -1107,6 +1110,8 @@ message ListMailRecordsRequest {
   // Case-insensitive substring match on the SMTP diagnostic / response text
   // (e.g. "quota", "STARTTLS", "NXDOMAIN"). Empty = all.
   string diagnostic = 11;
+  // Filter by receiving cluster node name. Empty = all.
+  string node = 12;
 }
 message ListMailRecordsReply {
   repeated MailRecord items = 1;

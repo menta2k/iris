@@ -44,6 +44,10 @@ type MailRecord struct {
 	// Empty for events with no response (e.g. Reception).
 	SMTPStatus string
 	Diagnostic string
+	// Node is the cluster node that received/queued the message (from the log
+	// record meta); the whole lifecycle of a message logs from this node. Empty
+	// on pre-cluster rows.
+	Node string
 	// Classification is the optional subject-derived label (≤2 words). Only the
 	// label is stored here — never the raw subject. Backfilled asynchronously by
 	// the classification worker; empty when the feature is off or not yet resolved.
@@ -67,7 +71,9 @@ type MailFilter struct {
 	// Diagnostic is a case-insensitive substring match on the SMTP diagnostic /
 	// response text (e.g. "quota", "STARTTLS", "NXDOMAIN"). Empty matches all.
 	Diagnostic string
-	FromTime   *time.Time
+	// Node filters by the receiving cluster node's name. Empty matches all.
+	Node     string
+	FromTime *time.Time
 	ToTime     *time.Time
 }
 
@@ -83,6 +89,7 @@ func NormalizeMailFilter(f MailFilter) (MailFilter, error) {
 	// Diagnostic is matched case-insensitively (ILIKE), so it is sanitized but not
 	// lowercased — keep the operator's term readable in logs.
 	f.Diagnostic = SanitizeFilter(f.Diagnostic)
+	f.Node = SanitizeFilter(f.Node)
 	if f.FromTime != nil && f.ToTime != nil && f.ToTime.Before(*f.FromTime) {
 		return f, Invalid("MAIL_FILTER_RANGE", "to_time must not be before from_time")
 	}

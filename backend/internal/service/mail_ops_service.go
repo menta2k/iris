@@ -25,6 +25,7 @@ func (s *Service) ListMailRecords(ctx context.Context, req *adminv1.ListMailReco
 		Status:     req.GetStatus(),
 		RecordType: req.GetRecordType(),
 		Diagnostic: req.GetDiagnostic(),
+		Node:       req.GetNode(),
 	}
 	if req.GetFromTime() != nil {
 		t := req.GetFromTime().AsTime()
@@ -46,7 +47,7 @@ func (s *Service) ListMailRecords(ctx context.Context, req *adminv1.ListMailReco
 			RecipientDomain: m.RecipientDomain, VmtaId: m.VMTAID, EgressSource: m.EgressSource, Status: m.Status,
 			RecordType: m.RecordType,
 			FromHeader: m.FromHeader, SmtpStatus: m.SMTPStatus, Diagnostic: m.Diagnostic,
-			Classification: m.Classification,
+			Classification: m.Classification, Node: m.Node,
 		})
 	}
 	return out, nil

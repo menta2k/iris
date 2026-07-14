@@ -127,3 +127,34 @@ func TestRenderClusterRedisThrottles(t *testing.T) {
 		t.Errorf("redis throttles need a redis url:\n%s", rNoRedis.Content)
 	}
 }
+
+// TestRenderNodeIdentity verifies the policy loads the per-node prelude and
+// stamps the 'node' meta on both submission paths, keeping the policy itself
+// node-agnostic (byte-identical across the cluster).
+func TestRenderNodeIdentity(t *testing.T) {
+	snap := clusterSnap(nil, []*VMTA{{ID: "v1", Name: "vmta-a", IPAddress: "203.0.113.10", EHLOName: "a.example.com", Status: VMTAStatusActive}})
+	snap.LogStreamRedisURL = "redis://redis:6379"
+	r, err := RenderKumoConfig(snap)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	if !r.Valid {
+		t.Fatalf("policy failed lint: %v", r.LintIssues)
+	}
+	for _, want := range []string{
+		`pcall(dofile, "/opt/kumomta/etc/policy/iris_node.lua")`,
+		"msg:set_meta('node', NODE_NAME)",
+		"meta = { 'tenant', 'mailclass', 'node' }",
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Errorf("missing node identity wiring %q", want)
+		}
+	}
+	// Both hooks must stamp the meta (SMTP reception + HTTP injection).
+	if strings.Count(r.Content, "msg:set_meta('node', NODE_NAME)") < 2 {
+		t.Errorf("node meta must be set in both submission hooks:\n%s", r.Content)
+	}
+	if got := NodePreludeContent("node1"); got != "return { name = \"node1\" }\n" {
+		t.Errorf("NodePreludeContent = %q", got)
+	}
+}

@@ -39,9 +39,10 @@ func sha256Hex(s string) string {
 }
 
 // bundleFor packages a rendered config for the agent wire protocol.
-func bundleFor(rendered biz.RenderedConfig, generation int64) agentapi.ConfigBundle {
+func bundleFor(rendered biz.RenderedConfig, generation int64, nodeName string) agentapi.ConfigBundle {
 	b := agentapi.ConfigBundle{
 		Generation: generation,
+		NodeName:   nodeName,
 		Policy: agentapi.File{
 			Name:    "iris_generated.lua",
 			Content: rendered.Content,
@@ -63,7 +64,7 @@ func bundleFor(rendered biz.RenderedConfig, generation int64) agentapi.ConfigBun
 // applyConfig stages the bundle on the agent and activates it.
 func (t *agentTransport) applyConfig(ctx context.Context, rendered biz.RenderedConfig, restart bool, generation int64) (string, error) {
 	var stage agentapi.StageReply
-	if err := t.post(ctx, agentapi.PathStage, bundleFor(rendered, generation), &stage); err != nil {
+	if err := t.post(ctx, agentapi.PathStage, bundleFor(rendered, generation, t.nodeName), &stage); err != nil {
 		return "", err
 	}
 	if !stage.Staged || stage.Checksum != rendered.Checksum {

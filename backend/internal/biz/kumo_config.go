@@ -299,6 +299,12 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	}
 	b.WriteString("local kumo = require 'kumo'\n\n")
 
+	// Node identity: the apply transport writes a tiny per-node prelude
+	// (iris_node.lua) next to the policy. Loading it here keeps the policy
+	// itself byte-identical on every cluster node while letting each node stamp
+	// its own name into log-record meta ('node') for per-node observability.
+	writeNodePrelude(&b, snap.ShapingDir)
+
 	// Log-stream + bounce constants, init block (listeners + log hook).
 	writeLogStreamConsts(&b, snap)
 	writeBounceConsts(&b, snap)
@@ -756,6 +762,7 @@ local function iris_log_suppressed(msg, recipient)
       sender = sender,
       recipient = recipient,
       headers = { From = msg:get_first_named_header_value('From') or '' },
+      meta = { node = NODE_NAME },
     }
     local redis = require 'redis'
     local conn = redis.open { node = LOGSTREAM_REDIS_URL, pool_size = 5 }
@@ -771,6 +778,9 @@ end
 -- classify the mail (the 'mailclass' meta, logged for the Logs UI), then choose
 -- an egress pool and record it as the 'tenant' meta for get_queue_config.
 kumo.on('smtp_server_message_received', function(msg)
+  if NODE_NAME ~= '' then
+    msg:set_meta('node', NODE_NAME)
+  end
 `)
 	if bounce {
 		// Inbound DSN catcher: mail arriving at the bounce domain is funneled
@@ -933,6 +943,9 @@ end)
 	b.WriteString(`-- Classify, sign, VERP-rewrite and route mail injected via the HTTP API
 -- (the reception hook above covers SMTP submissions).
 kumo.on('http_message_generated', function(msg)
+  if NODE_NAME ~= '' then
+    msg:set_meta('node', NODE_NAME)
+  end
   iris_ensure_message_id(msg)
   iris_ensure_date(msg)
   local class = classify_mail(msg)
@@ -1304,12 +1317,41 @@ func writeInit(b *strings.Builder, snap ConfigSnapshot) {
 		fmt.Fprintf(b, `  kumo.configure_log_hook {
     name = LOGSTREAM_TRACKER,
     headers = { %s },
-    meta = { 'tenant', 'mailclass' },
+    meta = { 'tenant', 'mailclass', 'node' },
     per_record = { Rejection = { enable = false } },
   }
 `, luaLogHeaderList(snap.Routes))
 	}
 	b.WriteString("end)\n\n")
+}
+
+// NodePreludeFile is the per-node identity file the apply transports write
+// next to the policy: `return { name = "<node name>" }`.
+const NodePreludeFile = "iris_node.lua"
+
+// writeNodePrelude emits the NODE_NAME local, loaded from the per-node prelude
+// file. Missing/broken preludes degrade to an empty name (no node meta) rather
+// than failing the policy.
+func writeNodePrelude(b *strings.Builder, shapingDir string) {
+	dir := strings.TrimRight(strings.TrimSpace(shapingDir), "/")
+	if dir == "" {
+		dir = defaultPolicyDir
+	}
+	fmt.Fprintf(b, `-- Node identity (written per node by the apply transport; see mta_nodes).
+local NODE_NAME = ''
+do
+  local ok, node = pcall(dofile, %s)
+  if ok and type(node) == 'table' and type(node.name) == 'string' then
+    NODE_NAME = node.name
+  end
+end
+
+`, MustLuaString(dir+"/"+NodePreludeFile))
+}
+
+// NodePreludeContent renders the per-node identity file body.
+func NodePreludeContent(nodeName string) string {
+	return fmt.Sprintf("return { name = %s }\n", MustLuaString(nodeName))
 }
 
 // clusterThrottleNodes counts nodes that participate in delivery (active or

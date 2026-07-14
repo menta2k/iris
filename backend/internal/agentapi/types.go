@@ -31,6 +31,11 @@ type ConfigBundle struct {
 	Policy File `json:"policy"`
 	// Shaping are the sidecar TOML files (written 0644 next to the policy).
 	Shaping []File `json:"shaping"`
+	// NodeName is the receiving node's registry name; the agent writes it into
+	// the per-node identity prelude (iris_node.lua) so log records carry a
+	// 'node' meta. It is intentionally OUTSIDE the checksummed policy so the
+	// policy stays byte-identical cluster-wide.
+	NodeName string `json:"node_name"`
 	// Checksum identifies the bundle (the rendered policy checksum).
 	Checksum string `json:"checksum"`
 	// InitChecksum covers the init block; a change requires restart, not reload.

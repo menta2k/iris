@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -46,7 +47,7 @@ func newTestServer(t *testing.T) (*Server, *fakeApplier) {
 	t.Helper()
 	applier := &fakeApplier{}
 	srv, err := New(conf.Agent{StatePath: filepath.Join(t.TempDir(), "state.json")},
-		applier, "", "test/1", slog.Default())
+		applier, "", "", "test/1", slog.Default())
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -71,6 +72,27 @@ func testBundle(generation int64) agentapi.ConfigBundle {
 		Shaping:      []agentapi.File{{Name: "iris-base.toml", Content: base, SHA256: sha256Hex(base)}},
 		Checksum:     "sum-1",
 		InitChecksum: "init-1",
+	}
+}
+
+func TestAgentWritesNodePrelude(t *testing.T) {
+	dir := t.TempDir()
+	applier := &fakeApplier{}
+	srv, err := New(conf.Agent{StatePath: filepath.Join(dir, "state.json")},
+		applier, "", dir, "test/1", slog.Default())
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	h := srv.Handler()
+	b := testBundle(10)
+	b.NodeName = "node2"
+	postJSON(t, h, agentapi.PathStage, b)
+	if w := postJSON(t, h, agentapi.PathActivate, agentapi.ActivateRequest{Checksum: "sum-1"}); w.Code != http.StatusOK {
+		t.Fatalf("activate = %d: %s", w.Code, w.Body)
+	}
+	prelude, err := os.ReadFile(filepath.Join(dir, biz.NodePreludeFile))
+	if err != nil || string(prelude) != biz.NodePreludeContent("node2") {
+		t.Fatalf("agent prelude = %q, %v", prelude, err)
 	}
 }
 
@@ -154,7 +176,7 @@ func TestAgentBareReload(t *testing.T) {
 func TestAgentStatePersistsAcrossRestart(t *testing.T) {
 	statePath := filepath.Join(t.TempDir(), "state.json")
 	applier := &fakeApplier{}
-	srv, err := New(conf.Agent{StatePath: statePath}, applier, "", "test/1", slog.Default())
+	srv, err := New(conf.Agent{StatePath: statePath}, applier, "", "", "test/1", slog.Default())
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -162,7 +184,7 @@ func TestAgentStatePersistsAcrossRestart(t *testing.T) {
 	postJSON(t, h, agentapi.PathStage, testBundle(42))
 	postJSON(t, h, agentapi.PathActivate, agentapi.ActivateRequest{Checksum: "sum-1"})
 
-	reborn, err := New(conf.Agent{StatePath: statePath}, applier, "", "test/1", slog.Default())
+	reborn, err := New(conf.Agent{StatePath: statePath}, applier, "", "", "test/1", slog.Default())
 	if err != nil {
 		t.Fatalf("New (restart): %v", err)
 	}

@@ -74,7 +74,12 @@ func runAgent(ctx context.Context, cfg *conf.Config, log *slog.Logger) int {
 	}
 
 	kumo := data.NewFileKumoMTA(cfg.KumoMTA)
-	srv, err := agent.New(agentCfg, kumo, cfg.KumoMTA.BaseURL, agentVersion, log)
+	kumo.DisableNodePrelude() // the agent writes the prelude from each bundle's NodeName
+	configDir := ""
+	if cfg.KumoMTA.ConfigPath != "" {
+		configDir = filepath.Dir(cfg.KumoMTA.ConfigPath)
+	}
+	srv, err := agent.New(agentCfg, kumo, cfg.KumoMTA.BaseURL, configDir, agentVersion, log)
 	if err != nil {
 		log.Error("agent startup failed", "error", err.Error())
 		return 1

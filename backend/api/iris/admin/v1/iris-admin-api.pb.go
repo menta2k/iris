@@ -4985,8 +4985,11 @@ type MailRecord struct {
 	// classification worker on the Reception row; empty when the feature is off or
 	// not yet resolved. The raw subject is never returned — only the label.
 	Classification string `protobuf:"bytes,15,opt,name=classification,proto3" json:"classification,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Cluster node that received/queued the message; the whole lifecycle logs
+	// from this node. Empty on pre-cluster rows.
+	Node          string `protobuf:"bytes,16,opt,name=node,proto3" json:"node,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MailRecord) Reset() {
@@ -5120,6 +5123,13 @@ func (x *MailRecord) GetRecordType() string {
 func (x *MailRecord) GetClassification() string {
 	if x != nil {
 		return x.Classification
+	}
+	return ""
+}
+
+func (x *MailRecord) GetNode() string {
+	if x != nil {
+		return x.Node
 	}
 	return ""
 }
@@ -5405,7 +5415,9 @@ type ListMailRecordsRequest struct {
 	RecordType string `protobuf:"bytes,10,opt,name=record_type,json=recordType,proto3" json:"record_type,omitempty"`
 	// Case-insensitive substring match on the SMTP diagnostic / response text
 	// (e.g. "quota", "STARTTLS", "NXDOMAIN"). Empty = all.
-	Diagnostic    string `protobuf:"bytes,11,opt,name=diagnostic,proto3" json:"diagnostic,omitempty"`
+	Diagnostic string `protobuf:"bytes,11,opt,name=diagnostic,proto3" json:"diagnostic,omitempty"`
+	// Filter by receiving cluster node name. Empty = all.
+	Node          string `protobuf:"bytes,12,opt,name=node,proto3" json:"node,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5513,6 +5525,13 @@ func (x *ListMailRecordsRequest) GetRecordType() string {
 func (x *ListMailRecordsRequest) GetDiagnostic() string {
 	if x != nil {
 		return x.Diagnostic
+	}
+	return ""
+}
+
+func (x *ListMailRecordsRequest) GetNode() string {
+	if x != nil {
+		return x.Node
 	}
 	return ""
 }
@@ -20529,7 +20548,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	" \x01(\tR\x0fassignMailclass\x12D\n" +
 	"\n" +
 	"conditions\x18\v \x03(\v2$.iris.admin.v1.RoutingMatchConditionR\n" +
-	"conditions\"\xf6\x03\n" +
+	"conditions\"\x8a\x04\n" +
 	"\n" +
 	"MailRecord\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
@@ -20554,7 +20573,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\regress_source\x18\r \x01(\tR\fegressSource\x12\x1f\n" +
 	"\vrecord_type\x18\x0e \x01(\tR\n" +
 	"recordType\x12&\n" +
-	"\x0eclassification\x18\x0f \x01(\tR\x0eclassification\"\xc4\x02\n" +
+	"\x0eclassification\x18\x0f \x01(\tR\x0eclassification\x12\x12\n" +
+	"\x04node\x18\x10 \x01(\tR\x04node\"\xc4\x02\n" +
 	"\x06Bounce\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x129\n" +
 	"\n" +
@@ -20583,7 +20603,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06domain\x18\x01 \x01(\tR\x06domain\x12\x14\n" +
 	"\x05depth\x18\x02 \x01(\x03R\x05depth\x12\x1c\n" +
 	"\tsuspended\x18\x03 \x01(\bR\tsuspended\x12%\n" +
-	"\x0esuspend_reason\x18\x04 \x01(\tR\rsuspendReason\"\x90\x03\n" +
+	"\x0esuspend_reason\x18\x04 \x01(\tR\rsuspendReason\"\xa4\x03\n" +
 	"\x16ListMailRecordsRequest\x12.\n" +
 	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\x12\x1c\n" +
 	"\tmailclass\x18\x02 \x01(\tR\tmailclass\x12\x16\n" +
@@ -20599,7 +20619,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"recordType\x12\x1e\n" +
 	"\n" +
 	"diagnostic\x18\v \x01(\tR\n" +
-	"diagnostic\"u\n" +
+	"diagnostic\x12\x12\n" +
+	"\x04node\x18\f \x01(\tR\x04node\"u\n" +
 	"\x14ListMailRecordsReply\x12/\n" +
 	"\x05items\x18\x01 \x03(\v2\x19.iris.admin.v1.MailRecordR\x05items\x12,\n" +
 	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\">\n" +

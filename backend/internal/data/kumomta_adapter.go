@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -33,6 +35,11 @@ type FileKumoMTA struct {
 	// Cluster wiring; nil until AttachCluster is called.
 	nodes       ClusterNodes
 	agentClient *http.Client
+	// manageNodePrelude controls whether ApplyConfig writes the local node's
+	// identity prelude (iris_node.lua). True on the iris control plane; the
+	// agent disables it because it writes the prelude from the bundle's
+	// NodeName instead.
+	manageNodePrelude bool
 }
 
 // NewFileKumoMTA constructs a file/exec/HTTP-based KumoMTA adapter.
@@ -43,10 +50,32 @@ func NewFileKumoMTA(cfg conf.External) *FileKumoMTA {
 	}
 	client := &http.Client{Timeout: timeout}
 	return &FileKumoMTA{
-		cfg:    cfg,
-		client: client,
-		local:  &localTransport{cfg: cfg, client: client},
+		cfg:               cfg,
+		client:            client,
+		local:             &localTransport{cfg: cfg, client: client},
+		manageNodePrelude: true,
 	}
+}
+
+// DisableNodePrelude turns off local prelude management; used by the agent,
+// which writes the prelude from the bundle's NodeName instead.
+func (k *FileKumoMTA) DisableNodePrelude() { k.manageNodePrelude = false }
+
+// writeNodePreludeFile writes the per-node identity prelude next to the policy
+// (0644: only the node name, no secrets).
+func writeNodePreludeFile(configPath, nodeName string) error {
+	if configPath == "" {
+		return biz.FailedPrecondition("KUMO_CONFIG_PATH_UNSET", "kumomta config_path is not configured")
+	}
+	dir := filepath.Dir(configPath)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return biz.Internal(err, "create config directory")
+	}
+	path := filepath.Join(dir, biz.NodePreludeFile)
+	if err := os.WriteFile(path, []byte(biz.NodePreludeContent(nodeName)), 0o644); err != nil {
+		return biz.Internal(err, "write node prelude")
+	}
+	return nil
 }
 
 // AttachCluster enables cluster-aware config distribution: nodes lists the
@@ -172,6 +201,15 @@ func (k *FileKumoMTA) ApplyConfig(ctx context.Context, rendered biz.RenderedConf
 
 	var applied []string
 	for _, t := range targets {
+		// Local nodes get their identity prelude written here (remote nodes get
+		// it from the bundle's NodeName via their agent). It sits next to the
+		// policy but outside its checksum, keeping the policy identical
+		// cluster-wide while log records carry this node's name.
+		if t.transport == k.local && k.manageNodePrelude {
+			if err := writeNodePreludeFile(k.cfg.ConfigPath, t.name); err != nil {
+				return k.cfg.ConfigPath, "", err
+			}
+		}
 		action, err := t.transport.applyConfig(ctx, rendered, restart, generation)
 		if err != nil {
 			if len(applied) > 0 {
