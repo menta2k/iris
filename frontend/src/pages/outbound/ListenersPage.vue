@@ -18,13 +18,28 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
-import { outboundConfigService } from '@/services'
+import { clusterService, outboundConfigService } from '@/services'
 import { ApiError } from '@/services/http'
-import type { Listener, ListenerRole } from '@/types'
+import type { Listener, ListenerRole, MTANode } from '@/types'
 
 const { items, loading, error, notImplemented, load } = useAsyncList<Listener>({
   loader: () => outboundConfigService.listListeners(),
 })
+
+// Cluster nodes for the optional bind-node selector ('' = every node).
+const availableNodes = ref<MTANode[]>([])
+const nodeItems = computed(() => [
+  { title: '\u2014 Every node \u2014', value: '' },
+  ...availableNodes.value.map((n) => ({ title: n.name, value: n.id })),
+])
+async function loadNodes() {
+  try {
+    const res = await clusterService.listNodes()
+    availableNodes.value = (res.items ?? []).filter((n) => n.status !== 'disabled')
+  } catch {
+    availableNodes.value = []
+  }
+}
 const { toast } = useToast()
 
 const LISTENER_STATUSES = ['active', 'disabled']
@@ -56,6 +71,7 @@ function emptyForm() {
     relay_hosts_text: '',
     status: 'active',
     role: 'inbound' as ListenerRole,
+    node_id: '',
   }
 }
 const form = ref(emptyForm())
@@ -83,6 +99,7 @@ function openCreate() {
   editId.value = null
   form.value = emptyForm()
   dialogOpen.value = true
+  void loadNodes()
 }
 
 function openEdit(l: Listener) {
@@ -101,8 +118,10 @@ function openEdit(l: Listener) {
     relay_hosts_text: (l.relayHosts ?? []).join('\n'),
     status: (l.status || 'active').toLowerCase(),
     role: l.role ?? 'inbound',
+    node_id: l.nodeId ?? '',
   }
   dialogOpen.value = true
+  void loadNodes()
 }
 
 async function submit() {
@@ -120,6 +139,7 @@ async function submit() {
     max_message_size: String(form.value.max_message_size || '0'),
     relay_hosts: parseRelayHosts(form.value.relay_hosts_text),
     role: form.value.role,
+    node_id: form.value.node_id,
   }
   try {
     if (isEdit.value && editId.value) {
@@ -173,6 +193,7 @@ async function submit() {
                 <TableHead>Name</TableHead>
                 <TableHead>IP:Port</TableHead>
                 <TableHead>Hostname</TableHead>
+                <TableHead>Node</TableHead>
                 <TableHead>TLS</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead class="text-right">Actions</TableHead>
@@ -183,6 +204,7 @@ async function submit() {
                 <TableCell class="font-medium">{{ l.name }}</TableCell>
                 <TableCell class="font-mono text-xs">{{ l.ipAddress }}:{{ l.port }}</TableCell>
                 <TableCell>{{ l.hostname }}</TableCell>
+                <TableCell>{{ l.nodeName || 'every node' }}</TableCell>
                 <TableCell>
                   <Badge :variant="l.tlsEnabled ? 'secondary' : 'outline'">
                     {{ l.tlsEnabled ? 'on' : 'off' }}
@@ -236,6 +258,23 @@ async function submit() {
             <strong>Inbound</strong> accepts mail for local domains and must leave the relay
             allowlist empty. <strong>Submission</strong> requires at least one relay host. Loopback
             always relays. (Picking a role suggests its conventional port.)
+          </p>
+        </div>
+        <div class="d-flex flex-column ga-1">
+          <Label for="listener-node">Bind on node</Label>
+          <v-select
+            id="listener-node"
+            v-model="form.node_id"
+            data-testid="listener-node"
+            :items="nodeItems"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
+          <p class="text-caption text-medium-emphasis">
+            Pin this listener to one cluster node so it binds only there (its IP must be that
+            node's address). <strong>Every node</strong> binds it on all nodes from the one shared
+            policy — use a floating/shared IP for that.
           </p>
         </div>
         <v-row dense>

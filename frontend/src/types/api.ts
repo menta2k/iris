@@ -34,6 +34,9 @@ export interface Listener {
   status: ListenerStatus
   // "inbound" (MX) | "submission".
   role: ListenerRole
+  /** Cluster node this listener binds on; empty = every node. nodeName read-only. */
+  nodeId?: string
+  nodeName?: string
 }
 
 export type ListenerRole = 'inbound' | 'submission'
@@ -52,6 +55,7 @@ export interface CreateListenerRequest {
   max_message_size: string
   relay_hosts: string[]
   role: ListenerRole
+  node_id?: string
 }
 
 // Update body adds the editable status field.

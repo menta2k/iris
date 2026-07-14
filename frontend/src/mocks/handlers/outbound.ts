@@ -36,6 +36,8 @@ function listenerFromCreate(body: CreateListenerRequest): Listener {
     relayHosts: body.relay_hosts ?? [],
     status: 'active',
     role: body.role,
+    nodeId: body.node_id ?? '',
+    nodeName: (body.node_id ? findRow('mtaNodes', body.node_id)?.name : '') ?? '',
   }
 }
 
