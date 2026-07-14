@@ -1,13 +1,9 @@
 package data
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"net/http"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -15,13 +11,28 @@ import (
 	"github.com/menta2k/iris/backend/internal/conf"
 )
 
-// FileKumoMTA is a KumoMTA adapter that writes the generated policy to disk and
-// reloads the service via a configured shell command or admin HTTP endpoint.
-// It is the production-facing implementation of biz.KumoMTAAdapter; the
-// in-memory stub in the biz package is used for local development and tests.
+// ClusterNodes is the subset of the node registry the adapter needs to fan
+// configuration out across the cluster. Satisfied by MTANodeRepo.
+type ClusterNodes interface {
+	ListNodes(ctx context.Context) ([]*biz.MTANode, error)
+	RecordNodeHeartbeat(ctx context.Context, id, version, appliedChecksum string) error
+}
+
+// FileKumoMTA is the production KumoMTA adapter. It manages the co-located
+// node through the filesystem + reload command/URL (local transport) and, when
+// a cluster registry is attached, remote nodes through their mTLS iris-agents.
+// With no registered nodes it behaves exactly as the single-node adapter
+// always has. It is the production-facing implementation of
+// biz.KumoMTAAdapter; the in-memory stub in the biz package is used for local
+// development and tests.
 type FileKumoMTA struct {
 	cfg    conf.External
 	client *http.Client
+	local  *localTransport
+
+	// Cluster wiring; nil until AttachCluster is called.
+	nodes       ClusterNodes
+	agentClient *http.Client
 }
 
 // NewFileKumoMTA constructs a file/exec/HTTP-based KumoMTA adapter.
@@ -30,42 +41,109 @@ func NewFileKumoMTA(cfg conf.External) *FileKumoMTA {
 	if timeout <= 0 {
 		timeout = 10 * time.Second
 	}
-	return &FileKumoMTA{cfg: cfg, client: &http.Client{Timeout: timeout}}
+	client := &http.Client{Timeout: timeout}
+	return &FileKumoMTA{
+		cfg:    cfg,
+		client: client,
+		local:  &localTransport{cfg: cfg, client: client},
+	}
+}
+
+// AttachCluster enables cluster-aware config distribution: nodes lists the
+// registry and agentClient is the mTLS HTTP client used to reach remote
+// iris-agents.
+func (k *FileKumoMTA) AttachCluster(nodes ClusterNodes, agentClient *http.Client) {
+	k.nodes = nodes
+	k.agentClient = agentClient
 }
 
 var _ biz.KumoMTAAdapter = (*FileKumoMTA)(nil)
 
-// Status reports the KumoMTA service state. When an admin base URL is
-// configured it is queried; otherwise an unknown state is returned.
-func (k *FileKumoMTA) Status(ctx context.Context) (biz.KumoStatus, error) {
-	if k.cfg.BaseURL == "" {
-		return biz.KumoStatus{State: "unknown"}, nil
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(k.cfg.BaseURL, "/")+"/api/check-liveness/v1", nil)
-	if err != nil {
-		return biz.KumoStatus{State: "unknown"}, nil
-	}
-	resp, err := k.client.Do(req)
-	if err != nil {
-		return biz.KumoStatus{State: "unreachable"}, nil
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		return biz.KumoStatus{State: "running"}, nil
-	}
-	return biz.KumoStatus{State: "degraded"}, nil
+// applyTarget is one node the adapter applies configuration to.
+type applyTarget struct {
+	name      string
+	nodeID    string
+	transport nodeTransport
 }
 
-// ApplyServiceControl reloads or restarts KumoMTA using the configured
-// reload mechanism. Stop/start are not performed remotely and are reported as
-// unsupported so an operator performs them deliberately.
+// applyTargets resolves the set of nodes to manage. With no registry or an
+// empty registry it is the single local node (pre-cluster behavior). Disabled
+// nodes are skipped; draining nodes still receive configuration.
+func (k *FileKumoMTA) applyTargets(ctx context.Context) ([]applyTarget, error) {
+	if k.nodes == nil {
+		return []applyTarget{{name: "local", transport: k.local}}, nil
+	}
+	nodes, err := k.nodes.ListNodes(ctx)
+	if err != nil {
+		return nil, biz.Internal(err, "list cluster nodes")
+	}
+	var out []applyTarget
+	for _, n := range nodes {
+		if n.Status == biz.MTANodeStatusDisabled {
+			continue
+		}
+		if n.Local() {
+			out = append(out, applyTarget{name: n.Name, nodeID: n.ID, transport: k.local})
+			continue
+		}
+		if k.agentClient == nil {
+			return nil, biz.FailedPrecondition("CLUSTER_TLS_UNCONFIGURED",
+				"node %s has an agent_url but cluster TLS (cluster.ca_cert/client_cert/client_key) is not configured", n.Name)
+		}
+		out = append(out, applyTarget{name: n.Name, nodeID: n.ID, transport: newAgentTransport(n, k.agentClient)})
+	}
+	if len(out) == 0 {
+		return []applyTarget{{name: "local", transport: k.local}}, nil
+	}
+	return out, nil
+}
+
+// Status reports the KumoMTA service state. With a cluster registry it is the
+// worst state across all non-disabled nodes; otherwise the local node's state.
+func (k *FileKumoMTA) Status(ctx context.Context) (biz.KumoStatus, error) {
+	targets, err := k.applyTargets(ctx)
+	if err != nil {
+		return biz.KumoStatus{State: "unknown"}, nil
+	}
+	worst := biz.KumoStatus{State: "running"}
+	rank := map[string]int{"running": 0, "unknown": 1, "degraded": 2, "unreachable": 3}
+	var degradedNodes []string
+	for _, t := range targets {
+		st := t.transport.status(ctx)
+		if rank[st.State] > rank[worst.State] {
+			worst = st
+		}
+		if st.State != "running" {
+			degradedNodes = append(degradedNodes, fmt.Sprintf("%s=%s", t.name, st.State))
+		}
+	}
+	if len(targets) > 1 && len(degradedNodes) > 0 {
+		worst.Detail = strings.Join(degradedNodes, ", ")
+	}
+	return worst, nil
+}
+
+// ApplyServiceControl reloads or restarts KumoMTA on every managed node using
+// each node's transport. Stop/start are not performed remotely and are
+// reported as unsupported so an operator performs them deliberately.
 func (k *FileKumoMTA) ApplyServiceControl(ctx context.Context, op biz.ServiceOperation) (string, error) {
 	switch op {
 	case biz.ServiceReload, biz.ServiceRestart, biz.ServiceStart:
-		if err := k.reload(ctx); err != nil {
+		targets, err := k.applyTargets(ctx)
+		if err != nil {
 			return "", err
 		}
-		return "reload triggered", nil
+		var parts []string
+		for _, t := range targets {
+			if err := t.transport.reload(ctx); err != nil {
+				return strings.Join(parts, "; "), fmt.Errorf("node %s: %w", t.name, err)
+			}
+			parts = append(parts, t.name+": reload triggered")
+		}
+		if len(targets) == 1 {
+			return "reload triggered", nil
+		}
+		return strings.Join(parts, "; "), nil
 	case biz.ServiceStop:
 		return "", biz.FailedPrecondition("SERVICE_STOP_UNSUPPORTED", "stop must be performed by an operator out of band")
 	default:
@@ -78,125 +156,41 @@ func (k *FileKumoMTA) ApplyQueueAction(_ context.Context, mailclass string, acti
 	return fmt.Sprintf("queue action %s requested for %s", action, mailclass), nil
 }
 
-// ApplyConfig writes the rendered policy to the configured path (atomically) and
-// activates it. When restart is true (init-block change) it restarts KumoMTA,
-// since a reload does not re-run kumo.on('init'); otherwise it reloads.
+// ApplyConfig distributes the rendered policy to every managed node and
+// activates it (rolling: one node at a time, halting on the first failure so
+// remaining nodes keep the previous config). When restart is true (init-block
+// change) each node restarts kumod, since a reload does not re-run
+// kumo.on('init'); otherwise it reloads.
 func (k *FileKumoMTA) ApplyConfig(ctx context.Context, rendered biz.RenderedConfig, restart bool) (string, string, error) {
-	path := k.cfg.ConfigPath
-	if path == "" {
-		return "", "", biz.FailedPrecondition("KUMO_CONFIG_PATH_UNSET", "kumomta config_path is not configured")
+	targets, err := k.applyTargets(ctx)
+	if err != nil {
+		return "", "", err
 	}
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", "", biz.Internal(err, "create config directory")
-	}
-	// Write the shaping sidecar files (loaded by the policy via kumo.shaping.load)
-	// BEFORE the policy, so they exist when kumod reloads/loads the policy. They
-	// are world-readable (0644): they hold only per-provider/per-IP rate limits
-	// (no secrets) and must be readable by the kumod/tsa-daemon user even when
-	// iris runs as a different user. The policy itself stays 0640 below because it
-	// embeds DKIM private keys.
-	for name, body := range map[string]string{
-		"iris-base.toml":       rendered.ShapingBase,
-		"iris-warmup.toml":     rendered.ShapingWarmup,
-		"iris-automation.toml": rendered.ShapingAutomation,
-	} {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
-			return "", "", biz.Internal(err, "write shaping %s", name)
-		}
-	}
-	// Write atomically: write to a temp file in the same dir then rename.
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, []byte(rendered.Content), 0o640); err != nil {
-		return "", "", biz.Internal(err, "write config")
-	}
-	if err := os.Rename(tmp, path); err != nil {
-		return "", "", biz.Internal(err, "install config")
-	}
+	// Wall-clock generation: strictly increasing across applies, used by agents
+	// for replay protection.
+	generation := time.Now().UnixNano()
 
-	action := "reloaded"
-	if restart {
-		restarted, err := k.restart(ctx)
+	var applied []string
+	for _, t := range targets {
+		action, err := t.transport.applyConfig(ctx, rendered, restart, generation)
 		if err != nil {
-			return path, "", err
-		}
-		if restarted {
-			action = "restarted"
-		} else {
-			// No restart mechanism configured: reload as a best effort, but make
-			// clear a manual restart is still required for the init change.
-			if err := k.reload(ctx); err != nil {
-				return path, "", err
+			if len(applied) > 0 {
+				return k.cfg.ConfigPath, "", fmt.Errorf("node %s failed (rollout halted; already applied: %s): %w",
+					t.name, strings.Join(applied, ", "), err)
 			}
-			action = "reloaded — MANUAL RESTART REQUIRED for init changes (listeners/spool/log hook)"
+			return k.cfg.ConfigPath, "", fmt.Errorf("node %s: %w", t.name, err)
 		}
-	} else if err := k.reload(ctx); err != nil {
-		return path, "", err
+		applied = append(applied, fmt.Sprintf("%s %s", t.name, action))
+		if t.nodeID != "" && k.nodes != nil {
+			// Best effort: reflect the applied checksum in the registry so the UI
+			// can flag drift; the agent heartbeat keeps it fresh afterwards.
+			if err := k.nodes.RecordNodeHeartbeat(ctx, t.nodeID, "", rendered.Checksum); err != nil {
+				biz.LoggerFrom(ctx).Error("record node heartbeat failed", "node", t.name, "error", err.Error())
+			}
+		}
 	}
 
-	summary := fmt.Sprintf("wrote %s and %s (%d sources, %d pools, %d routes, %d dkim, %d suppressions)",
-		path, action, rendered.VMTACount, rendered.PoolCount, rendered.RouteCount, rendered.DKIMCount, rendered.SuppressionCount)
-	return path, summary, nil
-}
-
-// restart restarts KumoMTA via the configured restart command or HTTP endpoint.
-// It returns (false, nil) when no restart mechanism is configured so the caller
-// can fall back.
-func (k *FileKumoMTA) restart(ctx context.Context) (bool, error) {
-	if cmd := strings.TrimSpace(k.cfg.RestartCommand); cmd != "" {
-		// #nosec G204 -- restart command is operator-configured, not user input.
-		c := exec.CommandContext(ctx, "/bin/sh", "-c", cmd)
-		out, err := c.CombinedOutput()
-		if err != nil {
-			return false, biz.Internal(fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out))), "kumomta restart command failed")
-		}
-		return true, nil
-	}
-	if url := strings.TrimSpace(k.cfg.RestartURL); url != "" {
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(nil))
-		if err != nil {
-			return false, biz.Internal(err, "build restart request")
-		}
-		resp, err := k.client.Do(req)
-		if err != nil {
-			return false, biz.Unavailable("KUMO_RESTART_UNREACHABLE", "kumomta restart endpoint unreachable: %v", err)
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return false, biz.Unavailable("KUMO_RESTART_FAILED", "kumomta restart returned status %d", resp.StatusCode)
-		}
-		return true, nil
-	}
-	return false, nil
-}
-
-// reload triggers a KumoMTA reload via the configured command or HTTP endpoint.
-func (k *FileKumoMTA) reload(ctx context.Context) error {
-	if cmd := strings.TrimSpace(k.cfg.ReloadCommand); cmd != "" {
-		// #nosec G204 -- reload command is operator-configured, not user input.
-		c := exec.CommandContext(ctx, "/bin/sh", "-c", cmd)
-		out, err := c.CombinedOutput()
-		if err != nil {
-			return biz.Internal(fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out))), "kumomta reload command failed")
-		}
-		return nil
-	}
-	if url := strings.TrimSpace(k.cfg.ReloadURL); url != "" {
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(nil))
-		if err != nil {
-			return biz.Internal(err, "build reload request")
-		}
-		resp, err := k.client.Do(req)
-		if err != nil {
-			return biz.Unavailable("KUMO_RELOAD_UNREACHABLE", "kumomta reload endpoint unreachable: %v", err)
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return biz.Unavailable("KUMO_RELOAD_FAILED", "kumomta reload returned status %d", resp.StatusCode)
-		}
-		return nil
-	}
-	// No reload mechanism configured: the config was written and KumoMTA is
-	// expected to pick it up on its own config epoch. Treat as success.
-	return nil
+	summary := fmt.Sprintf("applied to %s (%d sources, %d pools, %d routes, %d dkim, %d suppressions)",
+		strings.Join(applied, ", "), rendered.VMTACount, rendered.PoolCount, rendered.RouteCount, rendered.DKIMCount, rendered.SuppressionCount)
+	return k.cfg.ConfigPath, summary, nil
 }

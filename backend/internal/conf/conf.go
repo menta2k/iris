@@ -19,6 +19,8 @@ type Config struct {
 	KumoMTA   External  `yaml:"kumomta"`
 	Rspamd    External  `yaml:"rspamd"`
 	Injection Injection `yaml:"injection"`
+	Cluster   Cluster   `yaml:"cluster"`
+	Agent     Agent     `yaml:"agent"`
 	Log       Log       `yaml:"log"`
 }
 
@@ -130,6 +132,41 @@ type External struct {
 	// at (e.g. "redis://redis:6379" in docker), which may differ from the
 	// backend's own Redis address. Empty derives "redis://<redis.addr>".
 	LogStreamRedisURL string `yaml:"log_stream_redis_url"`
+}
+
+// Cluster configures iris's client side of the KumoMTA cluster control plane:
+// the mTLS material used to reach each node's iris-agent. All three paths must
+// be set to enable remote-node management; the CA and certificates are created
+// with `iris cluster init-ca` / `iris cluster issue-cert`.
+type Cluster struct {
+	// CACert verifies agent server certificates.
+	CACert string `yaml:"ca_cert"`
+	// ClientCert/ClientKey authenticate iris to the agents.
+	ClientCert string `yaml:"client_cert"`
+	ClientKey  string `yaml:"client_key"`
+}
+
+// Enabled reports whether cluster mTLS is fully configured.
+func (c Cluster) Enabled() bool {
+	return c.CACert != "" && c.ClientCert != "" && c.ClientKey != ""
+}
+
+// Agent configures the iris-agent daemon (`iris agent`) that manages the
+// co-located KumoMTA on a cluster node. The kumod control settings (config
+// path, reload/restart, base URL) come from the regular `kumomta:` section of
+// the same config file.
+type Agent struct {
+	// Listen is the mTLS listener address, e.g. ":8447". It must only be
+	// reachable on the private cluster network.
+	Listen string `yaml:"listen"`
+	// CACert verifies the iris control plane's client certificate; Cert/Key are
+	// this agent's server credentials, issued by the same cluster CA.
+	CACert string `yaml:"ca_cert"`
+	Cert   string `yaml:"cert"`
+	Key    string `yaml:"key"`
+	// StatePath persists the applied bundle checksum/generation across agent
+	// restarts. Empty defaults to "<config_path dir>/iris-agent-state.json".
+	StatePath string `yaml:"state_path"`
 }
 
 // Log holds structured-logging configuration.

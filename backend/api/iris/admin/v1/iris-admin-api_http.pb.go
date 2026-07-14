@@ -33,6 +33,7 @@ const OperationIrisAdminServiceCreateFeedbackLoop = "/iris.admin.v1.IrisAdminSer
 const OperationIrisAdminServiceCreateInboundRoute = "/iris.admin.v1.IrisAdminService/CreateInboundRoute"
 const OperationIrisAdminServiceCreateInjectionCredential = "/iris.admin.v1.IrisAdminService/CreateInjectionCredential"
 const OperationIrisAdminServiceCreateListener = "/iris.admin.v1.IrisAdminService/CreateListener"
+const OperationIrisAdminServiceCreateMTANode = "/iris.admin.v1.IrisAdminService/CreateMTANode"
 const OperationIrisAdminServiceCreateMonitoringAccount = "/iris.admin.v1.IrisAdminService/CreateMonitoringAccount"
 const OperationIrisAdminServiceCreateRoutingRule = "/iris.admin.v1.IrisAdminService/CreateRoutingRule"
 const OperationIrisAdminServiceCreateSubjectClassification = "/iris.admin.v1.IrisAdminService/CreateSubjectClassification"
@@ -50,6 +51,7 @@ const OperationIrisAdminServiceDeleteEventProcessor = "/iris.admin.v1.IrisAdminS
 const OperationIrisAdminServiceDeleteFeedbackLoop = "/iris.admin.v1.IrisAdminService/DeleteFeedbackLoop"
 const OperationIrisAdminServiceDeleteInboundRoute = "/iris.admin.v1.IrisAdminService/DeleteInboundRoute"
 const OperationIrisAdminServiceDeleteInjectionCredential = "/iris.admin.v1.IrisAdminService/DeleteInjectionCredential"
+const OperationIrisAdminServiceDeleteMTANode = "/iris.admin.v1.IrisAdminService/DeleteMTANode"
 const OperationIrisAdminServiceDeleteMonitoringAccount = "/iris.admin.v1.IrisAdminService/DeleteMonitoringAccount"
 const OperationIrisAdminServiceDeleteSubjectClassification = "/iris.admin.v1.IrisAdminService/DeleteSubjectClassification"
 const OperationIrisAdminServiceDeleteTLSPolicy = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
@@ -65,6 +67,7 @@ const OperationIrisAdminServiceGetAppliedKumoConfig = "/iris.admin.v1.IrisAdminS
 const OperationIrisAdminServiceGetDashboardSummary = "/iris.admin.v1.IrisAdminService/GetDashboardSummary"
 const OperationIrisAdminServiceGetDmarcStats = "/iris.admin.v1.IrisAdminService/GetDmarcStats"
 const OperationIrisAdminServiceGetGlobalSettings = "/iris.admin.v1.IrisAdminService/GetGlobalSettings"
+const OperationIrisAdminServiceGetMTANode = "/iris.admin.v1.IrisAdminService/GetMTANode"
 const OperationIrisAdminServiceGetMailClassStats = "/iris.admin.v1.IrisAdminService/GetMailClassStats"
 const OperationIrisAdminServiceGetMetricsTimeseries = "/iris.admin.v1.IrisAdminService/GetMetricsTimeseries"
 const OperationIrisAdminServiceGetMonitoringProbeRaw = "/iris.admin.v1.IrisAdminService/GetMonitoringProbeRaw"
@@ -93,6 +96,7 @@ const OperationIrisAdminServiceListFeedbackReports = "/iris.admin.v1.IrisAdminSe
 const OperationIrisAdminServiceListInboundRoutes = "/iris.admin.v1.IrisAdminService/ListInboundRoutes"
 const OperationIrisAdminServiceListInjectionCredentials = "/iris.admin.v1.IrisAdminService/ListInjectionCredentials"
 const OperationIrisAdminServiceListListeners = "/iris.admin.v1.IrisAdminService/ListListeners"
+const OperationIrisAdminServiceListMTANodes = "/iris.admin.v1.IrisAdminService/ListMTANodes"
 const OperationIrisAdminServiceListMailRecords = "/iris.admin.v1.IrisAdminService/ListMailRecords"
 const OperationIrisAdminServiceListMonitoringAccounts = "/iris.admin.v1.IrisAdminService/ListMonitoringAccounts"
 const OperationIrisAdminServiceListMonitoringProbeEvents = "/iris.admin.v1.IrisAdminService/ListMonitoringProbeEvents"
@@ -145,6 +149,7 @@ const OperationIrisAdminServiceUpdateGlobalSettings = "/iris.admin.v1.IrisAdminS
 const OperationIrisAdminServiceUpdateInboundRoute = "/iris.admin.v1.IrisAdminService/UpdateInboundRoute"
 const OperationIrisAdminServiceUpdateInjectionCredential = "/iris.admin.v1.IrisAdminService/UpdateInjectionCredential"
 const OperationIrisAdminServiceUpdateListener = "/iris.admin.v1.IrisAdminService/UpdateListener"
+const OperationIrisAdminServiceUpdateMTANode = "/iris.admin.v1.IrisAdminService/UpdateMTANode"
 const OperationIrisAdminServiceUpdateMonitorSettings = "/iris.admin.v1.IrisAdminService/UpdateMonitorSettings"
 const OperationIrisAdminServiceUpdateMonitoringAccount = "/iris.admin.v1.IrisAdminService/UpdateMonitoringAccount"
 const OperationIrisAdminServiceUpdateRetentionPolicy = "/iris.admin.v1.IrisAdminService/UpdateRetentionPolicy"
@@ -179,6 +184,7 @@ type IrisAdminServiceHTTPServer interface {
 	CreateInboundRoute(context.Context, *CreateInboundRouteRequest) (*InboundRoute, error)
 	CreateInjectionCredential(context.Context, *CreateInjectionCredentialRequest) (*InjectionCredential, error)
 	CreateListener(context.Context, *CreateListenerRequest) (*Listener, error)
+	CreateMTANode(context.Context, *CreateMTANodeRequest) (*MTANode, error)
 	CreateMonitoringAccount(context.Context, *CreateMonitoringAccountRequest) (*MonitoringAccount, error)
 	CreateRoutingRule(context.Context, *CreateRoutingRuleRequest) (*RoutingRule, error)
 	CreateSubjectClassification(context.Context, *CreateSubjectClassificationRequest) (*SubjectClassification, error)
@@ -199,6 +205,7 @@ type IrisAdminServiceHTTPServer interface {
 	DeleteFeedbackLoop(context.Context, *DeleteFeedbackLoopRequest) (*DeleteFeedbackLoopReply, error)
 	DeleteInboundRoute(context.Context, *DeleteInboundRouteRequest) (*DeleteInboundRouteReply, error)
 	DeleteInjectionCredential(context.Context, *DeleteInjectionCredentialRequest) (*DeleteInjectionCredentialReply, error)
+	DeleteMTANode(context.Context, *DeleteMTANodeRequest) (*DeleteMTANodeReply, error)
 	DeleteMonitoringAccount(context.Context, *DeleteMonitoringAccountRequest) (*DeleteMonitoringAccountReply, error)
 	DeleteSubjectClassification(context.Context, *DeleteSubjectClassificationRequest) (*DeleteSubjectClassificationReply, error)
 	DeleteTLSPolicy(context.Context, *DeleteTLSPolicyRequest) (*DeleteTLSPolicyReply, error)
@@ -228,6 +235,7 @@ type IrisAdminServiceHTTPServer interface {
 	GetDmarcStats(context.Context, *GetDmarcStatsRequest) (*DmarcStats, error)
 	// GetGlobalSettings Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(context.Context, *GetGlobalSettingsRequest) (*GlobalSettings, error)
+	GetMTANode(context.Context, *GetMTANodeRequest) (*MTANode, error)
 	// GetMailClassStats GetMailClassStats returns mail volume grouped by mailclass over a lookback
 	// window — powers the dashboard "mail by class" panel.
 	GetMailClassStats(context.Context, *GetMailClassStatsRequest) (*MailClassStats, error)
@@ -288,6 +296,9 @@ type IrisAdminServiceHTTPServer interface {
 	ListInjectionCredentials(context.Context, *ListInjectionCredentialsRequest) (*ListInjectionCredentialsReply, error)
 	// ListListeners Listeners (ESMTP) --------------------------------------------------------
 	ListListeners(context.Context, *ListListenersRequest) (*ListListenersReply, error)
+	// ListMTANodes KumoMTA cluster: node registry. A node without an agent_url is the legacy
+	// co-located instance; a node with one is managed via its iris-agent (mTLS).
+	ListMTANodes(context.Context, *ListMTANodesRequest) (*ListMTANodesReply, error)
 	// ListMailRecords Mail operations ----------------------------------------------------------
 	ListMailRecords(context.Context, *ListMailRecordsRequest) (*ListMailRecordsReply, error)
 	// ListMonitoringAccounts Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
@@ -373,6 +384,7 @@ type IrisAdminServiceHTTPServer interface {
 	UpdateInboundRoute(context.Context, *UpdateInboundRouteRequest) (*InboundRoute, error)
 	UpdateInjectionCredential(context.Context, *UpdateInjectionCredentialRequest) (*InjectionCredential, error)
 	UpdateListener(context.Context, *UpdateListenerRequest) (*Listener, error)
+	UpdateMTANode(context.Context, *UpdateMTANodeRequest) (*MTANode, error)
 	UpdateMonitorSettings(context.Context, *UpdateMonitorSettingsRequest) (*MonitorSettings, error)
 	UpdateMonitoringAccount(context.Context, *UpdateMonitoringAccountRequest) (*MonitoringAccount, error)
 	UpdateRetentionPolicy(context.Context, *UpdateRetentionPolicyRequest) (*RetentionPolicy, error)
@@ -519,6 +531,11 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.PUT("/v1/injection-credentials/{id}", _IrisAdminService_UpdateInjectionCredential0_HTTP_Handler(srv))
 	r.POST("/v1/injection-credentials/{id}/password", _IrisAdminService_SetInjectionCredentialPassword0_HTTP_Handler(srv))
 	r.DELETE("/v1/injection-credentials/{id}", _IrisAdminService_DeleteInjectionCredential0_HTTP_Handler(srv))
+	r.GET("/v1/cluster/nodes", _IrisAdminService_ListMTANodes0_HTTP_Handler(srv))
+	r.GET("/v1/cluster/nodes/{id}", _IrisAdminService_GetMTANode0_HTTP_Handler(srv))
+	r.POST("/v1/cluster/nodes", _IrisAdminService_CreateMTANode0_HTTP_Handler(srv))
+	r.PUT("/v1/cluster/nodes/{id}", _IrisAdminService_UpdateMTANode0_HTTP_Handler(srv))
+	r.DELETE("/v1/cluster/nodes/{id}", _IrisAdminService_DeleteMTANode0_HTTP_Handler(srv))
 	r.GET("/v1/monitoring/accounts", _IrisAdminService_ListMonitoringAccounts0_HTTP_Handler(srv))
 	r.POST("/v1/monitoring/accounts", _IrisAdminService_CreateMonitoringAccount0_HTTP_Handler(srv))
 	r.PUT("/v1/monitoring/accounts/{id}", _IrisAdminService_UpdateMonitoringAccount0_HTTP_Handler(srv))
@@ -3234,6 +3251,116 @@ func _IrisAdminService_DeleteInjectionCredential0_HTTP_Handler(srv IrisAdminServ
 	}
 }
 
+func _IrisAdminService_ListMTANodes0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListMTANodesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListMTANodes)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListMTANodes(ctx, req.(*ListMTANodesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListMTANodesReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_GetMTANode0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetMTANodeRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceGetMTANode)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetMTANode(ctx, req.(*GetMTANodeRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*MTANode)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_CreateMTANode0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateMTANodeRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceCreateMTANode)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateMTANode(ctx, req.(*CreateMTANodeRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*MTANode)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_UpdateMTANode0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateMTANodeRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceUpdateMTANode)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateMTANode(ctx, req.(*UpdateMTANodeRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*MTANode)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_DeleteMTANode0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteMTANodeRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceDeleteMTANode)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteMTANode(ctx, req.(*DeleteMTANodeRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteMTANodeReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IrisAdminService_ListMonitoringAccounts0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in ListMonitoringAccountsRequest
@@ -3543,6 +3670,7 @@ type IrisAdminServiceHTTPClient interface {
 	CreateInboundRoute(ctx context.Context, req *CreateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
 	CreateInjectionCredential(ctx context.Context, req *CreateInjectionCredentialRequest, opts ...http.CallOption) (rsp *InjectionCredential, err error)
 	CreateListener(ctx context.Context, req *CreateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
+	CreateMTANode(ctx context.Context, req *CreateMTANodeRequest, opts ...http.CallOption) (rsp *MTANode, err error)
 	CreateMonitoringAccount(ctx context.Context, req *CreateMonitoringAccountRequest, opts ...http.CallOption) (rsp *MonitoringAccount, err error)
 	CreateRoutingRule(ctx context.Context, req *CreateRoutingRuleRequest, opts ...http.CallOption) (rsp *RoutingRule, err error)
 	CreateSubjectClassification(ctx context.Context, req *CreateSubjectClassificationRequest, opts ...http.CallOption) (rsp *SubjectClassification, err error)
@@ -3563,6 +3691,7 @@ type IrisAdminServiceHTTPClient interface {
 	DeleteFeedbackLoop(ctx context.Context, req *DeleteFeedbackLoopRequest, opts ...http.CallOption) (rsp *DeleteFeedbackLoopReply, err error)
 	DeleteInboundRoute(ctx context.Context, req *DeleteInboundRouteRequest, opts ...http.CallOption) (rsp *DeleteInboundRouteReply, err error)
 	DeleteInjectionCredential(ctx context.Context, req *DeleteInjectionCredentialRequest, opts ...http.CallOption) (rsp *DeleteInjectionCredentialReply, err error)
+	DeleteMTANode(ctx context.Context, req *DeleteMTANodeRequest, opts ...http.CallOption) (rsp *DeleteMTANodeReply, err error)
 	DeleteMonitoringAccount(ctx context.Context, req *DeleteMonitoringAccountRequest, opts ...http.CallOption) (rsp *DeleteMonitoringAccountReply, err error)
 	DeleteSubjectClassification(ctx context.Context, req *DeleteSubjectClassificationRequest, opts ...http.CallOption) (rsp *DeleteSubjectClassificationReply, err error)
 	DeleteTLSPolicy(ctx context.Context, req *DeleteTLSPolicyRequest, opts ...http.CallOption) (rsp *DeleteTLSPolicyReply, err error)
@@ -3592,6 +3721,7 @@ type IrisAdminServiceHTTPClient interface {
 	GetDmarcStats(ctx context.Context, req *GetDmarcStatsRequest, opts ...http.CallOption) (rsp *DmarcStats, err error)
 	// GetGlobalSettings Global settings (deployment-level policy knobs editable in the UI).
 	GetGlobalSettings(ctx context.Context, req *GetGlobalSettingsRequest, opts ...http.CallOption) (rsp *GlobalSettings, err error)
+	GetMTANode(ctx context.Context, req *GetMTANodeRequest, opts ...http.CallOption) (rsp *MTANode, err error)
 	// GetMailClassStats GetMailClassStats returns mail volume grouped by mailclass over a lookback
 	// window — powers the dashboard "mail by class" panel.
 	GetMailClassStats(ctx context.Context, req *GetMailClassStatsRequest, opts ...http.CallOption) (rsp *MailClassStats, err error)
@@ -3652,6 +3782,9 @@ type IrisAdminServiceHTTPClient interface {
 	ListInjectionCredentials(ctx context.Context, req *ListInjectionCredentialsRequest, opts ...http.CallOption) (rsp *ListInjectionCredentialsReply, err error)
 	// ListListeners Listeners (ESMTP) --------------------------------------------------------
 	ListListeners(ctx context.Context, req *ListListenersRequest, opts ...http.CallOption) (rsp *ListListenersReply, err error)
+	// ListMTANodes KumoMTA cluster: node registry. A node without an agent_url is the legacy
+	// co-located instance; a node with one is managed via its iris-agent (mTLS).
+	ListMTANodes(ctx context.Context, req *ListMTANodesRequest, opts ...http.CallOption) (rsp *ListMTANodesReply, err error)
 	// ListMailRecords Mail operations ----------------------------------------------------------
 	ListMailRecords(ctx context.Context, req *ListMailRecordsRequest, opts ...http.CallOption) (rsp *ListMailRecordsReply, err error)
 	// ListMonitoringAccounts Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
@@ -3737,6 +3870,7 @@ type IrisAdminServiceHTTPClient interface {
 	UpdateInboundRoute(ctx context.Context, req *UpdateInboundRouteRequest, opts ...http.CallOption) (rsp *InboundRoute, err error)
 	UpdateInjectionCredential(ctx context.Context, req *UpdateInjectionCredentialRequest, opts ...http.CallOption) (rsp *InjectionCredential, err error)
 	UpdateListener(ctx context.Context, req *UpdateListenerRequest, opts ...http.CallOption) (rsp *Listener, err error)
+	UpdateMTANode(ctx context.Context, req *UpdateMTANodeRequest, opts ...http.CallOption) (rsp *MTANode, err error)
 	UpdateMonitorSettings(ctx context.Context, req *UpdateMonitorSettingsRequest, opts ...http.CallOption) (rsp *MonitorSettings, err error)
 	UpdateMonitoringAccount(ctx context.Context, req *UpdateMonitoringAccountRequest, opts ...http.CallOption) (rsp *MonitoringAccount, err error)
 	UpdateRetentionPolicy(ctx context.Context, req *UpdateRetentionPolicyRequest, opts ...http.CallOption) (rsp *RetentionPolicy, err error)
@@ -3942,6 +4076,19 @@ func (c *IrisAdminServiceHTTPClientImpl) CreateListener(ctx context.Context, in 
 	pattern := "/v1/listeners"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateListener))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) CreateMTANode(ctx context.Context, in *CreateMTANodeRequest, opts ...http.CallOption) (*MTANode, error) {
+	var out MTANode
+	pattern := "/v1/cluster/nodes"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceCreateMTANode))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -4174,6 +4321,19 @@ func (c *IrisAdminServiceHTTPClientImpl) DeleteInjectionCredential(ctx context.C
 	return &out, nil
 }
 
+func (c *IrisAdminServiceHTTPClientImpl) DeleteMTANode(ctx context.Context, in *DeleteMTANodeRequest, opts ...http.CallOption) (*DeleteMTANodeReply, error) {
+	var out DeleteMTANodeReply
+	pattern := "/v1/cluster/nodes/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteMTANode))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IrisAdminServiceHTTPClientImpl) DeleteMonitoringAccount(ctx context.Context, in *DeleteMonitoringAccountRequest, opts ...http.CallOption) (*DeleteMonitoringAccountReply, error) {
 	var out DeleteMonitoringAccountReply
 	pattern := "/v1/monitoring/accounts/{id}"
@@ -4375,6 +4535,19 @@ func (c *IrisAdminServiceHTTPClientImpl) GetGlobalSettings(ctx context.Context, 
 	pattern := "/v1/settings"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceGetGlobalSettings))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) GetMTANode(ctx context.Context, in *GetMTANodeRequest, opts ...http.CallOption) (*MTANode, error) {
+	var out MTANode
+	pattern := "/v1/cluster/nodes/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceGetMTANode))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -4771,6 +4944,21 @@ func (c *IrisAdminServiceHTTPClientImpl) ListListeners(ctx context.Context, in *
 	pattern := "/v1/listeners"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListListeners))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListMTANodes KumoMTA cluster: node registry. A node without an agent_url is the legacy
+// co-located instance; a node with one is managed via its iris-agent (mTLS).
+func (c *IrisAdminServiceHTTPClientImpl) ListMTANodes(ctx context.Context, in *ListMTANodesRequest, opts ...http.CallOption) (*ListMTANodesReply, error) {
+	var out ListMTANodesReply
+	pattern := "/v1/cluster/nodes"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListMTANodes))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -5480,6 +5668,19 @@ func (c *IrisAdminServiceHTTPClientImpl) UpdateListener(ctx context.Context, in 
 	pattern := "/v1/listeners/{id}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateListener))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IrisAdminServiceHTTPClientImpl) UpdateMTANode(ctx context.Context, in *UpdateMTANodeRequest, opts ...http.CallOption) (*MTANode, error) {
+	var out MTANode
+	pattern := "/v1/cluster/nodes/{id}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceUpdateMTANode))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {

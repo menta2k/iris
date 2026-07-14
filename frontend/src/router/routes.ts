@@ -251,6 +251,12 @@ export const routes: RouteRecordRaw[] = [
 
       // Security & audit
       {
+        path: 'operations/cluster',
+        name: 'cluster-nodes',
+        component: () => import('@/pages/operations/ClusterNodesPage.vue'),
+        meta: { permission: 'service:control', title: 'Cluster Nodes' },
+      },
+      {
         path: 'security/users',
         name: 'users',
         component: () => import('@/pages/security/UsersPage.vue'),

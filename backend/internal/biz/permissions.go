@@ -50,6 +50,10 @@ const (
 	PermMonitoringRead  Permission = "monitoring:read"
 	PermMonitoringWrite Permission = "monitoring:write"
 
+	// KumoMTA cluster node registry (nodes, enrollment, per-node control).
+	PermClusterRead  Permission = "cluster:read"
+	PermClusterWrite Permission = "cluster:write"
+
 	// Wildcard granting all permissions; reserved for the owner role.
 	PermAll Permission = "*"
 )
@@ -73,6 +77,7 @@ var BuiltinRolePermissions = map[string][]Permission{
 		PermWebhookRead, PermWebhookWrite, PermRspamdRead, PermDashboardRead,
 		PermSettingsRead, PermSettingsWrite,
 		PermMonitoringRead, PermMonitoringWrite,
+		PermClusterRead, PermClusterWrite,
 	},
 	RoleSecurity: {
 		PermUserRead, PermUserWrite, PermAuditRead, PermDashboardRead,
@@ -84,6 +89,7 @@ var BuiltinRolePermissions = map[string][]Permission{
 		PermDKIMRead, PermSuppressionRead, PermWebhookRead, PermRspamdRead,
 		PermDashboardRead, PermUserRead, PermAuditRead, PermSettingsRead,
 		PermWorkerLogsRead, PermInjectionRead, PermMonitoringRead,
+		PermClusterRead,
 	},
 }
 

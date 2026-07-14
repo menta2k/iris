@@ -1,0 +1,183 @@
+package data
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+
+	"github.com/menta2k/iris/backend/internal/biz"
+	"github.com/menta2k/iris/backend/internal/conf"
+)
+
+// nodeTransport applies configuration to and reports the state of one KumoMTA
+// node, hiding whether the node is local (file write + reload command/URL) or
+// remote (mTLS iris-agent).
+type nodeTransport interface {
+	// applyConfig installs the rendered bundle and activates it (reload, or
+	// restart when the init block changed). generation is a monotonically
+	// increasing apply counter used for replay protection on remote nodes.
+	applyConfig(ctx context.Context, rendered biz.RenderedConfig, restart bool, generation int64) (action string, err error)
+	// reload triggers a config-epoch reload without rewriting files.
+	reload(ctx context.Context) error
+	// status reports kumod liveness on the node.
+	status(ctx context.Context) biz.KumoStatus
+}
+
+// localTransport manages the co-located KumoMTA through the filesystem and the
+// configured reload/restart command or admin URL (the pre-cluster behavior).
+type localTransport struct {
+	cfg    conf.External
+	client *http.Client
+}
+
+var _ nodeTransport = (*localTransport)(nil)
+
+// shapingFiles maps the sidecar file names to their rendered content.
+func shapingFiles(rendered biz.RenderedConfig) map[string]string {
+	return map[string]string{
+		"iris-base.toml":       rendered.ShapingBase,
+		"iris-warmup.toml":     rendered.ShapingWarmup,
+		"iris-automation.toml": rendered.ShapingAutomation,
+	}
+}
+
+// applyConfig writes the rendered policy to the configured path (atomically)
+// and activates it.
+func (t *localTransport) applyConfig(ctx context.Context, rendered biz.RenderedConfig, restart bool, _ int64) (string, error) {
+	path := t.cfg.ConfigPath
+	if path == "" {
+		return "", biz.FailedPrecondition("KUMO_CONFIG_PATH_UNSET", "kumomta config_path is not configured")
+	}
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", biz.Internal(err, "create config directory")
+	}
+	// Write the shaping sidecar files (loaded by the policy via kumo.shaping.load)
+	// BEFORE the policy, so they exist when kumod reloads/loads the policy. They
+	// are world-readable (0644): they hold only per-provider/per-IP rate limits
+	// (no secrets) and must be readable by the kumod/tsa-daemon user even when
+	// iris runs as a different user. The policy itself stays 0640 below because it
+	// embeds DKIM private keys.
+	for name, body := range shapingFiles(rendered) {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+			return "", biz.Internal(err, "write shaping %s", name)
+		}
+	}
+	// Write atomically: write to a temp file in the same dir then rename.
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, []byte(rendered.Content), 0o640); err != nil {
+		return "", biz.Internal(err, "write config")
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		return "", biz.Internal(err, "install config")
+	}
+
+	action := "reloaded"
+	if restart {
+		restarted, err := t.restart(ctx)
+		if err != nil {
+			return "", err
+		}
+		if restarted {
+			action = "restarted"
+		} else {
+			// No restart mechanism configured: reload as a best effort, but make
+			// clear a manual restart is still required for the init change.
+			if err := t.reload(ctx); err != nil {
+				return "", err
+			}
+			action = "reloaded — MANUAL RESTART REQUIRED for init changes (listeners/spool/log hook)"
+		}
+	} else if err := t.reload(ctx); err != nil {
+		return "", err
+	}
+	return action, nil
+}
+
+// restart restarts KumoMTA via the configured restart command or HTTP endpoint.
+// It returns (false, nil) when no restart mechanism is configured so the caller
+// can fall back.
+func (t *localTransport) restart(ctx context.Context) (bool, error) {
+	if cmd := strings.TrimSpace(t.cfg.RestartCommand); cmd != "" {
+		// #nosec G204 -- restart command is operator-configured, not user input.
+		c := exec.CommandContext(ctx, "/bin/sh", "-c", cmd)
+		out, err := c.CombinedOutput()
+		if err != nil {
+			return false, biz.Internal(fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out))), "kumomta restart command failed")
+		}
+		return true, nil
+	}
+	if url := strings.TrimSpace(t.cfg.RestartURL); url != "" {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(nil))
+		if err != nil {
+			return false, biz.Internal(err, "build restart request")
+		}
+		resp, err := t.client.Do(req)
+		if err != nil {
+			return false, biz.Unavailable("KUMO_RESTART_UNREACHABLE", "kumomta restart endpoint unreachable: %v", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			return false, biz.Unavailable("KUMO_RESTART_FAILED", "kumomta restart returned status %d", resp.StatusCode)
+		}
+		return true, nil
+	}
+	return false, nil
+}
+
+// reload triggers a KumoMTA reload via the configured command or HTTP endpoint.
+func (t *localTransport) reload(ctx context.Context) error {
+	if cmd := strings.TrimSpace(t.cfg.ReloadCommand); cmd != "" {
+		// #nosec G204 -- reload command is operator-configured, not user input.
+		c := exec.CommandContext(ctx, "/bin/sh", "-c", cmd)
+		out, err := c.CombinedOutput()
+		if err != nil {
+			return biz.Internal(fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out))), "kumomta reload command failed")
+		}
+		return nil
+	}
+	if url := strings.TrimSpace(t.cfg.ReloadURL); url != "" {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(nil))
+		if err != nil {
+			return biz.Internal(err, "build reload request")
+		}
+		resp, err := t.client.Do(req)
+		if err != nil {
+			return biz.Unavailable("KUMO_RELOAD_UNREACHABLE", "kumomta reload endpoint unreachable: %v", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			return biz.Unavailable("KUMO_RELOAD_FAILED", "kumomta reload returned status %d", resp.StatusCode)
+		}
+		return nil
+	}
+	// No reload mechanism configured: the config was written and KumoMTA is
+	// expected to pick it up on its own config epoch. Treat as success.
+	return nil
+}
+
+// status reports kumod liveness via the admin base URL, or unknown when none is
+// configured.
+func (t *localTransport) status(ctx context.Context) biz.KumoStatus {
+	if t.cfg.BaseURL == "" {
+		return biz.KumoStatus{State: "unknown"}
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(t.cfg.BaseURL, "/")+"/api/check-liveness/v1", nil)
+	if err != nil {
+		return biz.KumoStatus{State: "unknown"}
+	}
+	resp, err := t.client.Do(req)
+	if err != nil {
+		return biz.KumoStatus{State: "unreachable"}
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return biz.KumoStatus{State: "running"}
+	}
+	return biz.KumoStatus{State: "degraded"}
+}

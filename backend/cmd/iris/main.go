@@ -132,14 +132,15 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	var kumo biz.KumoMTAAdapter
 	var queueAdmin biz.KumoQueueAdmin // live kumod queue control (nil in stub mode)
 	var injector biz.KumoInjector     // KumoMTA HTTP injection (stub in dev mode)
+	var fileKumo *data.FileKumoMTA    // non-nil outside stub mode; gains cluster wiring below
 	if cfg.KumoMTA.Stub {
 		kumo = biz.NewStubKumoMTA()
 		injector = data.StubInjector{}
 	} else {
-		fk := data.NewFileKumoMTA(cfg.KumoMTA)
-		kumo = fk
-		queueAdmin = fk
-		injector = fk
+		fileKumo = data.NewFileKumoMTA(cfg.KumoMTA)
+		kumo = fileKumo
+		queueAdmin = fileKumo
+		injector = fileKumo
 	}
 
 	// US2 mail operations: repository, Redis producer, and use case.
@@ -221,6 +222,20 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// listener is turned on).
 	injectionCredRepo := data.NewInjectionCredentialRepo(db)
 	injectionCredUC := biz.NewInjectionCredentialUsecase(injectionCredRepo, auditor)
+
+	// KumoMTA cluster node registry (see docs/kumomta-cluster-architecture.md).
+	mtaNodeRepo := data.NewMTANodeRepo(db)
+	mtaNodeUC := biz.NewMTANodeUsecase(mtaNodeRepo, auditor)
+	// Cluster-aware config distribution: with cluster mTLS configured, config
+	// applies fan out to every registered node through its iris-agent. Without
+	// it, remote nodes are refused and the adapter behaves single-node.
+	if fileKumo != nil {
+		agentClient, err := buildClusterAgentClient(cfg.Cluster, cfg.KumoMTA.Timeout)
+		if err != nil {
+			return nil, nil, fmt.Errorf("cluster TLS: %w", err)
+		}
+		fileKumo.AttachCluster(mtaNodeRepo, agentClient)
+	}
 
 	// Mail provider (inbox-placement) monitoring: mailbox accounts + probes. The
 	// mailbox password is stored reversibly encrypted (AES-GCM keyed by
@@ -415,6 +430,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		SysMon:          sysMonUC,
 		Monitoring:      monitoringUC,
 		UserDashboards:  biz.NewUserDashboardUsecase(data.NewUserDashboardRepo(db)),
+		MTANodes:        mtaNodeUC,
 	}
 
 	svc := service.NewService(deps)

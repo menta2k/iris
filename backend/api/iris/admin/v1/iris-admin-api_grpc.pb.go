@@ -145,6 +145,11 @@ const (
 	IrisAdminService_UpdateInjectionCredential_FullMethodName      = "/iris.admin.v1.IrisAdminService/UpdateInjectionCredential"
 	IrisAdminService_SetInjectionCredentialPassword_FullMethodName = "/iris.admin.v1.IrisAdminService/SetInjectionCredentialPassword"
 	IrisAdminService_DeleteInjectionCredential_FullMethodName      = "/iris.admin.v1.IrisAdminService/DeleteInjectionCredential"
+	IrisAdminService_ListMTANodes_FullMethodName                   = "/iris.admin.v1.IrisAdminService/ListMTANodes"
+	IrisAdminService_GetMTANode_FullMethodName                     = "/iris.admin.v1.IrisAdminService/GetMTANode"
+	IrisAdminService_CreateMTANode_FullMethodName                  = "/iris.admin.v1.IrisAdminService/CreateMTANode"
+	IrisAdminService_UpdateMTANode_FullMethodName                  = "/iris.admin.v1.IrisAdminService/UpdateMTANode"
+	IrisAdminService_DeleteMTANode_FullMethodName                  = "/iris.admin.v1.IrisAdminService/DeleteMTANode"
 	IrisAdminService_ListMonitoringAccounts_FullMethodName         = "/iris.admin.v1.IrisAdminService/ListMonitoringAccounts"
 	IrisAdminService_CreateMonitoringAccount_FullMethodName        = "/iris.admin.v1.IrisAdminService/CreateMonitoringAccount"
 	IrisAdminService_UpdateMonitoringAccount_FullMethodName        = "/iris.admin.v1.IrisAdminService/UpdateMonitoringAccount"
@@ -378,6 +383,13 @@ type IrisAdminServiceClient interface {
 	UpdateInjectionCredential(ctx context.Context, in *UpdateInjectionCredentialRequest, opts ...grpc.CallOption) (*InjectionCredential, error)
 	SetInjectionCredentialPassword(ctx context.Context, in *SetInjectionCredentialPasswordRequest, opts ...grpc.CallOption) (*InjectionCredential, error)
 	DeleteInjectionCredential(ctx context.Context, in *DeleteInjectionCredentialRequest, opts ...grpc.CallOption) (*DeleteInjectionCredentialReply, error)
+	// KumoMTA cluster: node registry. A node without an agent_url is the legacy
+	// co-located instance; a node with one is managed via its iris-agent (mTLS).
+	ListMTANodes(ctx context.Context, in *ListMTANodesRequest, opts ...grpc.CallOption) (*ListMTANodesReply, error)
+	GetMTANode(ctx context.Context, in *GetMTANodeRequest, opts ...grpc.CallOption) (*MTANode, error)
+	CreateMTANode(ctx context.Context, in *CreateMTANodeRequest, opts ...grpc.CallOption) (*MTANode, error)
+	UpdateMTANode(ctx context.Context, in *UpdateMTANodeRequest, opts ...grpc.CallOption) (*MTANode, error)
+	DeleteMTANode(ctx context.Context, in *DeleteMTANodeRequest, opts ...grpc.CallOption) (*DeleteMTANodeReply, error)
 	// Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
 	ListMonitoringAccounts(ctx context.Context, in *ListMonitoringAccountsRequest, opts ...grpc.CallOption) (*ListMonitoringAccountsReply, error)
 	CreateMonitoringAccount(ctx context.Context, in *CreateMonitoringAccountRequest, opts ...grpc.CallOption) (*MonitoringAccount, error)
@@ -1663,6 +1675,56 @@ func (c *irisAdminServiceClient) DeleteInjectionCredential(ctx context.Context, 
 	return out, nil
 }
 
+func (c *irisAdminServiceClient) ListMTANodes(ctx context.Context, in *ListMTANodesRequest, opts ...grpc.CallOption) (*ListMTANodesReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListMTANodesReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListMTANodes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) GetMTANode(ctx context.Context, in *GetMTANodeRequest, opts ...grpc.CallOption) (*MTANode, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MTANode)
+	err := c.cc.Invoke(ctx, IrisAdminService_GetMTANode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) CreateMTANode(ctx context.Context, in *CreateMTANodeRequest, opts ...grpc.CallOption) (*MTANode, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MTANode)
+	err := c.cc.Invoke(ctx, IrisAdminService_CreateMTANode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) UpdateMTANode(ctx context.Context, in *UpdateMTANodeRequest, opts ...grpc.CallOption) (*MTANode, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MTANode)
+	err := c.cc.Invoke(ctx, IrisAdminService_UpdateMTANode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) DeleteMTANode(ctx context.Context, in *DeleteMTANodeRequest, opts ...grpc.CallOption) (*DeleteMTANodeReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteMTANodeReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_DeleteMTANode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *irisAdminServiceClient) ListMonitoringAccounts(ctx context.Context, in *ListMonitoringAccountsRequest, opts ...grpc.CallOption) (*ListMonitoringAccountsReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListMonitoringAccountsReply)
@@ -2011,6 +2073,13 @@ type IrisAdminServiceServer interface {
 	UpdateInjectionCredential(context.Context, *UpdateInjectionCredentialRequest) (*InjectionCredential, error)
 	SetInjectionCredentialPassword(context.Context, *SetInjectionCredentialPasswordRequest) (*InjectionCredential, error)
 	DeleteInjectionCredential(context.Context, *DeleteInjectionCredentialRequest) (*DeleteInjectionCredentialReply, error)
+	// KumoMTA cluster: node registry. A node without an agent_url is the legacy
+	// co-located instance; a node with one is managed via its iris-agent (mTLS).
+	ListMTANodes(context.Context, *ListMTANodesRequest) (*ListMTANodesReply, error)
+	GetMTANode(context.Context, *GetMTANodeRequest) (*MTANode, error)
+	CreateMTANode(context.Context, *CreateMTANodeRequest) (*MTANode, error)
+	UpdateMTANode(context.Context, *UpdateMTANodeRequest) (*MTANode, error)
+	DeleteMTANode(context.Context, *DeleteMTANodeRequest) (*DeleteMTANodeReply, error)
 	// Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
 	ListMonitoringAccounts(context.Context, *ListMonitoringAccountsRequest) (*ListMonitoringAccountsReply, error)
 	CreateMonitoringAccount(context.Context, *CreateMonitoringAccountRequest) (*MonitoringAccount, error)
@@ -2413,6 +2482,21 @@ func (UnimplementedIrisAdminServiceServer) SetInjectionCredentialPassword(contex
 }
 func (UnimplementedIrisAdminServiceServer) DeleteInjectionCredential(context.Context, *DeleteInjectionCredentialRequest) (*DeleteInjectionCredentialReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteInjectionCredential not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListMTANodes(context.Context, *ListMTANodesRequest) (*ListMTANodesReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListMTANodes not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) GetMTANode(context.Context, *GetMTANodeRequest) (*MTANode, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetMTANode not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) CreateMTANode(context.Context, *CreateMTANodeRequest) (*MTANode, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateMTANode not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) UpdateMTANode(context.Context, *UpdateMTANodeRequest) (*MTANode, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateMTANode not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) DeleteMTANode(context.Context, *DeleteMTANodeRequest) (*DeleteMTANodeReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteMTANode not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) ListMonitoringAccounts(context.Context, *ListMonitoringAccountsRequest) (*ListMonitoringAccountsReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListMonitoringAccounts not implemented")
@@ -4742,6 +4826,96 @@ func _IrisAdminService_DeleteInjectionCredential_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IrisAdminService_ListMTANodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListMTANodesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListMTANodes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListMTANodes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListMTANodes(ctx, req.(*ListMTANodesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_GetMTANode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMTANodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).GetMTANode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_GetMTANode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).GetMTANode(ctx, req.(*GetMTANodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_CreateMTANode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateMTANodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).CreateMTANode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_CreateMTANode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).CreateMTANode(ctx, req.(*CreateMTANodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_UpdateMTANode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateMTANodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).UpdateMTANode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_UpdateMTANode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).UpdateMTANode(ctx, req.(*UpdateMTANodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_DeleteMTANode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteMTANodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).DeleteMTANode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_DeleteMTANode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).DeleteMTANode(ctx, req.(*DeleteMTANodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IrisAdminService_ListMonitoringAccounts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListMonitoringAccountsRequest)
 	if err := dec(in); err != nil {
@@ -5486,6 +5660,26 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteInjectionCredential",
 			Handler:    _IrisAdminService_DeleteInjectionCredential_Handler,
+		},
+		{
+			MethodName: "ListMTANodes",
+			Handler:    _IrisAdminService_ListMTANodes_Handler,
+		},
+		{
+			MethodName: "GetMTANode",
+			Handler:    _IrisAdminService_GetMTANode_Handler,
+		},
+		{
+			MethodName: "CreateMTANode",
+			Handler:    _IrisAdminService_CreateMTANode_Handler,
+		},
+		{
+			MethodName: "UpdateMTANode",
+			Handler:    _IrisAdminService_UpdateMTANode_Handler,
+		},
+		{
+			MethodName: "DeleteMTANode",
+			Handler:    _IrisAdminService_DeleteMTANode_Handler,
 		},
 		{
 			MethodName: "ListMonitoringAccounts",

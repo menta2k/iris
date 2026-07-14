@@ -1591,3 +1591,37 @@ export interface TestMonitorNotificationResult {
   ok: boolean
   error?: string
 }
+
+// ---- KumoMTA cluster nodes ----
+
+export type MTANodeStatus = 'active' | 'disabled' | 'draining'
+
+export interface MTANode {
+  id: string
+  name: string
+  /** iris-agent base URL (https). Empty = the legacy co-located local node. */
+  agentUrl: string
+  /** kumo-proxy endpoint on the private cluster network (empty = no egress IPs). */
+  proxyHost: string
+  proxyPort: number
+  status: MTANodeStatus
+  /** SHA-256 of the enrolled agent certificate; read-only. */
+  certFingerprint: string
+  version: string
+  appliedChecksum: string
+  lastSeenAt?: string
+  notes: string
+}
+
+export interface CreateMTANodeRequest {
+  name: string
+  agentUrl: string
+  proxyHost: string
+  proxyPort: number
+  status: MTANodeStatus
+  notes: string
+}
+
+export interface UpdateMTANodeRequest extends CreateMTANodeRequest {
+  id: string
+}

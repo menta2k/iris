@@ -17,6 +17,7 @@ import type {
   InboundRoute,
   Listener,
   MailRecord,
+  MTANode,
   Queue,
   RoutingRule,
   RspamdResult,
@@ -62,6 +63,7 @@ export interface MockData {
   injectionCredentials: InjectionCredential[]
   monitoringAccounts: MonitoringAccount[]
   monitoringProbes: MonitoringProbe[]
+  mtaNodes: MTANode[]
   dmarcReports: DmarcReport[]
   acmeCertificates: AcmeCertificate[]
 }

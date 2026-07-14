@@ -22,8 +22,16 @@ func runCommand(ctx context.Context, cfg *conf.Config, log *slog.Logger, args []
 		force := fs.Bool("yes", false, "skip the interactive confirmation prompt")
 		_ = fs.Parse(args[1:])
 		return runClearSuppressions(ctx, cfg, log, *force)
+	case "agent":
+		return runAgent(ctx, cfg, log)
+	case "cluster":
+		return runClusterCommand(cfg, args[1:])
 	default:
-		fmt.Fprintf(os.Stderr, "unknown command %q\n\nAvailable commands:\n  clear-suppressions [-yes]   Delete every suppression entry (database + Redis)\n", args[0])
+		fmt.Fprintf(os.Stderr, "unknown command %q\n\nAvailable commands:\n"+
+			"  clear-suppressions [-yes]        Delete every suppression entry (database + Redis)\n"+
+			"  agent                            Run the iris-agent (mTLS node control plane)\n"+
+			"  cluster init-ca                  Create the cluster CA (ca.crt/ca.key)\n"+
+			"  cluster issue-cert [flags]       Issue an agent or control-plane certificate\n", args[0])
 		return 2
 	}
 }

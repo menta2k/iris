@@ -4,6 +4,7 @@
 
 import type { Route } from '../router'
 import { authRoutes } from './auth'
+import { clusterRoutes } from './cluster'
 import { bounceRulesRoutes } from './bounce-rules'
 import { dashboardRoutes } from './dashboard'
 import { dashboardsRoutes } from './dashboards'
@@ -33,4 +34,5 @@ export const routes: Route[] = [
   ...settingsRoutes,
   ...systemMonitorRoutes,
   ...toolsRoutes,
+  ...clusterRoutes,
 ]

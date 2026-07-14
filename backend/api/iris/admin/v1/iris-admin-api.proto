@@ -494,6 +494,24 @@ service IrisAdminService {
     option (google.api.http) = { delete: "/v1/injection-credentials/{id}" };
   }
 
+  // KumoMTA cluster: node registry. A node without an agent_url is the legacy
+  // co-located instance; a node with one is managed via its iris-agent (mTLS).
+  rpc ListMTANodes(ListMTANodesRequest) returns (ListMTANodesReply) {
+    option (google.api.http) = { get: "/v1/cluster/nodes" };
+  }
+  rpc GetMTANode(GetMTANodeRequest) returns (MTANode) {
+    option (google.api.http) = { get: "/v1/cluster/nodes/{id}" };
+  }
+  rpc CreateMTANode(CreateMTANodeRequest) returns (MTANode) {
+    option (google.api.http) = { post: "/v1/cluster/nodes" body: "*" };
+  }
+  rpc UpdateMTANode(UpdateMTANodeRequest) returns (MTANode) {
+    option (google.api.http) = { put: "/v1/cluster/nodes/{id}" body: "*" };
+  }
+  rpc DeleteMTANode(DeleteMTANodeRequest) returns (DeleteMTANodeReply) {
+    option (google.api.http) = { delete: "/v1/cluster/nodes/{id}" };
+  }
+
   // Mail provider (inbox-placement) monitoring: mailbox accounts + probes.
   rpc ListMonitoringAccounts(ListMonitoringAccountsRequest) returns (ListMonitoringAccountsReply) {
     option (google.api.http) = { get: "/v1/monitoring/accounts" };
@@ -2373,4 +2391,54 @@ message TestMonitorNotificationRequest {
 message TestMonitorNotificationReply {
   bool ok = 1;
   string error = 2;
+}
+
+// KumoMTA cluster node registry ----------------------------------------------
+
+// MTANode is one KumoMTA host iris controls. agent_url empty = legacy local
+// (co-located) node; proxy_host/proxy_port point at the node's kumo-proxy on
+// the private cluster network. version/applied_checksum/last_seen_at are
+// agent-reported and read-only.
+message MTANode {
+  string id = 1;
+  string name = 2;
+  string agent_url = 3;
+  string proxy_host = 4;
+  int32 proxy_port = 5;
+  string status = 6; // active | disabled | draining
+  string cert_fingerprint = 7; // sha256 of enrolled agent cert; read-only
+  string version = 8;
+  string applied_checksum = 9;
+  string last_seen_at = 10;
+  string notes = 11;
+}
+message ListMTANodesRequest {}
+message ListMTANodesReply {
+  repeated MTANode items = 1;
+}
+message GetMTANodeRequest {
+  string id = 1;
+}
+message CreateMTANodeRequest {
+  string name = 1;
+  string agent_url = 2;
+  string proxy_host = 3;
+  int32 proxy_port = 4;
+  string status = 5;
+  string notes = 6;
+}
+message UpdateMTANodeRequest {
+  string id = 1;
+  string name = 2;
+  string agent_url = 3;
+  string proxy_host = 4;
+  int32 proxy_port = 5;
+  string status = 6;
+  string notes = 7;
+}
+message DeleteMTANodeRequest {
+  string id = 1;
+}
+message DeleteMTANodeReply {
+  bool ok = 1;
 }

@@ -501,6 +501,96 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ListBouncesReply'
+    /v1/cluster/nodes:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                KumoMTA cluster: node registry. A node without an agent_url is the legacy
+                 co-located instance; a node with one is managed via its iris-agent (mTLS).
+            operationId: IrisAdminService_ListMTANodes
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListMTANodesReply'
+        post:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_CreateMTANode
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateMTANodeRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MTANode'
+    /v1/cluster/nodes/{id}:
+        get:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_GetMTANode
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MTANode'
+        put:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_UpdateMTANode
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateMTANodeRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MTANode'
+        delete:
+            tags:
+                - IrisAdminService
+            operationId: IrisAdminService_DeleteMTANode
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteMTANodeReply'
     /v1/dashboard/mailclass-stats:
         get:
             tags:
@@ -3310,6 +3400,22 @@ components:
                         type: string
                 role:
                     type: string
+        CreateMTANodeRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                agent_url:
+                    type: string
+                proxy_host:
+                    type: string
+                proxy_port:
+                    type: integer
+                    format: int32
+                status:
+                    type: string
+                notes:
+                    type: string
         CreateMonitoringAccountRequest:
             type: object
             properties:
@@ -3521,6 +3627,11 @@ components:
                 ok:
                     type: boolean
         DeleteInjectionCredentialReply:
+            type: object
+            properties:
+                ok:
+                    type: boolean
+        DeleteMTANodeReply:
             type: object
             properties:
                 ok:
@@ -4255,6 +4366,13 @@ components:
                         $ref: '#/components/schemas/Listener'
                 page:
                     $ref: '#/components/schemas/PageReply'
+        ListMTANodesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/MTANode'
         ListMailRecordsReply:
             type: object
             properties:
@@ -4484,6 +4602,37 @@ components:
         LogoutRequest:
             type: object
             properties: {}
+        MTANode:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                agent_url:
+                    type: string
+                proxy_host:
+                    type: string
+                proxy_port:
+                    type: integer
+                    format: int32
+                status:
+                    type: string
+                cert_fingerprint:
+                    type: string
+                version:
+                    type: string
+                applied_checksum:
+                    type: string
+                last_seen_at:
+                    type: string
+                notes:
+                    type: string
+            description: |-
+                MTANode is one KumoMTA host iris controls. agent_url empty = legacy local
+                 (co-located) node; proxy_host/proxy_port point at the node's kumo-proxy on
+                 the private cluster network. version/applied_checksum/last_seen_at are
+                 agent-reported and read-only.
         MailClassStat:
             type: object
             properties:
@@ -5727,6 +5876,24 @@ components:
                 status:
                     type: string
                 role:
+                    type: string
+        UpdateMTANodeRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                agent_url:
+                    type: string
+                proxy_host:
+                    type: string
+                proxy_port:
+                    type: integer
+                    format: int32
+                status:
+                    type: string
+                notes:
                     type: string
         UpdateMonitorSettingsRequest:
             type: object

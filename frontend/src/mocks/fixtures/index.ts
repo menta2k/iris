@@ -12,6 +12,7 @@ import { feedbackLoops, inboundRoutes, rspamdResults } from './inbound'
 import { auditEntries, injectionCredentials, users } from './security'
 import { monitoringAccounts, monitoringProbes } from './monitoring'
 import { classifications } from './settings'
+import { mtaNodes } from './cluster'
 import { acmeCertificates } from './tools'
 
 export const seedData: MockData = {
@@ -43,4 +44,5 @@ export const seedData: MockData = {
   monitoringProbes,
   dmarcReports,
   acmeCertificates,
+  mtaNodes,
 }

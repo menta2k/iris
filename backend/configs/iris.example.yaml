@@ -56,6 +56,25 @@ kumomta:
   # derives "redis://<data.redis.addr>". Enables mail logging when set.
   log_stream_redis_url: ""
 
+# KumoMTA cluster control plane (iris side). Set all three to let iris manage
+# remote nodes through their iris-agents over mutual TLS. Create the material
+# with:  iris cluster init-ca   and   iris cluster issue-cert -name iris-control-plane
+cluster:
+  ca_cert: ""       # e.g. /etc/iris/cluster/ca.crt
+  client_cert: ""   # e.g. /etc/iris/cluster/iris-control-plane.crt
+  client_key: ""    # e.g. /etc/iris/cluster/iris-control-plane.key
+
+# iris-agent daemon (run with `iris agent` ON EACH KumoMTA node; not on the
+# central iris host). Uses the kumomta: section above for kumod control (config
+# path, reload/restart, base_url) and this section for its own mTLS listener.
+# The listener must only be reachable on the private cluster network.
+agent:
+  listen: ":8447"
+  ca_cert: ""       # cluster CA certificate (verifies iris's client cert)
+  cert: ""          # this node's server certificate (issue-cert -server -sans <node ip/dns>)
+  key: ""           # this node's private key
+  # state_path: ""  # default: <config_path dir>/iris-agent-state.json
+
 rspamd:
   base_url: "http://localhost:11334"
   timeout: 10s

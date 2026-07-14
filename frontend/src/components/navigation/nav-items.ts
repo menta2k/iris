@@ -59,6 +59,7 @@ export const navItems: NavItem[] = [
     icon: 'mdi-cog-outline',
     children: [
       { label: 'KumoMTA Config', to: '/operations/kumomta-config', permission: 'service:control' },
+      { label: 'Cluster Nodes', to: '/operations/cluster', permission: 'service:control' },
       { label: 'Global Settings', to: '/settings/global', permission: 'service:control' },
       {
         label: 'Subject Classifications',

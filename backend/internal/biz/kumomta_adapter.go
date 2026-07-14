@@ -51,6 +51,9 @@ func ValidQueueAction(action string) bool {
 type KumoStatus struct {
 	State     string
 	CheckedAt time.Time
+	// Detail optionally names degraded/unreachable cluster nodes when the state
+	// aggregates more than one node.
+	Detail string
 }
 
 // KumoMTAAdapter isolates all interaction with the KumoMTA service. Every method
