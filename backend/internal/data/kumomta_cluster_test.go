@@ -93,7 +93,7 @@ func TestApplyConfigClusterFanOut(t *testing.T) {
 	path := filepath.Join(dir, "iris_generated.lua")
 	adapter := NewFileKumoMTA(conf.External{ConfigPath: path})
 	nodes := &fakeClusterNodes{nodes: []*biz.MTANode{
-		{ID: "n1", Name: "node1", Status: biz.MTANodeStatusActive},                     // local
+		{ID: "n1", Name: "node1", Status: biz.MTANodeStatusActive},                    // local
 		{ID: "n2", Name: "node2", Status: biz.MTANodeStatusActive, AgentURL: srv.URL}, // remote
 		{ID: "n3", Name: "node3", Status: biz.MTANodeStatusDisabled, AgentURL: srv.URL},
 	}}
@@ -132,6 +132,73 @@ func TestApplyConfigClusterFanOut(t *testing.T) {
 	}
 	if nodes.heartbeats["n1"] != "sum-1" || nodes.heartbeats["n2"] != "sum-1" {
 		t.Fatalf("heartbeats = %v", nodes.heartbeats)
+	}
+}
+
+// TestApplyConfigCarriesListenerTLSFiles verifies a listener TLS cert present on
+// the control-plane host is read once, written to the local node, and shipped
+// (with content + checksum) in the remote node's bundle — the DKIM-key-style
+// propagation for cert files.
+func TestApplyConfigCarriesListenerTLSFiles(t *testing.T) {
+	agent := &fakeAgent{}
+	srv := httptest.NewServer(agent.handler())
+	defer srv.Close()
+
+	dir := t.TempDir()
+	// The cert lives at an absolute path; use the temp dir so the local write
+	// (rewrite of the same bytes) stays inside the sandbox.
+	certPath := filepath.Join(dir, "certs", "mx.pem")
+	if err := os.MkdirAll(filepath.Dir(certPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	certPEM := "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"
+	if err := os.WriteFile(certPath, []byte(certPEM), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	adapter := NewFileKumoMTA(conf.External{ConfigPath: filepath.Join(dir, "iris_generated.lua")})
+	adapter.AttachCluster(&fakeClusterNodes{nodes: []*biz.MTANode{
+		{ID: "n1", Name: "node1", Status: biz.MTANodeStatusActive},
+		{ID: "n2", Name: "node2", Status: biz.MTANodeStatusActive, AgentURL: srv.URL},
+	}}, srv.Client())
+
+	rendered := clusterRendered()
+	rendered.TLSFiles = []biz.TLSFile{{Path: certPath}} // reference only; hydrated from disk
+	if _, _, err := adapter.ApplyConfig(context.Background(), rendered, false); err != nil {
+		t.Fatalf("ApplyConfig: %v", err)
+	}
+
+	// Remote bundle carries the cert content + a correct checksum.
+	if len(agent.staged.TLSFiles) != 1 {
+		t.Fatalf("remote bundle TLS files = %d", len(agent.staged.TLSFiles))
+	}
+	f := agent.staged.TLSFiles[0]
+	if f.Name != certPath || f.Content != certPEM || f.SHA256 != sha256Hex(certPEM) {
+		t.Fatalf("remote TLS file = %+v", f)
+	}
+}
+
+// TestApplyConfigTLSFileMissingCentrallyIsSkipped verifies a referenced cert
+// that does not exist on the control-plane host does not block the apply and is
+// not shipped (the node is expected to provide it).
+func TestApplyConfigTLSFileMissingCentrallyIsSkipped(t *testing.T) {
+	agent := &fakeAgent{}
+	srv := httptest.NewServer(agent.handler())
+	defer srv.Close()
+
+	dir := t.TempDir()
+	adapter := NewFileKumoMTA(conf.External{ConfigPath: filepath.Join(dir, "p.lua")})
+	adapter.AttachCluster(&fakeClusterNodes{nodes: []*biz.MTANode{
+		{ID: "n2", Name: "node2", Status: biz.MTANodeStatusActive, AgentURL: srv.URL},
+	}}, srv.Client())
+
+	rendered := clusterRendered()
+	rendered.TLSFiles = []biz.TLSFile{{Path: filepath.Join(dir, "absent", "mx.pem")}}
+	if _, _, err := adapter.ApplyConfig(context.Background(), rendered, false); err != nil {
+		t.Fatalf("ApplyConfig should tolerate a centrally-absent cert: %v", err)
+	}
+	if len(agent.staged.TLSFiles) != 0 {
+		t.Fatalf("absent cert must not be shipped, got %+v", agent.staged.TLSFiles)
 	}
 }
 

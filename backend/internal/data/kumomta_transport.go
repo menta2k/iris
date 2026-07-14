@@ -70,6 +70,35 @@ func chgrpConfig(path, group string) error {
 	return nil
 }
 
+// writeTLSFile installs one listener TLS cert/key file at its absolute path.
+// Written 0640 (a key file may be secret) and chgrp'd to the config group so
+// kumod can read it when it runs as a different user than the writer — the same
+// treatment the policy gets. A no-op when content is empty (reference only).
+// The path is re-validated (absolute, no shell metacharacters) so a bundle can
+// only ever land a cert file at a listener-shaped path.
+func writeTLSFile(f biz.TLSFile, group string) error {
+	if strings.TrimSpace(f.Content) == "" {
+		return nil
+	}
+	if !biz.ValidTLSFilePath(f.Path) {
+		return biz.Invalid("KUMO_TLS_PATH_INVALID", "listener TLS file path %q is not an absolute, metacharacter-free path", f.Path)
+	}
+	if err := os.MkdirAll(filepath.Dir(f.Path), 0o755); err != nil {
+		return biz.Internal(err, "create TLS file directory for %s", f.Path)
+	}
+	tmp := f.Path + ".tmp"
+	if err := os.WriteFile(tmp, []byte(f.Content), 0o640); err != nil {
+		return biz.Internal(err, "write TLS file %s", f.Path)
+	}
+	if err := chgrpConfig(tmp, group); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, f.Path); err != nil {
+		return biz.Internal(err, "install TLS file %s", f.Path)
+	}
+	return nil
+}
+
 var _ nodeTransport = (*localTransport)(nil)
 
 // shapingFiles maps the sidecar file names to their rendered content.
@@ -120,6 +149,18 @@ func (t *localTransport) applyConfig(ctx context.Context, rendered biz.RenderedC
 	}
 	if err := os.Rename(tmp, path); err != nil {
 		return "", biz.Internal(err, "install config")
+	}
+
+	// Listener TLS cert/key files carried in the bundle. Written to their
+	// absolute paths (identical on every node) so a centrally-issued cert
+	// reaches this node. On the co-located control-plane host this rewrites the
+	// same bytes it was read from (a no-op); on a remote node it materializes
+	// the shipped cert. Entries with empty content are references only (the node
+	// provides the file itself) and are skipped.
+	for _, f := range rendered.TLSFiles {
+		if err := writeTLSFile(f, t.cfg.ConfigGroup); err != nil {
+			return "", err
+		}
 	}
 
 	action := "reloaded"

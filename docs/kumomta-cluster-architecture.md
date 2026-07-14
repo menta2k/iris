@@ -152,9 +152,9 @@ Today `FileKumoMTA.ApplyConfig` writes `/opt/kumomta/etc/policy/...` locally
 and reloads. New flow, per node, via iris-agent over mTLS:
 
 1. **Stage**: iris POSTs the bundle (policy Lua, `iris-base.toml`,
-   `iris-warmup.toml`, `iris-automation.toml`, node prelude) with SHA-256
-   checksums; agent writes to a staging dir, verifies checksums, runs the
-   same Lua lint locally.
+   `iris-warmup.toml`, `iris-automation.toml`, node prelude, and any listener
+   TLS cert/key files) with SHA-256 checksums; agent writes to a staging dir,
+   verifies checksums, runs the same Lua lint locally.
 2. **Activate**: atomic rename into place (policy 0640 as today), then
    reload (`bump-config-epoch`) or restart (init-block changed — same
    `InitChecksum` logic as now).
@@ -255,6 +255,21 @@ Current state to fix: kumod admin/inject API is plain HTTP, no auth,
    today) with a dedicated user, agent never logs bundle contents, and the
    audit trail records who applied what where. (Follow-up, out of v1 scope:
    move DKIM keys out of the policy into agent-managed key files.)
+
+   **Listener TLS cert/key files** propagate the same way. A listener's
+   `tls_certificate`/`tls_private_key` are referenced by absolute *path* in the
+   byte-identical policy; on apply, iris reads each referenced file from the
+   control-plane host and carries its content in the bundle (SHA-256 checked,
+   written 0640 at the same absolute path on every node, chgrp'd to
+   `config_group` so kumod can read it). So a cert issued centrally (e.g. by
+   iris's ACME) reaches every node automatically — no per-node ACME required.
+   Caveats: (a) the agent's user must be able to write the cert directory
+   (`chown -R iris:iris /etc/kumomta/certs`, or whatever path the listener
+   uses); (b) a file that does not exist on the control-plane host is logged
+   and skipped, not shipped — that node must then provide it itself (per-node
+   ACME or out-of-band sync); (c) an ACME *renewal* only reaches nodes on the
+   next config apply, since the renewal changes file content but not the policy
+   checksum — trigger an apply after renewal (or on a schedule) to roll it out.
 6. **AuthZ & audit in iris.** New permissions: `cluster:read`,
    `cluster:write`; node CRUD/enroll/drain and every per-node apply or
    service action audit-logged with node identity. Existing

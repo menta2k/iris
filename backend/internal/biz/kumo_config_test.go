@@ -1383,6 +1383,36 @@ func TestLintLuaCatchesSyntaxError(t *testing.T) {
 	}
 }
 
+func TestRenderCollectsListenerTLSFiles(t *testing.T) {
+	snap := ConfigSnapshot{
+		Listeners: []*Listener{
+			// TLS-enabled: both cert and key paths are collected.
+			{ID: "l1", Name: "mx", IPAddress: "203.0.113.1", Port: 25, Hostname: "mx.example.com", Status: ListenerStatusActive,
+				TLSEnabled: true, TLSCertPath: "/etc/kumomta/certs/mx.pem", TLSKeyPath: "/etc/kumomta/certs/mx.key"},
+			// Shares the same cert (multi-listener SNI): must dedupe, not duplicate.
+			{ID: "l2", Name: "submission", IPAddress: "203.0.113.1", Port: 587, Hostname: "mx.example.com", Status: ListenerStatusActive,
+				TLSEnabled: true, TLSCertPath: "/etc/kumomta/certs/mx.pem", TLSKeyPath: "/etc/kumomta/certs/mx.key"},
+			// TLS-disabled: contributes nothing even if paths lingered.
+			{ID: "l3", Name: "plain", IPAddress: "203.0.113.2", Port: 2525, Hostname: "mx.example.com", Status: ListenerStatusActive},
+		},
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	got := make([]string, len(r.TLSFiles))
+	for i, f := range r.TLSFiles {
+		if f.Content != "" {
+			t.Errorf("renderer must leave TLSFiles content empty (hydrated at apply time); got %q", f.Content)
+		}
+		got[i] = f.Path
+	}
+	want := []string{"/etc/kumomta/certs/mx.key", "/etc/kumomta/certs/mx.pem"} // sorted, deduped
+	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("TLS file paths = %v, want %v", got, want)
+	}
+}
+
 func TestInitChecksumDistinguishesReloadFromRestart(t *testing.T) {
 	// The init checksum must change only for init-block changes (listeners, log
 	// hook, spool) — which need a KumoMTA restart — and stay stable for

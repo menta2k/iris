@@ -39,6 +39,13 @@ type ConfigBundle struct {
 	Policy File `json:"policy"`
 	// Shaping are the sidecar TOML files (written 0644 next to the policy).
 	Shaping []File `json:"shaping"`
+	// TLSFiles are the listener TLS certificate/key files the policy references
+	// by absolute path. The agent writes each to its Name (an absolute path,
+	// 0640 — they may embed private keys) before applying, so a centrally-issued
+	// (e.g. ACME) cert propagates to every node the way DKIM keys ride in the
+	// policy. Empty when no TLS listener is configured or the files were not
+	// present on the control-plane host.
+	TLSFiles []File `json:"tls_files,omitempty"`
 	// NodeName is the receiving node's registry name; the agent writes it into
 	// the per-node identity prelude (iris_node.lua) so log records carry a
 	// 'node' meta. It is intentionally OUTSIDE the checksummed policy so the

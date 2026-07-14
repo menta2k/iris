@@ -153,10 +153,22 @@ func (s *Server) handleStage(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "BUNDLE_INCOMPLETE", "bundle checksum and policy are required")
 		return
 	}
-	for _, f := range append([]agentapi.File{b.Policy}, b.Shaping...) {
+	all := append([]agentapi.File{b.Policy}, b.Shaping...)
+	all = append(all, b.TLSFiles...)
+	for _, f := range all {
 		if sum := sha256Hex(f.Content); sum != f.SHA256 {
 			writeErr(w, http.StatusBadRequest, "BUNDLE_CHECKSUM_MISMATCH",
 				fmt.Sprintf("file %s checksum mismatch (got %s, declared %s)", f.Name, sum, f.SHA256))
+			return
+		}
+	}
+	// TLS files land at operator-controlled absolute paths; reject anything that
+	// is not an absolute, metacharacter-free path so a bundle can only write a
+	// cert file where a listener would reference one.
+	for _, f := range b.TLSFiles {
+		if !biz.ValidTLSFilePath(f.Name) {
+			writeErr(w, http.StatusBadRequest, "BUNDLE_TLS_PATH_INVALID",
+				fmt.Sprintf("TLS file path %q is not an absolute, metacharacter-free path", f.Name))
 			return
 		}
 	}
@@ -206,6 +218,11 @@ func (s *Server) handleActivate(w http.ResponseWriter, r *http.Request) {
 		Content:      s.staged.Policy.Content,
 		Checksum:     s.staged.Checksum,
 		InitChecksum: s.staged.InitChecksum,
+	}
+	// Listener TLS cert/key files: the local applier writes each to its absolute
+	// path (0640) so this node's kumod serves the centrally-issued cert.
+	for _, f := range s.staged.TLSFiles {
+		rendered.TLSFiles = append(rendered.TLSFiles, biz.TLSFile{Path: f.Name, Content: f.Content})
 	}
 	for _, f := range s.staged.Shaping {
 		switch f.Name {

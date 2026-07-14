@@ -221,7 +221,59 @@ type RenderedConfig struct {
 	ShapingBase       string
 	ShapingWarmup     string
 	ShapingAutomation string
+	// TLSFiles are the listener TLS certificate/key files referenced by the
+	// policy. The renderer records their absolute paths (Content empty); the
+	// apply adapter reads each file from the control-plane host and carries its
+	// content to every node so a centrally-issued (e.g. ACME) cert propagates
+	// cluster-wide, the same way DKIM keys ride inline in the policy.
+	TLSFiles []TLSFile
 }
+
+// TLSFile is a listener TLS certificate or key file carried in the config
+// bundle. Path is the absolute on-node destination (identical on every node,
+// since it is the path written into the byte-identical policy). Content is the
+// PEM read from the control-plane host at apply time; an empty Content means
+// the path is referenced but the file was not present centrally, so the node
+// must already provide it (e.g. per-node ACME).
+type TLSFile struct {
+	Path    string
+	Content string
+}
+
+// collectTLSFiles returns the deduped set of TLS certificate/key paths from the
+// TLS-enabled listeners, as content-less TLSFile refs for the apply adapter to
+// hydrate. Order is deterministic (sorted) so bundles stay stable.
+func collectTLSFiles(listeners []*Listener) []TLSFile {
+	seen := make(map[string]struct{})
+	for _, l := range listeners {
+		if l == nil || !l.TLSEnabled {
+			continue
+		}
+		for _, p := range []string{strings.TrimSpace(l.TLSCertPath), strings.TrimSpace(l.TLSKeyPath)} {
+			if p != "" {
+				seen[p] = struct{}{}
+			}
+		}
+	}
+	if len(seen) == 0 {
+		return nil
+	}
+	paths := make([]string, 0, len(seen))
+	for p := range seen {
+		paths = append(paths, p)
+	}
+	sort.Strings(paths)
+	out := make([]TLSFile, len(paths))
+	for i, p := range paths {
+		out[i] = TLSFile{Path: p}
+	}
+	return out
+}
+
+// ValidTLSFilePath reports whether p is an absolute path free of shell
+// metacharacters — the same constraint listener TLS paths are validated
+// against. Used by the apply transports/agent to guard where cert files land.
+func ValidTLSFilePath(p string) bool { return safePathRe.MatchString(p) }
 
 // validateSnapshot re-runs model validation on every entity so the renderer
 // never interpolates an unvalidated value. This is the render-gate: callers
@@ -385,6 +437,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 		ShapingBase:       RenderBaseShaping(snap.Blueprints),
 		ShapingWarmup:     RenderWarmupShaping(snap.WarmupRates),
 		ShapingAutomation: RenderAutomation(mergeAutomation(snap.AutomationRules, BounceRulesToAutomation(snap.BounceRules))),
+		TLSFiles:          collectTLSFiles(snap.Listeners),
 	}, nil
 }
 

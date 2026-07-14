@@ -58,6 +58,19 @@ func bundleFor(rendered biz.RenderedConfig, generation int64, nodeName string) a
 			SHA256:  sha256Hex(body),
 		})
 	}
+	// Listener TLS cert/key files, keyed by their absolute on-node path. Only
+	// files that were present centrally (non-empty content) are carried; a
+	// reference-only entry means the node supplies the file itself.
+	for _, f := range rendered.TLSFiles {
+		if strings.TrimSpace(f.Content) == "" {
+			continue
+		}
+		b.TLSFiles = append(b.TLSFiles, agentapi.File{
+			Name:    f.Path,
+			Content: f.Content,
+			SHA256:  sha256Hex(f.Content),
+		})
+	}
 	return b
 }
 

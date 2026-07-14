@@ -130,6 +130,47 @@ func TestAgentStageActivateFlow(t *testing.T) {
 	}
 }
 
+func TestAgentActivatesTLSFiles(t *testing.T) {
+	srv, applier := newTestServer(t)
+	h := srv.Handler()
+
+	cert := "-----BEGIN CERTIFICATE-----\nabc\n-----END CERTIFICATE-----\n"
+	b := testBundle(10)
+	b.TLSFiles = []agentapi.File{
+		{Name: "/etc/kumomta/certs/mx.example.com.pem", Content: cert, SHA256: sha256Hex(cert)},
+	}
+	if w := postJSON(t, h, agentapi.PathStage, b); w.Code != http.StatusOK {
+		t.Fatalf("stage = %d: %s", w.Code, w.Body)
+	}
+	if w := postJSON(t, h, agentapi.PathActivate, agentapi.ActivateRequest{Checksum: "sum-1"}); w.Code != http.StatusOK {
+		t.Fatalf("activate = %d: %s", w.Code, w.Body)
+	}
+	if len(applier.applied) != 1 {
+		t.Fatalf("applier calls = %d", len(applier.applied))
+	}
+	got := applier.applied[0].TLSFiles
+	if len(got) != 1 || got[0].Path != "/etc/kumomta/certs/mx.example.com.pem" || got[0].Content != cert {
+		t.Fatalf("rendered TLS files = %+v", got)
+	}
+}
+
+func TestAgentRejectsBadTLSPath(t *testing.T) {
+	srv, _ := newTestServer(t)
+	h := srv.Handler()
+
+	bad := "cert\n"
+	b := testBundle(10)
+	// A relative / traversal path must be rejected at stage, before it can be
+	// written anywhere on the node.
+	b.TLSFiles = []agentapi.File{
+		{Name: "../../etc/passwd", Content: bad, SHA256: sha256Hex(bad)},
+	}
+	w := postJSON(t, h, agentapi.PathStage, b)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("stage with bad TLS path = %d (want 400): %s", w.Code, w.Body)
+	}
+}
+
 func TestAgentRejectsChecksumMismatch(t *testing.T) {
 	srv, _ := newTestServer(t)
 	b := testBundle(10)

@@ -237,6 +237,34 @@ func (k *FileKumoMTA) ApplyQueueAction(_ context.Context, mailclass string, acti
 	return fmt.Sprintf("queue action %s requested for %s", action, mailclass), nil
 }
 
+// hydrateTLSFiles fills the Content of each reference-only TLS file by reading
+// it from the control-plane host. Files that already carry content pass through
+// untouched (an agent re-applying a bundle). A file that cannot be read
+// centrally is logged and dropped (Content stays empty ⇒ the transports skip
+// it), so an operator managing certs per-node is not blocked by a central
+// absence. Returns a new slice; never mutates the input entries in place.
+func hydrateTLSFiles(ctx context.Context, files []biz.TLSFile) []biz.TLSFile {
+	if len(files) == 0 {
+		return files
+	}
+	out := make([]biz.TLSFile, 0, len(files))
+	for _, f := range files {
+		if strings.TrimSpace(f.Content) != "" {
+			out = append(out, f)
+			continue
+		}
+		raw, err := os.ReadFile(f.Path)
+		if err != nil {
+			biz.LoggerFrom(ctx).Warn("listener TLS file not readable on control plane; nodes must provide it themselves",
+				"path", f.Path, "error", err.Error())
+			out = append(out, f) // keep the reference (empty content) for visibility
+			continue
+		}
+		out = append(out, biz.TLSFile{Path: f.Path, Content: string(raw)})
+	}
+	return out
+}
+
 // ApplyConfig distributes the rendered policy to every managed node and
 // activates it (rolling: one node at a time, halting on the first failure so
 // remaining nodes keep the previous config). When restart is true (init-block
@@ -247,6 +275,13 @@ func (k *FileKumoMTA) ApplyConfig(ctx context.Context, rendered biz.RenderedConf
 	if err != nil {
 		return "", "", err
 	}
+	// Hydrate listener TLS cert/key files from the control-plane host so their
+	// content rides in the bundle to every node (like DKIM keys ride inline in
+	// the policy). Reads only reference-only entries (empty content), so when
+	// the agent's own FileKumoMTA re-applies a bundle whose files are already
+	// populated, this is a no-op — it never clobbers shipped content with the
+	// remote node's (absent) disk.
+	rendered.TLSFiles = hydrateTLSFiles(ctx, rendered.TLSFiles)
 	// Wall-clock generation: strictly increasing across applies, used by agents
 	// for replay protection.
 	generation := time.Now().UnixNano()
