@@ -108,20 +108,32 @@ type Redis struct {
 	ConsumerName string        `yaml:"consumer_name"`
 }
 
-// SeedAddrs returns the effective address list: Addrs when set, else [Addr].
+// SeedAddrs returns the effective, normalized address list: Addrs when set,
+// else Addr. Every entry is additionally split on commas and trimmed, so a
+// comma-separated list placed in a single field (a common mistake, and what
+// IRIS_REDIS_ADDR / a single `addr` naturally holds) is expanded into separate
+// host:port seeds rather than dialed as one bad address.
 func (r Redis) SeedAddrs() []string {
-	if len(r.Addrs) > 0 {
-		return r.Addrs
+	raw := r.Addrs
+	if len(raw) == 0 && r.Addr != "" {
+		raw = []string{r.Addr}
 	}
-	if r.Addr != "" {
-		return []string{r.Addr}
+	var out []string
+	for _, entry := range raw {
+		for _, a := range strings.Split(entry, ",") {
+			if a = strings.TrimSpace(a); a != "" {
+				out = append(out, a)
+			}
+		}
 	}
-	return nil
+	return out
 }
 
-// IsCluster reports whether a Redis Cluster client is required.
+// IsCluster reports whether a Redis Cluster client is required. A multi-seed
+// list (however it was supplied — `addrs`, or commas in a single field)
+// implies cluster unless Sentinel (MasterName) is selected.
 func (r Redis) IsCluster() bool {
-	return r.MasterName == "" && (r.Cluster || len(r.Addrs) > 1)
+	return r.MasterName == "" && (r.Cluster || len(r.SeedAddrs()) > 1)
 }
 
 // Auth holds authentication and session configuration.

@@ -174,22 +174,21 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// into KumoMTA policy and reloads the service (serialized + audited). The
 	// generated policy also wires inbound rspamd filtering and a log_hook that
 	// streams KumoMTA's structured logs into Redis for the log consumer below.
-	logStreamRedisURL := cfg.KumoMTA.LogStreamRedisURL
-	if logStreamRedisURL == "" && cfg.Data.Redis.Addr != "" {
-		logStreamRedisURL = "redis://" + cfg.Data.Redis.Addr
-	}
 	// Redis Cluster / multi-seed awareness for the generated kumod policy: when
 	// iris is configured for a cluster, kumod must use a cluster-enabled redis
 	// client too (else its log hook / suppression / throttles hit MOVED). Derive
-	// the seed URLs from the same redis config unless an explicit single
-	// kumomta.log_stream_redis_url is set.
+	// the seed URLs from the same redis config (SeedAddrs splits comma lists)
+	// unless an explicit single kumomta.log_stream_redis_url is set.
+	logStreamRedisURL := cfg.KumoMTA.LogStreamRedisURL
 	var logStreamRedisNodes []string
 	logStreamRedisCluster := cfg.Data.Redis.IsCluster()
 	if cfg.KumoMTA.LogStreamRedisURL == "" {
 		for _, a := range cfg.Data.Redis.SeedAddrs() {
 			logStreamRedisNodes = append(logStreamRedisNodes, "redis://"+a)
 		}
-		if len(logStreamRedisNodes) == 1 {
+		// logStreamRedisURL is the enable flag + first seed; keep it a single
+		// clean URL (never the raw comma-joined string).
+		if len(logStreamRedisNodes) > 0 {
 			logStreamRedisURL = logStreamRedisNodes[0]
 		}
 	}
