@@ -50,14 +50,20 @@ kumomta:
   stub: true
   # Where the generated KumoMTA policy (Lua) is written on apply.
   config_path: "/opt/kumomta/etc/policy/iris_generated.lua"
-  # How to reload KumoMTA after writing the policy. Use ONE of:
-  #   reload_command: a shell command, e.g. "kcli reload" or "systemctl reload kumomta"
-  #   reload_url: KumoMTA admin endpoint to POST, e.g.
-  #     "http://localhost:8000/api/admin/bump-config-epoch/v1"
-  # If neither is set, the file is written and KumoMTA is expected to pick it up
-  # on its own config epoch.
+  # How to reload KumoMTA after writing the policy. kumod ALREADY watches its
+  # config tree (/opt/kumomta/etc/**/*.{lua,json,toml,yaml}) every 10s and
+  # reloads on a content change, so leaving both empty is usually correct as
+  # long as config_path is under /opt/kumomta/etc/**. To force a faster reload
+  # you may set ONE of:
+  #   reload_command: a shell command, e.g. "kcli reload"
+  #   reload_url: the kumod admin endpoint (NOTE: no /v1 suffix):
+  #     "http://localhost:8000/api/admin/bump-config-epoch"
+  # NOTE: a reload/epoch bump does NOT re-run the init block (listeners, spool,
+  # log hook) — those need restart_command below.
   reload_command: ""
   reload_url: ""
+  # For init-block changes a full process restart is required:
+  # restart_command: "systemctl restart kumomta"
   # Redis URL embedded in the generated policy's log_hook — the address KumoMTA
   # reaches Redis at (may differ from the backend's own redis addr). Empty
   # derives "redis://<data.redis.addr>". Enables mail logging when set.
