@@ -357,10 +357,15 @@ re-run `iris cluster enroll` (the pinned fingerprint updates), then restart
 the agent. To rotate iris's client cert: `iris cluster issue-cert` again and
 restart iris. CA rotation = new CA + re-enroll everything (plan a window).
 
-## 10. Open questions for the operator
+## 10. Operator decisions & open questions
 
-1. Private network between nodes: existing VLAN, or should the plan include a
-   WireGuard mesh (agent-managed)?
+1. **DECIDED (2026-07-14): nodes are connected over an existing private
+   network.** No iris-managed WireGuard mesh will be built. Deployment
+   consequences: kumo-proxy, the agents (:8447), Redis, and the TSA daemon all
+   bind to private-network addresses only; firewall ingress on those ports to
+   cluster peers (plus iris for the agents). iris's node validation already
+   enforces private-range proxy IPs (RFC1918/ULA/CGNAT), which matches this
+   setup.
 2. Redis HA flavor: Sentinel self-hosted vs managed?
 3. Expected cluster size (2–5 vs dozens) — decides whether one TSA daemon is
    enough (it is for small N).
