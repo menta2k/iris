@@ -18,9 +18,9 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useAsyncList } from '@/composables/useAsyncList'
 import { useToast } from '@/composables/useToast'
-import { clusterService, outboundConfigService } from '@/services'
+import { acmeService, clusterService, outboundConfigService } from '@/services'
 import { ApiError } from '@/services/http'
-import type { Listener, ListenerRole, MTANode } from '@/types'
+import type { AcmeCertificate, Listener, ListenerRole, MTANode } from '@/types'
 
 const { items, loading, error, notImplemented, load } = useAsyncList<Listener>({
   loader: () => outboundConfigService.listListeners(),
@@ -57,6 +57,31 @@ async function loadNodeIPs(nodeId: string) {
     ipsLoading.value = false
   }
 }
+// ACME-managed certificates, offered as dropdown options for the TLS cert/key
+// paths (like the node IP picker). The comboboxes stay editable, so a
+// manually-managed path can still be typed. Failure leaves the lists empty.
+const acmeCerts = ref<AcmeCertificate[]>([])
+const certPathItems = computed(() =>
+  acmeCerts.value.map((c) => c.certPath).filter(Boolean),
+)
+const keyPathItems = computed(() =>
+  acmeCerts.value.map((c) => c.keyPath).filter(Boolean),
+)
+async function loadAcmeCerts() {
+  try {
+    const res = await acmeService.listCertificates()
+    acmeCerts.value = res.items ?? []
+  } catch {
+    acmeCerts.value = []
+  }
+}
+// Selecting a known cert path auto-fills its paired key path — an ACME cert
+// ships fullchain + privkey together, so choosing one implies the other.
+function onCertPathChange(path: string) {
+  const match = acmeCerts.value.find((c) => c.certPath === path)
+  if (match?.keyPath) form.value.tls_key_path = match.keyPath
+}
+
 const { toast } = useToast()
 
 const LISTENER_STATUSES = ['active', 'disabled']
@@ -120,6 +145,7 @@ function openCreate() {
   dialogOpen.value = true
   void loadNodes()
   void loadNodeIPs(form.value.node_id)
+  void loadAcmeCerts()
 }
 
 function openEdit(l: Listener) {
@@ -143,6 +169,7 @@ function openEdit(l: Listener) {
   dialogOpen.value = true
   void loadNodes()
   void loadNodeIPs(form.value.node_id)
+  void loadAcmeCerts()
 }
 
 async function submit() {
@@ -340,18 +367,32 @@ async function submit() {
         <template v-if="form.tls_enabled">
           <div class="d-flex flex-column ga-1">
             <Label for="listener-cert">TLS Certificate Path</Label>
-            <Input
+            <v-combobox
               id="listener-cert"
               v-model="form.tls_cert_path"
-              placeholder="/etc/iris/tls/cert.pem"
+              data-testid="listener-cert"
+              :items="certPathItems"
+              variant="outlined"
+              density="compact"
+              hide-details
+              placeholder="/opt/kumomta/etc/tls/example.com/fullchain.pem"
+              @update:model-value="onCertPathChange"
             />
+            <p class="text-caption text-medium-emphasis">
+              Pick an ACME-managed certificate, or type a path. Selecting one fills the key below.
+            </p>
           </div>
           <div class="d-flex flex-column ga-1">
             <Label for="listener-key">TLS Key Path</Label>
-            <Input
+            <v-combobox
               id="listener-key"
               v-model="form.tls_key_path"
-              placeholder="/etc/iris/tls/key.pem"
+              data-testid="listener-key"
+              :items="keyPathItems"
+              variant="outlined"
+              density="compact"
+              hide-details
+              placeholder="/opt/kumomta/etc/tls/example.com/privkey.pem"
             />
           </div>
         </template>
