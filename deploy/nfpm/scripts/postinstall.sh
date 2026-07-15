@@ -24,6 +24,21 @@ chmod 0750 /etc/iris 2>/dev/null || true
 chmod 0640 /etc/iris/iris.yaml 2>/dev/null || true
 chown -R iris:iris /var/lib/iris 2>/dev/null || true
 
+# Cluster mTLS material is created at enrollment (not shipped by the package)
+# and is read by processes that run as the iris user: on a node, iris-agent
+# reads /etc/iris/cluster/agent.key; on the control plane, iris reads its client
+# key and the CA key under /etc/iris/cluster and /etc/iris/cluster-ca. Those
+# private keys are 0600, so the blanket "chown -R root:iris" above locks the
+# iris user out ("load agent certificate: permission denied") — and because
+# this script re-runs on every upgrade, a working node breaks after each
+# `dpkg`/`apt` update. Re-assert iris ownership on the cluster dirs so the keys
+# stay readable across upgrades.
+for d in /etc/iris/cluster /etc/iris/cluster-ca; do
+    if [ -d "$d" ]; then
+        chown -R iris:iris "$d" 2>/dev/null || true
+    fi
+done
+
 # Grant kumod read access to the generated KumoMTA policy.
 #
 # Iris writes /opt/kumomta/etc/policy/iris_generated.lua as iris:iris 0640 (it
