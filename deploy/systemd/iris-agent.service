@@ -16,8 +16,10 @@
 # Prerequisites on this node:
 #   - the `iris` binary installed at /usr/local/bin/iris
 #   - the policy dir writable by iris:  chown -R iris:iris /opt/kumomta/etc/policy
-#   - any listener TLS cert dir writable by iris (the agent materializes the
-#     cert/key files shipped in the bundle):  chown -R iris:iris /etc/kumomta/certs
+#   - the listener TLS cert dir writable by iris (the agent materializes the
+#     cert/key files shipped in the bundle at the SAME absolute path the
+#     listener references — for iris ACME that is IRIS_ACME_CERT_DIR, default
+#     /opt/kumomta/etc/tls):  chown -R iris:iris /opt/kumomta/etc/tls
 #   - /etc/iris/iris.yaml with:
 #       kumomta:   stub: false, config_path, base_url,
 #                  restart_command: "sudo systemctl restart kumomta"

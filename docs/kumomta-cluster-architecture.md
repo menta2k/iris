@@ -263,9 +263,12 @@ Current state to fix: kumod admin/inject API is plain HTTP, no auth,
    written 0640 at the same absolute path on every node, chgrp'd to
    `config_group` so kumod can read it). So a cert issued centrally (e.g. by
    iris's ACME) reaches every node automatically — no per-node ACME required.
-   Caveats: (a) the agent's user must be able to write the cert directory
-   (`chown -R iris:iris /etc/kumomta/certs`, or whatever path the listener
-   uses); (b) a file that does not exist on the control-plane host is logged
+   The destination is the *listener's own* `tls_certificate`/`tls_private_key`
+   path — the agent never picks a directory of its own; for iris ACME that is
+   `IRIS_ACME_CERT_DIR` (default `/opt/kumomta/etc/tls`). Caveats: (a) the
+   agent's user must be able to write that directory
+   (`chown -R iris:iris /opt/kumomta/etc/tls`); (b) a file that does not exist
+   on the control-plane host is logged
    and skipped, not shipped — that node must then provide it itself (per-node
    ACME or out-of-band sync); (c) an ACME *renewal* only reaches nodes on the
    next config apply, since the renewal changes file content but not the policy
