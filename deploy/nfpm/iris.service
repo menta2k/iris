@@ -31,9 +31,8 @@ RestartSec=5s
 
 # Allow binding privileged ports (< 1024) as the non-root iris user, so an
 # admin or injection listener can be configured on e.g. :443 or :80 without
-# running as root. Applied by systemd at exec (compatible with
-# NoNewPrivileges=true). Remove both lines if you always front Iris with a
-# reverse proxy and never bind low ports directly.
+# running as root. Applied by systemd at exec. Remove both lines if you always
+# front Iris with a reverse proxy and never bind low ports directly.
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 
@@ -41,7 +40,16 @@ CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 # state directory.
 StateDirectory=iris
 WorkingDirectory=/var/lib/iris
-NoNewPrivileges=true
+# NoNewPrivileges must stay false on a co-located host (iris + kumod on the same
+# machine): applying an init-block config change restarts kumod via
+# kumomta.restart_command, which is "sudo systemctl restart kumomta" (iris runs
+# as the non-root iris user). NoNewPrivileges=true would make sudo fail with
+# "the 'no new privileges' flag is set, which prevents sudo from running as
+# root". The companion iris-agent.sudoers scopes that sudo to exactly the
+# restart/reload of kumomta. If this host is control-plane ONLY (every kumod is
+# remote, reached via an iris-agent) you can tighten this back to true with a
+# drop-in: /etc/systemd/system/iris.service.d/*.conf → [Service] NoNewPrivileges=true
+NoNewPrivileges=false
 ProtectSystem=full
 ProtectHome=true
 PrivateTmp=true
