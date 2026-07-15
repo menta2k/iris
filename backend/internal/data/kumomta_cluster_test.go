@@ -202,6 +202,46 @@ func TestApplyConfigTLSFileMissingCentrallyIsSkipped(t *testing.T) {
 	}
 }
 
+// TestTLSContentDigestTracksRenewal verifies the digest is stable while cert
+// files are unchanged and changes when a file's content changes — the property
+// that makes a renewal register as config drift.
+func TestTLSContentDigestTracksRenewal(t *testing.T) {
+	dir := t.TempDir()
+	certPath := filepath.Join(dir, "mx.pem")
+	keyPath := filepath.Join(dir, "mx.key")
+	if err := os.WriteFile(certPath, []byte("cert-v1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(keyPath, []byte("key-v1\n"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	adapter := NewFileKumoMTA(conf.External{})
+	files := []biz.TLSFile{{Path: certPath}, {Path: keyPath}}
+	ctx := context.Background()
+
+	// Empty input → empty digest (no TLS listeners ⇒ no influence on checksum).
+	if d := adapter.TLSContentDigest(ctx, nil); d != "" {
+		t.Fatalf("empty digest = %q, want \"\"", d)
+	}
+
+	d1 := adapter.TLSContentDigest(ctx, files)
+	// Path order must not matter (renderer already sorts, but be defensive).
+	if d := adapter.TLSContentDigest(ctx, []biz.TLSFile{{Path: keyPath}, {Path: certPath}}); d != d1 {
+		t.Fatalf("digest is order-dependent: %q vs %q", d1, d)
+	}
+	// Re-reading unchanged files yields the same digest → no spurious drift.
+	if d := adapter.TLSContentDigest(ctx, files); d != d1 {
+		t.Fatalf("digest changed with no file change: %q -> %q", d1, d)
+	}
+	// Renewing the cert changes the digest → drift.
+	if err := os.WriteFile(certPath, []byte("cert-v2\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if d2 := adapter.TLSContentDigest(ctx, files); d2 == d1 {
+		t.Fatalf("digest did not change after renewal: %q", d2)
+	}
+}
+
 // TestApplyConfigClusterHaltsOnFailure verifies the rolling apply stops at the
 // first failing node and reports which nodes already changed.
 func TestApplyConfigClusterHaltsOnFailure(t *testing.T) {

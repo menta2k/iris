@@ -270,9 +270,13 @@ Current state to fix: kumod admin/inject API is plain HTTP, no auth,
    (`chown -R iris:iris /opt/kumomta/etc/tls`); (b) a file that does not exist
    on the control-plane host is logged
    and skipped, not shipped — that node must then provide it itself (per-node
-   ACME or out-of-band sync); (c) an ACME *renewal* only reaches nodes on the
-   next config apply, since the renewal changes file content but not the policy
-   checksum — trigger an apply after renewal (or on a schedule) to roll it out.
+   ACME or out-of-band sync); (c) ACME *renewals* propagate automatically. The
+   cert file content is folded into the policy checksum, so a renewal registers
+   as configuration drift (the UI Apply button lights up), and the acme-renewer
+   worker calls the automation apply immediately after a successful renewal —
+   pushing the new cert to every node with a reload (no restart, since the
+   listener topology is unchanged). A manual apply still forces it any time
+   (`POST /v1/kumomta/config:apply`).
 6. **AuthZ & audit in iris.** New permissions: `cluster:read`,
    `cluster:write`; node CRUD/enroll/drain and every per-node apply or
    service action audit-logged with node identity. Existing

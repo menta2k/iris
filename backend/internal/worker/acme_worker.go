@@ -55,21 +55,25 @@ func (w *AcmeChallengeWorker) Run(ctx context.Context) error {
 // AcmeRenewerWorker periodically renews certificates approaching expiry.
 type AcmeRenewerWorker struct {
 	uc       *biz.AcmeUsecase
+	config   ConfigApplier // optional; applies the policy so renewed certs reach every node
 	interval time.Duration
 	before   time.Duration
 	log      *slog.Logger
 }
 
 // NewAcmeRenewerWorker constructs the renewer. interval is the scan cadence;
-// before is how far ahead of expiry to renew. Sensible defaults are applied.
-func NewAcmeRenewerWorker(uc *biz.AcmeUsecase, interval, before time.Duration, log *slog.Logger) *AcmeRenewerWorker {
+// before is how far ahead of expiry to renew. config, when non-nil, is applied
+// after a renewal so the new cert propagates to the cluster (a renewal changes
+// only file content, not the policy text, so nothing else would push it).
+// Sensible defaults are applied.
+func NewAcmeRenewerWorker(uc *biz.AcmeUsecase, config ConfigApplier, interval, before time.Duration, log *slog.Logger) *AcmeRenewerWorker {
 	if interval <= 0 {
 		interval = 12 * time.Hour
 	}
 	if before <= 0 {
 		before = 30 * 24 * time.Hour
 	}
-	return &AcmeRenewerWorker{uc: uc, interval: interval, before: before, log: log}
+	return &AcmeRenewerWorker{uc: uc, config: config, interval: interval, before: before, log: log}
 }
 
 // Run scans for due renewals on each tick until the context is cancelled.
@@ -101,5 +105,15 @@ func (w *AcmeRenewerWorker) scan(ctx context.Context) {
 	}
 	if n > 0 {
 		w.log.Info("acme renewals completed", "count", n)
+		// Push the renewed cert(s) to KumoMTA (and, in a cluster, every node):
+		// the policy references the cert by path, so an apply is what re-reads
+		// the file content and ships it. Reload-level change (no init drift).
+		if w.config != nil {
+			if _, err := w.config.ApplyForAutomation(ctx, "acme-renewer"); err != nil {
+				w.log.Error("apply after acme renewal failed", "error", err.Error())
+			} else {
+				w.log.Info("applied policy after acme renewal (certs propagated)")
+			}
+		}
 	}
 }

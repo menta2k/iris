@@ -2,6 +2,8 @@ package biz
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"strings"
 	"time"
 )
@@ -25,9 +27,9 @@ type KumoConfigSettings struct {
 	LogStreamRedisNodes   []string
 	LogStreamRedisCluster bool
 	LogStreamName         string
-	EsmtpListen       string
-	HTTPListen        string
-	EgressEHLODefault string
+	EsmtpListen           string
+	HTTPListen            string
+	EgressEHLODefault     string
 
 	// Delivery rates (outbound retry schedule).
 	EgressRetryInterval    string
@@ -79,11 +81,22 @@ type KumoConfigSettings struct {
 // control permission, an explicit confirmation, is serialized through the
 // service-control request table, and is audited.
 type KumoConfigUsecase struct {
-	loader   ConfigSnapshotLoader
-	kumo     KumoMTAAdapter
-	scStore  ServiceControlStore
-	auditor  *Auditor
-	settings EffectiveSettingsProvider
+	loader    ConfigSnapshotLoader
+	kumo      KumoMTAAdapter
+	scStore   ServiceControlStore
+	auditor   *Auditor
+	settings  EffectiveSettingsProvider
+	tlsDigest TLSContentDigester // optional; nil = certs don't influence drift
+}
+
+// TLSContentDigester returns a deterministic digest over the current on-disk
+// content of the given listener TLS files (read from the control-plane host).
+// Folded into the rendered policy checksum so a cert renewal — which changes
+// file content but not the policy text — registers as configuration drift and
+// is re-applied (which ships the new cert to every node). Satisfied by
+// data.FileKumoMTA.
+type TLSContentDigester interface {
+	TLSContentDigest(ctx context.Context, files []TLSFile) string
 }
 
 // EffectiveSettingsProvider resolves the deployment-level policy settings the
@@ -127,6 +140,15 @@ func NewKumoConfigUsecase(loader ConfigSnapshotLoader, kumo KumoMTAAdapter, scSt
 		settings = staticSettings(KumoConfigSettings{})
 	}
 	return &KumoConfigUsecase{loader: loader, kumo: kumo, scStore: scStore, auditor: auditor, settings: settings}
+}
+
+// WithTLSDigester wires the digester that folds listener TLS cert/key content
+// into the policy checksum, so certificate renewals surface as drift and get
+// re-applied. Optional: without it, cert renewals do not change the checksum
+// (the pre-existing behavior).
+func (uc *KumoConfigUsecase) WithTLSDigester(d TLSContentDigester) *KumoConfigUsecase {
+	uc.tlsDigest = d
+	return uc
 }
 
 // Generate renders the current configuration into KumoMTA policy without
@@ -175,7 +197,23 @@ func (uc *KumoConfigUsecase) render(ctx context.Context) (RenderedConfig, error)
 	// message-rate caps for today. Done here (not in RenderKumoConfig) so the
 	// renderer stays a pure, time-independent snapshot→policy function.
 	snap.WarmupRates = ResolveWarmupRates(snap.WarmupSchedules, time.Now().UTC())
-	return RenderKumoConfig(snap)
+	rendered, err := RenderKumoConfig(snap)
+	if err != nil {
+		return rendered, err
+	}
+	// Fold the current listener TLS cert/key content into the checksum. The
+	// policy references those files by path (byte-identical text), so a renewal
+	// leaves the policy checksum unchanged; without this an operator would see
+	// no drift and the renewed cert would never propagate to the nodes. Only
+	// the identity checksum is augmented — Content (used for the pending/running
+	// diff) stays the policy text.
+	if uc.tlsDigest != nil && len(rendered.TLSFiles) > 0 {
+		if d := uc.tlsDigest.TLSContentDigest(ctx, rendered.TLSFiles); d != "" {
+			sum := sha256.Sum256([]byte(rendered.Checksum + "\x00tls:" + d))
+			rendered.Checksum = hex.EncodeToString(sum[:])
+		}
+	}
+	return rendered, nil
 }
 
 // ApplyResult is returned after a config apply.

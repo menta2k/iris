@@ -2,10 +2,14 @@ package data
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -263,6 +267,35 @@ func hydrateTLSFiles(ctx context.Context, files []biz.TLSFile) []biz.TLSFile {
 		out = append(out, biz.TLSFile{Path: f.Path, Content: string(raw)})
 	}
 	return out
+}
+
+// TLSContentDigest returns a deterministic digest over the current on-disk
+// content of the given listener TLS files on the control-plane host. Folded
+// into the policy checksum by the config use case so a cert renewal registers
+// as drift. Files are processed in sorted path order; a path that cannot be
+// read contributes a stable "missing" marker so a cert appearing or vanishing
+// also changes the digest. Returns "" for no files.
+func (k *FileKumoMTA) TLSContentDigest(_ context.Context, files []biz.TLSFile) string {
+	if len(files) == 0 {
+		return ""
+	}
+	paths := make([]string, len(files))
+	for i, f := range files {
+		paths[i] = f.Path
+	}
+	sort.Strings(paths)
+	h := sha256.New()
+	for _, p := range paths {
+		fmt.Fprintf(h, "%s\x00", p)
+		if raw, err := os.ReadFile(p); err == nil {
+			sum := sha256.Sum256(raw)
+			h.Write(sum[:])
+		} else {
+			io.WriteString(h, "missing")
+		}
+		h.Write([]byte{'\n'})
+	}
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 // ApplyConfig distributes the rendered policy to every managed node and

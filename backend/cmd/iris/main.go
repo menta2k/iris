@@ -197,8 +197,8 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	verpKey := biz.DeriveVerpKey(cfg.Auth.SessionToken)
 	// Config/env defaults; UI-managed global settings (below) override these.
 	settingsDefaults := biz.KumoConfigSettings{
-		RspamdMode:        cfg.Rspamd.Mode,
-		RspamdURL:         cfg.Rspamd.BaseURL,
+		RspamdMode:            cfg.Rspamd.Mode,
+		RspamdURL:             cfg.Rspamd.BaseURL,
 		LogStreamRedisURL:     logStreamRedisURL,
 		LogStreamRedisNodes:   logStreamRedisNodes,
 		LogStreamRedisCluster: logStreamRedisCluster,
@@ -320,6 +320,12 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 
 	kumoSnapshotRepo := data.NewKumoConfigRepo(outboundRepo, domainSafetyRepo, inboundRepo, inboundRouteRepo, fblRepo, warmupRepo, blueprintRepo, automationRepo, bounceRuleRepo, mtaNodeRepo)
 	kumoConfigUC := biz.NewKumoConfigUsecase(kumoSnapshotRepo, kumo, mailOpsRepo, auditor, settingsUC)
+	if fileKumo != nil {
+		// Fold listener TLS cert/key content into the policy checksum so a cert
+		// renewal surfaces as drift and gets re-applied (which ships the new cert
+		// to every node). No-op in stub mode.
+		kumoConfigUC = kumoConfigUC.WithTLSDigester(fileKumo)
+	}
 	// Domain bounce-readiness checker (MX/SPF/DKIM via live DNS).
 	domainCheckUC := biz.NewDomainCheckUsecase(kumoSnapshotRepo, nil)
 	// Tools: sender diagnose + RBL/DNSBL check (live DNS).
@@ -515,7 +521,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	startWorker(ctx, log, "dmarc", worker.NewDMARCWorker(streams, dmarcUC, biz.DMARCStreamName, wlog("dmarc")).Run)
 	// ACME: HTTP-01 challenge listener (default off) + periodic renewer.
 	startWorker(ctx, log, "acme-challenge", worker.NewAcmeChallengeWorker(acmeTokens, envOr("IRIS_ACME_HTTP_BIND", "off"), wlog("acme-challenge")).Run)
-	startWorker(ctx, log, "acme-renewer", worker.NewAcmeRenewerWorker(acmeUC, renewInterval, renewBefore, wlog("acme-renewer")).Run)
+	startWorker(ctx, log, "acme-renewer", worker.NewAcmeRenewerWorker(acmeUC, kumoConfigUC, renewInterval, renewBefore, wlog("acme-renewer")).Run)
 	// Mail-log retention: drop/compress old TimescaleDB chunks on a daily cadence
 	// and on demand. Safe no-op on plain PostgreSQL (no hypertables).
 	startWorker(ctx, log, "retention", worker.NewRetentionWorker(streams, retentionRepo, envDuration("IRIS_RETENTION_INTERVAL", 24*time.Hour), wlog("retention")).Run)
