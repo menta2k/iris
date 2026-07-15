@@ -31,10 +31,16 @@ RestartSec=5s
 
 # Allow binding privileged ports (< 1024) as the non-root iris user, so an
 # admin or injection listener can be configured on e.g. :443 or :80 without
-# running as root. Applied by systemd at exec. Remove both lines if you always
-# front Iris with a reverse proxy and never bind low ports directly.
+# running as root. Applied by systemd at exec. Remove it if you always front
+# Iris with a reverse proxy and never bind low ports directly.
 AmbientCapabilities=CAP_NET_BIND_SERVICE
-CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+# NOTE: the capability BOUNDING set is intentionally left at the default (full).
+# A restrictive CapabilityBoundingSet (e.g. =CAP_NET_BIND_SERVICE) would clamp
+# the set for child processes too, so on a co-located host `sudo systemctl
+# restart kumomta` (see NoNewPrivileges below) fails with "unable to change to
+# root gid: Operation not permitted" — sudo can't acquire CAP_SETUID/CAP_SETGID.
+# A control-plane-only host (no local kumod to restart) may re-add a bounding
+# set via a drop-in for tighter hardening.
 
 # Hardening — the service only needs to read its config and write its own
 # state directory.
