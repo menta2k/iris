@@ -13,10 +13,10 @@ import (
 )
 
 // queueTimeStats reads a mail class's queue-time histogram sample count and sum.
-func queueTimeStats(t *testing.T, mailclass string) (count uint64, sum float64) {
+func queueTimeStats(t *testing.T, mailclass, node string) (count uint64, sum float64) {
 	t.Helper()
 	var m dto.Metric
-	if err := metrics.MailQueueTime.WithLabelValues(mailclass).(prometheus.Metric).Write(&m); err != nil {
+	if err := metrics.MailQueueTime.WithLabelValues(mailclass, node).(prometheus.Metric).Write(&m); err != nil {
 		t.Fatalf("write histogram: %v", err)
 	}
 	return m.GetHistogram().GetSampleCount(), m.GetHistogram().GetSampleSum()
@@ -62,7 +62,7 @@ func TestLogStreamRecordsQueueLatency(t *testing.T) {
 	w := newWorker(store, store, nil)
 	ctx := context.Background()
 
-	countBefore, sumBefore := queueTimeStats(t, "bulk")
+	countBefore, sumBefore := queueTimeStats(t, "bulk", "node1")
 
 	// Received at 10:00:00, delivered at 10:00:05 → 5s in the queue.
 	w.handle(ctx, data.StreamMessage{Values: map[string]any{"data": `{"type":"Delivery","id":"m1",` +
@@ -74,7 +74,7 @@ func TestLogStreamRecordsQueueLatency(t *testing.T) {
 		`"created":"2026-06-20T10:00:00Z","timestamp":"2026-06-20T10:00:00Z",` +
 		`"recipient":"user@gmail.com","meta":{"mailclass":"bulk"}}`}})
 
-	countAfter, sumAfter := queueTimeStats(t, "bulk")
+	countAfter, sumAfter := queueTimeStats(t, "bulk", "node1")
 	if countAfter-countBefore != 1 {
 		t.Errorf("queue-time sample count delta = %d, want 1", countAfter-countBefore)
 	}

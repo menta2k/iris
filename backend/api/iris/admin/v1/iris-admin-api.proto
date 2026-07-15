@@ -1805,6 +1805,7 @@ message DashboardSummary {
 // (empty defaults to "6h").
 message GetMetricsTimeseriesRequest {
   string range = 1;
+  string node = 2; // optional: narrow all series to one cluster node (empty = all)
 }
 message GetSystemMetricsRequest {
   string range = 1;
@@ -1889,6 +1890,7 @@ message GetWidgetDataRequest {
 // (empty defaults to "24h").
 message GetWarmupDeliveryStatsRequest {
   string range = 1;
+  string node = 2; // optional: narrow to one cluster node (empty = all)
 }
 // WarmupDeliveryStat is one (VMTA, recipient-domain) row. delivery_rate and
 // bounce_rate are fractions in [0,1] over terminal outcomes (sent + bounced);
@@ -1924,6 +1926,7 @@ message WarmupDeliveryStats {
 // (empty defaults to "24h").
 message GetMailClassStatsRequest {
   string range = 1;
+  string node = 2; // optional: narrow to one cluster node (empty = all)
 }
 // MailClassStat is one mailclass with its mail-record counts over the window.
 // count is the total records; the delivered/bounced/deferred breakdown lets the
@@ -1945,6 +1948,7 @@ message MailClassStats {
 // "7d" (empty defaults to "24h").
 message GetRecipientDomainStatsRequest {
   string range = 1;
+  string node = 2; // optional: narrow to one cluster node (empty = all)
 }
 // RecipientDomainStat is one recipient domain with its mail-record counts over
 // the window (the busiest domains, ranked by count).
@@ -1966,6 +1970,7 @@ message RecipientDomainStats {
 message GetQueueTimeHistogramRequest {
   string range = 1;
   string mailclass = 2;
+  string node = 3; // optional: narrow to one cluster node (empty = all)
 }
 // QueueTimeBucket is one histogram bucket: the per-bucket (non-cumulative) count
 // of deliveries whose queue time fell in (previous upper bound, upper_bound].

@@ -18,6 +18,7 @@ const GLOBAL = '' // empty mailclass = global (all classes)
 
 const chartTheme = useChartTheme()
 
+const props = defineProps<{ node?: string }>()
 const range = ref<MetricsRange>('6h')
 const mailclass = ref<string>(GLOBAL)
 const loading = ref(false)
@@ -116,7 +117,7 @@ async function load() {
   notImplemented.value = false
   prometheusUnavailable.value = false
   try {
-    const res = await metricsService.getQueueTimeHistogram(range.value, mailclass.value)
+    const res = await metricsService.getQueueTimeHistogram(range.value, mailclass.value, props.node ?? '')
     if (!res.prometheusAvailable) {
       prometheusUnavailable.value = true
       buckets.value = []
@@ -156,7 +157,7 @@ onBeforeUnmount(() => {
   chart.value = null
 })
 
-watch([range, mailclass], load)
+watch([range, mailclass, () => props.node], load)
 // Re-render whenever data lands, and re-skin when the theme flips.
 watch([buckets, loading, chartTheme], () => {
   if (hasData.value) render()

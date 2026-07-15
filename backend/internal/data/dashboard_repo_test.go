@@ -80,7 +80,7 @@ func TestDashboardDeliveryStats(t *testing.T) {
 	insert("m", "ip-a", "gmail.com", biz.MailSent, old, 5)    // outside the window, excluded
 
 	repo := NewDashboardRepo(db)
-	rows, err := repo.DeliveryStats(ctx, now.Add(-time.Hour))
+	rows, err := repo.DeliveryStats(ctx, now.Add(-time.Hour), "")
 	if err != nil {
 		t.Fatalf("delivery stats: %v", err)
 	}

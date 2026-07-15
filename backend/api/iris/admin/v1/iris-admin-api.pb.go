@@ -13886,6 +13886,7 @@ func (x *DashboardSummary) GetKumoDetail() string {
 type GetMetricsTimeseriesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Range         string                 `protobuf:"bytes,1,opt,name=range,proto3" json:"range,omitempty"`
+	Node          string                 `protobuf:"bytes,2,opt,name=node,proto3" json:"node,omitempty"` // optional: narrow all series to one cluster node (empty = all)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -13923,6 +13924,13 @@ func (*GetMetricsTimeseriesRequest) Descriptor() ([]byte, []int) {
 func (x *GetMetricsTimeseriesRequest) GetRange() string {
 	if x != nil {
 		return x.Range
+	}
+	return ""
+}
+
+func (x *GetMetricsTimeseriesRequest) GetNode() string {
+	if x != nil {
+		return x.Node
 	}
 	return ""
 }
@@ -14842,6 +14850,7 @@ func (x *GetWidgetDataRequest) GetGroupBy() string {
 type GetWarmupDeliveryStatsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Range         string                 `protobuf:"bytes,1,opt,name=range,proto3" json:"range,omitempty"`
+	Node          string                 `protobuf:"bytes,2,opt,name=node,proto3" json:"node,omitempty"` // optional: narrow to one cluster node (empty = all)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -14879,6 +14888,13 @@ func (*GetWarmupDeliveryStatsRequest) Descriptor() ([]byte, []int) {
 func (x *GetWarmupDeliveryStatsRequest) GetRange() string {
 	if x != nil {
 		return x.Range
+	}
+	return ""
+}
+
+func (x *GetWarmupDeliveryStatsRequest) GetNode() string {
+	if x != nil {
+		return x.Node
 	}
 	return ""
 }
@@ -15124,6 +15140,7 @@ func (x *WarmupDeliveryStats) GetDeferredByDomain() []*DomainDeferredStat {
 type GetMailClassStatsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Range         string                 `protobuf:"bytes,1,opt,name=range,proto3" json:"range,omitempty"`
+	Node          string                 `protobuf:"bytes,2,opt,name=node,proto3" json:"node,omitempty"` // optional: narrow to one cluster node (empty = all)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -15161,6 +15178,13 @@ func (*GetMailClassStatsRequest) Descriptor() ([]byte, []int) {
 func (x *GetMailClassStatsRequest) GetRange() string {
 	if x != nil {
 		return x.Range
+	}
+	return ""
+}
+
+func (x *GetMailClassStatsRequest) GetNode() string {
+	if x != nil {
+		return x.Node
 	}
 	return ""
 }
@@ -15309,6 +15333,7 @@ func (x *MailClassStats) GetSince() int64 {
 type GetRecipientDomainStatsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Range         string                 `protobuf:"bytes,1,opt,name=range,proto3" json:"range,omitempty"`
+	Node          string                 `protobuf:"bytes,2,opt,name=node,proto3" json:"node,omitempty"` // optional: narrow to one cluster node (empty = all)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -15346,6 +15371,13 @@ func (*GetRecipientDomainStatsRequest) Descriptor() ([]byte, []int) {
 func (x *GetRecipientDomainStatsRequest) GetRange() string {
 	if x != nil {
 		return x.Range
+	}
+	return ""
+}
+
+func (x *GetRecipientDomainStatsRequest) GetNode() string {
+	if x != nil {
+		return x.Node
 	}
 	return ""
 }
@@ -15494,6 +15526,7 @@ type GetQueueTimeHistogramRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Range         string                 `protobuf:"bytes,1,opt,name=range,proto3" json:"range,omitempty"`
 	Mailclass     string                 `protobuf:"bytes,2,opt,name=mailclass,proto3" json:"mailclass,omitempty"`
+	Node          string                 `protobuf:"bytes,3,opt,name=node,proto3" json:"node,omitempty"` // optional: narrow to one cluster node (empty = all)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -15538,6 +15571,13 @@ func (x *GetQueueTimeHistogramRequest) GetRange() string {
 func (x *GetQueueTimeHistogramRequest) GetMailclass() string {
 	if x != nil {
 		return x.Mailclass
+	}
+	return ""
+}
+
+func (x *GetQueueTimeHistogramRequest) GetNode() string {
+	if x != nil {
+		return x.Node
 	}
 	return ""
 }
@@ -21514,9 +21554,10 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\n" +
 	"kumo_state\x18\x06 \x01(\tR\tkumoState\x12\x1f\n" +
 	"\vkumo_detail\x18\a \x01(\tR\n" +
-	"kumoDetail\"3\n" +
+	"kumoDetail\"G\n" +
 	"\x1bGetMetricsTimeseriesRequest\x12\x14\n" +
-	"\x05range\x18\x01 \x01(\tR\x05range\"/\n" +
+	"\x05range\x18\x01 \x01(\tR\x05range\x12\x12\n" +
+	"\x04node\x18\x02 \x01(\tR\x04node\"/\n" +
 	"\x17GetSystemMetricsRequest\x12\x14\n" +
 	"\x05range\x18\x01 \x01(\tR\x05range\"A\n" +
 	"\vMetricPoint\x12\x1c\n" +
@@ -21580,9 +21621,10 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"catalogKey\x12\x16\n" +
 	"\x06promql\x18\x03 \x01(\tR\x06promql\x12\x14\n" +
 	"\x05range\x18\x04 \x01(\tR\x05range\x12\x19\n" +
-	"\bgroup_by\x18\x05 \x01(\tR\agroupBy\"5\n" +
+	"\bgroup_by\x18\x05 \x01(\tR\agroupBy\"I\n" +
 	"\x1dGetWarmupDeliveryStatsRequest\x12\x14\n" +
-	"\x05range\x18\x01 \x01(\tR\x05range\"\xa3\x02\n" +
+	"\x05range\x18\x01 \x01(\tR\x05range\x12\x12\n" +
+	"\x04node\x18\x02 \x01(\tR\x04node\"\xa3\x02\n" +
 	"\x12WarmupDeliveryStat\x12\x17\n" +
 	"\avmta_id\x18\x01 \x01(\tR\x06vmtaId\x12\x1b\n" +
 	"\tvmta_name\x18\x02 \x01(\tR\bvmtaName\x12)\n" +
@@ -21601,9 +21643,10 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x04rows\x18\x01 \x03(\v2!.iris.admin.v1.WarmupDeliveryStatR\x04rows\x12\x14\n" +
 	"\x05range\x18\x02 \x01(\tR\x05range\x12\x14\n" +
 	"\x05since\x18\x03 \x01(\x03R\x05since\x12O\n" +
-	"\x12deferred_by_domain\x18\x04 \x03(\v2!.iris.admin.v1.DomainDeferredStatR\x10deferredByDomain\"0\n" +
+	"\x12deferred_by_domain\x18\x04 \x03(\v2!.iris.admin.v1.DomainDeferredStatR\x10deferredByDomain\"D\n" +
 	"\x18GetMailClassStatsRequest\x12\x14\n" +
-	"\x05range\x18\x01 \x01(\tR\x05range\"\x97\x01\n" +
+	"\x05range\x18\x01 \x01(\tR\x05range\x12\x12\n" +
+	"\x04node\x18\x02 \x01(\tR\x04node\"\x97\x01\n" +
 	"\rMailClassStat\x12\x1c\n" +
 	"\tmailclass\x18\x01 \x01(\tR\tmailclass\x12\x14\n" +
 	"\x05count\x18\x02 \x01(\x03R\x05count\x12\x1c\n" +
@@ -21613,9 +21656,10 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x0eMailClassStats\x120\n" +
 	"\x04rows\x18\x01 \x03(\v2\x1c.iris.admin.v1.MailClassStatR\x04rows\x12\x14\n" +
 	"\x05range\x18\x02 \x01(\tR\x05range\x12\x14\n" +
-	"\x05since\x18\x03 \x01(\x03R\x05since\"6\n" +
+	"\x05since\x18\x03 \x01(\x03R\x05since\"J\n" +
 	"\x1eGetRecipientDomainStatsRequest\x12\x14\n" +
-	"\x05range\x18\x01 \x01(\tR\x05range\"\xaa\x01\n" +
+	"\x05range\x18\x01 \x01(\tR\x05range\x12\x12\n" +
+	"\x04node\x18\x02 \x01(\tR\x04node\"\xaa\x01\n" +
 	"\x13RecipientDomainStat\x12)\n" +
 	"\x10recipient_domain\x18\x01 \x01(\tR\x0frecipientDomain\x12\x14\n" +
 	"\x05count\x18\x02 \x01(\x03R\x05count\x12\x1c\n" +
@@ -21625,10 +21669,11 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x14RecipientDomainStats\x126\n" +
 	"\x04rows\x18\x01 \x03(\v2\".iris.admin.v1.RecipientDomainStatR\x04rows\x12\x14\n" +
 	"\x05range\x18\x02 \x01(\tR\x05range\x12\x14\n" +
-	"\x05since\x18\x03 \x01(\x03R\x05since\"R\n" +
+	"\x05since\x18\x03 \x01(\x03R\x05since\"f\n" +
 	"\x1cGetQueueTimeHistogramRequest\x12\x14\n" +
 	"\x05range\x18\x01 \x01(\tR\x05range\x12\x1c\n" +
-	"\tmailclass\x18\x02 \x01(\tR\tmailclass\"X\n" +
+	"\tmailclass\x18\x02 \x01(\tR\tmailclass\x12\x12\n" +
+	"\x04node\x18\x03 \x01(\tR\x04node\"X\n" +
 	"\x0fQueueTimeBucket\x12\x0e\n" +
 	"\x02le\x18\x01 \x01(\tR\x02le\x12\x1f\n" +
 	"\vupper_bound\x18\x02 \x01(\x01R\n" +

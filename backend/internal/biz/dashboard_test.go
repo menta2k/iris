@@ -20,22 +20,22 @@ func (f *fakeDashboardRepo) Summary(context.Context) (*DashboardSummary, error) 
 	return f.summary, nil
 }
 
-func (f *fakeDashboardRepo) DeliveryStats(_ context.Context, since time.Time) ([]WarmupDeliveryStat, error) {
+func (f *fakeDashboardRepo) DeliveryStats(_ context.Context, since time.Time, _ string) ([]WarmupDeliveryStat, error) {
 	f.since = since
 	return f.stats, nil
 }
 
-func (f *fakeDashboardRepo) DeferredByDomain(_ context.Context, since time.Time) ([]DomainDeferredStat, error) {
+func (f *fakeDashboardRepo) DeferredByDomain(_ context.Context, since time.Time, _ string) ([]DomainDeferredStat, error) {
 	f.since = since
 	return f.deferredByDomain, nil
 }
 
-func (f *fakeDashboardRepo) MailClassStats(_ context.Context, since time.Time) ([]MailClassStat, error) {
+func (f *fakeDashboardRepo) MailClassStats(_ context.Context, since time.Time, _ string) ([]MailClassStat, error) {
 	f.since = since
 	return f.classStats, nil
 }
 
-func (f *fakeDashboardRepo) RecipientDomainStats(_ context.Context, since time.Time, limit int) ([]RecipientDomainStat, error) {
+func (f *fakeDashboardRepo) RecipientDomainStats(_ context.Context, since time.Time, _ string, limit int) ([]RecipientDomainStat, error) {
 	f.since = since
 	f.domainLimit = limit
 	return f.domainStats, nil
@@ -87,7 +87,7 @@ func TestWarmupDeliveryStatsRequiresPermission(t *testing.T) {
 	ctx := WithIdentity(context.Background(), &Identity{
 		Permissions: NewPermissionSet(nil), MFAVerified: true,
 	})
-	if _, err := uc.WarmupDeliveryStats(ctx, "24h"); err == nil {
+	if _, err := uc.WarmupDeliveryStats(ctx, "24h", ""); err == nil {
 		t.Fatal("expected permission denied without dashboard:read")
 	}
 }
@@ -98,7 +98,7 @@ func TestWarmupDeliveryStatsDerivesRates(t *testing.T) {
 		{VMTAName: "ip-b", RecipientDomain: "yahoo.com", Sent: 0, Bounced: 0, Deferred: 3},
 	}}
 	uc := NewDashboardUsecase(repo)
-	res, err := uc.WarmupDeliveryStats(ownerCtx(), "24h")
+	res, err := uc.WarmupDeliveryStats(ownerCtx(), "24h", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -125,7 +125,7 @@ func TestWarmupDeliveryStatsIncludesDeferredByDomain(t *testing.T) {
 		{RecipientDomain: "abv.bg", Messages: 12},
 	}}
 	uc := NewDashboardUsecase(repo)
-	res, err := uc.WarmupDeliveryStats(ownerCtx(), "24h")
+	res, err := uc.WarmupDeliveryStats(ownerCtx(), "24h", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -140,7 +140,7 @@ func TestMailClassStatsRequiresPermission(t *testing.T) {
 	ctx := WithIdentity(context.Background(), &Identity{
 		Permissions: NewPermissionSet(nil), MFAVerified: true,
 	})
-	if _, err := uc.MailClassStats(ctx, "24h"); err == nil {
+	if _, err := uc.MailClassStats(ctx, "24h", ""); err == nil {
 		t.Fatal("expected permission denied without dashboard:read")
 	}
 }
@@ -150,7 +150,7 @@ func TestMailClassStatsReturnsRows(t *testing.T) {
 		{Mailclass: "transactional", Count: 100, Delivered: 90, Bounced: 5, Deferred: 5},
 	}}
 	uc := NewDashboardUsecase(repo)
-	res, err := uc.MailClassStats(ownerCtx(), "6h")
+	res, err := uc.MailClassStats(ownerCtx(), "6h", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -164,7 +164,7 @@ func TestRecipientDomainStatsRequiresPermission(t *testing.T) {
 	ctx := WithIdentity(context.Background(), &Identity{
 		Permissions: NewPermissionSet(nil), MFAVerified: true,
 	})
-	if _, err := uc.RecipientDomainStats(ctx, "24h"); err == nil {
+	if _, err := uc.RecipientDomainStats(ctx, "24h", ""); err == nil {
 		t.Fatal("expected permission denied without dashboard:read")
 	}
 }
@@ -174,7 +174,7 @@ func TestRecipientDomainStatsPassesTopTenLimit(t *testing.T) {
 		{RecipientDomain: "gmail.com", Count: 500, Delivered: 480, Bounced: 20},
 	}}
 	uc := NewDashboardUsecase(repo)
-	res, err := uc.RecipientDomainStats(ownerCtx(), "7d")
+	res, err := uc.RecipientDomainStats(ownerCtx(), "7d", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

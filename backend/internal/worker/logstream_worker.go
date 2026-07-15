@@ -315,7 +315,7 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 	// in the queue (Reception → Delivery) into the histogram, by mail class.
 	if rec.Type == biz.KumoDelivery {
 		if d, ok := rec.QueueLatency(now); ok {
-			metrics.RecordQueueTime(mr.Mailclass, d.Seconds())
+			metrics.RecordQueueTime(mr.Mailclass, mr.Node, d.Seconds())
 		}
 	}
 

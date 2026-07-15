@@ -79,7 +79,7 @@ func (r *DashboardRepo) Summary(ctx context.Context) (*biz.DashboardSummary, err
 // TransientFailure record on every failed retry, so one message can defer many
 // times (e.g. a mailbox-full 452 retried for days). Counting distinct
 // message_ids reports "messages that deferred", not "retry attempts".
-func (r *DashboardRepo) DeliveryStats(ctx context.Context, since time.Time) ([]biz.WarmupDeliveryStat, error) {
+func (r *DashboardRepo) DeliveryStats(ctx context.Context, since time.Time, node string) ([]biz.WarmupDeliveryStat, error) {
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT
 			coalesce(v.id::text, '')                              AS vmta_id,
@@ -94,13 +94,14 @@ func (r *DashboardRepo) DeliveryStats(ctx context.Context, since time.Time) ([]b
 			AND m.egress_source <> ''
 			AND m.recipient_domain <> ''
 			AND m.status IN ($2, $3, $4)
+			AND ($5 = '' OR m.node = $5)
 		GROUP BY v.id, m.egress_source, m.recipient_domain
 		ORDER BY (count(*) FILTER (WHERE m.status = $2)
 			+ count(*) FILTER (WHERE m.status = $3)
 			+ count(*) FILTER (WHERE m.status = $4)) DESC,
 			m.egress_source, m.recipient_domain
 		LIMIT 500`,
-		since, biz.MailSent, biz.MailBounced, biz.MailDeferred)
+		since, biz.MailSent, biz.MailBounced, biz.MailDeferred, node)
 	if err != nil {
 		return nil, fmt.Errorf("delivery stats: %w", err)
 	}
@@ -125,7 +126,7 @@ func (r *DashboardRepo) DeliveryStats(ctx context.Context, since time.Time) ([]b
 // since the given time. Uses the same scope as DeliveryStats (a real egress
 // attempt) but dedupes across VMTAs, so a message that retried across several
 // IPs counts once — the summable "messages deferred" number.
-func (r *DashboardRepo) DeferredByDomain(ctx context.Context, since time.Time) ([]biz.DomainDeferredStat, error) {
+func (r *DashboardRepo) DeferredByDomain(ctx context.Context, since time.Time, node string) ([]biz.DomainDeferredStat, error) {
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT m.recipient_domain, count(DISTINCT m.message_id) AS messages
 		FROM mail_records m
@@ -133,10 +134,11 @@ func (r *DashboardRepo) DeferredByDomain(ctx context.Context, since time.Time) (
 			AND m.status = $2
 			AND m.egress_source <> ''
 			AND m.recipient_domain <> ''
+			AND ($3 = '' OR m.node = $3)
 		GROUP BY m.recipient_domain
 		ORDER BY 2 DESC, m.recipient_domain
 		LIMIT 200`,
-		since, biz.MailDeferred)
+		since, biz.MailDeferred, node)
 	if err != nil {
 		return nil, fmt.Errorf("deferred by domain: %w", err)
 	}
@@ -159,7 +161,7 @@ func (r *DashboardRepo) DeferredByDomain(ctx context.Context, since time.Time) (
 // MailClassStats aggregates mail-record volume per mailclass since the given
 // time. Count is every record for the class; delivered/bounced/deferred break
 // it down by terminal status (delivered == the "sent" status).
-func (r *DashboardRepo) MailClassStats(ctx context.Context, since time.Time) ([]biz.MailClassStat, error) {
+func (r *DashboardRepo) MailClassStats(ctx context.Context, since time.Time, node string) ([]biz.MailClassStat, error) {
 	rows, err := r.db.Pool.Query(ctx, `
 		SELECT
 			m.mailclass                           AS mailclass,
@@ -170,10 +172,11 @@ func (r *DashboardRepo) MailClassStats(ctx context.Context, since time.Time) ([]
 		FROM mail_records m
 		WHERE m.event_time >= $1
 			AND m.mailclass <> ''
+			AND ($5 = '' OR m.node = $5)
 		GROUP BY m.mailclass
 		ORDER BY count(*) DESC, m.mailclass
 		LIMIT 100`,
-		since, biz.MailSent, biz.MailBounced, biz.MailDeferred)
+		since, biz.MailSent, biz.MailBounced, biz.MailDeferred, node)
 	if err != nil {
 		return nil, fmt.Errorf("mailclass stats: %w", err)
 	}
@@ -195,7 +198,7 @@ func (r *DashboardRepo) MailClassStats(ctx context.Context, since time.Time) ([]
 
 // RecipientDomainStats aggregates mail-record volume per recipient domain since
 // the given time, ranked by total descending and capped at limit.
-func (r *DashboardRepo) RecipientDomainStats(ctx context.Context, since time.Time, limit int) ([]biz.RecipientDomainStat, error) {
+func (r *DashboardRepo) RecipientDomainStats(ctx context.Context, since time.Time, node string, limit int) ([]biz.RecipientDomainStat, error) {
 	if limit <= 0 {
 		limit = 10
 	}
@@ -209,10 +212,11 @@ func (r *DashboardRepo) RecipientDomainStats(ctx context.Context, since time.Tim
 		FROM mail_records m
 		WHERE m.event_time >= $1
 			AND m.recipient_domain <> ''
+			AND ($5 = '' OR m.node = $5)
 		GROUP BY m.recipient_domain
 		ORDER BY count(*) DESC, m.recipient_domain
-		LIMIT $5`,
-		since, biz.MailSent, biz.MailBounced, biz.MailDeferred, limit)
+		LIMIT $6`,
+		since, biz.MailSent, biz.MailBounced, biz.MailDeferred, node, limit)
 	if err != nil {
 		return nil, fmt.Errorf("recipient domain stats: %w", err)
 	}

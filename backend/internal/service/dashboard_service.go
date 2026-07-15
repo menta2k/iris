@@ -33,7 +33,7 @@ func (s *Service) GetMetricsTimeseries(ctx context.Context, req *adminv1.GetMetr
 	if s.metrics == nil {
 		return nil, notImplemented("GetMetricsTimeseries")
 	}
-	ts, err := s.metrics.Timeseries(ctx, req.GetRange())
+	ts, err := s.metrics.Timeseries(ctx, req.GetRange(), req.GetNode())
 	if err != nil {
 		return nil, s.fail(ctx, "GetMetricsTimeseries", err)
 	}
@@ -63,7 +63,7 @@ func (s *Service) GetQueueTimeHistogram(ctx context.Context, req *adminv1.GetQue
 	if s.metrics == nil {
 		return nil, notImplemented("GetQueueTimeHistogram")
 	}
-	h, err := s.metrics.QueueTimeHistogram(ctx, req.GetRange(), req.GetMailclass())
+	h, err := s.metrics.QueueTimeHistogram(ctx, req.GetRange(), req.GetMailclass(), req.GetNode())
 	if err != nil {
 		return nil, s.fail(ctx, "GetQueueTimeHistogram", err)
 	}
@@ -87,7 +87,7 @@ func (s *Service) GetWarmupDeliveryStats(ctx context.Context, req *adminv1.GetWa
 	if s.dashboard == nil {
 		return nil, notImplemented("GetWarmupDeliveryStats")
 	}
-	res, err := s.dashboard.WarmupDeliveryStats(ctx, req.GetRange())
+	res, err := s.dashboard.WarmupDeliveryStats(ctx, req.GetRange(), req.GetNode())
 	if err != nil {
 		return nil, s.fail(ctx, "GetWarmupDeliveryStats", err)
 	}
@@ -120,7 +120,7 @@ func (s *Service) GetMailClassStats(ctx context.Context, req *adminv1.GetMailCla
 	if s.dashboard == nil {
 		return nil, notImplemented("GetMailClassStats")
 	}
-	res, err := s.dashboard.MailClassStats(ctx, req.GetRange())
+	res, err := s.dashboard.MailClassStats(ctx, req.GetRange(), req.GetNode())
 	if err != nil {
 		return nil, s.fail(ctx, "GetMailClassStats", err)
 	}
@@ -143,7 +143,7 @@ func (s *Service) GetRecipientDomainStats(ctx context.Context, req *adminv1.GetR
 	if s.dashboard == nil {
 		return nil, notImplemented("GetRecipientDomainStats")
 	}
-	res, err := s.dashboard.RecipientDomainStats(ctx, req.GetRange())
+	res, err := s.dashboard.RecipientDomainStats(ctx, req.GetRange(), req.GetNode())
 	if err != nil {
 		return nil, s.fail(ctx, "GetRecipientDomainStats", err)
 	}

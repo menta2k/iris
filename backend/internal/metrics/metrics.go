@@ -54,7 +54,7 @@ var (
 		Name:    "iris_mail_queue_time_seconds",
 		Help:    "Time a message spent queued from Reception to successful Delivery, in seconds, by mail class.",
 		Buckets: []float64{0.1, 0.5, 1, 2, 5, 10, 30, 60, 120, 300, 600, 1800, 3600},
-	}, []string{"mailclass"})
+	}, []string{"mailclass", "node"})
 
 	// Self-monitoring gauges: current host resource usage, refreshed by the
 	// monitor worker each sample so Prometheus can scrape and chart them over
@@ -142,11 +142,11 @@ func RecordWebhookExecution(webhook, result string) {
 // RecordQueueTime observes the queue latency (Reception → Delivery), in seconds,
 // of a delivered message for the given mail class. Negative durations (clock
 // skew) are dropped.
-func RecordQueueTime(mailclass string, seconds float64) {
+func RecordQueueTime(mailclass, node string, seconds float64) {
 	if seconds < 0 {
 		return
 	}
-	MailQueueTime.WithLabelValues(or(mailclass)).Observe(seconds)
+	MailQueueTime.WithLabelValues(or(mailclass), or(node)).Observe(seconds)
 }
 
 // or substitutes a stable placeholder for an empty label value so series do not

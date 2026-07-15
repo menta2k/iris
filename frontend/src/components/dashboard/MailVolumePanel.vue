@@ -18,8 +18,9 @@ export interface VolumeRow {
 
 const props = defineProps<{
   title: string
-  fetcher: (range: WarmupStatsRange) => Promise<VolumeRow[]>
+  fetcher: (range: WarmupStatsRange, node: string) => Promise<VolumeRow[]>
   emptyMessage?: string
+  node?: string
 }>()
 
 const RANGES: WarmupStatsRange[] = ['24h', '7d']
@@ -55,7 +56,7 @@ async function load() {
   error.value = null
   notImplemented.value = false
   try {
-    rows.value = await props.fetcher(range.value)
+    rows.value = await props.fetcher(range.value, props.node ?? '')
   } catch (err) {
     rows.value = []
     if (err instanceof ApiError && err.notImplemented) {
@@ -69,7 +70,7 @@ async function load() {
 }
 
 onMounted(load)
-watch(range, load)
+watch([range, () => props.node], load)
 </script>
 
 <template>

@@ -13,19 +13,20 @@ export const dashboardService = {
   getSummary() {
     return http.get<DashboardSummary>('/dashboard/summary')
   },
-  getWarmupStats(range: WarmupStatsRange = '24h') {
-    return http.get<WarmupDeliveryStats>(
-      `/dashboard/warmup-stats?range=${encodeURIComponent(range)}`,
-    )
+  // node empty = all cluster nodes; non-empty narrows to one node.
+  getWarmupStats(range: WarmupStatsRange = '24h', node = '') {
+    return http.get<WarmupDeliveryStats>('/dashboard/warmup-stats', {
+      query: node ? { range, node } : { range },
+    })
   },
-  getMailClassStats(range: WarmupStatsRange = '24h') {
-    return http.get<MailClassStats>(
-      `/dashboard/mailclass-stats?range=${encodeURIComponent(range)}`,
-    )
+  getMailClassStats(range: WarmupStatsRange = '24h', node = '') {
+    return http.get<MailClassStats>('/dashboard/mailclass-stats', {
+      query: node ? { range, node } : { range },
+    })
   },
-  getRecipientDomainStats(range: WarmupStatsRange = '24h') {
-    return http.get<RecipientDomainStats>(
-      `/dashboard/recipient-domain-stats?range=${encodeURIComponent(range)}`,
-    )
+  getRecipientDomainStats(range: WarmupStatsRange = '24h', node = '') {
+    return http.get<RecipientDomainStats>('/dashboard/recipient-domain-stats', {
+      query: node ? { range, node } : { range },
+    })
   },
 }

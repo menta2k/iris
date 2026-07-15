@@ -72,12 +72,33 @@ func NewMetricsUsecase(urls PrometheusURLProvider, client HTTPDoer) *MetricsUsec
 // types (Delivery/Reception/TransientFailure). Filtering on the raw types
 // yields an empty result and a blank chart.
 var curatedSeries = []struct {
-	key, label, expr string
+	key, label, metric, labels string
 }{
-	{"deliveries", "Deliveries/min", `iris_mail_events_total{status="` + MailSent + `"}`},
-	{"receptions", "Receptions/min", `iris_mail_events_total{status="` + MailReceived + `"}`},
-	{"deferrals", "Deferrals/min", `iris_mail_events_total{status="` + MailDeferred + `"}`},
-	{"bounces", "Bounces/min", `iris_bounces_total`},
+	{"deliveries", "Deliveries/min", "iris_mail_events_total", `status="` + MailSent + `"`},
+	{"receptions", "Receptions/min", "iris_mail_events_total", `status="` + MailReceived + `"`},
+	{"deferrals", "Deferrals/min", "iris_mail_events_total", `status="` + MailDeferred + `"`},
+	// Bounces come from iris_bounces_total, which has NO node label. When a node
+	// filter is applied we swap to iris_mail_events_total{status="bounced"} so the
+	// series can be scoped per node (see Timeseries).
+	{"bounces", "Bounces/min", "iris_bounces_total", ""},
+}
+
+// promSelector builds a PromQL instant selector "metric{labels,node="n"}",
+// appending the node matcher only when node is non-empty. labels is a
+// pre-formatted matcher body without braces ("" for none).
+func promSelector(metric, labels, node string) string {
+	node = strings.TrimSpace(node)
+	var parts []string
+	if labels != "" {
+		parts = append(parts, labels)
+	}
+	if node != "" {
+		parts = append(parts, fmt.Sprintf("node=%q", node))
+	}
+	if len(parts) == 0 {
+		return metric
+	}
+	return metric + "{" + strings.Join(parts, ",") + "}"
 }
 
 // rangeParams maps a lookback range to (duration, step, rate-window). Unknown
@@ -100,10 +121,11 @@ func rangeParams(r string) (lookback time.Duration, step time.Duration, window s
 // Timeseries returns the curated overview for the given range. When no
 // Prometheus URL is configured it returns PrometheusAvailable=false (not an
 // error) so the dashboard can render an "unconfigured" state.
-func (uc *MetricsUsecase) Timeseries(ctx context.Context, rng string) (*MetricsTimeseries, error) {
+func (uc *MetricsUsecase) Timeseries(ctx context.Context, rng, node string) (*MetricsTimeseries, error) {
 	if _, err := RequirePermission(ctx, PermDashboardRead); err != nil {
 		return nil, err
 	}
+	node = strings.TrimSpace(node)
 	lookback, step, window, eff := rangeParams(rng)
 	out := &MetricsTimeseries{Range: eff, StepSeconds: int64(step.Seconds())}
 
@@ -120,7 +142,13 @@ func (uc *MetricsUsecase) Timeseries(ctx context.Context, rng string) (*MetricsT
 	end := uc.now()
 	start := end.Add(-lookback)
 	for _, s := range curatedSeries {
-		query := fmt.Sprintf("sum(rate(%s[%s])) * 60", s.expr, window)
+		metric, labels := s.metric, s.labels
+		// iris_bounces_total has no node label; when scoping to a node, derive
+		// bounces from the node-labeled mail-events counter instead.
+		if node != "" && s.key == "bounces" {
+			metric, labels = "iris_mail_events_total", `status="`+MailBounced+`"`
+		}
+		query := fmt.Sprintf("sum(rate(%s[%s])) * 60", promSelector(metric, labels, node), window)
 		pts, err := uc.queryRange(ctx, base, query, start, end, step)
 		if err != nil {
 			return nil, Internal(err, "prometheus query %q", s.key)
@@ -221,7 +249,7 @@ type QueueTimeHistogram struct {
 // lookback. A non-empty mailclass narrows to one class; empty aggregates all
 // (the global view). Returns PrometheusAvailable=false (not an error) when no
 // Prometheus URL is configured.
-func (uc *MetricsUsecase) QueueTimeHistogram(ctx context.Context, rng, mailclass string) (*QueueTimeHistogram, error) {
+func (uc *MetricsUsecase) QueueTimeHistogram(ctx context.Context, rng, mailclass, node string) (*QueueTimeHistogram, error) {
 	if _, err := RequirePermission(ctx, PermDashboardRead); err != nil {
 		return nil, err
 	}
@@ -239,10 +267,11 @@ func (uc *MetricsUsecase) QueueTimeHistogram(ctx context.Context, rng, mailclass
 	}
 	out.PrometheusAvailable = true
 
-	selector := "iris_mail_queue_time_seconds_bucket"
+	labels := ""
 	if mc := strings.TrimSpace(mailclass); mc != "" {
-		selector = fmt.Sprintf(`iris_mail_queue_time_seconds_bucket{mailclass=%q}`, mc)
+		labels = fmt.Sprintf("mailclass=%q", mc)
 	}
+	selector := promSelector("iris_mail_queue_time_seconds_bucket", labels, node)
 	// Cumulative per-le counts over the window (summed across all other labels).
 	bucketQuery := fmt.Sprintf(`sum by (le) (increase(%s[%s]))`, selector, eff)
 	samples, err := uc.queryInstant(ctx, base, bucketQuery)

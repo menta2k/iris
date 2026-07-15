@@ -70,7 +70,7 @@ func TestDeliveryStatsCountsDistinctDeferrals(t *testing.T) {
 		t.Fatalf("seed deferred 2: %v", err)
 	}
 
-	rows, err := data.NewDashboardRepo(db).DeliveryStats(ctx, time.Now().Add(-time.Hour))
+	rows, err := data.NewDashboardRepo(db).DeliveryStats(ctx, time.Now().Add(-time.Hour), "")
 	if err != nil {
 		t.Fatalf("delivery stats: %v", err)
 	}

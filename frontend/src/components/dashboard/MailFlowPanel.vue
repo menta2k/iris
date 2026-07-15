@@ -31,6 +31,7 @@ const seriesColor = computed<Record<string, string>>(() => ({
   bounced: chartTheme.value.series.error,
 }))
 
+const props = defineProps<{ node?: string }>()
 const range = ref<MetricsRange>('6h')
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -99,7 +100,7 @@ async function load() {
   notImplemented.value = false
   prometheusUnavailable.value = false
   try {
-    const res = await metricsService.getTimeseries(range.value)
+    const res = await metricsService.getTimeseries(range.value, props.node ?? '')
     if (!res.prometheusAvailable) {
       prometheusUnavailable.value = true
       series.value = []
@@ -134,7 +135,7 @@ onBeforeUnmount(() => {
   chart.value = null
 })
 
-watch(range, load)
+watch([range, () => props.node], load)
 // Re-render whenever data lands, and re-skin when the theme flips.
 watch([series, loading, chartTheme], () => {
   if (hasData.value) render()

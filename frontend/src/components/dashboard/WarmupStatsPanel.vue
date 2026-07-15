@@ -17,6 +17,7 @@ import type { DomainDeferredStat, WarmupDeliveryStat } from '@/types'
 
 const RANGES: WarmupStatsRange[] = ['24h', '7d']
 
+const props = defineProps<{ node?: string }>()
 const range = ref<WarmupStatsRange>('24h')
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -74,7 +75,7 @@ async function load() {
   error.value = null
   notImplemented.value = false
   try {
-    const res = await dashboardService.getWarmupStats(range.value)
+    const res = await dashboardService.getWarmupStats(range.value, props.node ?? '')
     rows.value = res.rows ?? []
     deferredByDomain.value = res.deferredByDomain ?? []
   } catch (err) {
@@ -103,7 +104,7 @@ function bounceClass(rate: number): string {
 }
 
 onMounted(load)
-watch(range, load)
+watch([range, () => props.node], load)
 </script>
 
 <template>

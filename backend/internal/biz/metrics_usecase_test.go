@@ -34,7 +34,7 @@ func (f *fakeDoer) Do(req *http.Request) (*http.Response, error) {
 
 func TestMetricsUnavailableWhenNoURL(t *testing.T) {
 	uc := NewMetricsUsecase(fakePromURL{url: ""}, &fakeDoer{})
-	ts, err := uc.Timeseries(ownerCtx(), "6h")
+	ts, err := uc.Timeseries(ownerCtx(), "6h", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestMetricsParsesQueryRange(t *testing.T) {
 		"result":[{"metric":{},"values":[[1782160000,"12.5"],[1782160300,"0"]]}]}}`}
 	uc := NewMetricsUsecase(fakePromURL{url: "http://prom:9090/"}, doer)
 
-	ts, err := uc.Timeseries(ownerCtx(), "1h")
+	ts, err := uc.Timeseries(ownerCtx(), "1h", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestMetricsParsesQueryRange(t *testing.T) {
 func TestMetricsRequiresPermission(t *testing.T) {
 	uc := NewMetricsUsecase(fakePromURL{url: "http://prom:9090"}, &fakeDoer{})
 	ctx := WithIdentity(context.Background(), &Identity{Permissions: NewPermissionSet(nil), MFAVerified: true})
-	if _, err := uc.Timeseries(ctx, "6h"); err == nil {
+	if _, err := uc.Timeseries(ctx, "6h", ""); err == nil {
 		t.Fatal("expected permission denied without dashboard:read")
 	}
 }
@@ -108,7 +108,7 @@ func TestMetricsCuratedStatusLabels(t *testing.T) {
 	doer := &recordingDoer{body: `{"status":"success","data":{"result":[]}}`}
 	uc := NewMetricsUsecase(fakePromURL{url: "http://prom:9090"}, doer)
 
-	if _, err := uc.Timeseries(ownerCtx(), "6h"); err != nil {
+	if _, err := uc.Timeseries(ownerCtx(), "6h", ""); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(doer.urls) != len(curatedSeries) {
@@ -119,6 +119,34 @@ func TestMetricsCuratedStatusLabels(t *testing.T) {
 		`iris_mail_events_total{status="received"}`,
 		`iris_mail_events_total{status="deferred"}`,
 		`iris_bounces_total`,
+	}
+	for i, w := range want {
+		dec, err := url.QueryUnescape(doer.urls[i])
+		if err != nil {
+			t.Fatalf("decode url %d: %v", i, err)
+		}
+		if !strings.Contains(dec, w) {
+			t.Fatalf("query %d: want expr containing %q, got %s", i, w, dec)
+		}
+	}
+}
+
+// TestMetricsNodeFilterInjectsLabel verifies a non-empty node narrows every
+// curated series to that node — including bounces, which have no node label on
+// iris_bounces_total and so must be derived from the node-labeled mail-events
+// counter instead.
+func TestMetricsNodeFilterInjectsLabel(t *testing.T) {
+	doer := &recordingDoer{body: `{"status":"success","data":{"result":[]}}`}
+	uc := NewMetricsUsecase(fakePromURL{url: "http://prom:9090"}, doer)
+
+	if _, err := uc.Timeseries(ownerCtx(), "6h", "kmx"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := []string{
+		`iris_mail_events_total{status="sent",node="kmx"}`,
+		`iris_mail_events_total{status="received",node="kmx"}`,
+		`iris_mail_events_total{status="deferred",node="kmx"}`,
+		`iris_mail_events_total{status="bounced",node="kmx"}`, // bounces swapped off iris_bounces_total
 	}
 	for i, w := range want {
 		dec, err := url.QueryUnescape(doer.urls[i])
@@ -157,7 +185,7 @@ func TestDeCumulate(t *testing.T) {
 
 func TestQueueTimeHistogramUnavailableWhenNoURL(t *testing.T) {
 	uc := NewMetricsUsecase(fakePromURL{url: ""}, &fakeDoer{})
-	h, err := uc.QueueTimeHistogram(ownerCtx(), "6h", "")
+	h, err := uc.QueueTimeHistogram(ownerCtx(), "6h", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

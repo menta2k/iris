@@ -94,17 +94,21 @@ type RecipientDomainStatsResult struct {
 type DashboardRepo interface {
 	Summary(ctx context.Context) (*DashboardSummary, error)
 	// DeliveryStats returns per-VMTA, per-recipient-domain raw counts for events
-	// at or after since. Rate fields are left zero for the usecase to derive.
-	DeliveryStats(ctx context.Context, since time.Time) ([]WarmupDeliveryStat, error)
+	// at or after since. Rate fields are left zero for the usecase to derive. A
+	// non-empty node narrows to records processed on that cluster node.
+	DeliveryStats(ctx context.Context, since time.Time, node string) ([]WarmupDeliveryStat, error)
 	// DeferredByDomain returns the count of DISTINCT messages that deferred per
-	// recipient domain (deduped across VMTAs) at or after since.
-	DeferredByDomain(ctx context.Context, since time.Time) ([]DomainDeferredStat, error)
+	// recipient domain (deduped across VMTAs) at or after since. A non-empty node
+	// narrows to that cluster node.
+	DeferredByDomain(ctx context.Context, since time.Time, node string) ([]DomainDeferredStat, error)
 	// MailClassStats returns mail-record counts grouped by mailclass for events
-	// at or after since, ordered by total descending.
-	MailClassStats(ctx context.Context, since time.Time) ([]MailClassStat, error)
+	// at or after since, ordered by total descending. A non-empty node narrows
+	// to that cluster node.
+	MailClassStats(ctx context.Context, since time.Time, node string) ([]MailClassStat, error)
 	// RecipientDomainStats returns mail-record counts grouped by recipient domain
 	// for events at or after since, ordered by total descending, capped at limit.
-	RecipientDomainStats(ctx context.Context, since time.Time, limit int) ([]RecipientDomainStat, error)
+	// A non-empty node narrows to that cluster node.
+	RecipientDomainStats(ctx context.Context, since time.Time, node string, limit int) ([]RecipientDomainStat, error)
 }
 
 // DashboardUsecase implements the dashboard summary (US6).
@@ -189,14 +193,14 @@ func warmupStatsLookback(r string) (time.Duration, string) {
 // outcomes (Sent + Bounced) so DeliveryRate + BounceRate == 1 when there is any
 // terminal traffic; deferrals are reported separately and excluded from the
 // denominator to avoid double-counting a message that defers then delivers.
-func (uc *DashboardUsecase) WarmupDeliveryStats(ctx context.Context, rng string) (*WarmupDeliveryStatsResult, error) {
+func (uc *DashboardUsecase) WarmupDeliveryStats(ctx context.Context, rng, node string) (*WarmupDeliveryStatsResult, error) {
 	if _, err := RequirePermission(ctx, PermDashboardRead); err != nil {
 		return nil, err
 	}
 	lookback, eff := warmupStatsLookback(rng)
 	since := time.Now().Add(-lookback)
 
-	rows, err := uc.repo.DeliveryStats(ctx, since)
+	rows, err := uc.repo.DeliveryStats(ctx, since, node)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +213,7 @@ func (uc *DashboardUsecase) WarmupDeliveryStats(ctx context.Context, rng string)
 	}
 	// Distinct messages deferred per domain (deduped across VMTAs) — the
 	// summable "messages deferred" number, unlike the per-VMTA rows.
-	byDomain, err := uc.repo.DeferredByDomain(ctx, since)
+	byDomain, err := uc.repo.DeferredByDomain(ctx, since, node)
 	if err != nil {
 		return nil, err
 	}
@@ -221,14 +225,14 @@ const topRecipientDomains = 10
 
 // MailClassStats returns mail-record volume grouped by mailclass over the given
 // lookback window, ordered by total descending.
-func (uc *DashboardUsecase) MailClassStats(ctx context.Context, rng string) (*MailClassStatsResult, error) {
+func (uc *DashboardUsecase) MailClassStats(ctx context.Context, rng, node string) (*MailClassStatsResult, error) {
 	if _, err := RequirePermission(ctx, PermDashboardRead); err != nil {
 		return nil, err
 	}
 	lookback, eff := warmupStatsLookback(rng)
 	since := time.Now().Add(-lookback)
 
-	rows, err := uc.repo.MailClassStats(ctx, since)
+	rows, err := uc.repo.MailClassStats(ctx, since, node)
 	if err != nil {
 		return nil, err
 	}
@@ -237,14 +241,14 @@ func (uc *DashboardUsecase) MailClassStats(ctx context.Context, rng string) (*Ma
 
 // RecipientDomainStats returns the busiest recipient domains by mail-record
 // volume over the given lookback window (top 10).
-func (uc *DashboardUsecase) RecipientDomainStats(ctx context.Context, rng string) (*RecipientDomainStatsResult, error) {
+func (uc *DashboardUsecase) RecipientDomainStats(ctx context.Context, rng, node string) (*RecipientDomainStatsResult, error) {
 	if _, err := RequirePermission(ctx, PermDashboardRead); err != nil {
 		return nil, err
 	}
 	lookback, eff := warmupStatsLookback(rng)
 	since := time.Now().Add(-lookback)
 
-	rows, err := uc.repo.RecipientDomainStats(ctx, since, topRecipientDomains)
+	rows, err := uc.repo.RecipientDomainStats(ctx, since, node, topRecipientDomains)
 	if err != nil {
 		return nil, err
 	}

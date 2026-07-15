@@ -652,6 +652,10 @@ paths:
                   in: query
                   schema:
                     type: string
+                - name: node
+                  in: query
+                  schema:
+                    type: string
             responses:
                 "200":
                     description: OK
@@ -669,6 +673,10 @@ paths:
             operationId: IrisAdminService_GetMetricsTimeseries
             parameters:
                 - name: range
+                  in: query
+                  schema:
+                    type: string
+                - name: node
                   in: query
                   schema:
                     type: string
@@ -697,6 +705,10 @@ paths:
                   in: query
                   schema:
                     type: string
+                - name: node
+                  in: query
+                  schema:
+                    type: string
             responses:
                 "200":
                     description: OK
@@ -714,6 +726,10 @@ paths:
             operationId: IrisAdminService_GetRecipientDomainStats
             parameters:
                 - name: range
+                  in: query
+                  schema:
+                    type: string
+                - name: node
                   in: query
                   schema:
                     type: string
@@ -746,6 +762,10 @@ paths:
             operationId: IrisAdminService_GetWarmupDeliveryStats
             parameters:
                 - name: range
+                  in: query
+                  schema:
+                    type: string
+                - name: node
                   in: query
                   schema:
                     type: string

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
 import ServiceStatusWidget from '@/components/dashboard/ServiceStatusWidget.vue'
@@ -13,11 +13,34 @@ import WarmupStatsPanel from '@/components/dashboard/WarmupStatsPanel.vue'
 import SystemStatsPanel from '@/components/dashboard/SystemStatsPanel.vue'
 import MailVolumePanel, { type VolumeRow } from '@/components/dashboard/MailVolumePanel.vue'
 import QueueTimeHistogramPanel from '@/components/dashboard/QueueTimeHistogramPanel.vue'
-import { dashboardService, mailOperationsService, identityAuditService } from '@/services'
+import {
+  dashboardService,
+  mailOperationsService,
+  identityAuditService,
+  clusterService,
+} from '@/services'
 import { useEventStream } from '@/composables/useEventStream'
 import type { WarmupStatsRange } from '@/services/dashboard'
 import { ApiError } from '@/services/http'
-import type { AuditEntry, DashboardSummary, MailRecord } from '@/types'
+import type { AuditEntry, DashboardSummary, MailRecord, MTANode } from '@/types'
+
+// Cluster-node drill-down: '' = all nodes. Populated from the node registry; a
+// single-node (non-cluster) deployment simply shows no selector. The selected
+// node flows into every panel that supports per-node metrics.
+const selectedNode = ref('')
+const nodes = ref<MTANode[]>([])
+const nodeItems = computed(() => [
+  { title: 'All nodes', value: '' },
+  ...nodes.value.map((n) => ({ title: n.name, value: n.name })),
+])
+async function loadNodes() {
+  try {
+    const res = await clusterService.listNodes()
+    nodes.value = (res.items ?? []).filter((n) => n.status !== 'disabled')
+  } catch {
+    nodes.value = []
+  }
+}
 
 const summary = ref<DashboardSummary | null>(null)
 const recentMail = ref<MailRecord[]>([])
@@ -56,8 +79,8 @@ async function load() {
 
 // Fetchers for the mail-volume panels; map the int64-as-string counts into the
 // numeric shape the panel renders.
-async function loadMailClassStats(range: WarmupStatsRange): Promise<VolumeRow[]> {
-  const res = await dashboardService.getMailClassStats(range)
+async function loadMailClassStats(range: WarmupStatsRange, node: string): Promise<VolumeRow[]> {
+  const res = await dashboardService.getMailClassStats(range, node)
   return (res.rows ?? []).map((r) => ({
     name: r.mailclass,
     count: Number(r.count),
@@ -67,8 +90,8 @@ async function loadMailClassStats(range: WarmupStatsRange): Promise<VolumeRow[]>
   }))
 }
 
-async function loadRecipientDomainStats(range: WarmupStatsRange): Promise<VolumeRow[]> {
-  const res = await dashboardService.getRecipientDomainStats(range)
+async function loadRecipientDomainStats(range: WarmupStatsRange, node: string): Promise<VolumeRow[]> {
+  const res = await dashboardService.getRecipientDomainStats(range, node)
   return (res.rows ?? []).map((r) => ({
     name: r.recipientDomain,
     count: Number(r.count),
@@ -91,6 +114,7 @@ const dashStream = useEventStream('dashboard', scheduleRefresh)
 
 onMounted(() => {
   load()
+  loadNodes()
   dashStream.start()
 })
 onBeforeUnmount(() => {
@@ -101,7 +125,21 @@ onBeforeUnmount(() => {
 
 <template>
   <div>
-    <PageHeader title="Dashboard" description="Operational overview of your KumoMTA deployment." />
+    <div class="d-flex align-center justify-space-between flex-wrap ga-3">
+      <PageHeader title="Dashboard" description="Operational overview of your KumoMTA deployment." />
+      <!-- Cluster node drill-down: only shown when the registry has nodes. -->
+      <v-select
+        v-if="nodes.length"
+        v-model="selectedNode"
+        :items="nodeItems"
+        data-testid="dashboard-node"
+        label="Node"
+        variant="outlined"
+        density="compact"
+        hide-details
+        style="max-width: 220px"
+      />
+    </div>
 
     <DataState :loading="loading" :error="error" :not-implemented="notImplemented">
       <!-- Widgets are ordered by importance: health KPIs, live mail flow,
@@ -122,12 +160,13 @@ onBeforeUnmount(() => {
             <MailEventsWidget :count="summary?.recentMailEvents" />
           </v-col>
         </v-row>
-        <MailFlowPanel />
+        <MailFlowPanel :node="selectedNode" />
         <v-row dense>
           <v-col cols="12" lg="6">
             <MailVolumePanel
               title="Mail by Class"
               :fetcher="loadMailClassStats"
+              :node="selectedNode"
               empty-message="No mail in this range yet."
             />
           </v-col>
@@ -135,14 +174,15 @@ onBeforeUnmount(() => {
             <MailVolumePanel
               title="Top Recipient Domains"
               :fetcher="loadRecipientDomainStats"
+              :node="selectedNode"
               empty-message="No recipient activity in this range yet."
             />
           </v-col>
         </v-row>
-        <WarmupStatsPanel />
+        <WarmupStatsPanel :node="selectedNode" />
         <v-row dense>
           <v-col cols="12" lg="8">
-            <QueueTimeHistogramPanel />
+            <QueueTimeHistogramPanel :node="selectedNode" />
           </v-col>
           <v-col cols="12" lg="4">
             <SystemStatsPanel />
