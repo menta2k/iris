@@ -1625,30 +1625,34 @@ func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolic
 	// skip_make=true returns a mergeable params table so iris overlays timeouts /
 	// connection cap / require-TLS. Coexistence with iris's log + queue hooks and
 	// the no-leak resolution were verified against a live kumod.
-	// Live per-domain TLS policy from Redis (tls:d:<domain> → enable_tls string),
-	// memoized so repeat deliveries to a domain don't re-query. Adding/removing a
-	// policy (operator edit or the auto-disable log processor) takes effect within
-	// the TTL with no reload. Fail-open: a Redis error falls through to the inline
-	// table / opportunistic default. Returns false (a cacheable sentinel) when the
-	// domain has no policy, so negative lookups are cached too.
+	// Live per-domain TLS policy set from Redis: the WHOLE set is one JSON key
+	// (iris:tls_policies → { domain = enable_tls }), loaded once per memoize TTL
+	// (not per domain) and indexed in-memory in get_egress_path_config. The policy
+	// set is tiny (dozens of domains), so this keeps steady-state Redis at ~1
+	// GET/min regardless of send volume/domain spread, while add/remove/auto-
+	// disable still take effect within the TTL with no reload. Fail-open: a Redis
+	// error yields an empty set (falls through to the inline table / default).
 	if redisTLS {
-		b.WriteString(`local function _tls_lookup(domain)
+		b.WriteString(`local function _tls_policies(_)
   local ok, res = pcall(function()
     local redis = require 'redis'
     local conn = redis.open { node = LOGSTREAM_REDIS_NODE, cluster = LOGSTREAM_REDIS_CLUSTER, pool_size = 10 }
-    return conn:query('GET', 'tls:d:' .. domain)
+    local blob = conn:query('GET', 'iris:tls_policies')
+    if not blob or blob == '' then return {} end
+    return kumo.serde.json_parse(blob)
   end)
   if not ok then
-    kumo.log_error('tls policy: redis lookup failed: ' .. tostring(res))
-    return false
+    kumo.log_error('tls policy: redis load failed: ' .. tostring(res))
+    return {}
   end
-  return res or false
+  return res or {}
 end
 
-local tls_policy_for = kumo.memoize(_tls_lookup, {
-  name = 'iris_tls_policy',
+-- One cached entry (keyed by the constant 'all'), refreshed every TTL.
+local get_tls_policies = kumo.memoize(_tls_policies, {
+  name = 'iris_tls_policies',
   ttl = '60 seconds',
-  capacity = 50000,
+  capacity = 1,
   allow_stale_reads = true,
 })
 
@@ -1666,7 +1670,7 @@ local tls_policy_for = kumo.memoize(_tls_lookup, {
 	// override → opportunistic default.
 	tlsExpr := "REQUIRE_TLS_DOMAINS[string.lower(domain)] or SOURCE_TLS[egress_source]"
 	if redisTLS {
-		tlsExpr = "tls_policy_for(string.lower(domain)) or REQUIRE_TLS_DOMAINS[string.lower(domain)] or SOURCE_TLS[egress_source]"
+		tlsExpr = "get_tls_policies('all')[string.lower(domain)] or REQUIRE_TLS_DOMAINS[string.lower(domain)] or SOURCE_TLS[egress_source]"
 	}
 	fmt.Fprintf(b, `
 kumo.on('get_egress_path_config', function(domain, egress_source, site_name)

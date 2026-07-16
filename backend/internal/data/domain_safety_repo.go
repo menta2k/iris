@@ -2,7 +2,6 @@ package data
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -349,19 +348,15 @@ func (r *DomainSafetyRepo) CreateTLSPolicy(ctx context.Context, p *biz.TLSPolicy
 	if err != nil {
 		return nil, mapConstraint(err, "require_tls_domains")
 	}
-	if out.Status == biz.TLSPolicyActive {
-		if err := r.tlsCache.Put(ctx, out.Domain, out.EnableTLSValue()); err != nil {
-			return out, err
-		}
-	} else {
-		_ = r.tlsCache.Del(ctx, out.Domain)
+	if err := r.resyncTLSCache(ctx); err != nil {
+		return out, err
 	}
 	return out, nil
 }
 
 // UpsertTLSPolicy inserts or updates the policy for a domain (idempotent on the
-// unique domain), writing through to the Redis cache. Used by the auto-disable
-// log processor so a repeated TLS failure never errors on a duplicate domain.
+// unique domain), then resyncs the Redis snapshot. Used by the auto-disable log
+// processor so a repeated TLS failure never errors on a duplicate domain.
 func (r *DomainSafetyRepo) UpsertTLSPolicy(ctx context.Context, p *biz.TLSPolicy) (*biz.TLSPolicy, error) {
 	out := &biz.TLSPolicy{}
 	err := r.db.Pool.QueryRow(ctx, `
@@ -373,14 +368,25 @@ func (r *DomainSafetyRepo) UpsertTLSPolicy(ctx context.Context, p *biz.TLSPolicy
 	if err != nil {
 		return nil, mapConstraint(err, "require_tls_domains")
 	}
-	if out.Status == biz.TLSPolicyActive {
-		if err := r.tlsCache.Put(ctx, out.Domain, out.EnableTLSValue()); err != nil {
-			return out, err
-		}
-	} else {
-		_ = r.tlsCache.Del(ctx, out.Domain)
+	if err := r.resyncTLSCache(ctx); err != nil {
+		return out, err
 	}
 	return out, nil
+}
+
+// resyncTLSCache rewrites the Redis snapshot of the whole active policy set. A
+// single blob (not per-key) so kumod loads it once per memoize TTL. No-op when
+// no cache is wired. Only the control-plane iris mutates policies, so there is no
+// cross-node writer race on the key.
+func (r *DomainSafetyRepo) resyncTLSCache(ctx context.Context) error {
+	if !r.tlsCache.Enabled() {
+		return nil
+	}
+	pols, err := r.ListTLSPolicies(ctx, biz.Page{Size: 100000})
+	if err != nil {
+		return fmt.Errorf("resync tls cache: %w", err)
+	}
+	return r.tlsCache.Sync(ctx, pols)
 }
 
 // ListTLSPolicies returns require-TLS domain policies ordered by domain.
@@ -404,18 +410,17 @@ func (r *DomainSafetyRepo) ListTLSPolicies(ctx context.Context, page biz.Page) (
 	return out, rows.Err()
 }
 
-// DeleteTLSPolicy removes a require-TLS domain policy by id and evicts its Redis
-// key so kumod stops applying it within the memoize TTL.
+// DeleteTLSPolicy removes a require-TLS domain policy by id, then resyncs the
+// Redis snapshot so kumod stops applying it within the memoize TTL.
 func (r *DomainSafetyRepo) DeleteTLSPolicy(ctx context.Context, id string) error {
-	var domain string
-	err := r.db.Pool.QueryRow(ctx, `DELETE FROM require_tls_domains WHERE id = $1 RETURNING domain`, id).Scan(&domain)
+	tag, err := r.db.Pool.Exec(ctx, `DELETE FROM require_tls_domains WHERE id = $1`, id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return biz.NotFound("TLS_POLICY_NOT_FOUND", "tls policy not found")
-		}
 		return fmt.Errorf("delete tls policy: %w", err)
 	}
-	return r.tlsCache.Del(ctx, domain)
+	if tag.RowsAffected() == 0 {
+		return biz.NotFound("TLS_POLICY_NOT_FOUND", "tls policy not found")
+	}
+	return r.resyncTLSCache(ctx)
 }
 
 // SuppressRecipient upserts an active email suppression for a recipient. Used

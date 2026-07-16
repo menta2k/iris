@@ -630,15 +630,19 @@ func TestRenderTLSPolicyRedisBacked(t *testing.T) {
 		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
 	}
 	for _, want := range []string{
-		"local tls_policy_for = kumo.memoize(_tls_lookup",
-		"conn:query('GET', 'tls:d:' .. domain)",
-		"local tls = tls_policy_for(string.lower(domain)) or REQUIRE_TLS_DOMAINS[string.lower(domain)] or SOURCE_TLS[egress_source]",
+		"local get_tls_policies = kumo.memoize(_tls_policies",
+		"conn:query('GET', 'iris:tls_policies')",
+		"kumo.serde.json_parse(blob)",
+		"local tls = get_tls_policies('all')[string.lower(domain)] or REQUIRE_TLS_DOMAINS[string.lower(domain)] or SOURCE_TLS[egress_source]",
 	} {
 		if !strings.Contains(r.Content, want) {
 			t.Fatalf("redis-backed TLS policy must contain %q:\n%s", want, r.Content)
 		}
 	}
-	// The operator policy must NOT be baked into the inline table (it's in Redis).
+	// No per-domain lookup, and the operator policy is NOT inlined (it's in Redis).
+	if strings.Contains(r.Content, "'tls:d:'") {
+		t.Fatalf("must not do a per-domain Redis lookup:\n%s", r.Content)
+	}
 	if strings.Contains(r.Content, `REQUIRE_TLS_DOMAINS["secure.example"]`) {
 		t.Fatalf("operator TLS policy must not be inlined when Redis is configured:\n%s", r.Content)
 	}

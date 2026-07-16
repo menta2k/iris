@@ -311,10 +311,10 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	domainSafetyRepo.WithTLSPolicyCache(tlsCache)
 	if pols, lerr := domainSafetyRepo.ListTLSPolicies(ctx, biz.Page{Size: 10000}); lerr != nil {
 		log.Warn("tls policy backfill: list failed", "error", lerr.Error())
-	} else if n, berr := tlsCache.Backfill(ctx, pols); berr != nil {
+	} else if berr := tlsCache.Backfill(ctx, pols); berr != nil {
 		log.Warn("tls policy backfill: redis populate failed", "error", berr.Error())
 	} else {
-		log.Info("tls policy cache backfilled", "entries", n)
+		log.Info("tls policy cache backfilled", "domains", len(pols))
 	}
 	// US5 inbound automation: Rspamd result ingestion + inbound routing.
 	inboundRepo := data.NewInboundRepo(db)
