@@ -1,6 +1,9 @@
 package biz
 
-import "strings"
+import (
+	"strings"
+	"time"
+)
 
 // TLS policy modes. They map to KumoMTA's egress-path enable_tls values:
 //
@@ -39,7 +42,18 @@ type TLSPolicy struct {
 	Domain string
 	Mode   string
 	Status string
+	// Source records how the policy was created: TLSSourceManual (operator) or
+	// TLSSourceAuto (added by the log processor on a STARTTLS handshake failure),
+	// so the UI can flag auto-added entries.
+	Source    string
+	CreatedAt time.Time
 }
+
+// TLS policy provenance.
+const (
+	TLSSourceManual = "manual"
+	TLSSourceAuto   = "auto"
+)
 
 // enableTLSValue maps a TLS mode to its KumoMTA enable_tls string, or "" for an
 // empty/unrecognized mode (meaning "no override"). Shared by TLSPolicy (per
@@ -77,6 +91,10 @@ func (p *TLSPolicy) Validate() error {
 	}
 	if p.Status == "" {
 		p.Status = TLSPolicyActive
+	}
+	p.Source = strings.ToLower(strings.TrimSpace(p.Source))
+	if p.Source == "" {
+		p.Source = TLSSourceManual
 	}
 	if p.Domain == "" {
 		return Invalid("TLS_POLICY_DOMAIN_REQUIRED", "domain is required")

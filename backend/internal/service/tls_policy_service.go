@@ -13,7 +13,7 @@ func (s *Service) ListTLSPolicies(ctx context.Context, req *adminv1.ListTLSPolic
 		return nil, notImplemented("ListTLSPolicies")
 	}
 	page := pageFrom(req.GetPage())
-	items, err := s.domainSafety.ListTLSPolicies(ctx, page)
+	items, err := s.domainSafety.ListTLSPolicies(ctx, req.GetSearch(), page)
 	if err != nil {
 		return nil, s.fail(ctx, "ListTLSPolicies", err)
 	}
@@ -51,10 +51,15 @@ func (s *Service) DeleteTLSPolicy(ctx context.Context, req *adminv1.DeleteTLSPol
 }
 
 func tlsPolicyToProto(p *biz.TLSPolicy) *adminv1.TLSPolicy {
-	return &adminv1.TLSPolicy{
+	out := &adminv1.TLSPolicy{
 		Id:     p.ID,
 		Domain: p.Domain,
 		Mode:   p.Mode,
 		Status: p.Status,
+		Source: p.Source,
 	}
+	if !p.CreatedAt.IsZero() {
+		out.CreatedAt = p.CreatedAt.UTC().Format("2006-01-02T15:04:05Z07:00")
+	}
+	return out
 }

@@ -309,7 +309,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// takes effect without a KumoMTA reload; backfill from the DB at startup.
 	tlsCache := data.NewTLSPolicyCache(streams.Client)
 	domainSafetyRepo.WithTLSPolicyCache(tlsCache)
-	if pols, lerr := domainSafetyRepo.ListTLSPolicies(ctx, biz.Page{Size: 10000}); lerr != nil {
+	if pols, lerr := domainSafetyRepo.ListTLSPolicies(ctx, "", biz.Page{Size: 10000}); lerr != nil {
 		log.Warn("tls policy backfill: list failed", "error", lerr.Error())
 	} else if berr := tlsCache.Backfill(ctx, pols); berr != nil {
 		log.Warn("tls policy backfill: redis populate failed", "error", berr.Error())

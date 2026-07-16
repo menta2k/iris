@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, onBeforeUnmount } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
+import PaginationControls from '@/components/common/PaginationControls.vue'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
@@ -16,15 +17,45 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { useAsyncList } from '@/composables/useAsyncList'
+import { usePagedList } from '@/composables/usePagedList'
 import { useToast } from '@/composables/useToast'
 import { domainSafetyService } from '@/services'
 import { ApiError } from '@/services/http'
 import type { TLSPolicy, TLSPolicyMode } from '@/types'
 
-const { items, loading, error, notImplemented, load } = useAsyncList<TLSPolicy>({
-  loader: () => domainSafetyService.listTLSPolicies(),
+const search = ref('')
+const {
+  items,
+  loading,
+  error,
+  notImplemented,
+  pageSize,
+  pageNumber,
+  hasPrev,
+  hasNext,
+  reload,
+  nextPage,
+  prevPage,
+  setPageSize,
+} = usePagedList<TLSPolicy>({
+  loader: (page) => domainSafetyService.listTLSPolicies(page, search.value),
 })
+const load = reload
+
+// Debounced search — reload from the first page as the operator types.
+let debounceTimer: ReturnType<typeof setTimeout> | undefined
+watch(search, () => {
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(reload, 300)
+})
+onBeforeUnmount(() => clearTimeout(debounceTimer))
+
+function formatDate(iso?: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString(undefined, { hour12: false })
+}
+
 const { toast } = useToast()
 
 const MODES: { value: TLSPolicyMode; label: string }[] = [
@@ -86,12 +117,30 @@ async function remove(p: TLSPolicy) {
         <Button data-testid="create-tls-policy" @click="openCreate">Add Domain</Button>
       </template>
     </PageHeader>
+
+    <Card class="mb-4">
+      <CardContent class="pa-4">
+        <v-text-field
+          v-model="search"
+          label="Search"
+          placeholder="Filter by domain"
+          prepend-inner-icon="mdi-magnify"
+          variant="outlined"
+          density="compact"
+          hide-details
+          clearable
+          style="max-width: 360px"
+          data-testid="search-tls-policy"
+        />
+      </CardContent>
+    </Card>
+
     <DataState
       :loading="loading"
       :error="error"
       :not-implemented="notImplemented"
       :empty="items.length === 0"
-      empty-message="No TLS policies configured. Domains without a policy use opportunistic TLS (encrypt if offered, never hard-fail)."
+      :empty-message="search ? `No TLS policies match “${search}”.` : 'No TLS policies configured. Domains without a policy use opportunistic TLS (encrypt if offered, never hard-fail).'"
     >
       <Card>
         <CardContent class="pa-0">
@@ -100,7 +149,9 @@ async function remove(p: TLSPolicy) {
               <TableRow>
                 <TableHead>Domain</TableHead>
                 <TableHead>Mode</TableHead>
+                <TableHead>Source</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Created</TableHead>
                 <TableHead class="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -110,7 +161,16 @@ async function remove(p: TLSPolicy) {
                 <TableCell>
                   <Badge :variant="p.mode === 'disabled' ? 'warning' : p.mode === 'opportunistic_insecure' ? 'secondary' : 'success'">{{ p.mode }}</Badge>
                 </TableCell>
+                <TableCell>
+                  <Badge
+                    v-if="p.source === 'auto'"
+                    variant="secondary"
+                    :title="'Automatically added by the log processor after a STARTTLS handshake failure'"
+                  >auto-added</Badge>
+                  <span v-else class="text-caption text-medium-emphasis">manual</span>
+                </TableCell>
                 <TableCell><StatusBadge :status="p.status" /></TableCell>
+                <TableCell class="text-caption text-no-wrap text-medium-emphasis">{{ formatDate(p.createdAt) }}</TableCell>
                 <TableCell class="text-right">
                   <Button
                     variant="outline"
@@ -128,6 +188,18 @@ async function remove(p: TLSPolicy) {
         </CardContent>
       </Card>
     </DataState>
+
+    <PaginationControls
+      v-if="!notImplemented && (items.length > 0 || hasPrev)"
+      :page-number="pageNumber"
+      :has-prev="hasPrev"
+      :has-next="hasNext"
+      :loading="loading"
+      :page-size="pageSize"
+      @prev="prevPage"
+      @next="nextPage"
+      @page-size-change="setPageSize"
+    />
 
     <Dialog v-model:open="dialogOpen">
       <DialogHeader>

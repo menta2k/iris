@@ -341,10 +341,10 @@ func (r *DomainSafetyRepo) ListActiveSuppressions(ctx context.Context) ([]*biz.S
 func (r *DomainSafetyRepo) CreateTLSPolicy(ctx context.Context, p *biz.TLSPolicy) (*biz.TLSPolicy, error) {
 	out := &biz.TLSPolicy{}
 	err := r.db.Pool.QueryRow(ctx, `
-		INSERT INTO require_tls_domains (domain, mode, status)
-		VALUES ($1, $2, $3)
-		RETURNING id, domain, mode, status`,
-		p.Domain, p.Mode, p.Status).Scan(&out.ID, &out.Domain, &out.Mode, &out.Status)
+		INSERT INTO require_tls_domains (domain, mode, status, source)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, domain, mode, status, source, created_at`,
+		p.Domain, p.Mode, p.Status, p.Source).Scan(&out.ID, &out.Domain, &out.Mode, &out.Status, &out.Source, &out.CreatedAt)
 	if err != nil {
 		return nil, mapConstraint(err, "require_tls_domains")
 	}
@@ -360,11 +360,11 @@ func (r *DomainSafetyRepo) CreateTLSPolicy(ctx context.Context, p *biz.TLSPolicy
 func (r *DomainSafetyRepo) UpsertTLSPolicy(ctx context.Context, p *biz.TLSPolicy) (*biz.TLSPolicy, error) {
 	out := &biz.TLSPolicy{}
 	err := r.db.Pool.QueryRow(ctx, `
-		INSERT INTO require_tls_domains (domain, mode, status)
-		VALUES ($1, $2, $3)
-		ON CONFLICT (domain) DO UPDATE SET mode = EXCLUDED.mode, status = EXCLUDED.status
-		RETURNING id, domain, mode, status`,
-		p.Domain, p.Mode, p.Status).Scan(&out.ID, &out.Domain, &out.Mode, &out.Status)
+		INSERT INTO require_tls_domains (domain, mode, status, source)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (domain) DO UPDATE SET mode = EXCLUDED.mode, status = EXCLUDED.status, source = EXCLUDED.source
+		RETURNING id, domain, mode, status, source, created_at`,
+		p.Domain, p.Mode, p.Status, p.Source).Scan(&out.ID, &out.Domain, &out.Mode, &out.Status, &out.Source, &out.CreatedAt)
 	if err != nil {
 		return nil, mapConstraint(err, "require_tls_domains")
 	}
@@ -382,7 +382,7 @@ func (r *DomainSafetyRepo) resyncTLSCache(ctx context.Context) error {
 	if !r.tlsCache.Enabled() {
 		return nil
 	}
-	pols, err := r.ListTLSPolicies(ctx, biz.Page{Size: 100000})
+	pols, err := r.ListTLSPolicies(ctx, "", biz.Page{Size: 100000})
 	if err != nil {
 		return fmt.Errorf("resync tls cache: %w", err)
 	}
@@ -390,11 +390,13 @@ func (r *DomainSafetyRepo) resyncTLSCache(ctx context.Context) error {
 }
 
 // ListTLSPolicies returns require-TLS domain policies ordered by domain.
-func (r *DomainSafetyRepo) ListTLSPolicies(ctx context.Context, page biz.Page) ([]*biz.TLSPolicy, error) {
+func (r *DomainSafetyRepo) ListTLSPolicies(ctx context.Context, search string, page biz.Page) ([]*biz.TLSPolicy, error) {
 	rows, err := r.db.Pool.Query(ctx, `
-		SELECT id, domain, mode, status
-		FROM require_tls_domains ORDER BY domain LIMIT $1 OFFSET $2`,
-		page.Size, page.Offset)
+		SELECT id, domain, mode, status, source, created_at
+		FROM require_tls_domains
+		WHERE ($3 = '' OR domain ILIKE '%%' || $3 || '%%')
+		ORDER BY domain LIMIT $1 OFFSET $2`,
+		page.Size, page.Offset, strings.TrimSpace(search))
 	if err != nil {
 		return nil, fmt.Errorf("query tls policies: %w", err)
 	}
@@ -402,7 +404,7 @@ func (r *DomainSafetyRepo) ListTLSPolicies(ctx context.Context, page biz.Page) (
 	var out []*biz.TLSPolicy
 	for rows.Next() {
 		p := &biz.TLSPolicy{}
-		if err := rows.Scan(&p.ID, &p.Domain, &p.Mode, &p.Status); err != nil {
+		if err := rows.Scan(&p.ID, &p.Domain, &p.Mode, &p.Status, &p.Source, &p.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan tls policy: %w", err)
 		}
 		out = append(out, p)

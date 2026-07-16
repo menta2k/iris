@@ -174,13 +174,29 @@ export const domainSafetyRoutes: Route[] = [
   },
 
   // ---- TLS policies ----
-  { method: 'GET', pattern: '/tls-policies', handler: (ctx) => ok(paged(all('tlsPolicies'), ctx.query)) },
+  {
+    method: 'GET',
+    pattern: '/tls-policies',
+    handler: (ctx) => {
+      const q = (ctx.query.search ?? '').toLowerCase()
+      return ok(paged(all('tlsPolicies'), ctx.query, { filter: (p) => !q || p.domain.toLowerCase().includes(q) }))
+    },
+  },
   {
     method: 'POST',
     pattern: '/tls-policies',
     handler: (ctx) => {
       const body = ctx.body as { domain: string; mode: string }
-      return ok(createRow('tlsPolicies', { id: genId('tls'), domain: body.domain, mode: body.mode, status: 'active' }))
+      return ok(
+        createRow('tlsPolicies', {
+          id: genId('tls'),
+          domain: body.domain,
+          mode: body.mode,
+          status: 'active',
+          source: 'manual',
+          createdAt: new Date().toISOString(),
+        }),
+      )
     },
   },
   {

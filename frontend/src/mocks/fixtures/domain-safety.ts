@@ -67,10 +67,10 @@ export const suppressions: Suppression[] = [...baseSuppressions, ...generatedSup
 }))
 
 export const tlsPolicies: TLSPolicy[] = [
-  { id: 'tls_gmail', domain: 'gmail.com', mode: 'required', status: 'active' },
-  { id: 'tls_finance', domain: 'finance.example.com', mode: 'required', status: 'active' },
-  { id: 'tls_outlook', domain: 'outlook.com', mode: 'required_insecure', status: 'active' },
-  { id: 'tls_legacy', domain: 'legacy.example.org', mode: 'required_insecure', status: 'inactive' },
+  { id: 'tls_gmail', domain: 'gmail.com', mode: 'required', status: 'active', source: 'manual', createdAt: '2026-06-01T09:00:00Z' },
+  { id: 'tls_finance', domain: 'finance.example.com', mode: 'required', status: 'active', source: 'manual', createdAt: '2026-06-03T14:12:00Z' },
+  { id: 'tls_outlook', domain: 'outlook.com', mode: 'required_insecure', status: 'active', source: 'manual', createdAt: '2026-06-05T11:30:00Z' },
+  { id: 'tls_legacy', domain: 'legacy.example.org', mode: 'disabled', status: 'active', source: 'auto', createdAt: '2026-07-10T08:44:00Z' },
 ]
 
 export const fingerprint = (): string =>

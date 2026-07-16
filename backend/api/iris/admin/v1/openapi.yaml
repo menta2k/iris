@@ -2582,6 +2582,10 @@ paths:
                   in: query
                   schema:
                     type: string
+                - name: search
+                  in: query
+                  schema:
+                    type: string
             responses:
                 "200":
                     description: OK
@@ -5621,6 +5625,10 @@ components:
                 mode:
                     type: string
                 status:
+                    type: string
+                created_at:
+                    type: string
+                source:
                     type: string
             description: |-
                 TLSPolicy requires TLS on outbound delivery to a destination domain. mode is

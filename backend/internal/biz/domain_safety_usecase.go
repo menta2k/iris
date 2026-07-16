@@ -24,7 +24,7 @@ type DomainSafetyRepo interface {
 	// UpsertTLSPolicy inserts or updates the policy for a domain (idempotent on
 	// domain). Used by the auto-disable log processor.
 	UpsertTLSPolicy(ctx context.Context, p *TLSPolicy) (*TLSPolicy, error)
-	ListTLSPolicies(ctx context.Context, page Page) ([]*TLSPolicy, error)
+	ListTLSPolicies(ctx context.Context, search string, page Page) ([]*TLSPolicy, error)
 	DeleteTLSPolicy(ctx context.Context, id string) error
 }
 
@@ -302,11 +302,11 @@ func (uc *DomainSafetyUsecase) UpdateSuppression(ctx context.Context, id string,
 }
 
 // ListTLSPolicies returns the require-TLS destination-domain policies.
-func (uc *DomainSafetyUsecase) ListTLSPolicies(ctx context.Context, page Page) ([]*TLSPolicy, error) {
+func (uc *DomainSafetyUsecase) ListTLSPolicies(ctx context.Context, search string, page Page) ([]*TLSPolicy, error) {
 	if _, err := RequirePermission(ctx, PermDKIMRead); err != nil {
 		return nil, err
 	}
-	return uc.repo.ListTLSPolicies(ctx, page)
+	return uc.repo.ListTLSPolicies(ctx, search, page)
 }
 
 // CreateTLSPolicy validates and persists a require-TLS domain policy.
@@ -333,7 +333,7 @@ func (uc *DomainSafetyUsecase) CreateTLSPolicy(ctx context.Context, p *TLSPolicy
 // (e.g. a DHE-only server rustls can't negotiate). Runs under a system actor
 // (no interactive permission gate); idempotent and audited. Returns the policy.
 func (uc *DomainSafetyUsecase) AutoDisableTLS(ctx context.Context, domain, reason string) (*TLSPolicy, error) {
-	p := &TLSPolicy{Domain: domain, Mode: TLSModeDisabled, Status: TLSPolicyActive}
+	p := &TLSPolicy{Domain: domain, Mode: TLSModeDisabled, Status: TLSPolicyActive, Source: TLSSourceAuto}
 	if err := p.Validate(); err != nil {
 		return nil, err
 	}

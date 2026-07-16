@@ -1285,8 +1285,13 @@ message TLSPolicy {
   string domain = 2;
   string mode = 3;
   string status = 4;
+  string created_at = 5; // RFC3339
+  string source = 6; // "manual" | "auto" (auto-added by the log processor)
 }
-message ListTLSPoliciesRequest { PageRequest page = 1; }
+message ListTLSPoliciesRequest {
+  PageRequest page = 1;
+  string search = 2; // optional case-insensitive domain substring filter
+}
 message ListTLSPoliciesReply {
   repeated TLSPolicy items = 1;
   PageReply page = 2;

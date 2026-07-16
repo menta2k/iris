@@ -7319,6 +7319,8 @@ type TLSPolicy struct {
 	Domain        string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
 	Mode          string                 `protobuf:"bytes,3,opt,name=mode,proto3" json:"mode,omitempty"`
 	Status        string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"` // RFC3339
+	Source        string                 `protobuf:"bytes,6,opt,name=source,proto3" json:"source,omitempty"`                        // "manual" | "auto" (auto-added by the log processor)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7381,9 +7383,24 @@ func (x *TLSPolicy) GetStatus() string {
 	return ""
 }
 
+func (x *TLSPolicy) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *TLSPolicy) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
 type ListTLSPoliciesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Page          *PageRequest           `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
+	Search        string                 `protobuf:"bytes,2,opt,name=search,proto3" json:"search,omitempty"` // optional case-insensitive domain substring filter
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7423,6 +7440,13 @@ func (x *ListTLSPoliciesRequest) GetPage() *PageRequest {
 		return x.Page
 	}
 	return nil
+}
+
+func (x *ListTLSPoliciesRequest) GetSearch() string {
+	if x != nil {
+		return x.Search
+	}
+	return ""
 }
 
 type ListTLSPoliciesReply struct {
@@ -21057,14 +21081,18 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"!ListSuppressionDsnMessagesRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"R\n" +
 	"\x1fListSuppressionDsnMessagesReply\x12/\n" +
-	"\x05items\x18\x01 \x03(\v2\x19.iris.admin.v1.DsnMessageR\x05items\"_\n" +
+	"\x05items\x18\x01 \x03(\v2\x19.iris.admin.v1.DsnMessageR\x05items\"\x96\x01\n" +
 	"\tTLSPolicy\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06domain\x18\x02 \x01(\tR\x06domain\x12\x12\n" +
 	"\x04mode\x18\x03 \x01(\tR\x04mode\x12\x16\n" +
-	"\x06status\x18\x04 \x01(\tR\x06status\"H\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\tR\tcreatedAt\x12\x16\n" +
+	"\x06source\x18\x06 \x01(\tR\x06source\"`\n" +
 	"\x16ListTLSPoliciesRequest\x12.\n" +
-	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\"t\n" +
+	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\x12\x16\n" +
+	"\x06search\x18\x02 \x01(\tR\x06search\"t\n" +
 	"\x14ListTLSPoliciesReply\x12.\n" +
 	"\x05items\x18\x01 \x03(\v2\x18.iris.admin.v1.TLSPolicyR\x05items\x12,\n" +
 	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"D\n" +

@@ -57,7 +57,7 @@ func (r *KumoConfigRepo) Snapshot(ctx context.Context) (biz.ConfigSnapshot, erro
 	}
 	// Suppressions are enforced via Redis (see SuppressionCache), not rendered
 	// into the policy, so they are intentionally not loaded into the snapshot.
-	if snap.TLSPolicies, err = r.safety.ListTLSPolicies(ctx, page); err != nil {
+	if snap.TLSPolicies, err = r.safety.ListTLSPolicies(ctx, "", page); err != nil {
 		return snap, err
 	}
 	if r.routes != nil {

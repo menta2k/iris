@@ -750,6 +750,8 @@ export interface TLSPolicy {
   domain: string
   mode: TLSPolicyMode | string
   status: string
+  source?: string // "manual" | "auto"
+  createdAt?: string // RFC3339
 }
 
 export interface CreateTLSPolicyRequest {

@@ -47,8 +47,11 @@ export const domainSafetyService = {
   listSuppressionDsnMessages(id: string) {
     return http.get<ListResponse<DsnMessage>>(`/suppressions/${id}/dsn-messages`)
   },
-  listTLSPolicies() {
-    return http.get<ListResponse<TLSPolicy>>('/tls-policies')
+  listTLSPolicies(page?: PageParams, search?: string) {
+    const s = (search ?? '').trim()
+    return http.get<ListResponse<TLSPolicy>>('/tls-policies', {
+      query: pageQuery(page, s ? { search: s } : undefined),
+    })
   },
   createTLSPolicy(body: CreateTLSPolicyRequest) {
     return http.post<TLSPolicy>('/tls-policies', body)
