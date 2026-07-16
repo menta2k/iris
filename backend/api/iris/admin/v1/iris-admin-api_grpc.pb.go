@@ -70,6 +70,7 @@ const (
 	IrisAdminService_ListSuppressions_FullMethodName               = "/iris.admin.v1.IrisAdminService/ListSuppressions"
 	IrisAdminService_CreateSuppression_FullMethodName              = "/iris.admin.v1.IrisAdminService/CreateSuppression"
 	IrisAdminService_UpdateSuppression_FullMethodName              = "/iris.admin.v1.IrisAdminService/UpdateSuppression"
+	IrisAdminService_DeletePermanentSuppressions_FullMethodName    = "/iris.admin.v1.IrisAdminService/DeletePermanentSuppressions"
 	IrisAdminService_ListSuppressionDsnMessages_FullMethodName     = "/iris.admin.v1.IrisAdminService/ListSuppressionDsnMessages"
 	IrisAdminService_ListTLSPolicies_FullMethodName                = "/iris.admin.v1.IrisAdminService/ListTLSPolicies"
 	IrisAdminService_CreateTLSPolicy_FullMethodName                = "/iris.admin.v1.IrisAdminService/CreateTLSPolicy"
@@ -233,6 +234,10 @@ type IrisAdminServiceClient interface {
 	ListSuppressions(ctx context.Context, in *ListSuppressionsRequest, opts ...grpc.CallOption) (*ListSuppressionsReply, error)
 	CreateSuppression(ctx context.Context, in *CreateSuppressionRequest, opts ...grpc.CallOption) (*Suppression, error)
 	UpdateSuppression(ctx context.Context, in *UpdateSuppressionRequest, opts ...grpc.CallOption) (*Suppression, error)
+	// DeletePermanentSuppressions removes every permanent (no-expiry) suppression
+	// from the DB and the Redis live list. Bulk, high-impact; used to clear false
+	// positives. Returns the number removed.
+	DeletePermanentSuppressions(ctx context.Context, in *DeletePermanentSuppressionsRequest, opts ...grpc.CallOption) (*DeletePermanentSuppressionsReply, error)
 	// ListSuppressionDsnMessages returns the raw DSN notifications archived for the
 	// recipient behind a dsn-sourced suppression, so an operator can read the full
 	// asynchronous bounce.
@@ -927,6 +932,16 @@ func (c *irisAdminServiceClient) UpdateSuppression(ctx context.Context, in *Upda
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Suppression)
 	err := c.cc.Invoke(ctx, IrisAdminService_UpdateSuppression_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) DeletePermanentSuppressions(ctx context.Context, in *DeletePermanentSuppressionsRequest, opts ...grpc.CallOption) (*DeletePermanentSuppressionsReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeletePermanentSuppressionsReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_DeletePermanentSuppressions_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1949,6 +1964,10 @@ type IrisAdminServiceServer interface {
 	ListSuppressions(context.Context, *ListSuppressionsRequest) (*ListSuppressionsReply, error)
 	CreateSuppression(context.Context, *CreateSuppressionRequest) (*Suppression, error)
 	UpdateSuppression(context.Context, *UpdateSuppressionRequest) (*Suppression, error)
+	// DeletePermanentSuppressions removes every permanent (no-expiry) suppression
+	// from the DB and the Redis live list. Bulk, high-impact; used to clear false
+	// positives. Returns the number removed.
+	DeletePermanentSuppressions(context.Context, *DeletePermanentSuppressionsRequest) (*DeletePermanentSuppressionsReply, error)
 	// ListSuppressionDsnMessages returns the raw DSN notifications archived for the
 	// recipient behind a dsn-sourced suppression, so an operator can read the full
 	// asynchronous bounce.
@@ -2291,6 +2310,9 @@ func (UnimplementedIrisAdminServiceServer) CreateSuppression(context.Context, *C
 }
 func (UnimplementedIrisAdminServiceServer) UpdateSuppression(context.Context, *UpdateSuppressionRequest) (*Suppression, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateSuppression not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) DeletePermanentSuppressions(context.Context, *DeletePermanentSuppressionsRequest) (*DeletePermanentSuppressionsReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeletePermanentSuppressions not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) ListSuppressionDsnMessages(context.Context, *ListSuppressionDsnMessagesRequest) (*ListSuppressionDsnMessagesReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListSuppressionDsnMessages not implemented")
@@ -3512,6 +3534,24 @@ func _IrisAdminService_UpdateSuppression_Handler(srv interface{}, ctx context.Co
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IrisAdminServiceServer).UpdateSuppression(ctx, req.(*UpdateSuppressionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_DeletePermanentSuppressions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeletePermanentSuppressionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).DeletePermanentSuppressions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_DeletePermanentSuppressions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).DeletePermanentSuppressions(ctx, req.(*DeletePermanentSuppressionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -5436,6 +5476,10 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateSuppression",
 			Handler:    _IrisAdminService_UpdateSuppression_Handler,
+		},
+		{
+			MethodName: "DeletePermanentSuppressions",
+			Handler:    _IrisAdminService_DeletePermanentSuppressions_Handler,
 		},
 		{
 			MethodName: "ListSuppressionDsnMessages",

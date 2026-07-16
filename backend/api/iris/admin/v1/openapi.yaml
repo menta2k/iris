@@ -2501,6 +2501,28 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ListSuppressionDsnMessagesReply'
+    /v1/suppressions:delete-permanent:
+        post:
+            tags:
+                - IrisAdminService
+            description: |-
+                DeletePermanentSuppressions removes every permanent (no-expiry) suppression
+                 from the DB and the Redis live list. Bulk, high-impact; used to clear false
+                 positives. Returns the number removed.
+            operationId: IrisAdminService_DeletePermanentSuppressions
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/DeletePermanentSuppressionsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeletePermanentSuppressionsReply'
     /v1/system-monitor:
         get:
             tags:
@@ -3733,6 +3755,14 @@ components:
             properties:
                 ok:
                     type: boolean
+        DeletePermanentSuppressionsReply:
+            type: object
+            properties:
+                deleted:
+                    type: string
+        DeletePermanentSuppressionsRequest:
+            type: object
+            properties: {}
         DeleteSubjectClassificationReply:
             type: object
             properties:

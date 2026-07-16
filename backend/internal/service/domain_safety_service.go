@@ -86,6 +86,19 @@ func (s *Service) ListSuppressions(ctx context.Context, req *adminv1.ListSuppres
 	return out, nil
 }
 
+// DeletePermanentSuppressions removes every permanent (no-expiry) suppression
+// from the DB and the Redis live list, returning the count removed.
+func (s *Service) DeletePermanentSuppressions(ctx context.Context, req *adminv1.DeletePermanentSuppressionsRequest) (*adminv1.DeletePermanentSuppressionsReply, error) {
+	if s.domainSafety == nil {
+		return nil, notImplemented("DeletePermanentSuppressions")
+	}
+	n, err := s.domainSafety.DeletePermanentSuppressions(ctx)
+	if err != nil {
+		return nil, s.fail(ctx, "DeletePermanentSuppressions", err)
+	}
+	return &adminv1.DeletePermanentSuppressionsReply{Deleted: n}, nil
+}
+
 // CreateSuppression creates a suppression entry (US4).
 func (s *Service) CreateSuppression(ctx context.Context, req *adminv1.CreateSuppressionRequest) (*adminv1.Suppression, error) {
 	if s.domainSafety == nil {

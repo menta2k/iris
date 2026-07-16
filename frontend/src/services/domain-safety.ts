@@ -44,6 +44,10 @@ export const domainSafetyService = {
   updateSuppression(id: string, body: UpdateSuppressionRequest) {
     return http.put<Suppression>(`/suppressions/${id}`, body)
   },
+  // Bulk-remove every permanent (no-expiry) suppression from DB + Redis.
+  deletePermanentSuppressions() {
+    return http.post<{ deleted: number }>('/suppressions:delete-permanent', {})
+  },
   listSuppressionDsnMessages(id: string) {
     return http.get<ListResponse<DsnMessage>>(`/suppressions/${id}/dsn-messages`)
   },

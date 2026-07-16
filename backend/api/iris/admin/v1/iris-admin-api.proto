@@ -175,6 +175,12 @@ service IrisAdminService {
   rpc UpdateSuppression(UpdateSuppressionRequest) returns (Suppression) {
     option (google.api.http) = { put: "/v1/suppressions/{id}" body: "*" };
   }
+  // DeletePermanentSuppressions removes every permanent (no-expiry) suppression
+  // from the DB and the Redis live list. Bulk, high-impact; used to clear false
+  // positives. Returns the number removed.
+  rpc DeletePermanentSuppressions(DeletePermanentSuppressionsRequest) returns (DeletePermanentSuppressionsReply) {
+    option (google.api.http) = { post: "/v1/suppressions:delete-permanent" body: "*" };
+  }
   // ListSuppressionDsnMessages returns the raw DSN notifications archived for the
   // recipient behind a dsn-sourced suppression, so an operator can read the full
   // asynchronous bounce.
@@ -1256,6 +1262,10 @@ message ListSuppressionsRequest {
 message ListSuppressionsReply {
   repeated Suppression items = 1;
   PageReply page = 2;
+}
+message DeletePermanentSuppressionsRequest {}
+message DeletePermanentSuppressionsReply {
+  int64 deleted = 1;
 }
 message CreateSuppressionRequest {
   string type = 1;

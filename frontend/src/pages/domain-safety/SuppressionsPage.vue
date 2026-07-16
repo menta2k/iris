@@ -295,12 +295,42 @@ async function viewDsn(s: Suppression) {
     dsnLoading.value = false
   }
 }
+
+// Bulk-remove every permanent (no-expiry) suppression from DB + Redis. Guarded
+// by a confirmation dialog because it is irreversible and high-impact.
+const purgeDialogOpen = ref(false)
+const purging = ref(false)
+async function purgePermanent() {
+  purging.value = true
+  try {
+    const res = await domainSafetyService.deletePermanentSuppressions()
+    toast({
+      title: 'Permanent suppressions cleared',
+      description: `${res.deleted} removed from the database and Redis.`,
+      variant: 'success',
+    })
+    purgeDialogOpen.value = false
+    reload()
+  } catch (err) {
+    const msg = err instanceof ApiError ? err.message : 'Failed to delete permanent suppressions.'
+    toast({ title: 'Delete failed', description: msg, variant: 'destructive' })
+  } finally {
+    purging.value = false
+  }
+}
 </script>
 
 <template>
   <div>
     <PageHeader title="Suppressions" description="Recipients and domains suppressed from future delivery.">
       <template #actions>
+        <Button
+          variant="outline"
+          data-testid="delete-permanent-suppressions"
+          @click="purgeDialogOpen = true"
+        >
+          Delete permanent
+        </Button>
         <Button data-testid="create-suppression" @click="openCreate">Add Suppression</Button>
       </template>
     </PageHeader>
@@ -626,6 +656,32 @@ async function viewDsn(s: Suppression) {
       </div>
       <DialogFooter>
         <Button type="button" variant="outline" @click="dsnDialogOpen = false">Close</Button>
+      </DialogFooter>
+    </Dialog>
+
+    <Dialog v-model:open="purgeDialogOpen">
+      <DialogHeader>
+        <DialogTitle>Delete all permanent suppressions?</DialogTitle>
+      </DialogHeader>
+      <div class="pa-4 text-body-2">
+        This permanently removes <strong>every suppression with no expiry</strong> from the database
+        and the Redis live list, so mail to those recipients and domains flows again. Temporary
+        (expiring) suppressions are kept. This cannot be undone.
+        <p class="mt-2 text-medium-emphasis mb-0">
+          Tip: filter by <em>Expiry: Permanent</em> first to review what will be removed.
+        </p>
+      </div>
+      <DialogFooter>
+        <Button type="button" variant="outline" :disabled="purging" @click="purgeDialogOpen = false">Cancel</Button>
+        <Button
+          type="button"
+          variant="destructive"
+          :disabled="purging"
+          data-testid="confirm-delete-permanent"
+          @click="purgePermanent"
+        >
+          {{ purging ? 'Deleting…' : 'Delete permanent suppressions' }}
+        </Button>
       </DialogFooter>
     </Dialog>
   </div>

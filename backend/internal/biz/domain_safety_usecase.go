@@ -13,6 +13,9 @@ type DomainSafetyRepo interface {
 	CreateSuppression(ctx context.Context, s *SuppressionEntry) (*SuppressionEntry, error)
 	UpdateSuppression(ctx context.Context, id string, s *SuppressionEntry) (*SuppressionEntry, error)
 	ListSuppressions(ctx context.Context, f SuppressionFilter, page Page) ([]*SuppressionEntry, error)
+	// DeletePermanentSuppressions removes every permanent (no-expiry) entry from
+	// the DB and the Redis live list; returns the number removed.
+	DeletePermanentSuppressions(ctx context.Context) (int64, error)
 	IsSuppressed(ctx context.Context, recipient string) (bool, error)
 	// SuppressionValueByID resolves a suppression's value (the recipient) by id;
 	// "" when no such entry exists.
@@ -284,6 +287,24 @@ func (uc *DomainSafetyUsecase) CreateSuppression(ctx context.Context, s *Suppres
 		"type": out.Type, "value": out.Value, "source": out.Source,
 	})
 	return out, nil
+}
+
+// DeletePermanentSuppressions removes every permanent (no-expiry) suppression
+// from the DB and the Redis live list. High-impact bulk delete: requires
+// suppression:write and is audited with the count removed. Used to clear out
+// accumulated false positives (e.g. auto-replies wrongly suppressed before the
+// DSN auto-reply guard).
+func (uc *DomainSafetyUsecase) DeletePermanentSuppressions(ctx context.Context) (int64, error) {
+	if _, err := RequirePermission(ctx, PermSuppressionWrite); err != nil {
+		return 0, err
+	}
+	n, err := uc.repo.DeletePermanentSuppressions(ctx)
+	if err != nil {
+		uc.audit(ctx, "suppression.delete_permanent", "suppression", "", AuditFailure, map[string]any{"deleted": n})
+		return n, err
+	}
+	uc.audit(ctx, "suppression.delete_permanent", "suppression", "", AuditSuccess, map[string]any{"deleted": n})
+	return n, nil
 }
 
 // UpdateSuppression updates the editable fields (reason, status) of an entry.

@@ -137,6 +137,17 @@ export const domainSafetyRoutes: Route[] = [
     },
   },
   {
+    method: 'POST',
+    pattern: '/suppressions:delete-permanent',
+    handler: () => {
+      const perm = all('suppressions').filter(
+        (s) => !(s as { expiresAt?: string | null }).expiresAt,
+      ) as { id: string }[]
+      perm.forEach((s) => removeRow('suppressions', s.id))
+      return ok({ deleted: perm.length })
+    },
+  },
+  {
     method: 'GET',
     pattern: '/suppressions/:id/dsn-messages',
     handler: (ctx) => {

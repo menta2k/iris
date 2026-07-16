@@ -221,6 +221,40 @@ func (r *DomainSafetyRepo) ClearAllSuppressions(ctx context.Context) (int64, err
 	return tag.RowsAffected(), nil
 }
 
+// DeletePermanentSuppressions removes every permanent (no expires_at)
+// suppression from the DB and evicts each one's key from the Redis live list, so
+// mail to those recipients/domains flows again. Returns the number removed. Used
+// to clear out false positives (e.g. out-of-office replies that were wrongly
+// suppressed before the DSN auto-reply guard).
+func (r *DomainSafetyRepo) DeletePermanentSuppressions(ctx context.Context) (int64, error) {
+	rows, err := r.db.Pool.Query(ctx,
+		`DELETE FROM suppression_entries WHERE expires_at IS NULL RETURNING type, value`)
+	if err != nil {
+		return 0, fmt.Errorf("delete permanent suppressions: %w", err)
+	}
+	type key struct{ typ, value string }
+	var keys []key
+	for rows.Next() {
+		var k key
+		if err := rows.Scan(&k.typ, &k.value); err != nil {
+			rows.Close()
+			return 0, fmt.Errorf("scan deleted suppression: %w", err)
+		}
+		keys = append(keys, k)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return 0, fmt.Errorf("delete permanent suppressions rows: %w", err)
+	}
+	// Evict from the Redis live list (idempotent; no-op when no cache is wired).
+	for _, k := range keys {
+		if err := r.cache.Del(ctx, k.typ, k.value); err != nil {
+			return int64(len(keys)), err
+		}
+	}
+	return int64(len(keys)), nil
+}
+
 // ListSuppressions returns suppression entries matching the filter (fields are
 // expected pre-lowercased by NormalizeSuppressionFilter; value is stored
 // lowercased, so a plain substring match suffices — no wildcards).

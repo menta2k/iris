@@ -53,6 +53,7 @@ const OperationIrisAdminServiceDeleteInboundRoute = "/iris.admin.v1.IrisAdminSer
 const OperationIrisAdminServiceDeleteInjectionCredential = "/iris.admin.v1.IrisAdminService/DeleteInjectionCredential"
 const OperationIrisAdminServiceDeleteMTANode = "/iris.admin.v1.IrisAdminService/DeleteMTANode"
 const OperationIrisAdminServiceDeleteMonitoringAccount = "/iris.admin.v1.IrisAdminService/DeleteMonitoringAccount"
+const OperationIrisAdminServiceDeletePermanentSuppressions = "/iris.admin.v1.IrisAdminService/DeletePermanentSuppressions"
 const OperationIrisAdminServiceDeleteSubjectClassification = "/iris.admin.v1.IrisAdminService/DeleteSubjectClassification"
 const OperationIrisAdminServiceDeleteTLSPolicy = "/iris.admin.v1.IrisAdminService/DeleteTLSPolicy"
 const OperationIrisAdminServiceDeleteUserDashboard = "/iris.admin.v1.IrisAdminService/DeleteUserDashboard"
@@ -209,6 +210,10 @@ type IrisAdminServiceHTTPServer interface {
 	DeleteInjectionCredential(context.Context, *DeleteInjectionCredentialRequest) (*DeleteInjectionCredentialReply, error)
 	DeleteMTANode(context.Context, *DeleteMTANodeRequest) (*DeleteMTANodeReply, error)
 	DeleteMonitoringAccount(context.Context, *DeleteMonitoringAccountRequest) (*DeleteMonitoringAccountReply, error)
+	// DeletePermanentSuppressions DeletePermanentSuppressions removes every permanent (no-expiry) suppression
+	// from the DB and the Redis live list. Bulk, high-impact; used to clear false
+	// positives. Returns the number removed.
+	DeletePermanentSuppressions(context.Context, *DeletePermanentSuppressionsRequest) (*DeletePermanentSuppressionsReply, error)
 	DeleteSubjectClassification(context.Context, *DeleteSubjectClassificationRequest) (*DeleteSubjectClassificationReply, error)
 	DeleteTLSPolicy(context.Context, *DeleteTLSPolicyRequest) (*DeleteTLSPolicyReply, error)
 	// DeleteUserDashboard DeleteUserDashboard removes the calling user's dashboard.
@@ -464,6 +469,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.GET("/v1/suppressions", _IrisAdminService_ListSuppressions0_HTTP_Handler(srv))
 	r.POST("/v1/suppressions", _IrisAdminService_CreateSuppression0_HTTP_Handler(srv))
 	r.PUT("/v1/suppressions/{id}", _IrisAdminService_UpdateSuppression0_HTTP_Handler(srv))
+	r.POST("/v1/suppressions:delete-permanent", _IrisAdminService_DeletePermanentSuppressions0_HTTP_Handler(srv))
 	r.GET("/v1/suppressions/{id}/dsn-messages", _IrisAdminService_ListSuppressionDsnMessages0_HTTP_Handler(srv))
 	r.GET("/v1/tls-policies", _IrisAdminService_ListTLSPolicies0_HTTP_Handler(srv))
 	r.POST("/v1/tls-policies", _IrisAdminService_CreateTLSPolicy0_HTTP_Handler(srv))
@@ -1676,6 +1682,28 @@ func _IrisAdminService_UpdateSuppression0_HTTP_Handler(srv IrisAdminServiceHTTPS
 			return err
 		}
 		reply := out.(*Suppression)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_DeletePermanentSuppressions0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeletePermanentSuppressionsRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceDeletePermanentSuppressions)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeletePermanentSuppressions(ctx, req.(*DeletePermanentSuppressionsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeletePermanentSuppressionsReply)
 		return ctx.Result(200, reply)
 	}
 }
@@ -3750,6 +3778,10 @@ type IrisAdminServiceHTTPClient interface {
 	DeleteInjectionCredential(ctx context.Context, req *DeleteInjectionCredentialRequest, opts ...http.CallOption) (rsp *DeleteInjectionCredentialReply, err error)
 	DeleteMTANode(ctx context.Context, req *DeleteMTANodeRequest, opts ...http.CallOption) (rsp *DeleteMTANodeReply, err error)
 	DeleteMonitoringAccount(ctx context.Context, req *DeleteMonitoringAccountRequest, opts ...http.CallOption) (rsp *DeleteMonitoringAccountReply, err error)
+	// DeletePermanentSuppressions DeletePermanentSuppressions removes every permanent (no-expiry) suppression
+	// from the DB and the Redis live list. Bulk, high-impact; used to clear false
+	// positives. Returns the number removed.
+	DeletePermanentSuppressions(ctx context.Context, req *DeletePermanentSuppressionsRequest, opts ...http.CallOption) (rsp *DeletePermanentSuppressionsReply, err error)
 	DeleteSubjectClassification(ctx context.Context, req *DeleteSubjectClassificationRequest, opts ...http.CallOption) (rsp *DeleteSubjectClassificationReply, err error)
 	DeleteTLSPolicy(ctx context.Context, req *DeleteTLSPolicyRequest, opts ...http.CallOption) (rsp *DeleteTLSPolicyReply, err error)
 	// DeleteUserDashboard DeleteUserDashboard removes the calling user's dashboard.
@@ -4404,6 +4436,22 @@ func (c *IrisAdminServiceHTTPClientImpl) DeleteMonitoringAccount(ctx context.Con
 	opts = append(opts, http.Operation(OperationIrisAdminServiceDeleteMonitoringAccount))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// DeletePermanentSuppressions DeletePermanentSuppressions removes every permanent (no-expiry) suppression
+// from the DB and the Redis live list. Bulk, high-impact; used to clear false
+// positives. Returns the number removed.
+func (c *IrisAdminServiceHTTPClientImpl) DeletePermanentSuppressions(ctx context.Context, in *DeletePermanentSuppressionsRequest, opts ...http.CallOption) (*DeletePermanentSuppressionsReply, error) {
+	var out DeletePermanentSuppressionsReply
+	pattern := "/v1/suppressions:delete-permanent"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceDeletePermanentSuppressions))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
