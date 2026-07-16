@@ -1251,6 +1251,7 @@ message ListSuppressionsRequest {
   // (empty/unknown defaults to value). desc requests descending order.
   string sort = 7;
   bool desc = 8;
+  string expiry = 9; // permanent | temporary; empty = all
 }
 message ListSuppressionsReply {
   repeated Suppression items = 1;

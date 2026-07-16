@@ -724,6 +724,8 @@ export interface SuppressionFilters {
   source?: string
   /** Exact match on the triggering event's mailclass. */
   mailclass?: string
+  /** permanent (no expiry) | temporary (expires); empty matches all. */
+  expiry?: string
   /** Column to sort by: value|type|source|status|mailclass|reason|created_at|expires_at. */
   sort?: string
   /** 'true' to sort descending (omit for ascending). */

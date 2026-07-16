@@ -71,6 +71,7 @@ func (s *Service) ListSuppressions(ctx context.Context, req *adminv1.ListSuppres
 		Status:    req.GetStatus(),
 		Source:    req.GetSource(),
 		Mailclass: req.GetMailclass(),
+		Expiry:    req.GetExpiry(),
 		Sort:      req.GetSort(),
 		Desc:      req.GetDesc(),
 	}

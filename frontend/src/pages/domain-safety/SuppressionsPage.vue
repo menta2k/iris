@@ -42,6 +42,11 @@ const SOURCE_ITEMS = [
   { title: 'Feedback (FBL)', value: 'feedback' },
   { title: 'DSN (async bounce)', value: 'dsn' },
 ]
+const EXPIRY_ITEMS = [
+  { title: 'Any expiry', value: '' },
+  { title: 'Permanent (no expiry)', value: 'permanent' },
+  { title: 'Temporary (expires)', value: 'temporary' },
+]
 
 const filters = ref<SuppressionFilters>({
   search: '',
@@ -49,6 +54,7 @@ const filters = ref<SuppressionFilters>({
   type: '',
   status: '',
   source: '',
+  expiry: '',
 })
 
 // Sort is applied by the backend (SQL ORDER BY over the full result set, not
@@ -106,7 +112,7 @@ watch(
     debounceTimer = setTimeout(reload, 300)
   },
 )
-watch(() => [filters.value.type, filters.value.status, filters.value.source], () => reload())
+watch(() => [filters.value.type, filters.value.status, filters.value.source, filters.value.expiry], () => reload())
 onBeforeUnmount(() => clearTimeout(debounceTimer))
 
 const hasActiveFilters = computed(() =>
@@ -115,7 +121,7 @@ const hasActiveFilters = computed(() =>
 
 function resetFilters() {
   clearTimeout(debounceTimer)
-  filters.value = { search: '', mailclass: '', type: '', status: '', source: '' }
+  filters.value = { search: '', mailclass: '', type: '', status: '', source: '', expiry: '' }
   reload()
 }
 
@@ -355,6 +361,17 @@ async function viewDsn(s: Suppression) {
               :items="SOURCE_ITEMS"
               data-testid="suppression-source-filter"
               label="Source"
+              variant="outlined"
+              density="compact"
+              hide-details
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="2">
+            <v-select
+              v-model="filters.expiry"
+              :items="EXPIRY_ITEMS"
+              data-testid="suppression-expiry-filter"
+              label="Expiry"
               variant="outlined"
               density="compact"
               hide-details

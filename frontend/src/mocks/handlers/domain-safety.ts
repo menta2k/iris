@@ -65,6 +65,7 @@ export const domainSafetyRoutes: Route[] = [
       const type = q('type')
       const status = q('status')
       const source = q('source')
+      const expiry = q('expiry')
       const mailclass = (ctx.query.mailclass || '').toString()
       const rows = all('suppressions').filter((row) => {
         const s = row as {
@@ -73,11 +74,14 @@ export const domainSafetyRoutes: Route[] = [
           status?: string
           source?: string
           mailclass?: string
+          expiresAt?: string | null
         }
         if (search && !s.value.toLowerCase().includes(search)) return false
         if (type && (s.type ?? '').toLowerCase() !== type) return false
         if (status && (s.status ?? '').toLowerCase() !== status) return false
         if (source && (s.source ?? '').toLowerCase() !== source) return false
+        if (expiry === 'permanent' && s.expiresAt) return false
+        if (expiry === 'temporary' && !s.expiresAt) return false
         if (mailclass && !(s.mailclass ?? '').toLowerCase().includes(mailclass.toLowerCase())) return false
         return true
       })

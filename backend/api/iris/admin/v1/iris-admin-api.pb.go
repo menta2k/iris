@@ -6891,6 +6891,7 @@ type ListSuppressionsRequest struct {
 	// (empty/unknown defaults to value). desc requests descending order.
 	Sort          string `protobuf:"bytes,7,opt,name=sort,proto3" json:"sort,omitempty"`
 	Desc          bool   `protobuf:"varint,8,opt,name=desc,proto3" json:"desc,omitempty"`
+	Expiry        string `protobuf:"bytes,9,opt,name=expiry,proto3" json:"expiry,omitempty"` // permanent | temporary; empty = all
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6979,6 +6980,13 @@ func (x *ListSuppressionsRequest) GetDesc() bool {
 		return x.Desc
 	}
 	return false
+}
+
+func (x *ListSuppressionsRequest) GetExpiry() string {
+	if x != nil {
+		return x.Expiry
+	}
+	return ""
 }
 
 type ListSuppressionsReply struct {
@@ -21048,7 +21056,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\vrecord_name\x18\x02 \x01(\tR\n" +
 	"recordName\x12!\n" +
 	"\frecord_value\x18\x03 \x01(\tR\vrecordValue\x124\n" +
-	"\x16public_key_fingerprint\x18\x04 \x01(\tR\x14publicKeyFingerprint\"\xeb\x01\n" +
+	"\x16public_key_fingerprint\x18\x04 \x01(\tR\x14publicKeyFingerprint\"\x83\x02\n" +
 	"\x17ListSuppressionsRequest\x12.\n" +
 	"\x04page\x18\x01 \x01(\v2\x1a.iris.admin.v1.PageRequestR\x04page\x12\x16\n" +
 	"\x06search\x18\x02 \x01(\tR\x06search\x12\x12\n" +
@@ -21057,7 +21065,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x06source\x18\x05 \x01(\tR\x06source\x12\x1c\n" +
 	"\tmailclass\x18\x06 \x01(\tR\tmailclass\x12\x12\n" +
 	"\x04sort\x18\a \x01(\tR\x04sort\x12\x12\n" +
-	"\x04desc\x18\b \x01(\bR\x04desc\"w\n" +
+	"\x04desc\x18\b \x01(\bR\x04desc\x12\x16\n" +
+	"\x06expiry\x18\t \x01(\tR\x06expiry\"w\n" +
 	"\x15ListSuppressionsReply\x120\n" +
 	"\x05items\x18\x01 \x03(\v2\x1a.iris.admin.v1.SuppressionR\x05items\x12,\n" +
 	"\x04page\x18\x02 \x01(\v2\x18.iris.admin.v1.PageReplyR\x04page\"\\\n" +

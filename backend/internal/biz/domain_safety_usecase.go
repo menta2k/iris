@@ -208,11 +208,20 @@ type SuppressionFilter struct {
 	// Mailclass is a case-insensitive substring match on the triggering event's
 	// class (so a fragment like "acme" matches "acme_k").
 	Mailclass string
+	// Expiry filters by lifetime: "permanent" (no expires_at), "temporary" (has
+	// one), or "" for all.
+	Expiry string
 	// Sort is the column to order by (one of SuppressionSortKeys); empty/unknown
 	// defaults to "value". Desc requests descending order.
 	Sort string
 	Desc bool
 }
+
+// Suppression expiry filter values.
+const (
+	SuppressionExpiryPermanent = "permanent"
+	SuppressionExpiryTemporary = "temporary"
+)
 
 // NormalizeSuppressionFilter sanitizes and bounds the free-text filter fields.
 func NormalizeSuppressionFilter(f SuppressionFilter) SuppressionFilter {
@@ -221,6 +230,10 @@ func NormalizeSuppressionFilter(f SuppressionFilter) SuppressionFilter {
 	f.Status = strings.ToLower(SanitizeFilter(f.Status))
 	f.Source = strings.ToLower(SanitizeFilter(f.Source))
 	f.Mailclass = SanitizeFilter(f.Mailclass)
+	f.Expiry = strings.ToLower(SanitizeFilter(f.Expiry))
+	if f.Expiry != SuppressionExpiryPermanent && f.Expiry != SuppressionExpiryTemporary {
+		f.Expiry = ""
+	}
 	f.Sort = strings.ToLower(SanitizeFilter(f.Sort))
 	if !SuppressionSortKeys[f.Sort] {
 		f.Sort = "value"

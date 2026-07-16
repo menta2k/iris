@@ -246,9 +246,12 @@ func (r *DomainSafetyRepo) ListSuppressions(ctx context.Context, f biz.Suppressi
 		  -- Partial, case-insensitive so operators can filter by a mailclass
 		  -- fragment (e.g. "acme") rather than the exact class.
 		  AND ($7 = '' OR mailclass ILIKE '%%' || $7 || '%%')
+		  -- Expiry: 'permanent' = no expires_at, 'temporary' = has one.
+		  AND ($8 = '' OR ($8 = 'permanent' AND expires_at IS NULL)
+		               OR ($8 = 'temporary' AND expires_at IS NOT NULL))
 		ORDER BY %s %s NULLS LAST, id ASC LIMIT $1 OFFSET $2`, sortCol, dir)
 	rows, err := r.db.Pool.Query(ctx, query,
-		page.Size, page.Offset, f.Search, f.Type, f.Status, f.Source, f.Mailclass)
+		page.Size, page.Offset, f.Search, f.Type, f.Status, f.Source, f.Mailclass, f.Expiry)
 	if err != nil {
 		return nil, fmt.Errorf("query suppressions: %w", err)
 	}
