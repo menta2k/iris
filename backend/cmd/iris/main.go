@@ -167,6 +167,9 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	outboundRepo := data.NewOutboundConfigRepo(db)
 	domainSafetyRepo := data.NewDomainSafetyRepo(db)
 	domainSafetyUC := biz.NewDomainSafetyUsecase(domainSafetyRepo, auditor)
+	// Action evidence: the mail-log event behind each automatic action (TLS
+	// auto-disable, bounce auto-suppress), so the UI can show why it happened.
+	evidenceUC := biz.NewActionEvidenceUsecase(data.NewActionEvidenceRepo(db))
 	outboundUC := biz.NewOutboundConfigUsecase(outboundRepo, auditor).
 		WithEligibilityChecker(domainSafetyUC)
 
@@ -458,6 +461,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		Identity:        identityUC,
 		Auth:            authUC,
 		DomainSafety:    domainSafetyUC,
+		Evidence:        evidenceUC,
 		Inbound:         inboundUC,
 		InboundRoutes:   inboundRouteUC,
 		FBL:             fblUC,
@@ -530,6 +534,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		WithClassification(settingsUC).
 		WithBounceRules(bounceRuleUC).
 		WithTLSAutoDisable(domainSafetyUC, settingsUC).
+		WithEvidence(evidenceUC).
 		WithEventEmitter(eventDispatcher).
 		WithRealtimePublisher(rtPublisher).Run)
 	// Optional subject classification: consumes the transient classify-pending

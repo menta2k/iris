@@ -74,7 +74,7 @@ func TestApplyBouncePolicyHardBounce(t *testing.T) {
 	// Hard bounce + auto-suppress on → recipient suppressed via the bounce source.
 	store := newFakeBounceStore()
 	w := newWorker(store, store, fakePolicy{biz.BouncePolicy{AutoSuppressHardBounces: true}})
-	w.applyBouncePolicy(ctx, &biz.BounceRecord{Recipient: "Bad@Dest.Example", SMTPStatus: "550"})
+	w.applyBouncePolicy(ctx, &biz.BounceRecord{Recipient: "Bad@Dest.Example", SMTPStatus: "550"}, "m1")
 	if store.suppressed["bad@dest.example"] != "bounce" {
 		t.Fatalf("hard bounce should auto-suppress (normalized), got %+v", store.suppressed)
 	}
@@ -82,7 +82,7 @@ func TestApplyBouncePolicyHardBounce(t *testing.T) {
 	// Hard bounce + auto-suppress off → no suppression.
 	store = newFakeBounceStore()
 	w = newWorker(store, store, fakePolicy{biz.BouncePolicy{AutoSuppressHardBounces: false}})
-	w.applyBouncePolicy(ctx, &biz.BounceRecord{Recipient: "bad@dest.example", SMTPStatus: "550"})
+	w.applyBouncePolicy(ctx, &biz.BounceRecord{Recipient: "bad@dest.example", SMTPStatus: "550"}, "m1")
 	if len(store.suppressed) != 0 {
 		t.Fatalf("auto-suppress off should not suppress, got %+v", store.suppressed)
 	}
@@ -106,7 +106,7 @@ func TestApplyBouncePolicyRuleEngine(t *testing.T) {
 	// the legacy auto-suppress switch OFF (the rule is authoritative).
 	store := newFakeBounceStore()
 	w := newWorker(store, store, fakePolicy{biz.BouncePolicy{AutoSuppressHardBounces: false}}).WithBounceRules(fakeBounceRules{rules})
-	w.applyBouncePolicy(ctx, &biz.BounceRecord{Recipient: "ghost@dest.example", SMTPStatus: "550", Diagnostic: "550 5.1.1 user unknown"})
+	w.applyBouncePolicy(ctx, &biz.BounceRecord{Recipient: "ghost@dest.example", SMTPStatus: "550", Diagnostic: "550 5.1.1 user unknown"}, "m1")
 	if store.suppressed["ghost@dest.example"] != "bounce" {
 		t.Fatalf("suppress rule should suppress, got %+v", store.suppressed)
 	}
@@ -115,7 +115,7 @@ func TestApplyBouncePolicyRuleEngine(t *testing.T) {
 	// (shaping handles it), even though legacy auto-suppress is ON.
 	store = newFakeBounceStore()
 	w = newWorker(store, store, fakePolicy{biz.BouncePolicy{AutoSuppressHardBounces: true}}).WithBounceRules(fakeBounceRules{rules})
-	w.applyBouncePolicy(ctx, &biz.BounceRecord{Recipient: "ok@dest.example", SMTPStatus: "550", Diagnostic: "550 5.7.1 message flagged as spam"})
+	w.applyBouncePolicy(ctx, &biz.BounceRecord{Recipient: "ok@dest.example", SMTPStatus: "550", Diagnostic: "550 5.7.1 message flagged as spam"}, "m1")
 	if len(store.suppressed) != 0 {
 		t.Fatalf("suspend_domain rule must not suppress, got %+v", store.suppressed)
 	}
@@ -123,7 +123,7 @@ func TestApplyBouncePolicyRuleEngine(t *testing.T) {
 	// An unmatched hard bounce falls through to the legacy net (auto-suppress on).
 	store = newFakeBounceStore()
 	w = newWorker(store, store, fakePolicy{biz.BouncePolicy{AutoSuppressHardBounces: true}}).WithBounceRules(fakeBounceRules{rules})
-	w.applyBouncePolicy(ctx, &biz.BounceRecord{Recipient: "gone@dest.example", SMTPStatus: "550", Diagnostic: "550 mailbox unavailable"})
+	w.applyBouncePolicy(ctx, &biz.BounceRecord{Recipient: "gone@dest.example", SMTPStatus: "550", Diagnostic: "550 mailbox unavailable"}, "m1")
 	if store.suppressed["gone@dest.example"] != "bounce" {
 		t.Fatalf("unmatched hard bounce should use legacy suppression, got %+v", store.suppressed)
 	}
@@ -172,13 +172,13 @@ func TestApplyBouncePolicySoftThreshold(t *testing.T) {
 		return &biz.BounceRecord{Recipient: "soft@dest.example", SMTPStatus: "451"}
 	}
 	// First two soft bounces accumulate but do not suppress.
-	w.applyBouncePolicy(ctx, soft())
-	w.applyBouncePolicy(ctx, soft())
+	w.applyBouncePolicy(ctx, soft(), "m1")
+	w.applyBouncePolicy(ctx, soft(), "m1")
 	if len(store.suppressed) != 0 {
 		t.Fatalf("below threshold must not suppress, got %+v", store.suppressed)
 	}
 	// Third reaches the threshold → suppressed.
-	w.applyBouncePolicy(ctx, soft())
+	w.applyBouncePolicy(ctx, soft(), "m1")
 	if store.suppressed["soft@dest.example"] != "bounce" {
 		t.Fatalf("reaching the soft threshold should suppress, got %+v", store.suppressed)
 	}
@@ -190,7 +190,7 @@ func TestApplyBouncePolicySoftDisabled(t *testing.T) {
 	// Threshold 0 disables soft-bounce suppression entirely.
 	w := newWorker(store, store, fakePolicy{biz.BouncePolicy{SoftBounceThreshold: 0}})
 	for i := 0; i < 10; i++ {
-		w.applyBouncePolicy(ctx, &biz.BounceRecord{Recipient: "soft@dest.example", SMTPStatus: "451"})
+		w.applyBouncePolicy(ctx, &biz.BounceRecord{Recipient: "soft@dest.example", SMTPStatus: "451"}, "m1")
 	}
 	if len(store.suppressed) != 0 || len(store.soft) != 0 {
 		t.Fatalf("soft threshold 0 should neither count nor suppress, got soft=%+v sup=%+v", store.soft, store.suppressed)
@@ -201,7 +201,7 @@ func TestApplyBouncePolicyNilSuppressorIsNoop(t *testing.T) {
 	store := newFakeBounceStore()
 	// A nil suppressor disables the whole pipeline (no panic, no counting).
 	w := newWorker(store, nil, fakePolicy{biz.BouncePolicy{AutoSuppressHardBounces: true}})
-	w.applyBouncePolicy(context.Background(), &biz.BounceRecord{Recipient: "x@y.example", SMTPStatus: "550"})
+	w.applyBouncePolicy(context.Background(), &biz.BounceRecord{Recipient: "x@y.example", SMTPStatus: "550"}, "m1")
 	if len(store.suppressed) != 0 {
 		t.Fatal("nil suppressor must be a no-op")
 	}

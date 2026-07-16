@@ -3,6 +3,7 @@ import { ref, watch, onBeforeUnmount } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
 import PaginationControls from '@/components/common/PaginationControls.vue'
+import EvidenceDialog from '@/components/common/EvidenceDialog.vue'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
@@ -54,6 +55,14 @@ function formatDate(iso?: string): string {
   if (!iso) return '—'
   const d = new Date(iso)
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString(undefined, { hour12: false })
+}
+
+// Evidence dialog: the deferral log that triggered an auto-disable.
+const evidenceOpen = ref(false)
+const evidenceDomain = ref('')
+function showEvidence(domain: string) {
+  evidenceDomain.value = domain
+  evidenceOpen.value = true
 }
 
 const { toast } = useToast()
@@ -162,11 +171,21 @@ async function remove(p: TLSPolicy) {
                   <Badge :variant="p.mode === 'disabled' ? 'warning' : p.mode === 'opportunistic_insecure' ? 'secondary' : 'success'">{{ p.mode }}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge
-                    v-if="p.source === 'auto'"
-                    variant="secondary"
-                    :title="'Automatically added by the log processor after a STARTTLS handshake failure'"
-                  >auto-added</Badge>
+                  <template v-if="p.source === 'auto'">
+                    <Badge
+                      variant="secondary"
+                      :title="'Automatically added by the log processor after a STARTTLS handshake failure'"
+                    >auto-added</Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      class="ml-1"
+                      :data-testid="`evidence-tls-${p.id}`"
+                      @click="showEvidence(p.domain)"
+                    >
+                      Evidence
+                    </Button>
+                  </template>
                   <span v-else class="text-caption text-medium-emphasis">manual</span>
                 </TableCell>
                 <TableCell><StatusBadge :status="p.status" /></TableCell>
@@ -199,6 +218,13 @@ async function remove(p: TLSPolicy) {
       @prev="prevPage"
       @next="nextPage"
       @page-size-change="setPageSize"
+    />
+
+    <EvidenceDialog
+      v-model:open="evidenceOpen"
+      subject-type="tls_policy"
+      :subject-key="evidenceDomain"
+      :title="`Why TLS was disabled for ${evidenceDomain}`"
     />
 
     <Dialog v-model:open="dialogOpen">

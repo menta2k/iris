@@ -1304,6 +1304,30 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/TestEventProcessorReply'
+    /v1/evidence:
+        get:
+            tags:
+                - IrisAdminService
+            description: |-
+                ListActionEvidence returns the mail-log event(s) behind an automatic action
+                 for a subject (tls_policy=<domain> or suppression=<recipient>).
+            operationId: IrisAdminService_ListActionEvidence
+            parameters:
+                - name: subject_type
+                  in: query
+                  schema:
+                    type: string
+                - name: subject_key
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListActionEvidenceReply'
     /v1/feedback-loops:
         get:
             tags:
@@ -3146,6 +3170,25 @@ components:
                     items:
                         type: string
             description: DNS-01 provider registry metadata (drives the dynamic credentials form).
+        ActionEvidence:
+            type: object
+            properties:
+                id:
+                    type: string
+                action_type:
+                    type: string
+                subject_type:
+                    type: string
+                subject_key:
+                    type: string
+                message_id:
+                    type: string
+                reason:
+                    type: string
+                event_json:
+                    type: string
+                created_at:
+                    type: string
         AppliedKumoConfig:
             type: object
             properties:
@@ -4390,6 +4433,13 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/AcmeDnsProviderInfo'
+        ListActionEvidenceReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/ActionEvidence'
         ListAuditEntriesReply:
             type: object
             properties:

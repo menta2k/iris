@@ -84,6 +84,7 @@ const OperationIrisAdminServiceIssueMTANodeEnrollToken = "/iris.admin.v1.IrisAdm
 const OperationIrisAdminServiceKumoConfigStatus = "/iris.admin.v1.IrisAdminService/KumoConfigStatus"
 const OperationIrisAdminServiceListAcmeCertificates = "/iris.admin.v1.IrisAdminService/ListAcmeCertificates"
 const OperationIrisAdminServiceListAcmeDnsProviders = "/iris.admin.v1.IrisAdminService/ListAcmeDnsProviders"
+const OperationIrisAdminServiceListActionEvidence = "/iris.admin.v1.IrisAdminService/ListActionEvidence"
 const OperationIrisAdminServiceListAuditEntries = "/iris.admin.v1.IrisAdminService/ListAuditEntries"
 const OperationIrisAdminServiceListAutomationRules = "/iris.admin.v1.IrisAdminService/ListAutomationRules"
 const OperationIrisAdminServiceListBounceRules = "/iris.admin.v1.IrisAdminService/ListBounceRules"
@@ -281,6 +282,9 @@ type IrisAdminServiceHTTPServer interface {
 	ListAcmeCertificates(context.Context, *ListAcmeCertificatesRequest) (*ListAcmeCertificatesReply, error)
 	// ListAcmeDnsProviders ACME DNS-01 challenge provider configuration.
 	ListAcmeDnsProviders(context.Context, *ListAcmeDnsProvidersRequest) (*ListAcmeDnsProvidersReply, error)
+	// ListActionEvidence ListActionEvidence returns the mail-log event(s) behind an automatic action
+	// for a subject (tls_policy=<domain> or suppression=<recipient>).
+	ListActionEvidence(context.Context, *ListActionEvidenceRequest) (*ListActionEvidenceReply, error)
 	ListAuditEntries(context.Context, *ListAuditEntriesRequest) (*ListAuditEntriesReply, error)
 	// ListAutomationRules TSA automation rules (operator-authored reactive back-off).
 	ListAutomationRules(context.Context, *ListAutomationRulesRequest) (*ListAutomationRulesReply, error)
@@ -470,6 +474,7 @@ func RegisterIrisAdminServiceHTTPServer(s *http.Server, srv IrisAdminServiceHTTP
 	r.POST("/v1/suppressions", _IrisAdminService_CreateSuppression0_HTTP_Handler(srv))
 	r.PUT("/v1/suppressions/{id}", _IrisAdminService_UpdateSuppression0_HTTP_Handler(srv))
 	r.POST("/v1/suppressions:delete-permanent", _IrisAdminService_DeletePermanentSuppressions0_HTTP_Handler(srv))
+	r.GET("/v1/evidence", _IrisAdminService_ListActionEvidence0_HTTP_Handler(srv))
 	r.GET("/v1/suppressions/{id}/dsn-messages", _IrisAdminService_ListSuppressionDsnMessages0_HTTP_Handler(srv))
 	r.GET("/v1/tls-policies", _IrisAdminService_ListTLSPolicies0_HTTP_Handler(srv))
 	r.POST("/v1/tls-policies", _IrisAdminService_CreateTLSPolicy0_HTTP_Handler(srv))
@@ -1704,6 +1709,25 @@ func _IrisAdminService_DeletePermanentSuppressions0_HTTP_Handler(srv IrisAdminSe
 			return err
 		}
 		reply := out.(*DeletePermanentSuppressionsReply)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IrisAdminService_ListActionEvidence0_HTTP_Handler(srv IrisAdminServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListActionEvidenceRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIrisAdminServiceListActionEvidence)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListActionEvidence(ctx, req.(*ListActionEvidenceRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListActionEvidenceReply)
 		return ctx.Result(200, reply)
 	}
 }
@@ -3849,6 +3873,9 @@ type IrisAdminServiceHTTPClient interface {
 	ListAcmeCertificates(ctx context.Context, req *ListAcmeCertificatesRequest, opts ...http.CallOption) (rsp *ListAcmeCertificatesReply, err error)
 	// ListAcmeDnsProviders ACME DNS-01 challenge provider configuration.
 	ListAcmeDnsProviders(ctx context.Context, req *ListAcmeDnsProvidersRequest, opts ...http.CallOption) (rsp *ListAcmeDnsProvidersReply, err error)
+	// ListActionEvidence ListActionEvidence returns the mail-log event(s) behind an automatic action
+	// for a subject (tls_policy=<domain> or suppression=<recipient>).
+	ListActionEvidence(ctx context.Context, req *ListActionEvidenceRequest, opts ...http.CallOption) (rsp *ListActionEvidenceReply, err error)
 	ListAuditEntries(ctx context.Context, req *ListAuditEntriesRequest, opts ...http.CallOption) (rsp *ListAuditEntriesReply, err error)
 	// ListAutomationRules TSA automation rules (operator-authored reactive back-off).
 	ListAutomationRules(ctx context.Context, req *ListAutomationRulesRequest, opts ...http.CallOption) (rsp *ListAutomationRulesReply, err error)
@@ -4877,6 +4904,21 @@ func (c *IrisAdminServiceHTTPClientImpl) ListAcmeDnsProviders(ctx context.Contex
 	pattern := "/v1/acme/dns-providers"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIrisAdminServiceListAcmeDnsProviders))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ListActionEvidence ListActionEvidence returns the mail-log event(s) behind an automatic action
+// for a subject (tls_policy=<domain> or suppression=<recipient>).
+func (c *IrisAdminServiceHTTPClientImpl) ListActionEvidence(ctx context.Context, in *ListActionEvidenceRequest, opts ...http.CallOption) (*ListActionEvidenceReply, error) {
+	var out ListActionEvidenceReply
+	pattern := "/v1/evidence"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIrisAdminServiceListActionEvidence))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

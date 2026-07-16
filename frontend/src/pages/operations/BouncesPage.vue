@@ -3,6 +3,8 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
 import PaginationControls from '@/components/common/PaginationControls.vue'
+import EvidenceDialog from '@/components/common/EvidenceDialog.vue'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
@@ -219,6 +221,14 @@ const expandedId = ref<string | null>(null)
 
 // Lazy-loaded raw DSN message(s) for dsn-type bounces, keyed by bounce id.
 type DsnState = { loading: boolean; error: string | null; messages: DsnMessage[] }
+// Evidence dialog: the exact log event behind an auto-suppression of a recipient.
+const evidenceOpen = ref(false)
+const evidenceRecipient = ref('')
+function showEvidence(recipient: string) {
+  evidenceRecipient.value = recipient
+  evidenceOpen.value = true
+}
+
 const dsnByBounce = ref<Record<string, DsnState>>({})
 
 async function loadDsn(b: Bounce) {
@@ -453,6 +463,20 @@ function toggleExpand(b: Bounce) {
                         <pre class="dsn-raw">{{ m.rawMessage }}</pre>
                       </div>
                     </template>
+
+                    <div class="mt-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        :data-testid="`evidence-bounce-${b.id}`"
+                        @click.stop="showEvidence(b.recipient)"
+                      >
+                        Show evidence
+                      </Button>
+                      <span class="ml-2 text-caption text-medium-emphasis">
+                        the exact log event if this bounce auto-suppressed the recipient
+                      </span>
+                    </div>
                   </td>
                 </tr>
               </template>
@@ -461,6 +485,13 @@ function toggleExpand(b: Bounce) {
         </DataState>
       </CardContent>
     </Card>
+
+    <EvidenceDialog
+      v-model:open="evidenceOpen"
+      subject-type="suppression"
+      :subject-key="evidenceRecipient"
+      :title="`Auto-suppression evidence for ${evidenceRecipient}`"
+    />
 
     <PaginationControls
       v-if="!notImplemented && (items.length > 0 || hasPrev)"

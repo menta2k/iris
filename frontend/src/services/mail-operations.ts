@@ -16,7 +16,25 @@ import type {
   ServiceControlResponse,
 } from '@/types'
 
+export interface ActionEvidence {
+  id: string
+  actionType: string
+  subjectType: string
+  subjectKey: string
+  messageId: string
+  reason: string
+  eventJson: string
+  createdAt?: string
+}
+
 export const mailOperationsService = {
+  // The mail-log event(s) behind an automatic action for a subject
+  // (tls_policy=<domain> or suppression=<recipient>).
+  listActionEvidence(subjectType: string, subjectKey: string) {
+    return http.get<{ items: ActionEvidence[] }>('/evidence', {
+      query: { subject_type: subjectType, subject_key: subjectKey },
+    })
+  },
   listMailRecords(filters?: MailRecordFilters, page?: PageParams) {
     return http.get<ListResponse<MailRecord>>('/mail-records', {
       query: pageQuery(page, { ...filters }),

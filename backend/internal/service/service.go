@@ -25,6 +25,7 @@ type Service struct {
 	identity        *biz.IdentityUsecase
 	auth            *biz.AuthUsecase
 	domainSafety    *biz.DomainSafetyUsecase
+	evidence        *biz.ActionEvidenceUsecase
 	inbound         *biz.InboundUsecase
 	inboundRoutes   *biz.InboundRouteUsecase
 	fbl             *biz.FBLUsecase
@@ -63,6 +64,7 @@ type Deps struct {
 	Identity        *biz.IdentityUsecase
 	Auth            *biz.AuthUsecase
 	DomainSafety    *biz.DomainSafetyUsecase
+	Evidence        *biz.ActionEvidenceUsecase
 	Inbound         *biz.InboundUsecase
 	InboundRoutes   *biz.InboundRouteUsecase
 	FBL             *biz.FBLUsecase
@@ -105,6 +107,7 @@ func NewService(d Deps) *Service {
 		identity:        d.Identity,
 		auth:            d.Auth,
 		domainSafety:    d.DomainSafety,
+		evidence:        d.Evidence,
 		inbound:         d.Inbound,
 		inboundRoutes:   d.InboundRoutes,
 		fbl:             d.FBL,

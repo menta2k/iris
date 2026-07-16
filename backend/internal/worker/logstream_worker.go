@@ -70,6 +70,12 @@ type TLSDisabler interface {
 	AutoDisableTLS(ctx context.Context, domain, reason string) (*biz.TLSPolicy, error)
 }
 
+// EvidenceRecorder saves the mail-log event behind an automatic action so the UI
+// can show why it was taken. Satisfied by the ActionEvidence use case. Optional.
+type EvidenceRecorder interface {
+	Record(ctx context.Context, ev *biz.ActionEvidence) error
+}
+
 // TLSAutoDisablePolicy reports whether the log processor may auto-disable TLS on
 // a STARTTLS handshake failure. Optional (nil = never).
 type TLSAutoDisablePolicy interface {
@@ -116,6 +122,16 @@ type LogStreamWorker struct {
 	tlsDisabler TLSDisabler
 	tlsAutoPol  TLSAutoDisablePolicy
 	disabledTLS sync.Map // domain -> struct{}
+
+	// evidence saves the mail-log event behind an auto-action (nil = off).
+	evidence EvidenceRecorder
+}
+
+// WithEvidence saves the triggering mail-log event for automatic actions (TLS
+// auto-disable, bounce auto-suppress) so the UI can show why they happened.
+func (w *LogStreamWorker) WithEvidence(r EvidenceRecorder) *LogStreamWorker {
+	w.evidence = r
+	return w
 }
 
 // WithTLSAutoDisable enables the STARTTLS-handshake-failure auto-disable path:
@@ -385,7 +401,7 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 			bounceType = "hard"
 		}
 		metrics.RecordBounce(bounceType, bounce.Mailclass)
-		w.applyBouncePolicy(ctx, bounce)
+		w.applyBouncePolicy(ctx, bounce, rec.ID)
 		w.emit(biz.DispatchEvent{
 			Type: biz.EventBounce, OccurredAt: bounce.EventTime, Mailclass: bounce.Mailclass,
 			Data: map[string]any{
@@ -436,6 +452,57 @@ func (w *LogStreamWorker) maybeAutoDisableTLS(ctx context.Context, rec *biz.Kumo
 	}
 	w.log.Warn("auto-disabled TLS for domain after STARTTLS handshake failure",
 		"domain", domain, "diagnostic", truncateDiag(mr.Diagnostic))
+	w.recordEvidence(ctx, &biz.ActionEvidence{
+		ActionType:  biz.EvidenceActionTLSAutoDisable,
+		SubjectType: biz.EvidenceSubjectTLSPolicy,
+		SubjectKey:  domain,
+		MessageID:   mr.MessageID,
+		Reason:      "STARTTLS handshake failure",
+		Event:       mailRecordEvent(mr),
+	})
+}
+
+// recordEvidence best-effort persists the mail-log event behind an auto-action.
+func (w *LogStreamWorker) recordEvidence(ctx context.Context, ev *biz.ActionEvidence) {
+	if w.evidence == nil {
+		return
+	}
+	if err := w.evidence.Record(ctx, ev); err != nil {
+		w.log.Error("record action evidence", "action", ev.ActionType, "subject", ev.SubjectKey, "error", err.Error())
+	}
+}
+
+// mailRecordEvent flattens a mail record into the evidence event map (the exact
+// log line shown in the Logs UI).
+func mailRecordEvent(mr *biz.MailRecord) map[string]any {
+	return map[string]any{
+		"message_id":       mr.MessageID,
+		"event_time":       mr.EventTime.UTC().Format(time.RFC3339),
+		"recipient":        mr.Recipient,
+		"recipient_domain": mr.RecipientDomain,
+		"sender":           mr.Sender,
+		"status":           mr.Status,
+		"record_type":      mr.RecordType,
+		"smtp_status":      mr.SMTPStatus,
+		"egress_source":    mr.EgressSource,
+		"node":             mr.Node,
+		"mailclass":        mr.Mailclass,
+		"diagnostic":       mr.Diagnostic,
+	}
+}
+
+// bounceEvent flattens a bounce record into the evidence event map.
+func bounceEvent(b *biz.BounceRecord, messageID string) map[string]any {
+	return map[string]any{
+		"message_id":     messageID,
+		"event_time":     b.EventTime.UTC().Format(time.RFC3339),
+		"recipient":      b.Recipient,
+		"smtp_status":    b.SMTPStatus,
+		"bounce_type":    b.BounceType,
+		"classification": b.Classification,
+		"mailclass":      b.Mailclass,
+		"diagnostic":     b.Diagnostic,
+	}
 }
 
 // isTLSHandshakeFailure reports whether a deferral diagnostic is an outbound
@@ -566,13 +633,25 @@ func recipientDomain(email string) string {
 
 // applyBouncePolicy auto-suppresses the recipient on a hard bounce (5xx) or once
 // soft bounces reach the configured threshold.
-func (w *LogStreamWorker) applyBouncePolicy(ctx context.Context, b *biz.BounceRecord) {
+func (w *LogStreamWorker) applyBouncePolicy(ctx context.Context, b *biz.BounceRecord, messageID string) {
 	if w.suppressor == nil {
 		return
 	}
 	recipient := strings.ToLower(strings.TrimSpace(b.Recipient))
 	if recipient == "" {
 		return
+	}
+	// suppressed records the bounce evidence for a successful auto-suppression so
+	// the Bounces UI can show the exact event that triggered it.
+	suppressed := func(reason string) {
+		w.recordEvidence(ctx, &biz.ActionEvidence{
+			ActionType:  biz.EvidenceActionBounceSuppress,
+			SubjectType: biz.EvidenceSubjectSuppression,
+			SubjectKey:  recipient,
+			MessageID:   messageID,
+			Reason:      reason,
+			Event:       bounceEvent(b, messageID),
+		})
 	}
 
 	// Rule engine (additive to the legacy net, never weakening it): a matched
@@ -591,6 +670,8 @@ func (w *LogStreamWorker) applyBouncePolicy(ctx context.Context, b *biz.BounceRe
 				}
 				if err := w.suppressor.SuppressRecipient(ctx, recipient, "bounce", reason, b.Mailclass); err != nil {
 					w.log.Error("suppress by bounce rule", "recipient", recipient, "error", err.Error())
+				} else {
+					suppressed(reason)
 				}
 				return
 			case biz.BounceActionThrottle, biz.BounceActionSuspendDomain:
@@ -613,6 +694,8 @@ func (w *LogStreamWorker) applyBouncePolicy(ctx context.Context, b *biz.BounceRe
 			}
 			if err := w.suppressor.SuppressRecipient(ctx, recipient, "bounce", reason, b.Mailclass); err != nil {
 				w.log.Error("auto-suppress hard bounce", "recipient", recipient, "error", err.Error())
+			} else {
+				suppressed(reason)
 			}
 		}
 		return
@@ -627,9 +710,11 @@ func (w *LogStreamWorker) applyBouncePolicy(ctx context.Context, b *biz.BounceRe
 		return
 	}
 	if count >= policy.SoftBounceThreshold {
-		if err := w.suppressor.SuppressRecipient(ctx, recipient, "bounce",
-			"soft bounce threshold reached ("+strconv.Itoa(count)+")", b.Mailclass); err != nil {
+		reason := "soft bounce threshold reached (" + strconv.Itoa(count) + ")"
+		if err := w.suppressor.SuppressRecipient(ctx, recipient, "bounce", reason, b.Mailclass); err != nil {
 			w.log.Error("auto-suppress soft bounce", "recipient", recipient, "error", err.Error())
+		} else {
+			suppressed(reason)
 		}
 	}
 }

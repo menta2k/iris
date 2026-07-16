@@ -146,6 +146,42 @@ export const operationsRoutes: Route[] = [
     pattern: '/bounces',
     handler: (ctx) => ok(paged(all('bounces'), ctx.query, { filter: bounceFilter(ctx.query) })),
   },
+  // ---- Action evidence ----
+  {
+    method: 'GET',
+    pattern: '/evidence',
+    handler: (ctx) => {
+      const subjectType = (ctx.query.subject_type || '').toString()
+      const subjectKey = (ctx.query.subject_key || '').toString().toLowerCase()
+      if (subjectType === 'tls_policy' && subjectKey === 'legacy.example.org') {
+        return ok({
+          items: [
+            {
+              id: 'ev_tls_1',
+              actionType: 'tls_auto_disable',
+              subjectType,
+              subjectKey,
+              messageId: 'abc123',
+              reason: 'STARTTLS handshake failure',
+              eventJson: JSON.stringify({
+                message_id: 'abc123',
+                recipient: 'user@legacy.example.org',
+                recipient_domain: 'legacy.example.org',
+                status: 'deferred',
+                record_type: 'TransientFailure',
+                smtp_status: '400',
+                diagnostic:
+                  'OpportunisticInsecure STARTTLS ... received fatal alert: HandshakeFailure',
+                node: 'kmx',
+              }),
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        })
+      }
+      return ok({ items: [] })
+    },
+  },
   {
     method: 'GET',
     pattern: '/dsn-messages',

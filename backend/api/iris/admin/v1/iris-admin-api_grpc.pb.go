@@ -71,6 +71,7 @@ const (
 	IrisAdminService_CreateSuppression_FullMethodName              = "/iris.admin.v1.IrisAdminService/CreateSuppression"
 	IrisAdminService_UpdateSuppression_FullMethodName              = "/iris.admin.v1.IrisAdminService/UpdateSuppression"
 	IrisAdminService_DeletePermanentSuppressions_FullMethodName    = "/iris.admin.v1.IrisAdminService/DeletePermanentSuppressions"
+	IrisAdminService_ListActionEvidence_FullMethodName             = "/iris.admin.v1.IrisAdminService/ListActionEvidence"
 	IrisAdminService_ListSuppressionDsnMessages_FullMethodName     = "/iris.admin.v1.IrisAdminService/ListSuppressionDsnMessages"
 	IrisAdminService_ListTLSPolicies_FullMethodName                = "/iris.admin.v1.IrisAdminService/ListTLSPolicies"
 	IrisAdminService_CreateTLSPolicy_FullMethodName                = "/iris.admin.v1.IrisAdminService/CreateTLSPolicy"
@@ -238,6 +239,9 @@ type IrisAdminServiceClient interface {
 	// from the DB and the Redis live list. Bulk, high-impact; used to clear false
 	// positives. Returns the number removed.
 	DeletePermanentSuppressions(ctx context.Context, in *DeletePermanentSuppressionsRequest, opts ...grpc.CallOption) (*DeletePermanentSuppressionsReply, error)
+	// ListActionEvidence returns the mail-log event(s) behind an automatic action
+	// for a subject (tls_policy=<domain> or suppression=<recipient>).
+	ListActionEvidence(ctx context.Context, in *ListActionEvidenceRequest, opts ...grpc.CallOption) (*ListActionEvidenceReply, error)
 	// ListSuppressionDsnMessages returns the raw DSN notifications archived for the
 	// recipient behind a dsn-sourced suppression, so an operator can read the full
 	// asynchronous bounce.
@@ -942,6 +946,16 @@ func (c *irisAdminServiceClient) DeletePermanentSuppressions(ctx context.Context
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DeletePermanentSuppressionsReply)
 	err := c.cc.Invoke(ctx, IrisAdminService_DeletePermanentSuppressions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *irisAdminServiceClient) ListActionEvidence(ctx context.Context, in *ListActionEvidenceRequest, opts ...grpc.CallOption) (*ListActionEvidenceReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListActionEvidenceReply)
+	err := c.cc.Invoke(ctx, IrisAdminService_ListActionEvidence_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1968,6 +1982,9 @@ type IrisAdminServiceServer interface {
 	// from the DB and the Redis live list. Bulk, high-impact; used to clear false
 	// positives. Returns the number removed.
 	DeletePermanentSuppressions(context.Context, *DeletePermanentSuppressionsRequest) (*DeletePermanentSuppressionsReply, error)
+	// ListActionEvidence returns the mail-log event(s) behind an automatic action
+	// for a subject (tls_policy=<domain> or suppression=<recipient>).
+	ListActionEvidence(context.Context, *ListActionEvidenceRequest) (*ListActionEvidenceReply, error)
 	// ListSuppressionDsnMessages returns the raw DSN notifications archived for the
 	// recipient behind a dsn-sourced suppression, so an operator can read the full
 	// asynchronous bounce.
@@ -2313,6 +2330,9 @@ func (UnimplementedIrisAdminServiceServer) UpdateSuppression(context.Context, *U
 }
 func (UnimplementedIrisAdminServiceServer) DeletePermanentSuppressions(context.Context, *DeletePermanentSuppressionsRequest) (*DeletePermanentSuppressionsReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeletePermanentSuppressions not implemented")
+}
+func (UnimplementedIrisAdminServiceServer) ListActionEvidence(context.Context, *ListActionEvidenceRequest) (*ListActionEvidenceReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListActionEvidence not implemented")
 }
 func (UnimplementedIrisAdminServiceServer) ListSuppressionDsnMessages(context.Context, *ListSuppressionDsnMessagesRequest) (*ListSuppressionDsnMessagesReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListSuppressionDsnMessages not implemented")
@@ -3552,6 +3572,24 @@ func _IrisAdminService_DeletePermanentSuppressions_Handler(srv interface{}, ctx 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IrisAdminServiceServer).DeletePermanentSuppressions(ctx, req.(*DeletePermanentSuppressionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IrisAdminService_ListActionEvidence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListActionEvidenceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IrisAdminServiceServer).ListActionEvidence(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IrisAdminService_ListActionEvidence_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IrisAdminServiceServer).ListActionEvidence(ctx, req.(*ListActionEvidenceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -5480,6 +5518,10 @@ var IrisAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeletePermanentSuppressions",
 			Handler:    _IrisAdminService_DeletePermanentSuppressions_Handler,
+		},
+		{
+			MethodName: "ListActionEvidence",
+			Handler:    _IrisAdminService_ListActionEvidence_Handler,
 		},
 		{
 			MethodName: "ListSuppressionDsnMessages",

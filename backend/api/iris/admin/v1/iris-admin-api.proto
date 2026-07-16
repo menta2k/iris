@@ -181,6 +181,11 @@ service IrisAdminService {
   rpc DeletePermanentSuppressions(DeletePermanentSuppressionsRequest) returns (DeletePermanentSuppressionsReply) {
     option (google.api.http) = { post: "/v1/suppressions:delete-permanent" body: "*" };
   }
+  // ListActionEvidence returns the mail-log event(s) behind an automatic action
+  // for a subject (tls_policy=<domain> or suppression=<recipient>).
+  rpc ListActionEvidence(ListActionEvidenceRequest) returns (ListActionEvidenceReply) {
+    option (google.api.http) = { get: "/v1/evidence" };
+  }
   // ListSuppressionDsnMessages returns the raw DSN notifications archived for the
   // recipient behind a dsn-sourced suppression, so an operator can read the full
   // asynchronous bounce.
@@ -1266,6 +1271,23 @@ message ListSuppressionsReply {
 message DeletePermanentSuppressionsRequest {}
 message DeletePermanentSuppressionsReply {
   int64 deleted = 1;
+}
+message ListActionEvidenceRequest {
+  string subject_type = 1; // tls_policy | suppression
+  string subject_key = 2;  // domain | recipient
+}
+message ActionEvidence {
+  string id = 1;
+  string action_type = 2;
+  string subject_type = 3;
+  string subject_key = 4;
+  string message_id = 5;
+  string reason = 6;
+  string event_json = 7;  // the mail-log event, as a JSON object string
+  string created_at = 8;  // RFC3339
+}
+message ListActionEvidenceReply {
+  repeated ActionEvidence items = 1;
 }
 message CreateSuppressionRequest {
   string type = 1;
