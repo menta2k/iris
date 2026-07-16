@@ -2066,6 +2066,8 @@ message GlobalSettings {
   string monitoring_reconcile_lookback = 38;
   string monitoring_fetch_timeout = 39;
   string monitoring_fetch_giveup = 40;
+  // Auto-disable TLS for a destination domain on a STARTTLS handshake failure.
+  bool tls_auto_disable = 41;
 }
 message GetGlobalSettingsRequest {}
 message UpdateGlobalSettingsRequest {
@@ -2112,6 +2114,7 @@ message UpdateGlobalSettingsRequest {
   string monitoring_reconcile_lookback = 36;
   string monitoring_fetch_timeout = 37;
   string monitoring_fetch_giveup = 38;
+  bool tls_auto_disable = 39;
 }
 
 // A subject → label classification rule. source is "manual" (operator-authored)

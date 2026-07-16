@@ -614,6 +614,36 @@ func TestRenderRequireTLSPolicy(t *testing.T) {
 	}
 }
 
+func TestRenderTLSPolicyRedisBacked(t *testing.T) {
+	// With Redis configured, operator per-domain TLS policies live in Redis
+	// (looked up live, no reload) and must NOT be rendered inline; the memoized
+	// tls_policy_for lookup and its use in get_egress_path_config must appear.
+	snap := ConfigSnapshot{
+		VMTAs:             []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+		LogStreamRedisURL: "redis://redis:6379",
+		TLSPolicies: []*TLSPolicy{
+			{ID: "t1", Domain: "secure.example", Mode: TLSModeRequired, Status: TLSPolicyActive},
+		},
+	}
+	r, err := RenderKumoConfig(snap)
+	if err != nil || !r.Valid {
+		t.Fatalf("render: err=%v valid=%v issues=%v", err, r.Valid, r.LintIssues)
+	}
+	for _, want := range []string{
+		"local tls_policy_for = kumo.memoize(_tls_lookup",
+		"conn:query('GET', 'tls:d:' .. domain)",
+		"local tls = tls_policy_for(string.lower(domain)) or REQUIRE_TLS_DOMAINS[string.lower(domain)] or SOURCE_TLS[egress_source]",
+	} {
+		if !strings.Contains(r.Content, want) {
+			t.Fatalf("redis-backed TLS policy must contain %q:\n%s", want, r.Content)
+		}
+	}
+	// The operator policy must NOT be baked into the inline table (it's in Redis).
+	if strings.Contains(r.Content, `REQUIRE_TLS_DOMAINS["secure.example"]`) {
+		t.Fatalf("operator TLS policy must not be inlined when Redis is configured:\n%s", r.Content)
+	}
+}
+
 func TestRenderDeliveryRatesAndBouncePipeline(t *testing.T) {
 	base := ConfigSnapshot{
 		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},

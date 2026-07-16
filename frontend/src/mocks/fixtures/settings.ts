@@ -46,6 +46,7 @@ export const globalSettings: GlobalSettings = {
   monitoringReconcileLookback: '1h',
   monitoringFetchTimeout: '30s',
   monitoringFetchGiveup: '2h',
+  tlsAutoDisable: false,
   updatedAt: hoursAgo(3),
   updatedBy: 'admin@iris.local',
 }

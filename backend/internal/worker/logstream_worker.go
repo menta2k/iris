@@ -64,6 +64,18 @@ type ClassifyPolicyProvider interface {
 	ClassifyPolicyNow(ctx context.Context) biz.ClassifyPolicy
 }
 
+// TLSDisabler adds a Disabled TLS policy for a destination domain. Satisfied by
+// the DomainSafety use case. Optional (nil disables TLS auto-disable).
+type TLSDisabler interface {
+	AutoDisableTLS(ctx context.Context, domain, reason string) (*biz.TLSPolicy, error)
+}
+
+// TLSAutoDisablePolicy reports whether the log processor may auto-disable TLS on
+// a STARTTLS handshake failure. Optional (nil = never).
+type TLSAutoDisablePolicy interface {
+	TLSAutoDisableNow(ctx context.Context) bool
+}
+
 // BounceRuleSource supplies the active bounce-action ruleset used to classify a
 // bounce into a system action. Optional (nil = legacy hard/soft policy only).
 type BounceRuleSource interface {
@@ -96,6 +108,24 @@ type LogStreamWorker struct {
 
 	// realtime pushes freshly-persisted records to connected UI clients (SSE).
 	realtime biz.RealtimePublisher
+
+	// TLS auto-disable: on a STARTTLS handshake failure, add a Disabled TLS
+	// policy for the destination domain so mail delivers in cleartext instead of
+	// deferring forever. disabledTLS dedupes so each domain is disabled at most
+	// once per process run (a repeated deferral doesn't re-hit the DB/Redis).
+	tlsDisabler TLSDisabler
+	tlsAutoPol  TLSAutoDisablePolicy
+	disabledTLS sync.Map // domain -> struct{}
+}
+
+// WithTLSAutoDisable enables the STARTTLS-handshake-failure auto-disable path:
+// when the policy provider reports it on, a deferral whose diagnostic is a TLS
+// handshake failure adds a Disabled TLS policy for that domain. Returns the
+// worker for chaining.
+func (w *LogStreamWorker) WithTLSAutoDisable(disabler TLSDisabler, policy TLSAutoDisablePolicy) *LogStreamWorker {
+	w.tlsDisabler = disabler
+	w.tlsAutoPol = policy
+	return w
 }
 
 // WithEventEmitter forwards bounce and feedback events to the Event Processor.
@@ -319,6 +349,11 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 		}
 	}
 
+	// TLS auto-disable: a deferral whose diagnostic is a STARTTLS handshake
+	// failure (e.g. a DHE-only server rustls can't negotiate) → add a Disabled
+	// TLS policy for the domain so it delivers in cleartext next attempt.
+	w.maybeAutoDisableTLS(ctx, rec, mr)
+
 	// Optional subject classification: the Subject header is only on Reception.
 	// When the feature is on, hand {message_id, subject} to the async worker via
 	// a transient stream — the subject is never persisted on mail_records.
@@ -370,6 +405,64 @@ func (w *LogStreamWorker) handle(ctx context.Context, m data.StreamMessage) {
 	if rec.Type == biz.KumoTransientFailure {
 		w.applyDeferralRules(ctx, rec, now)
 	}
+}
+
+// maybeAutoDisableTLS adds a Disabled TLS policy for the destination domain when
+// a deferral is a STARTTLS handshake failure and the operator has enabled the
+// behavior. Deduped per domain per run so a deferral storm doesn't hammer the
+// DB/Redis; once disabled, kumod picks it up within the policy's memoize TTL and
+// the domain stops failing TLS.
+func (w *LogStreamWorker) maybeAutoDisableTLS(ctx context.Context, rec *biz.KumoLogRecord, mr *biz.MailRecord) {
+	if w.tlsDisabler == nil || w.tlsAutoPol == nil || rec.Type != biz.KumoTransientFailure {
+		return
+	}
+	domain := strings.ToLower(strings.TrimSpace(mr.RecipientDomain))
+	if domain == "" || !isTLSHandshakeFailure(mr.Diagnostic) {
+		return
+	}
+	if _, seen := w.disabledTLS.Load(domain); seen {
+		return // already handled this run — skip without touching the DB
+	}
+	if !w.tlsAutoPol.TLSAutoDisableNow(ctx) {
+		return // operator hasn't opted in
+	}
+	if _, seen := w.disabledTLS.LoadOrStore(domain, struct{}{}); seen {
+		return // lost the race to a concurrent handler
+	}
+	if _, err := w.tlsDisabler.AutoDisableTLS(ctx, domain, "starttls handshake failure"); err != nil {
+		w.log.Error("auto-disable TLS failed", "domain", domain, "error", err.Error())
+		w.disabledTLS.Delete(domain) // allow a retry on the next deferral
+		return
+	}
+	w.log.Warn("auto-disabled TLS for domain after STARTTLS handshake failure",
+		"domain", domain, "diagnostic", truncateDiag(mr.Diagnostic))
+}
+
+// isTLSHandshakeFailure reports whether a deferral diagnostic is an outbound
+// STARTTLS handshake failure (as opposed to a normal 4xx greylist/rate defer).
+// KumoMTA phrases these as an OpportunisticInsecure STARTTLS failure and even
+// suggests "enable_tls=Disabled"; a fatal HandshakeFailure alert is the common
+// rustls-vs-DHE-only-server case.
+func isTLSHandshakeFailure(diag string) bool {
+	if diag == "" {
+		return false
+	}
+	if strings.Contains(diag, "enable_tls=Disabled") ||
+		strings.Contains(diag, "OpportunisticInsecure STARTTLS") {
+		return true
+	}
+	tls := strings.Contains(diag, "STARTTLS") || strings.Contains(diag, "TLS handshake") || strings.Contains(diag, "starttls")
+	fail := strings.Contains(diag, "HandshakeFailure") ||
+		strings.Contains(diag, "handshake status: failed") ||
+		strings.Contains(diag, "received fatal alert")
+	return tls && fail
+}
+
+func truncateDiag(s string) string {
+	if len(s) <= 160 {
+		return s
+	}
+	return s[:160] + "…"
 }
 
 // applyDeferralRules matches a transient failure against the bounce ruleset and,

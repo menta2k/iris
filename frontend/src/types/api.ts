@@ -966,6 +966,7 @@ export interface GlobalSettings {
   monitoringReconcileLookback: string
   monitoringFetchTimeout: string
   monitoringFetchGiveup: string
+  tlsAutoDisable: boolean
   updatedAt?: string
   updatedBy?: string
 }
@@ -1008,6 +1009,7 @@ export interface UpdateGlobalSettingsRequest {
   monitoring_reconcile_lookback: string
   monitoring_fetch_timeout: string
   monitoring_fetch_giveup: string
+  tls_auto_disable: boolean
 }
 
 // ---- Subject classifications ----

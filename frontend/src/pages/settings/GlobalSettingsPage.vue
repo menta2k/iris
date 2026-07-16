@@ -52,6 +52,7 @@ const form = ref({
   auto_suppress_hard_bounces: true,
   soft_bounce_threshold: 0,
   fbl_require_verification: false,
+  tls_auto_disable: false,
   inbound_maildir_base_path: '',
   suppression_ttl: '',
   dmarc_report_email: '',
@@ -97,6 +98,7 @@ function apply(s: GlobalSettings) {
     auto_suppress_hard_bounces: s.autoSuppressHardBounces ?? true,
     soft_bounce_threshold: s.softBounceThreshold ?? 0,
     fbl_require_verification: s.fblRequireVerification ?? false,
+    tls_auto_disable: s.tlsAutoDisable ?? false,
     inbound_maildir_base_path: s.inboundMaildirBasePath || '',
     suppression_ttl: s.suppressionTtl || '',
     dmarc_report_email: s.dmarcReportEmail || '',
@@ -172,6 +174,7 @@ async function save() {
         auto_suppress_hard_bounces: form.value.auto_suppress_hard_bounces,
         soft_bounce_threshold: form.value.soft_bounce_threshold,
         fbl_require_verification: form.value.fbl_require_verification,
+        tls_auto_disable: form.value.tls_auto_disable,
         inbound_maildir_base_path: form.value.inbound_maildir_base_path,
         suppression_ttl: form.value.suppression_ttl,
         dmarc_report_email: form.value.dmarc_report_email,
@@ -530,6 +533,22 @@ onBeforeUnmount(() => window.removeEventListener('scroll', updateActiveSection))
                   <p class="mt-1 text-caption text-medium-emphasis mb-0">
                     Suppress a recipient after this many soft (4xx) bounces. 0 disables soft-bounce
                     suppression.
+                  </p>
+                </div>
+                <div>
+                  <v-switch
+                    v-model="form.tls_auto_disable"
+                    color="primary"
+                    density="compact"
+                    hide-details
+                    label="Auto-disable TLS on STARTTLS handshake failure"
+                    data-testid="tls-auto-disable"
+                  />
+                  <p class="text-caption text-medium-emphasis mb-0">
+                    When delivery to a domain fails the STARTTLS handshake (e.g. a legacy DHE-only
+                    server kumod can't negotiate), automatically add a Disabled TLS policy for that
+                    domain so mail delivers in cleartext instead of deferring forever. Off = leave
+                    such domains deferring until you add a policy manually.
                   </p>
                 </div>
                 <div>

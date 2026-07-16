@@ -396,7 +396,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	pools := writeEgressPools(&b, snap.VMTAs, snap.Groups, vmtaName, snap.PinEgressPerMessage)
 	// Per-VMTA connection limits (max_connections) via the egress path config.
 	fwdTLS, _ := forwardTargets(snap)
-	writeEgressPaths(&b, snap.VMTAs, snap.TLSPolicies, fwdTLS, snap.ShapingDir, snap.TSAUrl)
+	writeEgressPaths(&b, snap.VMTAs, snap.TLSPolicies, fwdTLS, snap.ShapingDir, snap.TSAUrl, snap.LogStreamRedisURL != "")
 	// DKIM signers.
 	dkim := writeDKIMTable(&b, snap.DKIM)
 	// DKIM signing function + the http-injection signing hook. Defined before the
@@ -1561,7 +1561,7 @@ func writeEsmtpListener(b *strings.Builder, l *Listener) {
 // the policy, so the two always agree in a real deployment.
 const defaultPolicyDir = "/opt/kumomta/etc/policy"
 
-func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolicy, fwdTargets []forwardTarget, shapingDir, tsaURL string) {
+func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolicy, fwdTargets []forwardTarget, shapingDir, tsaURL string, redisTLS bool) {
 	b.WriteString("-- ===== egress path config (shaping helper: blueprints + warmup overrides) =====\n")
 	b.WriteString("local SOURCE_LIMITS = {}\n")
 	for _, v := range sortedVMTAs(vmtas) {
@@ -1573,12 +1573,17 @@ func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolic
 		}
 	}
 	b.WriteString("local REQUIRE_TLS_DOMAINS = {}\n")
-	for _, p := range sortedTLSPolicies(tlsPolicies) {
-		if p.Status != TLSPolicyActive {
-			continue
+	// Operator per-domain TLS policies. With Redis configured they live in Redis
+	// (tls:d:<domain>) and are looked up live below, so add/remove needs no
+	// reload; only render them inline when there is no Redis to back them.
+	if !redisTLS {
+		for _, p := range sortedTLSPolicies(tlsPolicies) {
+			if p.Status != TLSPolicyActive {
+				continue
+			}
+			fmt.Fprintf(b, "REQUIRE_TLS_DOMAINS[%s] = %s\n",
+				MustLuaString(strings.ToLower(p.Domain)), MustLuaString(p.EnableTLSValue()))
 		}
-		fmt.Fprintf(b, "REQUIRE_TLS_DOMAINS[%s] = %s\n",
-			MustLuaString(strings.ToLower(p.Domain)), MustLuaString(p.EnableTLSValue()))
 	}
 	// Per-VMTA (egress source) TLS override: force/relax STARTTLS for anything
 	// sent from this source, regardless of destination. A per-domain policy above
@@ -1620,6 +1625,35 @@ func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolic
 	// skip_make=true returns a mergeable params table so iris overlays timeouts /
 	// connection cap / require-TLS. Coexistence with iris's log + queue hooks and
 	// the no-leak resolution were verified against a live kumod.
+	// Live per-domain TLS policy from Redis (tls:d:<domain> → enable_tls string),
+	// memoized so repeat deliveries to a domain don't re-query. Adding/removing a
+	// policy (operator edit or the auto-disable log processor) takes effect within
+	// the TTL with no reload. Fail-open: a Redis error falls through to the inline
+	// table / opportunistic default. Returns false (a cacheable sentinel) when the
+	// domain has no policy, so negative lookups are cached too.
+	if redisTLS {
+		b.WriteString(`local function _tls_lookup(domain)
+  local ok, res = pcall(function()
+    local redis = require 'redis'
+    local conn = redis.open { node = LOGSTREAM_REDIS_NODE, cluster = LOGSTREAM_REDIS_CLUSTER, pool_size = 10 }
+    return conn:query('GET', 'tls:d:' .. domain)
+  end)
+  if not ok then
+    kumo.log_error('tls policy: redis lookup failed: ' .. tostring(res))
+    return false
+  end
+  return res or false
+end
+
+local tls_policy_for = kumo.memoize(_tls_lookup, {
+  name = 'iris_tls_policy',
+  ttl = '60 seconds',
+  capacity = 50000,
+  allow_stale_reads = true,
+})
+
+`)
+	}
 	b.WriteString("\nlocal shaping = require 'policy-extras.shaping'\n")
 	fmt.Fprintf(b, "local iris_shaper = shaping:setup_with_automation {\n  no_default_files = true,\n  extra_files = { %s, %s },\n",
 		MustLuaString(dir+"/iris-base.toml"), MustLuaString(dir+"/iris-warmup.toml"))
@@ -1627,7 +1661,14 @@ func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolic
 		fmt.Fprintf(b, "  publish = { %s },\n  subscribe = { %s },\n", MustLuaString(tsa), MustLuaString(tsa))
 	}
 	b.WriteString("}\n")
-	b.WriteString(`
+	// TLS precedence: live Redis per-domain policy (when enabled) → inline table
+	// (forward-route TLS, or operator policies when Redis is off) → per-source
+	// override → opportunistic default.
+	tlsExpr := "REQUIRE_TLS_DOMAINS[string.lower(domain)] or SOURCE_TLS[egress_source]"
+	if redisTLS {
+		tlsExpr = "tls_policy_for(string.lower(domain)) or REQUIRE_TLS_DOMAINS[string.lower(domain)] or SOURCE_TLS[egress_source]"
+	}
+	fmt.Fprintf(b, `
 kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
   local params = iris_shaper.get_egress_path_config(domain, egress_source, site_name, true)
   params.connect_timeout = params.connect_timeout or '30s'
@@ -1645,7 +1686,7 @@ kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
   end
   -- Per-domain TLS policy wins; else the per-VMTA (egress source) override; else
   -- the opportunistic default below.
-  local tls = REQUIRE_TLS_DOMAINS[string.lower(domain)] or SOURCE_TLS[egress_source]
+  local tls = %s
   if tls then
     params.enable_tls = tls
   else
@@ -1660,7 +1701,7 @@ kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
   return kumo.make_egress_path(params)
 end)
 
-`)
+`, tlsExpr)
 }
 
 func sortedTLSPolicies(in []*TLSPolicy) []*TLSPolicy {

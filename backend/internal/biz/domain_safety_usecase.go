@@ -21,6 +21,9 @@ type DomainSafetyRepo interface {
 	// newest first, bounded by limit.
 	ListDSNMessages(ctx context.Context, recipient string, limit int) ([]*DSNMessage, error)
 	CreateTLSPolicy(ctx context.Context, p *TLSPolicy) (*TLSPolicy, error)
+	// UpsertTLSPolicy inserts or updates the policy for a domain (idempotent on
+	// domain). Used by the auto-disable log processor.
+	UpsertTLSPolicy(ctx context.Context, p *TLSPolicy) (*TLSPolicy, error)
 	ListTLSPolicies(ctx context.Context, page Page) ([]*TLSPolicy, error)
 	DeleteTLSPolicy(ctx context.Context, id string) error
 }
@@ -321,6 +324,25 @@ func (uc *DomainSafetyUsecase) CreateTLSPolicy(ctx context.Context, p *TLSPolicy
 	}
 	uc.audit(ctx, "tls_policy.create", "tls_policy", out.ID, AuditSuccess, map[string]any{
 		"domain": out.Domain, "mode": out.Mode, "status": out.Status,
+	})
+	return out, nil
+}
+
+// AutoDisableTLS upserts a Disabled TLS policy for a destination domain. Called
+// by the log processor when delivery to the domain fails a STARTTLS handshake
+// (e.g. a DHE-only server rustls can't negotiate). Runs under a system actor
+// (no interactive permission gate); idempotent and audited. Returns the policy.
+func (uc *DomainSafetyUsecase) AutoDisableTLS(ctx context.Context, domain, reason string) (*TLSPolicy, error) {
+	p := &TLSPolicy{Domain: domain, Mode: TLSModeDisabled, Status: TLSPolicyActive}
+	if err := p.Validate(); err != nil {
+		return nil, err
+	}
+	out, err := uc.repo.UpsertTLSPolicy(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+	uc.audit(ctx, "tls_policy.auto_disable", "tls_policy", out.Domain, AuditSuccess, map[string]any{
+		"domain": out.Domain, "mode": out.Mode, "reason": reason,
 	})
 	return out, nil
 }

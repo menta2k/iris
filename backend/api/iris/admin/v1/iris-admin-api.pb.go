@@ -15798,8 +15798,10 @@ type GlobalSettings struct {
 	MonitoringReconcileLookback string `protobuf:"bytes,38,opt,name=monitoring_reconcile_lookback,json=monitoringReconcileLookback,proto3" json:"monitoring_reconcile_lookback,omitempty"`
 	MonitoringFetchTimeout      string `protobuf:"bytes,39,opt,name=monitoring_fetch_timeout,json=monitoringFetchTimeout,proto3" json:"monitoring_fetch_timeout,omitempty"`
 	MonitoringFetchGiveup       string `protobuf:"bytes,40,opt,name=monitoring_fetch_giveup,json=monitoringFetchGiveup,proto3" json:"monitoring_fetch_giveup,omitempty"`
-	unknownFields               protoimpl.UnknownFields
-	sizeCache                   protoimpl.SizeCache
+	// Auto-disable TLS for a destination domain on a STARTTLS handshake failure.
+	TlsAutoDisable bool `protobuf:"varint,41,opt,name=tls_auto_disable,json=tlsAutoDisable,proto3" json:"tls_auto_disable,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GlobalSettings) Reset() {
@@ -16105,6 +16107,13 @@ func (x *GlobalSettings) GetMonitoringFetchGiveup() string {
 	return ""
 }
 
+func (x *GlobalSettings) GetTlsAutoDisable() bool {
+	if x != nil {
+		return x.TlsAutoDisable
+	}
+	return false
+}
+
 type GetGlobalSettingsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -16185,6 +16194,7 @@ type UpdateGlobalSettingsRequest struct {
 	MonitoringReconcileLookback string `protobuf:"bytes,36,opt,name=monitoring_reconcile_lookback,json=monitoringReconcileLookback,proto3" json:"monitoring_reconcile_lookback,omitempty"`
 	MonitoringFetchTimeout      string `protobuf:"bytes,37,opt,name=monitoring_fetch_timeout,json=monitoringFetchTimeout,proto3" json:"monitoring_fetch_timeout,omitempty"`
 	MonitoringFetchGiveup       string `protobuf:"bytes,38,opt,name=monitoring_fetch_giveup,json=monitoringFetchGiveup,proto3" json:"monitoring_fetch_giveup,omitempty"`
+	TlsAutoDisable              bool   `protobuf:"varint,39,opt,name=tls_auto_disable,json=tlsAutoDisable,proto3" json:"tls_auto_disable,omitempty"`
 	unknownFields               protoimpl.UnknownFields
 	sizeCache                   protoimpl.SizeCache
 }
@@ -16476,6 +16486,13 @@ func (x *UpdateGlobalSettingsRequest) GetMonitoringFetchGiveup() string {
 		return x.MonitoringFetchGiveup
 	}
 	return ""
+}
+
+func (x *UpdateGlobalSettingsRequest) GetTlsAutoDisable() bool {
+	if x != nil {
+		return x.TlsAutoDisable
+	}
+	return false
 }
 
 // A subject → label classification rule. source is "manual" (operator-authored)
@@ -21685,7 +21702,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\vtotal_count\x18\x03 \x01(\x03R\n" +
 	"totalCount\x12\x14\n" +
 	"\x05range\x18\x04 \x01(\tR\x05range\x121\n" +
-	"\x14prometheus_available\x18\x05 \x01(\bR\x13prometheusAvailable\"\xa8\x0e\n" +
+	"\x14prometheus_available\x18\x05 \x01(\bR\x13prometheusAvailable\"\xd2\x0e\n" +
 	"\x0eGlobalSettings\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -21731,8 +21748,9 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x0fmonitoring_from\x18% \x01(\tR\x0emonitoringFrom\x12B\n" +
 	"\x1dmonitoring_reconcile_lookback\x18& \x01(\tR\x1bmonitoringReconcileLookback\x128\n" +
 	"\x18monitoring_fetch_timeout\x18' \x01(\tR\x16monitoringFetchTimeout\x126\n" +
-	"\x17monitoring_fetch_giveup\x18( \x01(\tR\x15monitoringFetchGiveupJ\x04\b\r\x10\x0e\"\x1a\n" +
-	"\x18GetGlobalSettingsRequest\"\xf7\r\n" +
+	"\x17monitoring_fetch_giveup\x18( \x01(\tR\x15monitoringFetchGiveup\x12(\n" +
+	"\x10tls_auto_disable\x18) \x01(\bR\x0etlsAutoDisableJ\x04\b\r\x10\x0e\"\x1a\n" +
+	"\x18GetGlobalSettingsRequest\"\xa1\x0e\n" +
 	"\x1bUpdateGlobalSettingsRequest\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -21774,7 +21792,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x0fmonitoring_from\x18# \x01(\tR\x0emonitoringFrom\x12B\n" +
 	"\x1dmonitoring_reconcile_lookback\x18$ \x01(\tR\x1bmonitoringReconcileLookback\x128\n" +
 	"\x18monitoring_fetch_timeout\x18% \x01(\tR\x16monitoringFetchTimeout\x126\n" +
-	"\x17monitoring_fetch_giveup\x18& \x01(\tR\x15monitoringFetchGiveupJ\x04\b\r\x10\x0e\"\xb4\x02\n" +
+	"\x17monitoring_fetch_giveup\x18& \x01(\tR\x15monitoringFetchGiveup\x12(\n" +
+	"\x10tls_auto_disable\x18' \x01(\bR\x0etlsAutoDisableJ\x04\b\r\x10\x0e\"\xb4\x02\n" +
 	"\x15SubjectClassification\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12-\n" +

@@ -305,6 +305,17 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	} else {
 		log.Info("suppression cache backfilled", "entries", n)
 	}
+	// Live per-domain TLS policy cache (tls:d:<domain>) so add/remove/auto-disable
+	// takes effect without a KumoMTA reload; backfill from the DB at startup.
+	tlsCache := data.NewTLSPolicyCache(streams.Client)
+	domainSafetyRepo.WithTLSPolicyCache(tlsCache)
+	if pols, lerr := domainSafetyRepo.ListTLSPolicies(ctx, biz.Page{Size: 10000}); lerr != nil {
+		log.Warn("tls policy backfill: list failed", "error", lerr.Error())
+	} else if n, berr := tlsCache.Backfill(ctx, pols); berr != nil {
+		log.Warn("tls policy backfill: redis populate failed", "error", berr.Error())
+	} else {
+		log.Info("tls policy cache backfilled", "entries", n)
+	}
 	// US5 inbound automation: Rspamd result ingestion + inbound routing.
 	inboundRepo := data.NewInboundRepo(db)
 	inboundRouteRepo := data.NewInboundRouteRepo(db)
@@ -518,6 +529,7 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		WithFeedbackVerification(domainSafetyRepo, settingsUC).
 		WithClassification(settingsUC).
 		WithBounceRules(bounceRuleUC).
+		WithTLSAutoDisable(domainSafetyUC, settingsUC).
 		WithEventEmitter(eventDispatcher).
 		WithRealtimePublisher(rtPublisher).Run)
 	// Optional subject classification: consumes the transient classify-pending

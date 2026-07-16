@@ -120,6 +120,13 @@ type GlobalSettings struct {
 	MonitoringFetchTimeout      string
 	MonitoringFetchGiveUp       string
 
+	// TLSAutoDisable, when true, lets the log processor automatically add a
+	// "Disabled" TLS policy for a destination domain after delivery to it fails a
+	// STARTTLS handshake (e.g. a DHE-only server kumod's rustls cannot negotiate),
+	// so subsequent mail delivers in cleartext instead of deferring forever.
+	// Default false (operator opts in).
+	TLSAutoDisable bool
+
 	UpdatedAt time.Time
 	UpdatedBy string
 }

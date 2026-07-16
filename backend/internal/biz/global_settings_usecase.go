@@ -150,6 +150,17 @@ func (uc *GlobalSettingsUsecase) BouncePolicyNow(ctx context.Context) BouncePoli
 	}
 }
 
+// TLSAutoDisableNow reports whether the log processor may auto-disable TLS for a
+// domain on a STARTTLS handshake failure. Internal provider (no permission gate);
+// defaults false on any read error.
+func (uc *GlobalSettingsUsecase) TLSAutoDisableNow(ctx context.Context) bool {
+	row, err := uc.repo.Get(ctx)
+	if err != nil || row == nil {
+		return false
+	}
+	return row.TLSAutoDisable
+}
+
 // SuppressionTTLNow returns the configured suppression-record lifetime (0 when
 // unset/permanent). Used by the suppression write path to set the Redis key TTL
 // and the DB expires_at. No permission check — internal provider.

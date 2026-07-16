@@ -4194,6 +4194,9 @@ components:
                     type: string
                 monitoring_fetch_giveup:
                     type: string
+                tls_auto_disable:
+                    type: boolean
+                    description: Auto-disable TLS for a destination domain on a STARTTLS handshake failure.
             description: Global settings — deployment-level policy knobs an operator edits in the UI.
         InboundRoute:
             type: object
@@ -5915,6 +5918,8 @@ components:
                     type: string
                 monitoring_fetch_giveup:
                     type: string
+                tls_auto_disable:
+                    type: boolean
         UpdateInboundRouteRequest:
             type: object
             properties:

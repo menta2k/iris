@@ -64,6 +64,7 @@ func (s *Service) UpdateGlobalSettings(ctx context.Context, req *adminv1.UpdateG
 		MonitoringReconcileLookback: req.GetMonitoringReconcileLookback(),
 		MonitoringFetchTimeout:      req.GetMonitoringFetchTimeout(),
 		MonitoringFetchGiveUp:       req.GetMonitoringFetchGiveup(),
+		TLSAutoDisable:              req.GetTlsAutoDisable(),
 	})
 	if err != nil {
 		return nil, s.fail(ctx, "UpdateGlobalSettings", err)
@@ -115,8 +116,9 @@ func settingsToProto(g *biz.GlobalSettings) *adminv1.GlobalSettings {
 		MonitoringReconcileLookback: g.MonitoringReconcileLookback,
 		MonitoringFetchTimeout:      g.MonitoringFetchTimeout,
 		MonitoringFetchGiveup:       g.MonitoringFetchGiveUp,
+		TlsAutoDisable:              g.TLSAutoDisable,
 
 		UpdatedAt: updatedAt,
-		UpdatedBy:               g.UpdatedBy,
+		UpdatedBy: g.UpdatedBy,
 	}
 }
