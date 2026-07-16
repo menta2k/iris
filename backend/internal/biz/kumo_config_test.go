@@ -1408,6 +1408,15 @@ func TestRenderNormalizesMimeVersionOnInjection(t *testing.T) {
 	if !strings.Contains(r.Content, `msg:prepend_header('MIME-Version', v)`) {
 		t.Fatal("normalizer must re-add the canonical MIME-Version header")
 	}
+	// Must use the real KumoMTA method: remove_all_named_headers. The shorter
+	// remove_all_named does not exist and would throw at runtime, aborting the
+	// http_message_generated hook and silently dropping every injected message.
+	if !strings.Contains(r.Content, `msg:remove_all_named_headers('MIME-Version')`) {
+		t.Fatal("normalizer must call remove_all_named_headers (remove_all_named is not a KumoMTA method)")
+	}
+	if strings.Contains(r.Content, `msg:remove_all_named('MIME-Version')`) {
+		t.Fatal("remove_all_named('MIME-Version') is not a valid KumoMTA method and would break HTTP injection")
+	}
 }
 
 func TestRenderCollectsListenerTLSFiles(t *testing.T) {

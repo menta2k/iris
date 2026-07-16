@@ -1265,7 +1265,7 @@ end
 local function iris_fix_mime_version(msg)
   local v = msg:get_first_named_header_value('MIME-Version')
   if not v then return end
-  msg:remove_all_named('MIME-Version')
+  msg:remove_all_named_headers('MIME-Version')
   msg:prepend_header('MIME-Version', v)
 end
 
