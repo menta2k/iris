@@ -1011,6 +1011,7 @@ kumo.on('http_message_generated', function(msg)
   end
   iris_ensure_message_id(msg)
   iris_ensure_date(msg)
+  iris_fix_mime_version(msg)
   local class = classify_mail(msg)
   if class then
     msg:set_meta('mailclass', class)
@@ -1254,6 +1255,18 @@ end
 local function iris_ensure_date(msg)
   if msg:get_first_named_header_value('Date') then return end
   msg:prepend_header('Date', os.date('!%a, %d %b %Y %H:%M:%S +0000'))
+end
+
+-- KumoMTA's HTTP-injection builder emits the header as "Mime-Version", which
+-- trips rspamd's MV_CASE rule (+0.5) — it expects the RFC 2045 canonical
+-- "MIME-Version". Rewrite it to the canonical spelling (keeping the original
+-- value) so injected mail scores cleanly and the fix is covered by DKIM (this
+-- runs before signing). No-op when the header is absent (non-MIME messages).
+local function iris_fix_mime_version(msg)
+  local v = msg:get_first_named_header_value('MIME-Version')
+  if not v then return end
+  msg:remove_all_named('MIME-Version')
+  msg:prepend_header('MIME-Version', v)
 end
 
 -- ===== dkim signing =====

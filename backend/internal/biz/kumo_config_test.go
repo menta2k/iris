@@ -1383,6 +1383,33 @@ func TestLintLuaCatchesSyntaxError(t *testing.T) {
 	}
 }
 
+func TestRenderNormalizesMimeVersionOnInjection(t *testing.T) {
+	// KumoMTA's HTTP injection builder emits "Mime-Version"; rspamd's MV_CASE
+	// penalizes anything but the canonical "MIME-Version". The http-injection
+	// hook must rewrite it, and the helper must be defined before it is called.
+	r, err := RenderKumoConfig(ConfigSnapshot{
+		Listeners: []*Listener{{ID: "l1", Name: "mx", IPAddress: "203.0.113.1", Port: 25, Hostname: "mx.example.com", Status: ListenerStatusActive}},
+	})
+	if err != nil || !r.Valid {
+		t.Fatalf("render: err=%v valid=%v", err, r.Valid)
+	}
+	def := strings.Index(r.Content, "local function iris_fix_mime_version")
+	hook := strings.Index(r.Content, "kumo.on('http_message_generated'")
+	hookCall := strings.LastIndex(r.Content, "iris_fix_mime_version(msg)")
+	if def < 0 {
+		t.Fatal("iris_fix_mime_version helper not rendered")
+	}
+	if hook < 0 || hookCall <= hook {
+		t.Fatal("http-injection hook does not call iris_fix_mime_version")
+	}
+	if def > hook {
+		t.Fatalf("helper defined (%d) after the hook (%d) — undefined upvalue at runtime", def, hook)
+	}
+	if !strings.Contains(r.Content, `msg:prepend_header('MIME-Version', v)`) {
+		t.Fatal("normalizer must re-add the canonical MIME-Version header")
+	}
+}
+
 func TestRenderCollectsListenerTLSFiles(t *testing.T) {
 	snap := ConfigSnapshot{
 		Listeners: []*Listener{
