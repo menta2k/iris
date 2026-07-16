@@ -470,11 +470,20 @@ func writeEgressSources(b *strings.Builder, vmtas []*VMTA, ehloDefault string, p
 			continue
 		}
 		if node := proxyNodes[v.NodeID]; node != nil {
-			// The VMTA's IP is bound on `node`: connect via its kumo-proxy with
-			// the VMTA IP as the proxy-side source. No local source_address —
-			// the proxy owns the bind.
-			fmt.Fprintf(b, "SOURCES[%s] = { socks5_proxy_server = %s, socks5_proxy_source_address = %s, ehlo_domain = %s }\n",
-				MustLuaString(v.Name), MustLuaString(node.ProxyEndpoint()), MustLuaString(v.IPAddress), MustLuaString(v.EHLOName))
+			// The VMTA's IP is bound on `node`. On the OWNING node bind the IP
+			// directly (no proxy hop); on every OTHER node egress through the
+			// owner's kumo-proxy with the VMTA IP as the proxy-side source. The
+			// NODE_NAME guard keeps the SOURCES table byte-identical cluster-wide
+			// while letting same-node delivery skip the proxy entirely. A node
+			// with no identity (NODE_NAME == '') safely takes the proxy branch,
+			// which always works when the proxy is up.
+			direct := fmt.Sprintf("{ source_address = %s, ehlo_domain = %s }",
+				MustLuaString(v.IPAddress), MustLuaString(v.EHLOName))
+			proxied := fmt.Sprintf("{ socks5_proxy_server = %s, socks5_proxy_source_address = %s, ehlo_domain = %s }",
+				MustLuaString(node.ProxyEndpoint()), MustLuaString(v.IPAddress), MustLuaString(v.EHLOName))
+			// tables are always truthy, so the `cond and A or B` idiom is safe here.
+			fmt.Fprintf(b, "SOURCES[%s] = (NODE_NAME == %s) and %s or %s\n",
+				MustLuaString(v.Name), MustLuaString(node.Name), direct, proxied)
 		} else {
 			fmt.Fprintf(b, "SOURCES[%s] = { source_address = %s, ehlo_domain = %s }\n",
 				MustLuaString(v.Name), MustLuaString(v.IPAddress), MustLuaString(v.EHLOName))

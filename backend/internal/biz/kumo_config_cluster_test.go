@@ -14,10 +14,11 @@ func clusterSnap(nodes []*MTANode, vmtas []*VMTA) ConfigSnapshot {
 }
 
 // TestRenderClusterProxyEgressSources verifies the core cluster behavior: a
-// VMTA owned by a node with a kumo-proxy renders a SOCKS5 proxy pointer (so
-// any node can deliver through the owning node's IP), while local VMTAs keep
-// their plain source_address. This is what makes "received on node1, egress
-// from node2" work without re-queueing the message.
+// VMTA owned by a node with a kumo-proxy renders a NODE_NAME-guarded source —
+// the owning node binds the IP directly (no proxy hop), every OTHER node
+// egresses through the owner's kumo-proxy — while VMTAs with no cluster node
+// keep a plain source_address. This is what makes "received on node1, egress
+// from node2" work without re-queueing, and same-node delivery skip the proxy.
 func TestRenderClusterProxyEgressSources(t *testing.T) {
 	nodes := []*MTANode{
 		{ID: "n1", Name: "node1", Status: MTANodeStatusActive}, // local, no proxy
@@ -35,8 +36,8 @@ func TestRenderClusterProxyEgressSources(t *testing.T) {
 		t.Fatalf("policy failed lint: %v", r.LintIssues)
 	}
 	if !strings.Contains(r.Content,
-		`SOURCES["vmta-remote"] = { socks5_proxy_server = "10.20.0.12:1080", socks5_proxy_source_address = "203.0.113.20", ehlo_domain = "b.example.com" }`) {
-		t.Errorf("remote VMTA should render a socks5 proxy pointer:\n%s", r.Content)
+		`SOURCES["vmta-remote"] = (NODE_NAME == "node2") and { source_address = "203.0.113.20", ehlo_domain = "b.example.com" } or { socks5_proxy_server = "10.20.0.12:1080", socks5_proxy_source_address = "203.0.113.20", ehlo_domain = "b.example.com" }`) {
+		t.Errorf("owned VMTA should render a NODE_NAME-guarded direct-or-proxy source:\n%s", r.Content)
 	}
 	if !strings.Contains(r.Content,
 		`SOURCES["vmta-local"] = { source_address = "203.0.113.10", ehlo_domain = "a.example.com" }`) {

@@ -34,6 +34,17 @@ VMTA's IP is physically bound on another node, the outbound SMTP connection is
 tunneled through kumo-proxy (SOCKS5) on that node, so packets leave from the
 correct IP. The message itself is **never re-queued on another node**.
 
+The proxy is used **only when it's actually needed**. Each owned VMTA renders a
+`NODE_NAME`-guarded source: on the node that owns the IP it binds directly (no
+proxy hop at all); on every other node it tunnels through the owner's proxy. So
+mail received on the same node that owns the egress VMTA — the common case,
+which HTTP-injection egress affinity (§ below) actively steers toward — delivers
+with a plain local bind. The SOCKS5 path only kicks in for genuine cross-node
+egress (a group spanning nodes, or a message received on a non-owning node). A
+VMTA left on **"— Local node —"** (`node_id = ""`) is the pre-cluster mode: a
+direct bind on *every* node, which fails on any node that doesn't physically
+have the IP — always assign a clustered VMTA to its real owning node.
+
 So for the example scenario:
 
 1. Mail arrives at the submission listener on **node1**.
