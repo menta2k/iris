@@ -48,6 +48,17 @@ type FileKumoMTA struct {
 	manageNodePrelude bool
 	// injectRR distributes HTTP injections across active nodes round-robin.
 	injectRR atomic.Uint32
+	// affinity, when set, orders injection targets so a message lands on its
+	// egress-owning node first (avoiding the cross-node kumo-proxy hop). Nil =
+	// pure round-robin.
+	affinity biz.InjectNodeAffinity
+}
+
+// WithInjectAffinity wires the egress-affinity resolver used to order HTTP
+// injection targets. Optional; without it injection round-robins across nodes.
+func (k *FileKumoMTA) WithInjectAffinity(a biz.InjectNodeAffinity) *FileKumoMTA {
+	k.affinity = a
+	return k
 }
 
 // NewFileKumoMTA constructs a file/exec/HTTP-based KumoMTA adapter.

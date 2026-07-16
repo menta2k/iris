@@ -47,6 +47,26 @@ So for the example scenario:
    is emitted by **node1** into the shared Redis stream with the same message
    `id`. Correlation is intact by construction.
 
+### HTTP-injection egress affinity
+
+Step 4 above (delivering through another node's kumo-proxy) is correct but adds
+a cross-node SOCKS5 hop on every attempt. For **HTTP injection**, iris avoids it
+where it can: instead of round-robining each injected message across all nodes,
+it resolves the message's egress-owning node from its mailclass and injects it
+straight onto that node, so the whole lifecycle stays local (no proxy hop).
+
+- A lock-free `mailclass → owning-node` table is built off the hot path (from
+  the routing rules + VMTA node ownership) by the `inject-affinity` worker
+  (`IRIS_INJECT_AFFINITY_INTERVAL`, default 60s) and read with a single atomic
+  load + map lookup per injection — no DB/network in the request path.
+- **No route match** (unknown/unregistered mailclass, recipient-based routing)
+  → the previous **round-robin** is used unchanged. A mailclass routed to a
+  multi-node group round-robins among just the owning nodes.
+- Failover is preserved: if the owning node is unreachable/draining, injection
+  falls back to the ring so it never fails on one node being down.
+- The `iris_injection_routing_total{outcome=affinity_local|affinity_failover|round_robin}`
+  metric shows the cross-node hop rate dropping once mailclasses are routed.
+
 ### Why not the alternatives
 
 | Option | Verdict | Reason |

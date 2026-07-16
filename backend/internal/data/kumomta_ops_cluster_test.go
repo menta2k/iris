@@ -193,6 +193,53 @@ func TestInjectRoundRobinFailsOverUnreachableNode(t *testing.T) {
 	}
 }
 
+// stubAffinity returns a fixed preferred node set (or ok=false).
+type stubAffinity struct {
+	nodes []string
+	ok    bool
+}
+
+func (s stubAffinity) NodeFor(biz.KumoInjectRequest) ([]string, bool) { return s.nodes, s.ok }
+
+func TestInjectAffinityPrefersOwningNode(t *testing.T) {
+	local := &fakeKumod{name: "node1"}
+	remote := &fakeKumod{name: "node2"}
+	adapter, cleanup := twoNodeAdapter(t, local, remote, biz.MTANodeStatusActive)
+	defer cleanup()
+	// Egress owner is node2 (remote) for every message.
+	adapter.WithInjectAffinity(stubAffinity{nodes: []string{"n2"}, ok: true})
+
+	for i := range 5 {
+		if err := adapter.InjectV1(context.Background(), biz.KumoInjectRequest{}); err != nil {
+			t.Fatalf("InjectV1 #%d: %v", i, err)
+		}
+	}
+	// All 5 must land on node2 — no round-robin bleed to node1.
+	if remote.injected != 5 || local.injected != 0 {
+		t.Fatalf("affinity did not pin to owner: node2=%d node1=%d (want 5/0)", remote.injected, local.injected)
+	}
+}
+
+func TestInjectAffinityFailsOverWhenOwnerUnreachable(t *testing.T) {
+	local := &fakeKumod{name: "node1"}
+	localSrv := httptest.NewServer(local.handler())
+	defer localSrv.Close()
+	adapter := NewFileKumoMTA(conf.External{ConfigPath: filepath.Join(t.TempDir(), "p.lua"), BaseURL: localSrv.URL})
+	adapter.AttachCluster(&fakeClusterNodes{nodes: []*biz.MTANode{
+		{ID: "n1", Name: "node1", Status: biz.MTANodeStatusActive},
+		{ID: "n2", Name: "node2", Status: biz.MTANodeStatusActive, AgentURL: "https://127.0.0.1:1"}, // dead owner
+	}}, &http.Client{})
+	// Owner is the dead node2, but injection must still succeed via node1.
+	adapter.WithInjectAffinity(stubAffinity{nodes: []string{"n2"}, ok: true})
+
+	if err := adapter.InjectV1(context.Background(), biz.KumoInjectRequest{}); err != nil {
+		t.Fatalf("InjectV1 should fail over to a reachable node: %v", err)
+	}
+	if local.injected != 1 {
+		t.Fatalf("failover injection count = %d, want 1", local.injected)
+	}
+}
+
 func TestInjectSkipsDrainingNodeAndTreatsRejectionAsFinal(t *testing.T) {
 	local := &fakeKumod{name: "node1", rejectInject: true}
 	remote := &fakeKumod{name: "node2"}

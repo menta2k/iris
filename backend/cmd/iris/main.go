@@ -326,6 +326,14 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 		// to every node). No-op in stub mode.
 		kumoConfigUC = kumoConfigUC.WithTLSDigester(fileKumo)
 	}
+	// Egress-affinity for HTTP injection: place each message on the node that
+	// owns the VMTA it routes to, avoiding the cross-node kumo-proxy hop. The
+	// table is rebuilt off the hot path by the inject-affinity worker below;
+	// injection reads it lock-free. No-op in stub mode / single node.
+	injectAffinity := biz.NewInjectAffinity()
+	if fileKumo != nil {
+		fileKumo.WithInjectAffinity(injectAffinity)
+	}
 	// Domain bounce-readiness checker (MX/SPF/DKIM via live DNS).
 	domainCheckUC := biz.NewDomainCheckUsecase(kumoSnapshotRepo, nil)
 	// Tools: sender diagnose + RBL/DNSBL check (live DNS).
@@ -522,6 +530,11 @@ func buildApp(ctx context.Context, cfg *conf.Config, log *slog.Logger) (*kratos.
 	// ACME: HTTP-01 challenge listener (default off) + periodic renewer.
 	startWorker(ctx, log, "acme-challenge", worker.NewAcmeChallengeWorker(acmeTokens, envOr("IRIS_ACME_HTTP_BIND", "off"), wlog("acme-challenge")).Run)
 	startWorker(ctx, log, "acme-renewer", worker.NewAcmeRenewerWorker(acmeUC, kumoConfigUC, renewInterval, renewBefore, wlog("acme-renewer")).Run)
+	// Inject-affinity: keep the mailclass→owning-node table fresh so HTTP
+	// injection places each message on its egress-owning node (no proxy hop).
+	if fileKumo != nil {
+		startWorker(ctx, log, "inject-affinity", worker.NewInjectAffinityWorker(kumoSnapshotRepo, injectAffinity, envDuration("IRIS_INJECT_AFFINITY_INTERVAL", 60*time.Second), wlog("inject-affinity")).Run)
+	}
 	// Mail-log retention: drop/compress old TimescaleDB chunks on a daily cadence
 	// and on demand. Safe no-op on plain PostgreSQL (no hypertables).
 	startWorker(ctx, log, "retention", worker.NewRetentionWorker(streams, retentionRepo, envDuration("IRIS_RETENTION_INTERVAL", 24*time.Hour), wlog("retention")).Run)

@@ -30,6 +30,16 @@ var (
 	}, []string{"vmta", "status", "node"})
 
 	// Bounces counts bounces by type (hard/soft/dsn) and mail class.
+	// InjectionRouting counts HTTP-injection routing decisions by outcome:
+	//   affinity_local  — placed on its egress-owning node (no proxy hop)
+	//   affinity_failover — owner unreachable, delivered to another node
+	//   round_robin     — no mailclass route matched, spread across the ring
+	// Watch affinity_local rise vs round_robin to confirm the cross-node hop drops.
+	InjectionRouting = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "iris_injection_routing_total",
+		Help: "HTTP-injection node-routing decisions by outcome.",
+	}, []string{"outcome"})
+
 	Bounces = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "iris_bounces_total",
 		Help: "Bounces by type (hard, soft, dsn) and mail class.",
@@ -87,6 +97,7 @@ var (
 
 func init() {
 	prometheus.MustRegister(MailEvents, VMTAEvents, Bounces, WebhookExecutions, MailQueueTime,
+		InjectionRouting,
 		SystemCPUPercent, SystemMemoryPercent, SystemMemoryUsedBytes,
 		SystemDiskUsedPercent, SystemDiskUsedBytes, SystemDiskTotalBytes)
 }
