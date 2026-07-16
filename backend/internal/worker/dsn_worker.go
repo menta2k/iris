@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"log/slog"
+	"net/mail"
 	"strings"
 	"time"
 
@@ -81,6 +82,18 @@ func (w *DSNWorker) handle(ctx context.Context, m data.StreamMessage) {
 		return
 	}
 
+	raw := stringValue(m.Values["data"])
+	// A vacation / out-of-office auto-reply lands on our VERP bounce address
+	// because that address was the Return-Path of the original message. It is NOT
+	// a delivery failure — the recipient's mailbox is fine — so it must not record
+	// a bounce or suppress the recipient. Detected per RFC 3834 (Auto-Submitted:
+	// auto-replied/auto-notified — a real DSN uses auto-generated and still
+	// processes) plus Microsoft's X-Auto-Response-Suppress.
+	if reason, auto := autoReplyReason(raw); auto {
+		w.log.Info("dsn: ignoring automatic reply, not a bounce", "envelope", envelope, "reason", reason)
+		return
+	}
+
 	// The envelope recipient is our VERP return-path. Decode it to the original
 	// message id and resolve the recipient the bounce is actually for, so we
 	// record/suppress the real address — not the bounce-domain address.
@@ -122,7 +135,7 @@ func (w *DSNWorker) handle(ctx context.Context, m data.StreamMessage) {
 		}
 		// Archive the full DSN so the suppression detail can show it. Keyed by the
 		// same recipient used for the suppression so the two line up.
-		if raw := stringValue(m.Values["data"]); raw != "" {
+		if raw != "" {
 			if err := w.suppressor.InsertDSNMessage(ctx, &biz.DSNMessage{
 				Recipient:  recipient,
 				MessageID:  msgID,
@@ -133,4 +146,31 @@ func (w *DSNWorker) handle(ctx context.Context, m data.StreamMessage) {
 			}
 		}
 	}
+}
+
+// autoReplyReason reports whether raw is a vacation / out-of-office style
+// automatic reply (which must not be treated as a bounce). Follows RFC 3834:
+// Auto-Submitted "auto-replied" or "auto-notified" — a real DSN uses
+// "auto-generated" and is intentionally NOT matched — plus Microsoft's
+// X-Auto-Response-Suppress. An unparseable message is treated as NOT an auto
+// reply (fall through to normal handling) so genuine, oddly-formatted bounces
+// are never silently dropped. Returns (reason, true) on a match.
+func autoReplyReason(raw string) (string, bool) {
+	if strings.TrimSpace(raw) == "" {
+		return "", false
+	}
+	msg, err := mail.ReadMessage(strings.NewReader(raw))
+	if err != nil {
+		return "", false
+	}
+	// Auto-Submitted may carry a comment/params, e.g. "auto-replied (vacation)";
+	// compare the leading keyword only.
+	as := strings.ToLower(strings.TrimSpace(msg.Header.Get("Auto-Submitted")))
+	if strings.HasPrefix(as, "auto-replied") || strings.HasPrefix(as, "auto-notified") {
+		return "auto-submitted=" + as, true
+	}
+	if strings.TrimSpace(msg.Header.Get("X-Auto-Response-Suppress")) != "" {
+		return "x-auto-response-suppress", true
+	}
+	return "", false
 }
