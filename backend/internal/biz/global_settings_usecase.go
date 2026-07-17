@@ -110,6 +110,7 @@ func (uc *GlobalSettingsUsecase) Effective(ctx context.Context) (KumoConfigSetti
 		s.InboundMaildirBase = row.InboundMaildirBasePath
 	}
 	s.PinEgressPerMessage = row.PinEgressPerMessage
+	s.Ipv4Only = row.Ipv4Only
 	return s, nil
 }
 

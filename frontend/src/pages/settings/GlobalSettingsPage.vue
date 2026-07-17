@@ -53,6 +53,7 @@ const form = ref({
   soft_bounce_threshold: 0,
   fbl_require_verification: false,
   tls_auto_disable: false,
+  ipv4_only: false,
   inbound_maildir_base_path: '',
   suppression_ttl: '',
   dmarc_report_email: '',
@@ -99,6 +100,7 @@ function apply(s: GlobalSettings) {
     soft_bounce_threshold: s.softBounceThreshold ?? 0,
     fbl_require_verification: s.fblRequireVerification ?? false,
     tls_auto_disable: s.tlsAutoDisable ?? false,
+    ipv4_only: s.ipv4Only ?? false,
     inbound_maildir_base_path: s.inboundMaildirBasePath || '',
     suppression_ttl: s.suppressionTtl || '',
     dmarc_report_email: s.dmarcReportEmail || '',
@@ -175,6 +177,7 @@ async function save() {
         soft_bounce_threshold: form.value.soft_bounce_threshold,
         fbl_require_verification: form.value.fbl_require_verification,
         tls_auto_disable: form.value.tls_auto_disable,
+        ipv4_only: form.value.ipv4_only,
         inbound_maildir_base_path: form.value.inbound_maildir_base_path,
         suppression_ttl: form.value.suppression_ttl,
         dmarc_report_email: form.value.dmarc_report_email,
@@ -464,6 +467,21 @@ onBeforeUnmount(() => window.removeEventListener('scroll', updateActiveSection))
                     chosen deterministically by a hash of the message id, weighted by the pool). Off =
                     KumoMTA's default weighted round-robin, which may retry the same message from
                     different IPs. Only affects multi-IP pools.
+                  </p>
+                </div>
+                <div>
+                  <v-switch
+                    v-model="form.ipv4_only"
+                    color="primary"
+                    density="compact"
+                    hide-details
+                    label="IPv4 only (skip IPv6 MX hosts)"
+                    data-testid="ipv4-only"
+                  />
+                  <p class="text-caption text-medium-emphasis mb-0">
+                    Deliver outbound over IPv4 only — the egress path prohibits <code>::/0</code> so
+                    kumod skips IPv6 MX candidates. Use when the host has no working IPv6 egress. Note:
+                    a domain whose MX resolves <strong>only</strong> to IPv6 will then fail to deliver.
                   </p>
                 </div>
               </CardContent>

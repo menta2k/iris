@@ -971,6 +971,7 @@ export interface GlobalSettings {
   monitoringFetchTimeout: string
   monitoringFetchGiveup: string
   tlsAutoDisable: boolean
+  ipv4Only: boolean
   updatedAt?: string
   updatedBy?: string
 }
@@ -1014,6 +1015,7 @@ export interface UpdateGlobalSettingsRequest {
   monitoring_fetch_timeout: string
   monitoring_fetch_giveup: string
   tls_auto_disable: boolean
+  ipv4_only: boolean
 }
 
 // ---- Subject classifications ----

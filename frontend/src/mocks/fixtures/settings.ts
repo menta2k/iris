@@ -47,6 +47,7 @@ export const globalSettings: GlobalSettings = {
   monitoringFetchTimeout: '30s',
   monitoringFetchGiveup: '2h',
   tlsAutoDisable: false,
+  ipv4Only: false,
   updatedAt: hoursAgo(3),
   updatedBy: 'admin@iris.local',
 }

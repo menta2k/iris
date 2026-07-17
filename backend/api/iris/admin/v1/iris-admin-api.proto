@@ -2106,6 +2106,8 @@ message GlobalSettings {
   string monitoring_fetch_giveup = 40;
   // Auto-disable TLS for a destination domain on a STARTTLS handshake failure.
   bool tls_auto_disable = 41;
+  // IPv4-only outbound: skip IPv6 MX hosts (prohibit ::/0 on the egress path).
+  bool ipv4_only = 42;
 }
 message GetGlobalSettingsRequest {}
 message UpdateGlobalSettingsRequest {
@@ -2153,6 +2155,7 @@ message UpdateGlobalSettingsRequest {
   string monitoring_fetch_timeout = 37;
   string monitoring_fetch_giveup = 38;
   bool tls_auto_disable = 39;
+  bool ipv4_only = 40;
 }
 
 // A subject → label classification rule. source is "manual" (operator-authored)

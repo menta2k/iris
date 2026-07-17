@@ -614,6 +614,29 @@ func TestRenderRequireTLSPolicy(t *testing.T) {
 	}
 }
 
+func TestRenderIPv4Only(t *testing.T) {
+	base := ConfigSnapshot{
+		VMTAs: []*VMTA{{ID: "v1", Name: "v1", ListenerID: "lst-1", IPAddress: "203.0.113.1", EHLOName: "v1.example.com", Status: VMTAStatusActive}},
+	}
+	// Off by default: no prohibited_hosts.
+	off, err := RenderKumoConfig(base)
+	if err != nil || !off.Valid {
+		t.Fatalf("render off: err=%v valid=%v", err, off.Valid)
+	}
+	if strings.Contains(off.Content, "prohibited_hosts") {
+		t.Fatalf("ipv4_only off must not emit prohibited_hosts:\n%s", off.Content)
+	}
+	// On: the egress path prohibits ::/0 to skip IPv6 MX hosts.
+	base.Ipv4Only = true
+	on, err := RenderKumoConfig(base)
+	if err != nil || !on.Valid {
+		t.Fatalf("render on: err=%v valid=%v issues=%v", err, on.Valid, on.LintIssues)
+	}
+	if !strings.Contains(on.Content, "params.prohibited_hosts = { '::/0' }") {
+		t.Fatalf("ipv4_only on must prohibit ::/0:\n%s", on.Content)
+	}
+}
+
 func TestRenderTLSPolicyRedisBacked(t *testing.T) {
 	// With Redis configured, operator per-domain TLS policies live in Redis
 	// (looked up live, no reload) and must NOT be rendered inline; the memoized

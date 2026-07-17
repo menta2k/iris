@@ -39,6 +39,9 @@ type GlobalSettings struct {
 	// of KumoMTA's per-attempt weighted round-robin. Default false = round-robin.
 	PinEgressPerMessage bool
 
+	// Ipv4Only skips IPv6 MX hosts on outbound delivery (forces IPv4).
+	Ipv4Only bool
+
 	// Bounce / DSN pipeline.
 	BounceDomain            string
 	AutoSuppressHardBounces bool

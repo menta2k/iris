@@ -16108,8 +16108,10 @@ type GlobalSettings struct {
 	MonitoringFetchGiveup       string `protobuf:"bytes,40,opt,name=monitoring_fetch_giveup,json=monitoringFetchGiveup,proto3" json:"monitoring_fetch_giveup,omitempty"`
 	// Auto-disable TLS for a destination domain on a STARTTLS handshake failure.
 	TlsAutoDisable bool `protobuf:"varint,41,opt,name=tls_auto_disable,json=tlsAutoDisable,proto3" json:"tls_auto_disable,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// IPv4-only outbound: skip IPv6 MX hosts (prohibit ::/0 on the egress path).
+	Ipv4Only      bool `protobuf:"varint,42,opt,name=ipv4_only,json=ipv4Only,proto3" json:"ipv4_only,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GlobalSettings) Reset() {
@@ -16422,6 +16424,13 @@ func (x *GlobalSettings) GetTlsAutoDisable() bool {
 	return false
 }
 
+func (x *GlobalSettings) GetIpv4Only() bool {
+	if x != nil {
+		return x.Ipv4Only
+	}
+	return false
+}
+
 type GetGlobalSettingsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -16503,6 +16512,7 @@ type UpdateGlobalSettingsRequest struct {
 	MonitoringFetchTimeout      string `protobuf:"bytes,37,opt,name=monitoring_fetch_timeout,json=monitoringFetchTimeout,proto3" json:"monitoring_fetch_timeout,omitempty"`
 	MonitoringFetchGiveup       string `protobuf:"bytes,38,opt,name=monitoring_fetch_giveup,json=monitoringFetchGiveup,proto3" json:"monitoring_fetch_giveup,omitempty"`
 	TlsAutoDisable              bool   `protobuf:"varint,39,opt,name=tls_auto_disable,json=tlsAutoDisable,proto3" json:"tls_auto_disable,omitempty"`
+	Ipv4Only                    bool   `protobuf:"varint,40,opt,name=ipv4_only,json=ipv4Only,proto3" json:"ipv4_only,omitempty"`
 	unknownFields               protoimpl.UnknownFields
 	sizeCache                   protoimpl.SizeCache
 }
@@ -16799,6 +16809,13 @@ func (x *UpdateGlobalSettingsRequest) GetMonitoringFetchGiveup() string {
 func (x *UpdateGlobalSettingsRequest) GetTlsAutoDisable() bool {
 	if x != nil {
 		return x.TlsAutoDisable
+	}
+	return false
+}
+
+func (x *UpdateGlobalSettingsRequest) GetIpv4Only() bool {
+	if x != nil {
+		return x.Ipv4Only
 	}
 	return false
 }
@@ -22038,7 +22055,7 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\vtotal_count\x18\x03 \x01(\x03R\n" +
 	"totalCount\x12\x14\n" +
 	"\x05range\x18\x04 \x01(\tR\x05range\x121\n" +
-	"\x14prometheus_available\x18\x05 \x01(\bR\x13prometheusAvailable\"\xd2\x0e\n" +
+	"\x14prometheus_available\x18\x05 \x01(\bR\x13prometheusAvailable\"\xef\x0e\n" +
 	"\x0eGlobalSettings\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -22085,8 +22102,9 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x1dmonitoring_reconcile_lookback\x18& \x01(\tR\x1bmonitoringReconcileLookback\x128\n" +
 	"\x18monitoring_fetch_timeout\x18' \x01(\tR\x16monitoringFetchTimeout\x126\n" +
 	"\x17monitoring_fetch_giveup\x18( \x01(\tR\x15monitoringFetchGiveup\x12(\n" +
-	"\x10tls_auto_disable\x18) \x01(\bR\x0etlsAutoDisableJ\x04\b\r\x10\x0e\"\x1a\n" +
-	"\x18GetGlobalSettingsRequest\"\xa1\x0e\n" +
+	"\x10tls_auto_disable\x18) \x01(\bR\x0etlsAutoDisable\x12\x1b\n" +
+	"\tipv4_only\x18* \x01(\bR\bipv4OnlyJ\x04\b\r\x10\x0e\"\x1a\n" +
+	"\x18GetGlobalSettingsRequest\"\xbe\x0e\n" +
 	"\x1bUpdateGlobalSettingsRequest\x12\x1f\n" +
 	"\vrspamd_mode\x18\x01 \x01(\tR\n" +
 	"rspamdMode\x12\x1d\n" +
@@ -22129,7 +22147,8 @@ const file_iris_admin_v1_iris_admin_api_proto_rawDesc = "" +
 	"\x1dmonitoring_reconcile_lookback\x18$ \x01(\tR\x1bmonitoringReconcileLookback\x128\n" +
 	"\x18monitoring_fetch_timeout\x18% \x01(\tR\x16monitoringFetchTimeout\x126\n" +
 	"\x17monitoring_fetch_giveup\x18& \x01(\tR\x15monitoringFetchGiveup\x12(\n" +
-	"\x10tls_auto_disable\x18' \x01(\bR\x0etlsAutoDisableJ\x04\b\r\x10\x0e\"\xb4\x02\n" +
+	"\x10tls_auto_disable\x18' \x01(\bR\x0etlsAutoDisable\x12\x1b\n" +
+	"\tipv4_only\x18( \x01(\bR\bipv4OnlyJ\x04\b\r\x10\x0e\"\xb4\x02\n" +
 	"\x15SubjectClassification\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12-\n" +

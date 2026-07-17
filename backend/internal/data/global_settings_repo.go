@@ -27,7 +27,7 @@ const globalSettingsCols = `rspamd_mode, rspamd_url, egress_ehlo_domain,
 	acme_renew_interval, acme_renew_before, prometheus_url, fbl_require_verification,
 	inbound_maildir_base_path, bounce_domain_template,
 	classify_subjects, classify_model, classify_threshold, classify_api_base,
-	pin_egress_per_message,
+	pin_egress_per_message, ipv4_only,
 	injection_enabled, injection_listen_addr, injection_path, injection_tls_enabled, injection_tls_cert_domain,
 	monitoring_from, monitoring_reconcile_lookback, monitoring_fetch_timeout, monitoring_fetch_giveup,
 	tls_auto_disable,
@@ -44,7 +44,7 @@ func scanGlobalSettings(row interface{ Scan(...any) error }) (*biz.GlobalSetting
 		&out.AcmeRenewInterval, &out.AcmeRenewBefore, &out.PrometheusURL, &out.FBLRequireVerification,
 		&out.InboundMaildirBasePath, &out.BounceDomainTemplate,
 		&out.ClassifySubjects, &out.ClassifyModel, &out.ClassifyThreshold, &out.ClassifyAPIBase,
-		&out.PinEgressPerMessage,
+		&out.PinEgressPerMessage, &out.Ipv4Only,
 		&out.InjectionEnabled, &out.InjectionListenAddr, &out.InjectionPath, &out.InjectionTLSEnabled, &out.InjectionTLSCertDomain,
 		&out.MonitoringFrom, &out.MonitoringReconcileLookback, &out.MonitoringFetchTimeout, &out.MonitoringFetchGiveUp,
 		&out.TLSAutoDisable,
@@ -86,7 +86,7 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in *biz.GlobalSettings,
 			injection_tls_enabled = $32, injection_tls_cert_domain = $33,
 			monitoring_from = $34, monitoring_reconcile_lookback = $35,
 			monitoring_fetch_timeout = $36, monitoring_fetch_giveup = $37,
-			tls_auto_disable = $38,
+			tls_auto_disable = $38, ipv4_only = $40,
 			updated_at = now(), updated_by = $39
 		WHERE id = 1
 		RETURNING `+globalSettingsCols,
@@ -102,7 +102,7 @@ func (r *GlobalSettingsRepo) Update(ctx context.Context, in *biz.GlobalSettings,
 		in.InjectionEnabled, in.InjectionListenAddr, in.InjectionPath, in.InjectionTLSEnabled, in.InjectionTLSCertDomain,
 		in.MonitoringFrom, in.MonitoringReconcileLookback, in.MonitoringFetchTimeout, in.MonitoringFetchGiveUp,
 		in.TLSAutoDisable,
-		actor))
+		actor, in.Ipv4Only))
 	if err != nil {
 		return nil, mapConstraint(err, "global_settings")
 	}

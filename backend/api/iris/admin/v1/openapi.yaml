@@ -4278,6 +4278,9 @@ components:
                 tls_auto_disable:
                     type: boolean
                     description: Auto-disable TLS for a destination domain on a STARTTLS handshake failure.
+                ipv4_only:
+                    type: boolean
+                    description: 'IPv4-only outbound: skip IPv6 MX hosts (prohibit ::/0 on the egress path).'
             description: Global settings — deployment-level policy knobs an operator edits in the UI.
         InboundRoute:
             type: object
@@ -6011,6 +6014,8 @@ components:
                 monitoring_fetch_giveup:
                     type: string
                 tls_auto_disable:
+                    type: boolean
+                ipv4_only:
                     type: boolean
         UpdateInboundRouteRequest:
             type: object

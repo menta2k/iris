@@ -52,6 +52,9 @@ type ConfigSnapshot struct {
 	// deterministically mapping it (hash of message id) to a single source in its
 	// pool at reception, instead of KumoMTA's per-attempt weighted round-robin.
 	PinEgressPerMessage bool
+	// Ipv4Only makes outbound delivery skip IPv6 MX hosts (the egress path
+	// prohibits ::/0), forcing IPv4 delivery.
+	Ipv4Only bool
 
 	// TSAUrl, when set, is the KumoMTA Traffic Shaping Automation daemon URL the
 	// policy publishes log events to and subscribes to for adaptive (hourly)
@@ -396,7 +399,7 @@ func RenderKumoConfig(snap ConfigSnapshot) (out RenderedConfig, err error) {
 	pools := writeEgressPools(&b, snap.VMTAs, snap.Groups, vmtaName, snap.PinEgressPerMessage)
 	// Per-VMTA connection limits (max_connections) via the egress path config.
 	fwdTLS, _ := forwardTargets(snap)
-	writeEgressPaths(&b, snap.VMTAs, snap.TLSPolicies, fwdTLS, snap.ShapingDir, snap.TSAUrl, snap.LogStreamRedisURL != "")
+	writeEgressPaths(&b, snap.VMTAs, snap.TLSPolicies, fwdTLS, snap.ShapingDir, snap.TSAUrl, snap.LogStreamRedisURL != "", snap.Ipv4Only)
 	// DKIM signers.
 	dkim := writeDKIMTable(&b, snap.DKIM)
 	// DKIM signing function + the http-injection signing hook. Defined before the
@@ -1561,7 +1564,7 @@ func writeEsmtpListener(b *strings.Builder, l *Listener) {
 // the policy, so the two always agree in a real deployment.
 const defaultPolicyDir = "/opt/kumomta/etc/policy"
 
-func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolicy, fwdTargets []forwardTarget, shapingDir, tsaURL string, redisTLS bool) {
+func writeEgressPaths(b *strings.Builder, vmtas []*VMTA, tlsPolicies []*TLSPolicy, fwdTargets []forwardTarget, shapingDir, tsaURL string, redisTLS, ipv4Only bool) {
 	b.WriteString("-- ===== egress path config (shaping helper: blueprints + warmup overrides) =====\n")
 	b.WriteString("local SOURCE_LIMITS = {}\n")
 	for _, v := range sortedVMTAs(vmtas) {
@@ -1672,6 +1675,14 @@ local get_tls_policies = kumo.memoize(_tls_policies, {
 	if redisTLS {
 		tlsExpr = "get_tls_policies('all')[string.lower(domain)] or REQUIRE_TLS_DOMAINS[string.lower(domain)] or SOURCE_TLS[egress_source]"
 	}
+	// IPv4-only: prohibit every IPv6 host so kumod skips AAAA MX candidates and
+	// delivers over IPv4 (https://docs.kumomta.com/faq/how_do_I_skip_ipv6_mx_hosts_for_outbound_smtp/).
+	// A domain whose MX resolves ONLY to IPv6 will then fail — that is the intended
+	// trade-off of forcing IPv4.
+	ipv4Line := ""
+	if ipv4Only {
+		ipv4Line = "  params.prohibited_hosts = { '::/0' } -- IPv4 only: skip IPv6 MX hosts\n"
+	}
 	fmt.Fprintf(b, `
 kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
   local params = iris_shaper.get_egress_path_config(domain, egress_source, site_name, true)
@@ -1702,10 +1713,10 @@ kumo.on('get_egress_path_config', function(domain, egress_source, site_name)
     -- verification (Required). Matches Postfix's default posture for :25.
     params.enable_tls = params.enable_tls or 'OpportunisticInsecure'
   end
-  return kumo.make_egress_path(params)
+%s  return kumo.make_egress_path(params)
 end)
 
-`, tlsExpr)
+`, tlsExpr, ipv4Line)
 }
 
 func sortedTLSPolicies(in []*TLSPolicy) []*TLSPolicy {

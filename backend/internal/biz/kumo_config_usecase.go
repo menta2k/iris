@@ -74,6 +74,9 @@ type KumoConfigSettings struct {
 	// pool (by hashing the message id) instead of leaving KumoMTA's weighted
 	// round-robin to re-pick a (possibly different) source on every attempt.
 	PinEgressPerMessage bool
+
+	// Ipv4Only skips IPv6 MX hosts on outbound delivery (prohibits ::/0).
+	Ipv4Only bool
 }
 
 // KumoConfigUsecase renders Iris configuration into KumoMTA policy and applies
@@ -193,6 +196,7 @@ func (uc *KumoConfigUsecase) render(ctx context.Context) (RenderedConfig, error)
 	snap.ShapingDir = settings.ShapingDir
 	snap.TSAUrl = settings.TSAUrl
 	snap.PinEgressPerMessage = settings.PinEgressPerMessage
+	snap.Ipv4Only = settings.Ipv4Only
 	// IP warmup: resolve the active/paused schedules to per-source, per-MBP
 	// message-rate caps for today. Done here (not in RenderKumoConfig) so the
 	// renderer stays a pure, time-independent snapshot→policy function.
