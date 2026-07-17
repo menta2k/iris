@@ -49,10 +49,17 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const notImplemented = ref(false)
 
-async function load() {
-  loading.value = true
-  error.value = null
-  notImplemented.value = false
+async function load(opts: { silent?: boolean } = {}) {
+  // The initial load shows the skeleton (loading=true). Event-driven refreshes
+  // run silently: toggling `loading` would make DataState unmount/remount the
+  // whole panel tree, so every self-fetching sub-panel (mail flow, volume,
+  // warmup, …) would refetch and the page would visibly flash every few
+  // seconds. A silent refresh updates the KPI tiles + activity feeds in place.
+  if (!opts.silent) {
+    loading.value = true
+    error.value = null
+    notImplemented.value = false
+  }
   try {
     summary.value = await dashboardService.getSummary()
     // The summary returns counts; fetch the most recent rows for the activity
@@ -64,6 +71,9 @@ async function load() {
     recentMail.value = mail.status === 'fulfilled' ? (mail.value.items ?? []).slice(0, 8) : []
     recentAudit.value = audit.status === 'fulfilled' ? (audit.value.items ?? []).slice(0, 8) : []
   } catch (err) {
+    // On a silent refresh keep the last-good view rather than tearing the
+    // dashboard down for a transient error; surface it only on a real load.
+    if (opts.silent) return
     summary.value = null
     if (err instanceof ApiError && err.notImplemented) {
       notImplemented.value = true
@@ -73,7 +83,7 @@ async function load() {
       error.value = err instanceof Error ? err.message : 'Failed to load dashboard.'
     }
   } finally {
-    loading.value = false
+    if (!opts.silent) loading.value = false
   }
 }
 
@@ -107,7 +117,7 @@ let refreshTimer: ReturnType<typeof setTimeout> | undefined
 function scheduleRefresh() {
   clearTimeout(refreshTimer)
   refreshTimer = setTimeout(() => {
-    if (!loading.value) load()
+    if (!loading.value) load({ silent: true })
   }, 4000)
 }
 const dashStream = useEventStream('dashboard', scheduleRefresh)
