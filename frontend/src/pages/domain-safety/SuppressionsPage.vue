@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import DataState from '@/components/common/DataState.vue'
 import PaginationControls from '@/components/common/PaginationControls.vue'
+import EvidenceDialog from '@/components/common/EvidenceDialog.vue'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
@@ -270,6 +271,14 @@ async function submit() {
   } finally {
     saving.value = false
   }
+}
+
+// ---- Evidence viewer: the bounce event that auto-suppressed a recipient ----
+const evidenceOpen = ref(false)
+const evidenceKey = ref('')
+function showEvidence(value: string) {
+  evidenceKey.value = value
+  evidenceOpen.value = true
 }
 
 // ---- DSN message viewer (for dsn-sourced suppressions) ----
@@ -544,6 +553,16 @@ async function purgePermanent() {
                       @click="viewDsn(s)"
                     />
                     <v-btn
+                      v-if="s.source === 'bounce'"
+                      icon="mdi-file-document-outline"
+                      variant="text"
+                      size="small"
+                      aria-label="View evidence"
+                      title="Evidence — the bounce that auto-suppressed this recipient"
+                      :data-testid="`evidence-suppression-${s.id}`"
+                      @click="showEvidence(s.value)"
+                    />
+                    <v-btn
                       :icon="(s.status || '').toLowerCase() === 'active' ? 'mdi-pause-circle-outline' : 'mdi-play-circle-outline'"
                       variant="text"
                       size="small"
@@ -658,6 +677,13 @@ async function purgePermanent() {
         <Button type="button" variant="outline" @click="dsnDialogOpen = false">Close</Button>
       </DialogFooter>
     </Dialog>
+
+    <EvidenceDialog
+      v-model:open="evidenceOpen"
+      subject-type="suppression"
+      :subject-key="evidenceKey"
+      :title="`Why ${evidenceKey} was suppressed`"
+    />
 
     <Dialog v-model:open="purgeDialogOpen">
       <DialogHeader>
