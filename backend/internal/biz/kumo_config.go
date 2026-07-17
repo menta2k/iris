@@ -1675,13 +1675,16 @@ local get_tls_policies = kumo.memoize(_tls_policies, {
 	if redisTLS {
 		tlsExpr = "get_tls_policies('all')[string.lower(domain)] or REQUIRE_TLS_DOMAINS[string.lower(domain)] or SOURCE_TLS[egress_source]"
 	}
-	// IPv4-only: prohibit every IPv6 host so kumod skips AAAA MX candidates and
-	// delivers over IPv4 (https://docs.kumomta.com/faq/how_do_I_skip_ipv6_mx_hosts_for_outbound_smtp/).
-	// A domain whose MX resolves ONLY to IPv6 will then fail — that is the intended
-	// trade-off of forcing IPv4.
+	// IPv4-only: skip every IPv6 host so kumod drops AAAA MX candidates from the
+	// list and delivers over the remaining IPv4 MX
+	// (https://docs.kumomta.com/faq/how_do_I_skip_ipv6_mx_hosts_for_outbound_smtp/).
+	// Use skip_hosts (removes the candidate), NOT prohibited_hosts (which treats
+	// an IPv6 MX as a hard error and 550-bounces instead of falling back to IPv4).
+	// A domain whose MX is IPv6-only then defers rather than delivers — the
+	// intended trade-off of forcing IPv4.
 	ipv4Line := ""
 	if ipv4Only {
-		ipv4Line = "  params.prohibited_hosts = { '::/0' } -- IPv4 only: skip IPv6 MX hosts\n"
+		ipv4Line = "  params.skip_hosts = { '::/0' } -- IPv4 only: skip IPv6 MX hosts\n"
 	}
 	fmt.Fprintf(b, `
 kumo.on('get_egress_path_config', function(domain, egress_source, site_name)

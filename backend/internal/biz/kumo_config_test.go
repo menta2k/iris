@@ -623,17 +623,21 @@ func TestRenderIPv4Only(t *testing.T) {
 	if err != nil || !off.Valid {
 		t.Fatalf("render off: err=%v valid=%v", err, off.Valid)
 	}
-	if strings.Contains(off.Content, "prohibited_hosts") {
-		t.Fatalf("ipv4_only off must not emit prohibited_hosts:\n%s", off.Content)
+	if strings.Contains(off.Content, "skip_hosts") {
+		t.Fatalf("ipv4_only off must not emit skip_hosts:\n%s", off.Content)
 	}
-	// On: the egress path prohibits ::/0 to skip IPv6 MX hosts.
+	// On: the egress path SKIPS ::/0 (graceful candidate removal, not a hard
+	// prohibited_hosts error that would 550-bounce dual-stack MX like Google).
 	base.Ipv4Only = true
 	on, err := RenderKumoConfig(base)
 	if err != nil || !on.Valid {
 		t.Fatalf("render on: err=%v valid=%v issues=%v", err, on.Valid, on.LintIssues)
 	}
-	if !strings.Contains(on.Content, "params.prohibited_hosts = { '::/0' }") {
-		t.Fatalf("ipv4_only on must prohibit ::/0:\n%s", on.Content)
+	if !strings.Contains(on.Content, "params.skip_hosts = { '::/0' }") {
+		t.Fatalf("ipv4_only on must skip ::/0:\n%s", on.Content)
+	}
+	if strings.Contains(on.Content, "prohibited_hosts") {
+		t.Fatalf("ipv4_only must NOT use prohibited_hosts (it hard-bounces IPv6 MX):\n%s", on.Content)
 	}
 }
 
